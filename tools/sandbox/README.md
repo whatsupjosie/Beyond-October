@@ -13,18 +13,18 @@ python3 tools/sandbox/run_sandbox.py --tier fast
 python3 tools/sandbox/run_sandbox.py --tier standard --capture
 ```
 
-Windows PowerShell 5 (**unverified on Windows, see the ledger at the bottom**):
+Windows PowerShell 5 (**not yet run on Windows; it has been run under PowerShell 7 on Linux, see the ledger at the bottom**):
 
 ```
 powershell -ExecutionPolicy Bypass -File tools\sandbox\Test-PubCast.ps1 -Tier fast
 powershell -ExecutionPolicy Bypass -File tools\sandbox\Test-PubCast.ps1 -Tier standard -Capture
 ```
 
-A fresh cloud machine may need system packages first (ffmpeg, Xvfb, numpy for Blender, optionally Blender):
+A fresh cloud machine may need system tools first (ffmpeg, Xvfb, numpy for Blender, and optionally Blender, Rust and Firefox):
 
 ```
-bash tools/sandbox/bootstrap_system.sh --check     # report only
-bash tools/sandbox/bootstrap_system.sh --blender   # install what is missing
+bash tools/sandbox/bootstrap_system.sh --check --all   # report only
+bash tools/sandbox/bootstrap_system.sh --all           # install what is missing
 ```
 
 The report appears in `.sandbox/reports/<time>-<label>-py<version>/`. Open `REPORT.md`; `report.json` is the same data for machines; `logs/` holds the full output of every step.
@@ -35,7 +35,13 @@ The report appears in `.sandbox/reports/<time>-<label>-py<version>/`. Open `REPO
 | --- | --- | --- |
 | `fast` | Python syntax of all 365 source files, syntax of the 62 static scripts, 28 Node tests, the packaged-route preflight, 32 backend tests (studio switchers, media routes, recording guard, portable bundle) | about 20 seconds |
 | `standard` | Everything in `fast`, plus the real launcher audit over loopback HTTP and 41 real-Chromium tests (2.5D studio, Foresight file workspace, walkable world, air-gapped UI) | about 8 minutes |
-| `full` | Everything in `standard`, plus `npm ci`, `npm run test:node` and the whole pytest suite (2,167 tests) | 15 to 25 minutes (not yet run through this runner, see ledger) |
+| `full` | Everything in `standard`, plus `npm ci`, `npm run test:node`, the whole pytest suite (2,167 tests), the Rust crate (tests and a release build of `ws_renderer`), a Blender smoke test and a Firefox smoke test | see the ledger |
+
+`--extras rust,blender,firefox` adds those checks to any tier (the `full` tier always includes them). If a tool is missing the step is `SKIPPED` and marked `UNVERIFIED`, never `PASS`.
+
+- **rust**: `cargo test --locked` in `rust_crate/` (32 unit tests), in a throwaway target folder outside the repository.
+- **blender**: headless Blender imports `static/world/test_avatars/Husky.glb`, counts meshes, armatures and vertices, and renders a small frame with Cycles on the CPU; the frame must not be blank.
+- **firefox**: real Firefox, driven over WebDriver (Selenium and geckodriver), loads the walkable-world page, checks software WebGL2, loads the 3D husky and takes a screenshot that must not be blank. This is a **smoke test**, not the Chromium test suite: Playwright cannot drive stock Firefox, so the existing tests cannot run there unchanged.
 
 `--capture` adds a real-browser capture of the walkable world (your husky walking across a room) and builds a contact sheet, `capture/motion_strip.jpg`, from the recorded video so motion can be inspected without playing a video.
 
@@ -62,13 +68,20 @@ These each cost real time before this existed:
 2. **Starting the app must not write into the repository.** `tools/workbench_preflight.py` says it is read-only, but it starts the real app, which writes databases, a master key, Blackbox files and **modifies the canonical Alex vessel**. The runner gives every app-running step its own disposable copy of `data/` (the same approach as `conftest.py`), and a final `repo-data-clean` step fails the run if anything under `data/` changed. If it ever fails, the report names the step and prints the cleanup command.
 3. **Skips are not passes.** If any pytest step reports skipped tests, or the browser cannot launch, the overall result becomes `PASS WITH UNVERIFIED PARTS`, never plain `PASS`.
 4. **A byte-order mark in a source file is not a syntax error.** The syntax check compiles bytes the way Python does.
+5. **Flaky tests are named, not hidden.** Failed tests are rerun alone (`--retries`, default 2). A test that then passes is reported `FLAKY`; the run ends `PASS WITH FLAKY TESTS` (exit 0, or exit 1 with `--strict`).
+6. **Blender from apt has no denoiser.** A Cycles render with denoising on stops with "Build without OpenImageDenoiser", so the smoke test turns denoising off.
+7. **Cargo must use its own compiler.** A Rust toolchain installed outside rustup would otherwise call the system rustup shim, which tries to download a toolchain and fails offline. The runner points `RUSTC` and `PATH` at the folder that holds the chosen `cargo`.
+8. **Firefox needs a display for software WebGL.** Headless Firefox here has no WebGL2; under a virtual display (Xvfb) with Mesa software rendering it does. The runner starts Xvfb itself when there is no display.
 
 ## What this cannot test (always listed in every report)
 
 - Real GPU speed. WebGL2 here is software-rendered through SwiftShader.
 - A real microphone, camera or speakers. Browser fake devices and WebAudio meters only.
 - Real phones. Phone-sized emulation only.
-- Firefox and Safari. Chromium only.
+- Safari and WebKit. Playwright's WebKit download is not reachable from the cloud sandbox.
+- Firefox beyond one smoke test. The 41 browser tests are Chromium-only.
+- The Rust renderer as a running service. Only the crate's unit tests and a release build run, not a live `ws_renderer` session with a real client.
+- Blender beyond import and a small Cycles render. No animation export, no EEVEE (no GPU), no add-ons.
 - A local AI model with real weights. None ship in the repository.
 - A real DaVinci Resolve import and relink.
 - Windows and PowerShell 5 behavior when the run is on Linux.
@@ -89,7 +102,7 @@ Put the test file in `tests/`, then add it to `FAST_PY_TESTS`, `BROWSER_PY_TESTS
 
 ## Verification ledger
 
-Every line below was run on the cloud sandbox (Linux, 2 CPUs, 8 GB, no GPU, Chromium 153, Node 22, Python 3.11/3.12/3.13) on 2026-11-01 against commit `bfbdcf0` plus this branch. Nothing here has been run on Windows.
+Every line below was run on the cloud sandbox (Linux, 2 CPUs, 8 GB, no GPU, Chromium 153, Firefox 159, Node 22, Rust 1.97 and 1.99, Blender 4.0.2, Python 3.11/3.12/3.13) on 2026-11-01 against commit `bfbdcf0` plus this branch. Nothing here has been run on Windows.
 
 ### Tested
 
@@ -98,7 +111,12 @@ Every line below was run on the cloud sandbox (Linux, 2 CPUs, 8 GB, no GPU, Chro
 | `fast` tier, clean room, repeated | PASS, 18 to 20 s, in every run after a fix to the syntax checker (the very first run failed because my checker mishandled a byte-order mark in `modules/voxel_block_kit.py`; the file itself is fine) |
 | `fast` tier, warm (`--reuse`), twice | PASS, about 19 s |
 | `fast` tier across Python 3.11.18, 3.12.3, 3.13.18 (`--matrix`) | PASS on all three; the comparison agrees on every result and notes only the Python version as inventory |
-| `standard` tier, four complete runs (three clean room, one warm) | 41 of 41 browser tests passed in two clean-room runs; one clean-room run failed 3 of 41 (before reruns existed); the warm run had 2 tests that failed and then passed on rerun. See "Flaky tests" below. About 420 to 490 s each |
+| Browser-test phase with real Chromium, run five times (four `standard` runs and the one inside the `full` run) | 41 of 41 passed in two runs; in the other three, 2 or 3 tests failed (see "Flaky tests"); two of those three were rescued by the rerun logic and one ran before reruns existed. About 420 to 490 s per `standard` run |
+| **`full` tier, one clean-room run, 1,645 s (27 min)** | `PASS WITH FLAKY TESTS AND UNVERIFIED PARTS`. Whole pytest suite: 2,166 passed, 1 failed then passed on rerun, 2 skipped by design (the Alex Little One research-protocol tests only run when `ENABLE_ALEX_LITTLE_ONE=true`; I did not enable them). Browser tests: 2 flaky, passed on rerun. `npm ci` and 9 npm Node tests passed. Data guard clean |
+| Rust crate, system toolchain (rustc 1.97) | `cargo test --locked`: 32 passed (23 in the library, 9 in `ws_renderer`); release build of `ws_renderer`: 61 s. 8 compiler warnings counted in the build log (unused imports and variables), not fixed |
+| Rust crate, conda-forge toolchain (cargo 1.99.1), cold build | 32 passed in 48 s. This is the fallback for a machine with no Rust: the official Rust download host is blocked from the cloud sandbox but conda-forge is reachable |
+| Blender 4.0.2 (apt) | Imports `Husky.glb` (2 meshes, 1 armature, 3,942 vertices) and renders a 192 by 144 frame with Cycles on the CPU. The frame was opened and looked at: the husky, lit, on black |
+| Firefox 159 (conda-forge) driven over WebDriver | Software WebGL2 works under Xvfb; the walkable-world page loads, the 3D husky loads, and the screenshot was opened and looked at: Green Room with the husky standing by the couch. Headless Firefox without a display has no WebGL2 here, which is why the runner starts Xvfb. Firefox records WebM VP8/Opus only (no VP9, no MP4) |
 | Playwright matching | Pinned 1.56.0 did not match Chromium 1243; in every clean-room run the runner installed 1.63.0 and the browser then launched |
 | `--cold-cache` install | Works (about 10 s against about 0.3 s cached) |
 | `--capture` | Real browser capture of the walkable world. The contact sheet was opened and inspected: the husky walks across the Writers' Room to the door and the "Which way?" prompt appears |
@@ -107,28 +125,33 @@ Every line below was run on the cloud sandbox (Linux, 2 CPUs, 8 GB, no GPU, Chro
 | No-Chromium path | With the browser folder emptied, browser steps were `SKIPPED` as `UNVERIFIED` and the run ended `PASS WITH UNVERIFIED PARTS` |
 | Data-pollution guard | A step that wrote a file into `data/` was blamed by name and no other step was; the real preflight, run without protection, modifies the Alex vessel file and writes 21 other files (restored and re-verified against the canonical hash) |
 | `--compare` | Agreeing runs exit 0; a run with a step that failed in only one environment exits 3; setup steps, versions and browser build are noted but not counted as differences |
-| `bootstrap_system.sh --check` | Runs and reports present tools (everything was already installed) |
+| `Test-PubCast.ps1` under **PowerShell 7.4.6 on Linux** | Parses with PowerShell's own parser (0 errors); no PowerShell-7-only syntax found by search; pure ASCII; ran the `fast` tier end to end; `-Matrix`, `-Compare` (comma form), `-Reuse`, `-Label` pass through; a bad `-Tier` and a one-value `-Compare` are rejected; no Python on PATH gives the message and exit 2; exit code 3 passes through |
+| The Windows-only branches of `run_sandbox.py`, simulated | `Scripts\python.exe` path, the `py` launcher form, and the `%LOCALAPPDATA%` browser folder behave as intended. This is logic only, not Windows |
+| `bootstrap_system.sh --check --all` | Runs and reports every tool present. The Rust, Firefox and PowerShell install commands were each run by hand and worked; the script's own install branches were not run |
 
 ### Not tested, or only partly
 
 | What | Why it matters |
 | --- | --- |
-| **`Test-PubCast.ps1` on Windows PowerShell 5** | Never run. It was written without a PowerShell to try it on. Expect to fix something on the first run, and send the exact error. |
-| **`run_sandbox.py` on Windows** | Never run there. The Windows branches (`Scripts\python.exe`, the `py` launcher, `%LOCALAPPDATA%` browser folder) are unexercised. |
+| **Windows PowerShell 5 itself** | PowerShell 7 ran the wrapper, but 5 is an older engine. I could not get PSScriptAnalyzer (its compatibility rule) because the PowerShell Gallery is blocked here. Expect, at worst, a small fix on the first real run; send the exact error. |
+| **`run_sandbox.py` on real Windows** | Never run there. Only simulated, see above. |
 | macOS | Never run. |
-| `full` tier through this runner | The full pytest suite and `npm ci` were run by hand earlier in this project, not through the runner. |
+| Safari and WebKit | Not obtainable from here. Playwright's WebKit comes from a download host that is blocked. |
+| The 41 browser tests in Firefox | They are Playwright tests and Playwright cannot drive stock Firefox. Only the one WebDriver smoke test runs there. Porting the tests is real work. |
+| `ws_renderer` as a running service | Only unit tests and a build. A live session with a real client has not been run through the runner. |
 | `--allow-browser-download`, `--playwright-version`, `--keep-venv`, `--strict` | Coded, not exercised. |
-| `bootstrap_system.sh` installing packages | Only `--check` was run; the install path is unexercised. |
+| `bootstrap_system.sh` install branches | Only `--check` was run through the script. |
 | The Python matrix with browser tiers | Only the `fast` tier was run across versions. |
+| The two skipped Alex Little One tests | Skipped by design. Whether to enable them is Josie's call. |
 | Colab or Hugging Face hosting | Deliberately not built yet. |
 
 ### Flaky tests (observed, not fixed)
 
-Four tests failed at least once and then passed when rerun alone. The first three are recording tests and in each the symptom was that no media was recorded. In five direct repeats of just those three tests (no sandbox involved), two repeats passed fully and three each had one failure, a different test each time. For the panic test, a probe earlier in this project showed the recorder produces no data when the panic comes about two seconds or less after the recording starts, so that test lacks a wait for the first data. For the other two recording tests the symptom looks the same but the cause is **not established**, and for the file-workspace test (seen once) nothing is established.
+Three recording tests have failed at least once and then passed when rerun alone. In five direct repeats of just those three tests (no sandbox involved), two repeats passed fully and three each had one failure, a different test each time; across the five complete browser-test runs, three had at least one of them fail. In each case the symptom is that no media was recorded. For the panic test, a probe earlier in this project showed the recorder produces no data when the panic comes about two seconds or less after the recording starts, so that test lacks a wait for the first data. For the other two the symptom looks the same but the cause is **not established**. A fourth test, in the file-workspace tests, failed once in one warm run and has not failed since.
 
 - `tests/test_production25d_browser.py::test_remote_panic_stops_real_capture_blacks_program_and_silences_audio`
 - `tests/test_production25d_browser.py::test_multiple_takes_keep_original_media_bytes`
 - `tests/test_production25d_browser.py::test_failed_storage_keeps_a_downloadable_take_and_retries`
-- `tests/test_foresight_file_workspace.py::test_normal_2i_manuscript_saves_to_reach_and_each_save_is_a_new_revision` (once, not yet repeated)
+- `tests/test_foresight_file_workspace.py::test_normal_2i_manuscript_saves_to_reach_and_each_save_is_a_new_revision` (once)
 
 A `FLAKY` result means "this test is unreliable here", not "this feature works". The tests were not changed; fixing them is separate work that needs Josie's go-ahead.

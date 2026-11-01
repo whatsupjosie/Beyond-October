@@ -127,11 +127,124 @@ except Exception as e:  # report the real reason; never hide it
 print("PROBE_JSON " + json.dumps(out))
 """
 
+BLENDER_SMOKE = r'''
+import bpy, json, sys, mathutils
+argv = sys.argv[sys.argv.index("--") + 1:]
+glb, out_png = argv[0], argv[1]
+res = {"blender": bpy.app.version_string}
+bpy.ops.wm.read_factory_settings(use_empty=True)
+bpy.ops.import_scene.gltf(filepath=glb)
+meshes = [o for o in bpy.data.objects if o.type == "MESH"]
+res["meshes"] = len(meshes)
+res["armatures"] = len([o for o in bpy.data.objects if o.type == "ARMATURE"])
+res["vertices"] = sum(len(o.data.vertices) for o in meshes)
+pts = [o.matrix_world @ mathutils.Vector(c) for o in meshes for c in o.bound_box]
+if pts:
+    lo = mathutils.Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts)))
+    hi = mathutils.Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
+    mid, size = (lo + hi) / 2, max((hi - lo).length, 0.01)
+    sc = bpy.context.scene
+    cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam"))
+    sc.collection.objects.link(cam)
+    cam.location = mid + mathutils.Vector((size * 0.9, -size * 1.4, size * 0.5))
+    target = bpy.data.objects.new("target", None); target.location = mid
+    sc.collection.objects.link(target)
+    track = cam.constraints.new("TRACK_TO"); track.target = target
+    track.track_axis = "TRACK_NEGATIVE_Z"; track.up_axis = "UP_Y"
+    sc.camera = cam
+    sun = bpy.data.objects.new("sun", bpy.data.lights.new("sun", "SUN"))
+    sun.data.energy = 4.0; sun.rotation_euler = (0.9, 0.2, 0.6); sc.collection.objects.link(sun)
+    sc.render.engine = "CYCLES"; sc.cycles.device = "CPU"; sc.cycles.samples = 4
+    sc.cycles.use_denoising = False  # the Ubuntu build is "without OpenImageDenoiser" and errors if this is on
+    sc.render.resolution_x, sc.render.resolution_y = 192, 144
+    sc.render.filepath = out_png
+    bpy.ops.render.render(write_still=True)
+    img = bpy.data.images.load(out_png)
+    px = list(img.pixels)
+    res["render_png_bytes"] = __import__("os").path.getsize(out_png)
+    res["render_value_spread"] = round(max(px) - min(px), 3)
+    res["render_nonblank"] = res["render_value_spread"] > 0.05
+print("BLENDER_SMOKE " + json.dumps(res))
+sys.exit(0 if (res["meshes"] > 0 and res.get("render_nonblank")) else 3)
+'''
+
+FIREFOX_SMOKE = r'''
+import functools, http.server, json, os, pathlib, sys, threading, time
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.service import Service
+root, shot = pathlib.Path(sys.argv[1]), sys.argv[2]
+out = {"ok": False}
+handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(root))
+httpd = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+threading.Thread(target=httpd.serve_forever, daemon=True).start()
+base = "http://127.0.0.1:%d" % httpd.server_address[1]
+o = Options()
+if os.name != "nt" and not os.environ.get("DISPLAY"):
+    o.add_argument("-headless")
+o.binary_location = os.environ["FIREFOX_BIN"]
+for k, v in {"webgl.force-enabled": True, "webgl.enable-webgl2": True, "webgl.disabled": False,
+             "webgl.forbid-software": False, "media.navigator.streams.fake": True}.items():
+    o.set_preference(k, v)
+svc = Service(os.environ["GECKODRIVER_BIN"]) if os.environ.get("GECKODRIVER_BIN") else Service()
+d = webdriver.Firefox(options=o, service=svc)
+try:
+    d.set_window_size(1600, 900)
+    d.get("data:text/html,<canvas></canvas>")
+    out["probe"] = d.execute_script("""
+      const r = {version: navigator.userAgent};
+      const gl = document.createElement('canvas').getContext('webgl2');
+      if (gl) { const e = gl.getExtension('WEBGL_debug_renderer_info'); r.webgl2 = e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER); } else { r.webgl2 = null; }
+      r.mediaRecorder_vp8_opus = typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus');
+      r.mediaRecorder_vp9_opus = typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus');
+      r.mediaRecorder_h264_mp4 = typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/mp4;codecs=avc1.42E01E,mp4a.40.2');
+      r.webaudio = typeof AudioContext !== 'undefined';
+      return r;""")
+    d.get(base + "/static/world_walk.html?view=green_room/main")
+    ready, deadline = False, time.time() + 90
+    while time.time() < deadline:
+        ready = d.execute_script("return document.documentElement.dataset.ready === '1' && !!window.PubCastGLB && !!window.PubCastWalk && !!window.PubCastWalk.S.img")
+        if ready:
+            break
+        time.sleep(0.5)
+    out["walker_page_ready"] = bool(ready)
+    pete = False
+    if ready:
+        d.execute_script("const p=document.querySelector('#shPads'); if (p && p.checked) p.click(); document.querySelector('#glbDemoHusky').click();")
+        deadline = time.time() + 90
+        while time.time() < deadline:
+            pete = d.execute_script("return window.PubCastGLB.has('pete') && window.PubCastWalk.S.demoHeights.pete === 36")
+            if pete:
+                break
+            time.sleep(0.5)
+    out["real_3d_husky_loaded"] = bool(pete)
+    d.save_screenshot(shot)
+    try:
+        from PIL import Image
+        im = Image.open(shot).convert("RGB").resize((200, 120))
+        out["screenshot_distinct_colours"] = len(im.getcolors(maxcolors=24001) or [])
+        out["screenshot_nonblank"] = out["screenshot_distinct_colours"] > 200
+    except ImportError:
+        out["screenshot_nonblank"] = os.path.getsize(shot) > 100000
+    out["ok"] = bool(out["probe"].get("webgl2")) and out["walker_page_ready"] and out["real_3d_husky_loaded"] and out["screenshot_nonblank"]
+finally:
+    try:
+        d.quit()
+    finally:
+        httpd.shutdown()
+print("FIREFOX_SMOKE " + json.dumps(out))
+sys.exit(0 if out["ok"] else 3)
+'''
+
+WINDOWS_TOOL_GLOBS = {
+    "blender": [r"C:\Program Files\Blender Foundation\Blender *\blender.exe"],
+    "firefox": [r"C:\Program Files\Mozilla Firefox\firefox.exe", r"C:\Program Files (x86)\Mozilla Firefox\firefox.exe"],
+}
+
 NOT_TESTED_ALWAYS = [
     "Real GPU speed. Rendering here is software (SwiftShader or similar) unless the report says otherwise.",
     "Real microphone, camera and speakers. Browser fake devices and WebAudio meters only.",
     "Real phones. Only phone-sized emulation is possible in this tool.",
-    "Firefox and Safari. Only Chromium is exercised.",
     "A local AI model with real weights. No model weights ship in this repository.",
     "A real DaVinci Resolve import and relink of exported files.",
     "A second physical machine, long soak runs and network partitions.",
@@ -179,7 +292,7 @@ def find_python(spec: str):
         launcher = shutil.which("py")
         if launcher:
             return [launcher, "-" + spec], True
-        return [sys.executable], spec in "%d.%d" % sys.version_info[:2]
+        return [sys.executable], spec == "%d.%d" % sys.version_info[:2]
     exact = shutil.which("python" + spec)
     if exact:
         return [exact], True
@@ -276,6 +389,13 @@ def parse_output(text: str, kind: str):
         if counts.get("skipped"):
             out["skipped_tests"] = counts["skipped"]
         out["summary"] = ", ".join("%d %s" % (v, k) for k, v in counts.items()) or "no pytest summary found"
+    elif kind == "cargo":
+        passed = sum(int(n) for n in re.findall(r"test result: ok\. (\d+) passed", text))
+        failed = sum(int(n) for n in re.findall(r"(\d+) failed", text))
+        warnings = len(re.findall(r"^warning: ", text, flags=re.M)) - len(re.findall(r"generated \d+ warning", text))
+        out["counts"] = {"passed": passed, "failed": failed, "compiler_warnings": max(warnings, 0)}
+        out["failed_tests"] = sorted(set(re.findall(r"^test (\S+) \.\.\. FAILED", text, flags=re.M)))
+        out["summary"] = "%d passed, %d failed, %d compiler warning(s)" % (passed, failed, max(warnings, 0))
     elif kind == "node":
         counts = {}
         for key in ("tests", "pass", "fail", "skipped"):
@@ -473,6 +593,162 @@ def run_tier(args, spec: str, label: str):
     return summary
 
 
+def find_tool(name, env_var=None, candidates=()):
+    """Locate an optional tool: explicit environment variable, PATH, known install folders, Windows globs."""
+    import glob
+    if env_var and os.environ.get(env_var) and Path(os.environ[env_var]).exists():
+        return os.environ[env_var]
+    found = shutil.which(name)
+    if found:
+        return found
+    for c in candidates:
+        if Path(c).exists():
+            return str(c)
+    if IS_WINDOWS:
+        for pattern in WINDOWS_TOOL_GLOBS.get(name, []):
+            hits = sorted(glob.glob(pattern))
+            if hits:
+                return hits[-1]
+        cargo_home = Path(os.environ.get("USERPROFILE", "")) / ".cargo" / "bin" / (name + ".exe")
+        if cargo_home.exists():
+            return str(cargo_home)
+    return None
+
+
+def wanted_extras(args):
+    extras = {e.strip() for e in (args.extras or "").split(",") if e.strip()}
+    if args.tier == "full":
+        extras |= {"rust", "blender", "firefox"}
+    return extras
+
+
+def run_rust(rec: Recorder, args, env):
+    cargo = find_tool("cargo", "PUBCAST_CARGO", [Path("/opt/rustenv/bin/cargo")])
+    if not cargo:
+        rec.skip("rust-tests", "UNVERIFIED: cargo not found (install Rust, or set PUBCAST_CARGO)")
+        return
+    target = SANDBOX / ("cargo-target" if args.reuse else "cargo-target-" + rec.dir.name)
+    renv = dict(env)
+    renv["CARGO_TARGET_DIR"] = str(target)
+    renv["CARGO_TERM_COLOR"] = "never"
+    # Use the rustc that sits next to the chosen cargo. Without this a cargo from another
+    # install (for example conda-forge) calls the system rustup shim, which tries to download
+    # a toolchain and fails when the network is restricted.
+    cargo_dir = Path(cargo).parent
+    sibling = cargo_dir / ("rustc.exe" if IS_WINDOWS else "rustc")
+    if sibling.exists():
+        renv["RUSTC"] = str(sibling)
+        renv["PATH"] = str(cargo_dir) + os.pathsep + renv.get("PATH", "")
+    rec.step("rust-tests", [cargo, "test", "--locked"], cwd=ROOT / "rust_crate", env=renv, timeout=1500, kind="cargo")
+    if args.tier == "full":
+        rec.step("rust-release-build", [cargo, "build", "--release", "--locked", "--bin", "ws_renderer"],
+                 cwd=ROOT / "rust_crate", env=renv, timeout=1800)
+    if not args.reuse and not args.keep_venv:
+        shutil.rmtree(target, ignore_errors=True)
+
+
+def run_blender(rec: Recorder, args, env):
+    blender = find_tool("blender", "PUBCAST_BLENDER")
+    glb = ROOT / "static" / "world" / "test_avatars" / "Husky.glb"
+    if not blender:
+        rec.skip("blender-smoke", "UNVERIFIED: Blender not found (install it, or set PUBCAST_BLENDER)")
+        return
+    if not glb.exists():
+        rec.skip("blender-smoke", "UNVERIFIED: test avatar %s is missing" % glb.name)
+        return
+    script = rec.logs / "blender_smoke.py"
+    script.write_text(BLENDER_SMOKE, encoding="utf-8")
+    png = rec.dir / "blender_smoke.png"
+    r = rec.step("blender-smoke", [blender, "-b", "--factory-startup", "--python", str(script), "--", str(glb), str(png)],
+                 env=env, timeout=600)
+    text = (rec.dir / r["log"]).read_text(encoding="utf-8", errors="replace")
+    m = re.search(r"^BLENDER_SMOKE (\{.*\})$", text, flags=re.M)
+    if m:
+        info = json.loads(m.group(1))
+        r["summary"] = "Blender %s: %s mesh(es), %s armature(s), %s vertices, Cycles CPU render %s" % (
+            info.get("blender"), info.get("meshes"), info.get("armatures"), info.get("vertices"),
+            "non-blank" if info.get("render_nonblank") else "BLANK OR MISSING")
+        r["blender_info"] = info
+    elif r["result"] == "FAIL":
+        r["summary"] = "Blender ran but produced no smoke result; see log"
+
+
+def start_virtual_display(rec: Recorder):
+    """Firefox needs a display for software WebGL. Start Xvfb if there is none. Returns (env_updates, process)."""
+    if IS_WINDOWS or platform.system() == "Darwin" or os.environ.get("DISPLAY"):
+        return {}, None
+    xvfb = shutil.which("Xvfb")
+    if not xvfb:
+        return None, None
+    for number in range(97, 90, -1):
+        if Path("/tmp/.X11-unix/X%d" % number).exists():
+            continue
+        proc = subprocess.Popen([xvfb, ":%d" % number, "-screen", "0", "1600x1000x24", "-nolisten", "tcp"],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(2)
+        if proc.poll() is None:
+            return {"DISPLAY": ":%d" % number}, proc
+    return None, None
+
+
+def run_firefox(rec: Recorder, args, py: Path, env):
+    firefox = find_tool("firefox", "PUBCAST_FIREFOX", [Path("/opt/ffenv/bin/firefox")])
+    if not firefox:
+        rec.skip("firefox-smoke", "UNVERIFIED: Firefox not found (install it, or set PUBCAST_FIREFOX)")
+        return
+    gecko = find_tool("geckodriver", "PUBCAST_GECKODRIVER", [Path("/opt/ffenv/bin/geckodriver")])
+    display, proc = start_virtual_display(rec)
+    if display is None:
+        rec.skip("firefox-smoke", "UNVERIFIED: no display and Xvfb is not installed (software WebGL needs one)")
+        return
+    try:
+        uv = shutil.which("uv")
+        cmd = ([uv, "pip", "install", "--python", str(py)] if uv else [str(py), "-m", "pip", "install"]) + ["selenium"]
+        r = rec.step("install-selenium", cmd, timeout=600)
+        if r["result"] != "PASS":
+            return
+        script = rec.logs / "firefox_smoke.py"
+        script.write_text(FIREFOX_SMOKE, encoding="utf-8")
+        fenv = rec.disposable_env(env)
+        fenv.update(display)
+        fenv["FIREFOX_BIN"] = firefox
+        if gecko:
+            fenv["GECKODRIVER_BIN"] = gecko
+        fenv["LIBGL_ALWAYS_SOFTWARE"] = "1"
+        profile_home = Path(tempfile.mkdtemp(prefix="pubcast-firefox-home-", dir=str(SANDBOX)))
+        rec.tmpdirs.append(profile_home)
+        fenv["HOME"] = str(profile_home)
+        shot = rec.dir / "firefox_walker.png"
+        r = rec.step("firefox-smoke", [str(py), "-I", str(script), str(ROOT), str(shot)], env=fenv, timeout=900)
+        text = (rec.dir / r["log"]).read_text(encoding="utf-8", errors="replace")
+        m = re.search(r"^FIREFOX_SMOKE (\{.*\})$", text, flags=re.M)
+        if m:
+            info = json.loads(m.group(1))
+            probe = info.get("probe") or {}
+            r["firefox_info"] = info
+            r["summary"] = "%s; WebGL2 %s; walker %s; 3D husky %s; screenshot %s" % (
+                (probe.get("version") or "").split(" ")[-1], "ok" if probe.get("webgl2") else "MISSING",
+                "ready" if info.get("walker_page_ready") else "NOT READY",
+                "loaded" if info.get("real_3d_husky_loaded") else "NOT LOADED",
+                "non-blank" if info.get("screenshot_nonblank") else "BLANK")
+    finally:
+        if proc is not None:
+            proc.terminate()
+
+
+def run_extras(rec: Recorder, args, py: Path, env):
+    extras = wanted_extras(args)
+    unknown = extras - {"rust", "blender", "firefox"}
+    if unknown:
+        rec.notes.append("Unknown --extras ignored: %s (known: rust, blender, firefox)" % ", ".join(sorted(unknown)))
+    if "rust" in extras:
+        run_rust(rec, args, env)
+    if "blender" in extras:
+        run_blender(rec, args, env)
+    if "firefox" in extras:
+        run_firefox(rec, args, py, env)
+
+
 def pytest_with_rerun(rec: Recorder, args, exe, name, targets, env_factory, timeout):
     """Run pytest; rerun ONLY the failed tests up to --retries times.
 
@@ -545,6 +821,7 @@ def run_steps(rec: Recorder, args, py: Path, env, browser):
             capture_motion(rec, args, py, env)
         else:
             rec.skip("capture-motion", "UNVERIFIED: no usable Chromium")
+    run_extras(rec, args, py, env)
 
 
 def capture_motion(rec: Recorder, args, py: Path, env):
@@ -600,6 +877,18 @@ def finish_report(rec: Recorder, args, spec, environment, browser, seconds):
     not_tested = list(NOT_TESTED_ALWAYS)
     if not IS_WINDOWS:
         not_tested.insert(0, "Windows and PowerShell 5 launch (this run is not on Windows).")
+    passed_names = {s["name"] for s in steps if s["result"] in ("PASS", "FLAKY")}
+    not_tested.append("Safari and WebKit. Never exercised (Playwright's WebKit download is not reachable from the cloud sandbox).")
+    if "firefox-smoke" not in passed_names:
+        not_tested.append("Firefox. Not exercised in this run (add --extras firefox, or use the full tier).")
+    else:
+        not_tested.append("Firefox beyond a smoke test: the existing Playwright tests are Chromium-only; Firefox ran one WebDriver smoke test (walker page, WebGL2, 3D husky, screenshot).")
+    if "rust-tests" not in passed_names:
+        not_tested.append("The Rust crate. Its unit tests were not run in this run (add --extras rust, or use the full tier).")
+    else:
+        not_tested.append("The Rust renderer as a running service. Only the crate's unit tests ran, not a live ws_renderer session with a real client.")
+    if "blender-smoke" not in passed_names:
+        not_tested.append("Blender. Not exercised in this run (add --extras blender, or use the full tier).")
     if probe.get("webgl2") and re.search(r"swiftshader|llvmpipe|software", str(probe["webgl2"]), re.I):
         not_tested.append("Hardware GL: WebGL2 here is software-rendered (%s)." % probe["webgl2"])
     data = {
@@ -752,6 +1041,7 @@ def main(argv=None) -> int:
     ap.add_argument("--browser-probe", action="store_true", help="probe the browser even on the fast tier")
     ap.add_argument("--playwright-version", help="force this Playwright release (to match an installed Chromium)")
     ap.add_argument("--allow-browser-download", action="store_true", help="let Playwright download Chromium if none matches")
+    ap.add_argument("--extras", default="", help="comma list of optional checks: rust, blender, firefox (the full tier runs all three)")
     ap.add_argument("--retries", type=int, default=2, help="rerun failed pytest tests alone up to N times; a pass on rerun is reported FLAKY, not PASS (0 disables)")
     ap.add_argument("--strict", action="store_true", help="treat flaky tests as failures (exit code 1)")
     ap.add_argument("--matrix", help="comma-separated Python versions; runs the chosen tier once for each")

@@ -229,7 +229,10 @@ Preferred way to test: the sandbox runner. One command builds a throwaway enviro
 ```
 python tools/sandbox/run_sandbox.py --tier fast          # about 20 seconds
 python tools/sandbox/run_sandbox.py --tier standard      # about 8 minutes, real Chromium
+python tools/sandbox/run_sandbox.py --tier full          # about 27 minutes: everything, plus Rust, Blender and Firefox
 ```
+
+Four tests are known to be flaky and the runner reports them as `FLAKY` rather than `PASS` (list and evidence in the sandbox README).
 
 Manual test commands, if you need them:
 
