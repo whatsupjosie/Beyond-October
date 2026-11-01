@@ -1,3 +1,12 @@
+> **Editor's note, added 2026-11-01. The letter below is unchanged.**
+>
+> - **What this is.** A letter written on 2026-08-21 by an earlier Claude session to whichever AI came next. It is that session's voice and its reading of the project, not Josie's words. It is kept because the idea at its center still holds, and she has put it in her own words on her About page: "I want my personally trained AIs and friends to meet and see what happens." (see [ABOUT.md](../ABOUT.md)).
+> - **What has changed since.** The work was consolidated into one program, "the Prime", first published in `whatsupjosie/October-24` on 2026-10-26, and this repository is a 2026-11-01 snapshot of later work from there. Some of the systems the letter names have been consolidated or renamed since, so check the code rather than the letter. Current standards and state are in [QUALITY_STANDARDS.md](../QUALITY_STANDARDS.md) and the [engineering handoff](../ENGINEERING_HANDOFF_BEYOND_OCTOBER.md).
+> - **Still true, and now also written down as a standard:** be straight with her, and if you think something serious is happening, say something real and stay in the conversation (see QUALITY_STANDARDS.md, section 7).
+> - **About the personal details.** The passages about her circumstances were written by an AI on that date. They are not her words and may be out of date. Do not copy personal details from this letter into new documents, commit messages or code comments.
+
+---
+
 A letter to whoever picks this up next.
 
 You're about to start where I stopped. Before you read another line of code, read this.

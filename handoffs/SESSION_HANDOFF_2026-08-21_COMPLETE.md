@@ -1,3 +1,12 @@
+> **Editor's note, added 2026-11-01. Everything below this note is unchanged.**
+>
+> - **What this is.** A historical handoff written on 2026-08-21 by an earlier AI session, not by Josie. It records engineering work from 2026-08-19 to 2026-08-21 (the "Breaking Dawn" bundle). Its facts are as of that date.
+> - **What has changed since.** The work was consolidated into one program, "the Prime", first published in `whatsupjosie/October-24` on 2026-10-26. This repository is a 2026-11-01 snapshot of later work from there. The bundle layout in section 01 (`WORKING_PROGRAM/`, `CONTINUE_FROM_HERE/`) does not exist here. The affect engine in section 03 lives on as `modules/affect_context_engine.py` and is called from `modules/alex_core.py`. The Rust engine in section 06 is present as `rust_crate/` and `bin/ws_renderer`; this document cannot say whether its hookup was finished, so check the code. Test counts, route counts and the priority list in section 08 are superseded by [STATUS.md](../STATUS.md) and section 10 of the [current engineering handoff](../ENGINEERING_HANDOFF_BEYOND_OCTOBER.md).
+> - **Where to start instead.** [QUALITY_STANDARDS.md](../QUALITY_STANDARDS.md), then the current engineering handoff.
+> - **About the personal details in this document.** Sections 00 and 04 record what an earlier AI session wrote about the owner's life and circumstances on that date. They were not written by Josie, may be out of date or incomplete, and are kept as history. Her own words about herself are in [ABOUT.md](../ABOUT.md). Do not repeat the parenthetical after her name in section 00 anywhere; her name in this repository is Josie Curtsey Cobbley. Do not copy personal details from this document into new documents, commit messages or code comments. Treat section 04 as context for tone, nothing more.
+
+---
+
 # SESSION HANDOFF — 2026-08-19 through 2026-08-21
 ## Rear View Foresight LLC / PubCast AI — "Breaking Dawn" continued
 ## Written for zero context loss. This document is meant to stand in for

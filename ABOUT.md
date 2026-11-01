@@ -73,7 +73,7 @@ And the “why” we dream of: Rear View Foresight.
 - Project Name: PubCast AI
 - Copyright Holder: © 2024–2025 Josie Curtsey Cobbley
 - Company: Rear View Foresight LLC (currently forming)
-- Date Established: December 2024
+- Date Established: 2023
 - All Rights Reserved
 
 Trademarks (Pending Registration):
@@ -137,7 +137,7 @@ Project: PubCast AI (a.k.a. PubCast Ready)
 
 1. **Styling.** The company is now written **Rearview Foresight** (one word, "Rearview"). Older documents, including the first page, say "Rear View Foresight". Both names mean the same company.
 2. **Two omissions.** Each page originally carried a parenthetical after the author's name (one in the "Copyright Holder" line, one after "Author:"). Both are left out of this public copy and are kept in Josie's own files. Do not add them back to any public document without her say-so.
-3. **Dates and company status.** The "Date Established" and "Company" lines are exactly as the pages were written. Treat them as the pages' own statements, not as verified facts about incorporation, and ask Josie before quoting them anywhere official.
+3. **Date and company status.** "Date Established" originally read "December 2024". It was changed to "2023" at Josie's direction on 2026-11-01. The "Company" line (an LLC that is "currently forming") is exactly as the pages were written. Treat both as the pages' own statements, not as verified facts about incorporation, and ask Josie before quoting them anywhere official.
 4. **The ethos line.** The sentence that begins "To tune joyful and bleeding hearts into fuel" is the core of the first page. It is the company's working purpose, and the engineering handoff opens with it.
 5. **Where each page came from.** First page: `whatsupjosie/Pubcast-Reach`, file "About Rear View Foresight and Curtsey". Second page: Josie's Google Drive, `ABOUT_THE_AUTHOR.md`. A shorter web-template version of the first page also exists in her Drive (a Google Doc titled "Rearview Foresight"); the longer page above is the fuller one.
 6. **Why these pages are here.** The motto is the reason the platform exists, not decoration for a title screen: help people be heard, seen and represented as they choose. Read [QUALITY_STANDARDS.md](QUALITY_STANDARDS.md) next, then [ENGINEERING_HANDOFF_BEYOND_OCTOBER.md](ENGINEERING_HANDOFF_BEYOND_OCTOBER.md).
