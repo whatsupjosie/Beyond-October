@@ -16,3 +16,7 @@ data/avatars/imported/
 # scratch outputs written by tools/world_src/gen_placements.py and calib_proof.py
 tools/world_src/occluders_missing.txt
 tools/world_src/proof_sheets/
+
+# Test sandbox output (reports, throwaway environments, captured frames)
+.sandbox/
+artifacts/bella_live/

@@ -71,7 +71,7 @@ Josie Curtsey Cobbley is the founder and sole developer of Rearview Foresight an
 | Repository | What it is good for |
 | --- | --- |
 | `October-24` (public) | Source of this snapshot. Also holds unmerged branches worth comparing (section 11). |
-| `October` (private) | The closest older source tree. Holds the canonical PubPartner Alex vessel under `Backup-Consolidation`; **that vessel is not in this repository** (see section 5.3). |
+| `October` (private) | The closest older source tree. Per `STATUS.md` it holds a canonical PubPartner Alex vessel under `Backup-Consolidation`. **Correction, 2026-11-01:** this repository also holds a file at `data/pubpartner/vessels/alex.pubpartner` whose Git blob ID is the canonical one (see section 5.3). |
 | `The-Prime` | Design images, room maps, earlier assets and architecture. Rights for stock-looking images are not established; check before using. |
 | `Wednesday-` | Older integrated Python application and handoffs. Contains many caches and backup subtrees. |
 | `Pubcast-Reach` | Her About page, `PUBCAST_SESSION_RULES.md`, `PUBCAST_ENGINEERING_LESSON.md`, Cricket design plans, and a set of working files. |
@@ -133,7 +133,11 @@ Each entry says what it is, where it lives, what Josie has decided, and what is 
 
 - **2i:** the writer's room and word processor (`2i/writers-room-v22.html`, native `.2i` manuscript format, local file workspace with save, reopen and conflict rejection). **Josie's stated intent:** 2i becomes a general, flexible word processor (two pages open, one page, or a small notebook view), not locked to one look. Character chat is its own separate, simple IM-style interface backed by PubPartner. The two share a file format and one visual language. Rich DOCX editing inside 2i is still unmounted (the editor engine bundle, HarfBuzz WASM and offline fonts are absent).
 - **PubPartner:** persistent AI companions. A **cartridge** is a character's save file: identity, voice, tendencies, avatar and look. A **memory card** is the large, growing episodic history linked to a cartridge. The runtime is the adapter between identity plus memory and whichever model is plugged in. *PubPartner Base* is the version built into PubCast; *PubPartner Horizon* is the portable one. Code: `modules/pubpartner_*.py` (in the host), `modules/pubpartner_vessel/`, and the standalone `pubpartner/` package.
-- **The Alex vessel is canonical and not interchangeable.** Preserve its Git blob ID `96fa66a728d07d5ff43b0d3d7fc17a466765cec1`. The recovered copies differ from it; they were excluded deliberately. The canonical file is in `whatsupjosie/October` under `Backup-Consolidation`.
+- **The Alex vessel is canonical and not interchangeable.** Preserve its Git blob ID `96fa66a728d07d5ff43b0d3d7fc17a466765cec1`. Recovered donor copies differ from it; they were excluded deliberately.
+
+  **Correction (2026-11-01).** An earlier version of this handoff said the canonical vessel is not in this repository. That was wrong. `git hash-object data/pubpartner/vessels/alex.pubpartner` on a clean checkout of this repository returns exactly `96fa66a728d07d5ff43b0d3d7fc17a466765cec1`, so the file committed here *is* the canonical blob. `STATUS.md` still says the vessel was excluded and lives only in `October`; that note is stale for this repository, and `handoffs/SAVING_2026-10-28.md` agrees with the hash. I did not compare it with the copy in `October` (not reachable from the cloud sandbox). The file is a small SQLite database (identity and audit tables; no memory rows) and it is publicly visible in this repository. Whether it should be public is Josie's call.
+
+  **The vessel changes when the app runs against this repository's own `data/` folder.** The first real sandbox run did exactly that (the preflight script starts the app) and left the file modified (147,456 bytes became 192,512), along with a `master.key`, a vault database and Blackbox files. It was restored with `git checkout -- data/pubpartner/vessels/alex.pubpartner` and re-verified against the hash above. To prevent it, run anything that starts the app with `PUBCAST_DATA_DIR` pointed at a disposable copy, or use `tools/sandbox/run_sandbox.py`, which does that and fails the run if anything under `data/` changes. Never commit anything under `data/` that a run created.
 - **Known unproven:** a live PubPartner provider and model reply; multi-document chat continuity. The model `ministral-pubcast:3b` may not exist on her machine. Do not promise a live reply until a provider is verified ([MODEL_SWAP.md](MODEL_SWAP.md), [HOSTED_ADAPTERS.md](HOSTED_ADAPTERS.md)).
 
 ### 5.4 Alex, System Alex, Jeremy and the EQ work
@@ -220,7 +224,14 @@ python run_reach.py --start-page foresight-counter
 
 The first visit goes to `/login` to create the local owner account. Use `--port 8001` if 8000 is busy and `--data-dir PATH` to choose where the owner data lives (default `reach_userdata`). Startup never downloads optional Node or model dependencies; downloading legacy 2i utilities needs the explicit `--install-legacy-2i`. Python 3.11 or newer is required; FastAPI and Starlette are pinned to the 0.115.x and 0.41.x lines on purpose.
 
-Test:
+Preferred way to test: the sandbox runner. One command builds a throwaway environment, matches Playwright to the Chromium on the machine, runs a defined set of real tests against a disposable copy of `data/`, writes a report, and lists what it could not test. See [tools/sandbox/README.md](tools/sandbox/README.md).
+
+```
+python tools/sandbox/run_sandbox.py --tier fast          # about 20 seconds
+python tools/sandbox/run_sandbox.py --tier standard      # about 8 minutes, real Chromium
+```
+
+Manual test commands, if you need them:
 
 ```
 python -m pip install -r requirements-dev.txt
