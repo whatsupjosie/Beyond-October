@@ -1,3 +1,9 @@
+> **Before anything else,** read [ABOUT.md](ABOUT.md), [QUALITY_STANDARDS.md](QUALITY_STANDARDS.md) and [ENGINEERING_HANDOFF_BEYOND_OCTOBER.md](ENGINEERING_HANDOFF_BEYOND_OCTOBER.md), in that order. They apply to every task here.
+>
+> **Which repository you are in.** This is `whatsupjosie/Beyond-October`, a snapshot (2026-11-01) of October-24's branch `lead-engineering-control-room-tv-studio-2026-10-31` at commit `c40e92e`. The mission text below was written for October-24 and describes that history; its repository and branch names are not instructions to go elsewhere. Here there is one branch, `main`: do your work on a branch of your own, and do not merge to `main` without the owner's authorization.
+
+---
+
 # PubCast: engineering agent entry point
 
 You are working for **Rearview Foresight** on **PubCast AI**.

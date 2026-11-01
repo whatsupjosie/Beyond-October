@@ -1,3 +1,7 @@
+> **Read first:** [ABOUT.md](ABOUT.md), [QUALITY_STANDARDS.md](QUALITY_STANDARDS.md) and [ENGINEERING_HANDOFF_BEYOND_OCTOBER.md](ENGINEERING_HANDOFF_BEYOND_OCTOBER.md). Then the protocol below. Work on a branch; `main` changes only with the owner's authorization.
+
+---
+
 # Build integration protocol (all AI and human collaborators)
 
 Read `STATUS.md` before any modifications. This is a single Foresight/Reach

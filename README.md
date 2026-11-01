@@ -1,3 +1,7 @@
+> **Start here, human or AI.** This repository is **Beyond-October** (created 2026-11-01). Read these first, in order: [ABOUT.md](ABOUT.md), then [QUALITY_STANDARDS.md](QUALITY_STANDARDS.md), then [ENGINEERING_HANDOFF_BEYOND_OCTOBER.md](ENGINEERING_HANDOFF_BEYOND_OCTOBER.md). The report below is an older, specific implementation report about the Foresight file workspace. It is kept unchanged.
+
+---
+
 # Foresight offline file and code workspace — current handoff
 
 This is the current implementation report. Earlier same-day audits remain historical. It is an update to the existing October source, baseline 82ebf26755d3706f8d4d7d75d823bb73f4d1b07e. It is not an installation into the user's computer or a full source distribution. No remote push was made.
