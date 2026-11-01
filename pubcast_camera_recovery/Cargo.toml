@@ -1,0 +1,12 @@
+[package]
+name = "pubcast_camera"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "pubcast_camera"
+path = "src/lib.rs"
+
+[[bin]]
+name = "pubcast_camera_demo"
+path = "src/main.rs"

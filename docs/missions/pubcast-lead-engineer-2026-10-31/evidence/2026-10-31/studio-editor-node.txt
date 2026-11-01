@@ -1,0 +1,46 @@
+PubCast 2.5D core and renderer: 47 assertions passed.
+✔ tests/production25d.test.cjs (107.991618ms)
+✔ clacker reference is exactly fifteen seconds and offset is microsecond-accurate (2.630221ms)
+✔ wrong clacker drift is rejected before corrupt project save (0.792673ms)
+✔ clacker drift fit describes measured rate and maps correct media time (0.369446ms)
+✔ arbitrary 0.03 timing correction cannot affect another camera (0.206846ms)
+✔ rough-cut split, lift, ripple-delete and remove-gap preserve source originals (1.550694ms)
+✔ CMX3600 requires explicit supported non-drop timebase (0.313454ms)
+✔ CMX3600 yields source in/out and sequential record in/out (0.677442ms)
+✔ CMX3600 quantizes cumulative boundaries, not each cut independently (9.155785ms)
+✔ sub-frame or negative-source EDL edits fail rather than silently change cuts (1.440762ms)
+✔ full sidecar retains manual microsecond offset and rejects unsupported master quality (1.109451ms)
+✔ simply tagging low-res footage as cinema master never clears provenance gate (0.416115ms)
+✔ frame rounding, gap and shot event identifiers remain in handoff (0.648199ms)
+PASS: file adapter awaits identity; close saves actual file and rejects active/new work
+✔ tests/test_foresight_file_close_node.js (91.429087ms)
+PASS: owner-scoped working copies; credential change, identity outage and missing owner refused; legacy untouched
+PASS: file trays never restore/write ordinary manuscript recovery; identity outage fails closed
+PASS: ownerless/other-account paid settings never become a new account’s defaults
+PASS: account-scoped layout restore preserves legacy; missing renderers offer the genuine 2i route
+✔ tests/test_foresight_owner_recovery_node.js (155.505136ms)
+✔ eight independently configured genre packages (2.041991ms)
+✔ unknown shots are rejected (0.963185ms)
+✔ invalid geometry and duplicate camera identifiers are rejected (0.517064ms)
+✔ production event timeline and closure are enforced (1.882034ms)
+✔ camera viewport always remains inside source frame (0.342587ms)
+✔ one shared switcher registers genre cameras and actually switches (2.506828ms)
+✔ offline operation never falsely reports server connectivity (0.667428ms)
+✔ external cameras remain explicitly unsupported by local renderer (0.647538ms)
+✔ HTML script dependencies are in correct order and present (3.120447ms)
+✔ all referenced control IDs exist in HTML (0.580289ms)
+✔ local recording and persistence are real browser API paths, not placeholders (0.4192ms)
+✔ 3D fixture paths exist (0.232645ms)
+✔ Control Room has an entry to 2.5D console (0.312643ms)
+✔ program and preview publish distinct acknowledged frames (2.886621ms)
+✔ remote monitor rejects stale content without pretending it is live (1.030635ms)
+2i rich recovery UI contract: passed (verified, recoverable, failure-safe, v4 unchanged)
+✔ tests/test_twoi_rich_browser_contract_node.js (107.743677ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 31
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 230.995573

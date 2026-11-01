@@ -1,0 +1,3015 @@
+........................................................................ [ 39%]
+.....................................................................F.. [ 79%]
+..FFFFFFFFF..........................                                    [100%]
+=================================== FAILURES ===================================
+________________ test_user_state_route_cannot_escape_data_root _________________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-11/test_user_state_route_cannot_e0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f62a02670b0>
+
+    def test_user_state_route_cannot_escape_data_root(tmp_path, monkeypatch):
+        from fastapi.testclient import TestClient
+    
+        import main
+        from modules.persistence import storage_key
+    
+        monkeypatch.setattr(main, "DATA_DIR", tmp_path / "data")
+        monkeypatch.setattr(main, "hub", None)
+        monkeypatch.setenv("PUBCAST_ENFORCE_AUTH", "0")
+        hostile_id = "../../outside"
+    
+>       with TestClient(main.app) as client:
+             ^^^^^^^^^^^^^^^^^^^^
+
+tests/horizon_ref_character_audit_regressions.py:116: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:750: in __exit__
+    self.exit_stack.close()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:618: in close
+    self.__exit__(None, None, None)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:610: in __exit__
+    raise exc_details[1]
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:595: in __exit__
+    if cb(*exc_details):
+       ^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:478: in _exit_wrapper
+    callback(*args, **kwds)
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:743: in wait_shutdown
+    portal.call(self.wait_shutdown)
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:340: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:791: in wait_shutdown
+    await receive()
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:780: in receive
+    self.task.result()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:449: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:755: in lifespan
+    await self.app(scope, self.stream_receive.receive, self.stream_send.send)
+/root/.local/lib/python3.12/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/applications.py:113: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/errors.py:152: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/base.py:101: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/gzip.py:22: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/cors.py:77: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py:48: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:715: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:724: in app
+    await self.lifespan(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:693: in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+thinking_context/mount.py:236: in _lifespan
+    async with _existing_lifespan(application):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+main.py:861: in lifespan
+    await rearmed_conductor.shutdown()
+modules/room_conductor.py:511: in shutdown
+    await self.release_room(rid)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <modules.room_conductor.RoomConductor object at 0x7f62a0cd1790>
+room_id = 'airlock'
+
+    async def release_room(self, room_id: str) -> None:
+        """Stop watching a room."""
+        async with self._room_lock:
+            state = self._rooms.pop(room_id, None)
+        if not state:
+            return
+        state.phase = ScenePhase.CLOSED
+        if state.watcher_task and not state.watcher_task.done():
+            state.watcher_task.cancel()
+            try:
+>               await state.watcher_task
+E               RuntimeError: Task <Task pending name='anyio.from_thread.BlockingPortal._call_func' coro=<TaskHandle._run_coro() running at /root/.local/lib/python3.12/site-packages/anyio/_core/_tasks.py:327> cb=[TaskGroup._spawn.<locals>.task_done() at /root/.local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:870]> got Future <Task cancelling name='jeremy:airlock' coro=<RoomConductor._watcher_loop() running at /workspace/scratch/e48ad5ab9079/build/october/modules/room_conductor.py:555> wait_for=<Future cancelled>> attached to a different loop
+
+modules/room_conductor.py:504: RuntimeError
+------------------------------ Captured log call -------------------------------
+WARNING  pubcast.bridge:bridge_bulletproof.py:587 🌉 SHM segment not found
+ERROR    pubcast.bridge:bridge_bulletproof.py:698 ❌ TCP connection failed: [Errno 111] Connection refused
+ERROR    pubcast.bridge:bridge_bulletproof.py:447 🚨 Bridge using Path C (File System) - severe performance impact
+WARNING  pubcast.pete_enhanced:pete_enhanced.py:458 e-PETE: bridge fallback path accepted command test; primary bridge not active (status=emergency)
+ERROR    pubcast.pete_enhanced:pete_enhanced.py:754 e-PETE: Twin engine system failure - attempting recovery
+WARNING  pubcast.pubcast_voxel_integration:pubcast_voxel_integration.py:51 restart requested; renderer process is managed by VoxelWebRTCBridge when active
+WARNING  pubcast.pete_enhanced:pete_enhanced.py:119 e-PETE compatibility fallback emergency marker: ResourceMetrics(cpu_percent=11.0, memory_percent=7.8, gpu_percent=0.0, timestamp=1792492476.491441)
+__________ test_main_production_state_requires_mod_when_auth_enforced __________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f62a01f3260>
+
+    def test_main_production_state_requires_mod_when_auth_enforced(monkeypatch):
+        monkeypatch.setenv("PUBCAST_ENFORCE_AUTH", "1")
+        monkeypatch.setattr(main, "hub", HubStub())
+        monkeypatch.setattr(main, "_HAS_PUBWORLD_ROUTER", False)
+        monkeypatch.setattr(main, "push_production_state_to_pubworld", None)
+>       with TestClient(main.app) as client:
+             ^^^^^^^^^^^^^^^^^^^^
+
+tests/test_main_route_authorization_parity.py:60: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:750: in __exit__
+    self.exit_stack.close()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:618: in close
+    self.__exit__(None, None, None)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:610: in __exit__
+    raise exc_details[1]
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:595: in __exit__
+    if cb(*exc_details):
+       ^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:478: in _exit_wrapper
+    callback(*args, **kwds)
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:743: in wait_shutdown
+    portal.call(self.wait_shutdown)
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:340: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:791: in wait_shutdown
+    await receive()
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:780: in receive
+    self.task.result()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:449: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:755: in lifespan
+    await self.app(scope, self.stream_receive.receive, self.stream_send.send)
+/root/.local/lib/python3.12/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/applications.py:113: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/errors.py:152: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/base.py:101: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/gzip.py:22: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/cors.py:77: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py:48: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:715: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:724: in app
+    await self.lifespan(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:693: in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+thinking_context/mount.py:236: in _lifespan
+    async with _existing_lifespan(application):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+main.py:861: in lifespan
+    await rearmed_conductor.shutdown()
+modules/room_conductor.py:511: in shutdown
+    await self.release_room(rid)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <modules.room_conductor.RoomConductor object at 0x7f62a0cd1790>
+room_id = 'controlroom'
+
+    async def release_room(self, room_id: str) -> None:
+        """Stop watching a room."""
+        async with self._room_lock:
+            state = self._rooms.pop(room_id, None)
+        if not state:
+            return
+        state.phase = ScenePhase.CLOSED
+        if state.watcher_task and not state.watcher_task.done():
+            state.watcher_task.cancel()
+            try:
+>               await state.watcher_task
+E               RuntimeError: Task <Task pending name='anyio.from_thread.BlockingPortal._call_func' coro=<TaskHandle._run_coro() running at /root/.local/lib/python3.12/site-packages/anyio/_core/_tasks.py:327> cb=[TaskGroup._spawn.<locals>.task_done() at /root/.local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:870]> got Future <Task cancelling name='jeremy:controlroom' coro=<RoomConductor._watcher_loop() running at /workspace/scratch/e48ad5ab9079/build/october/modules/room_conductor.py:555> wait_for=<Future cancelled>> attached to a different loop
+
+modules/room_conductor.py:504: RuntimeError
+------------------------------ Captured log call -------------------------------
+WARNING  pubcast.bridge:bridge_bulletproof.py:587 🌉 SHM segment not found
+ERROR    pubcast.bridge:bridge_bulletproof.py:698 ❌ TCP connection failed: [Errno 111] Connection refused
+ERROR    pubcast.bridge:bridge_bulletproof.py:447 🚨 Bridge using Path C (File System) - severe performance impact
+WARNING  pubcast.pete_enhanced:pete_enhanced.py:458 e-PETE: bridge fallback path accepted command test; primary bridge not active (status=emergency)
+___________ test_main_camera_switch_requires_mod_when_auth_enforced ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f62a0057f80>
+
+    def test_main_camera_switch_requires_mod_when_auth_enforced(monkeypatch):
+        monkeypatch.setenv("PUBCAST_ENFORCE_AUTH", "1")
+        monkeypatch.setattr(main, "cameras", CamerasStub())
+>       with TestClient(main.app) as client:
+             ^^^^^^^^^^^^^^^^^^^^
+
+tests/test_main_route_authorization_parity.py:87: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:750: in __exit__
+    self.exit_stack.close()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:618: in close
+    self.__exit__(None, None, None)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:610: in __exit__
+    raise exc_details[1]
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:595: in __exit__
+    if cb(*exc_details):
+       ^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:478: in _exit_wrapper
+    callback(*args, **kwds)
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:743: in wait_shutdown
+    portal.call(self.wait_shutdown)
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:340: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:791: in wait_shutdown
+    await receive()
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:780: in receive
+    self.task.result()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:449: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:755: in lifespan
+    await self.app(scope, self.stream_receive.receive, self.stream_send.send)
+/root/.local/lib/python3.12/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/applications.py:113: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/errors.py:152: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/base.py:101: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/gzip.py:22: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/cors.py:77: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py:48: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:715: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:724: in app
+    await self.lifespan(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:693: in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+thinking_context/mount.py:236: in _lifespan
+    async with _existing_lifespan(application):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+main.py:861: in lifespan
+    await rearmed_conductor.shutdown()
+modules/room_conductor.py:511: in shutdown
+    await self.release_room(rid)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <modules.room_conductor.RoomConductor object at 0x7f62a0cd1790>
+room_id = 'dressing'
+
+    async def release_room(self, room_id: str) -> None:
+        """Stop watching a room."""
+        async with self._room_lock:
+            state = self._rooms.pop(room_id, None)
+        if not state:
+            return
+        state.phase = ScenePhase.CLOSED
+        if state.watcher_task and not state.watcher_task.done():
+            state.watcher_task.cancel()
+            try:
+>               await state.watcher_task
+E               RuntimeError: Task <Task pending name='anyio.from_thread.BlockingPortal._call_func' coro=<TaskHandle._run_coro() running at /root/.local/lib/python3.12/site-packages/anyio/_core/_tasks.py:327> cb=[TaskGroup._spawn.<locals>.task_done() at /root/.local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:870]> got Future <Task cancelling name='jeremy:dressing' coro=<RoomConductor._watcher_loop() running at /workspace/scratch/e48ad5ab9079/build/october/modules/room_conductor.py:555> wait_for=<Future cancelled>> attached to a different loop
+
+modules/room_conductor.py:504: RuntimeError
+------------------------------ Captured log call -------------------------------
+WARNING  pubcast.bridge:bridge_bulletproof.py:587 🌉 SHM segment not found
+ERROR    pubcast.bridge:bridge_bulletproof.py:698 ❌ TCP connection failed: [Errno 111] Connection refused
+ERROR    pubcast.bridge:bridge_bulletproof.py:447 🚨 Bridge using Path C (File System) - severe performance impact
+WARNING  pubcast.pete_enhanced:pete_enhanced.py:458 e-PETE: bridge fallback path accepted command test; primary bridge not active (status=emergency)
+______ test_main_session_register_rejects_spoofed_user_when_auth_enforced ______
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-11/test_main_session_register_rej0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f62a0207bc0>
+
+    def test_main_session_register_rejects_spoofed_user_when_auth_enforced(tmp_path, monkeypatch):
+        monkeypatch.setenv("PUBCAST_ENFORCE_AUTH", "1")
+        monkeypatch.setattr(main, "DATA_DIR", tmp_path)
+>       with TestClient(main.app) as client:
+             ^^^^^^^^^^^^^^^^^^^^
+
+tests/test_main_route_authorization_parity.py:113: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:750: in __exit__
+    self.exit_stack.close()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:618: in close
+    self.__exit__(None, None, None)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:610: in __exit__
+    raise exc_details[1]
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:595: in __exit__
+    if cb(*exc_details):
+       ^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:478: in _exit_wrapper
+    callback(*args, **kwds)
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:743: in wait_shutdown
+    portal.call(self.wait_shutdown)
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:340: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:791: in wait_shutdown
+    await receive()
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:780: in receive
+    self.task.result()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:449: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:755: in lifespan
+    await self.app(scope, self.stream_receive.receive, self.stream_send.send)
+/root/.local/lib/python3.12/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/applications.py:113: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/errors.py:152: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/base.py:101: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/gzip.py:22: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/cors.py:77: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py:48: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:715: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:724: in app
+    await self.lifespan(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:693: in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+thinking_context/mount.py:236: in _lifespan
+    async with _existing_lifespan(application):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+main.py:861: in lifespan
+    await rearmed_conductor.shutdown()
+modules/room_conductor.py:511: in shutdown
+    await self.release_room(rid)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <modules.room_conductor.RoomConductor object at 0x7f62a0cd1790>
+room_id = 'foley_room'
+
+    async def release_room(self, room_id: str) -> None:
+        """Stop watching a room."""
+        async with self._room_lock:
+            state = self._rooms.pop(room_id, None)
+        if not state:
+            return
+        state.phase = ScenePhase.CLOSED
+        if state.watcher_task and not state.watcher_task.done():
+            state.watcher_task.cancel()
+            try:
+>               await state.watcher_task
+E               RuntimeError: Task <Task pending name='anyio.from_thread.BlockingPortal._call_func' coro=<TaskHandle._run_coro() running at /root/.local/lib/python3.12/site-packages/anyio/_core/_tasks.py:327> cb=[TaskGroup._spawn.<locals>.task_done() at /root/.local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:870]> got Future <Task cancelling name='jeremy:foley_room' coro=<RoomConductor._watcher_loop() running at /workspace/scratch/e48ad5ab9079/build/october/modules/room_conductor.py:555> wait_for=<Future cancelled>> attached to a different loop
+
+modules/room_conductor.py:504: RuntimeError
+------------------------------ Captured log call -------------------------------
+WARNING  pubcast.bridge:bridge_bulletproof.py:587 🌉 SHM segment not found
+ERROR    pubcast.bridge:bridge_bulletproof.py:698 ❌ TCP connection failed: [Errno 111] Connection refused
+ERROR    pubcast.bridge:bridge_bulletproof.py:447 🚨 Bridge using Path C (File System) - severe performance impact
+WARNING  pubcast.pete_enhanced:pete_enhanced.py:458 e-PETE: bridge fallback path accepted command test; primary bridge not active (status=emergency)
+___ test_main_avatar_route_rejects_header_token_mismatch_when_auth_enforced ____
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f6298570350>
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-11/test_main_avatar_route_rejects0')
+
+    def test_main_avatar_route_rejects_header_token_mismatch_when_auth_enforced(monkeypatch, tmp_path):
+        monkeypatch.setenv("PUBCAST_ENFORCE_AUTH", "1")
+        monkeypatch.setattr(main, "DATA_DIR", tmp_path)
+>       with TestClient(main.app) as client:
+             ^^^^^^^^^^^^^^^^^^^^
+
+tests/test_main_route_authorization_parity.py:140: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:750: in __exit__
+    self.exit_stack.close()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:618: in close
+    self.__exit__(None, None, None)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:610: in __exit__
+    raise exc_details[1]
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:595: in __exit__
+    if cb(*exc_details):
+       ^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:478: in _exit_wrapper
+    callback(*args, **kwds)
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:743: in wait_shutdown
+    portal.call(self.wait_shutdown)
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:340: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:791: in wait_shutdown
+    await receive()
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:780: in receive
+    self.task.result()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:449: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:755: in lifespan
+    await self.app(scope, self.stream_receive.receive, self.stream_send.send)
+/root/.local/lib/python3.12/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/applications.py:113: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/errors.py:152: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/base.py:101: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/gzip.py:22: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/cors.py:77: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py:48: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:715: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:724: in app
+    await self.lifespan(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:693: in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+thinking_context/mount.py:236: in _lifespan
+    async with _existing_lifespan(application):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+main.py:861: in lifespan
+    await rearmed_conductor.shutdown()
+modules/room_conductor.py:511: in shutdown
+    await self.release_room(rid)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <modules.room_conductor.RoomConductor object at 0x7f62a0cd1790>
+room_id = 'greenroom'
+
+    async def release_room(self, room_id: str) -> None:
+        """Stop watching a room."""
+        async with self._room_lock:
+            state = self._rooms.pop(room_id, None)
+        if not state:
+            return
+        state.phase = ScenePhase.CLOSED
+        if state.watcher_task and not state.watcher_task.done():
+            state.watcher_task.cancel()
+            try:
+>               await state.watcher_task
+E               RuntimeError: Task <Task pending name='anyio.from_thread.BlockingPortal._call_func' coro=<TaskHandle._run_coro() running at /root/.local/lib/python3.12/site-packages/anyio/_core/_tasks.py:327> cb=[TaskGroup._spawn.<locals>.task_done() at /root/.local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:870]> got Future <Task cancelling name='jeremy:greenroom' coro=<RoomConductor._watcher_loop() running at /workspace/scratch/e48ad5ab9079/build/october/modules/room_conductor.py:555> wait_for=<Future cancelled>> attached to a different loop
+
+modules/room_conductor.py:504: RuntimeError
+------------------------------ Captured log call -------------------------------
+WARNING  pubcast.bridge:bridge_bulletproof.py:587 🌉 SHM segment not found
+ERROR    pubcast.bridge:bridge_bulletproof.py:698 ❌ TCP connection failed: [Errno 111] Connection refused
+ERROR    pubcast.bridge:bridge_bulletproof.py:447 🚨 Bridge using Path C (File System) - severe performance impact
+WARNING  pubcast.pete_enhanced:pete_enhanced.py:458 e-PETE: bridge fallback path accepted command test; primary bridge not active (status=emergency)
+____________ test_main_session_role_requires_mod_when_auth_enforced ____________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-11/test_main_session_role_require0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f62985eb110>
+
+    def test_main_session_role_requires_mod_when_auth_enforced(tmp_path, monkeypatch):
+        monkeypatch.setenv("PUBCAST_ENFORCE_AUTH", "1")
+        monkeypatch.setattr(main, "DATA_DIR", tmp_path)
+>       with TestClient(main.app) as client:
+             ^^^^^^^^^^^^^^^^^^^^
+
+tests/test_main_route_authorization_parity.py:155: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:750: in __exit__
+    self.exit_stack.close()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:618: in close
+    self.__exit__(None, None, None)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:610: in __exit__
+    raise exc_details[1]
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:595: in __exit__
+    if cb(*exc_details):
+       ^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:478: in _exit_wrapper
+    callback(*args, **kwds)
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:743: in wait_shutdown
+    portal.call(self.wait_shutdown)
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:340: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:791: in wait_shutdown
+    await receive()
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:780: in receive
+    self.task.result()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:449: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:755: in lifespan
+    await self.app(scope, self.stream_receive.receive, self.stream_send.send)
+/root/.local/lib/python3.12/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/applications.py:113: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/errors.py:152: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/base.py:101: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/gzip.py:22: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/cors.py:77: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py:48: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:715: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:724: in app
+    await self.lifespan(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:693: in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+thinking_context/mount.py:236: in _lifespan
+    async with _existing_lifespan(application):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+main.py:861: in lifespan
+    await rearmed_conductor.shutdown()
+modules/room_conductor.py:511: in shutdown
+    await self.release_room(rid)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <modules.room_conductor.RoomConductor object at 0x7f62a0cd1790>
+room_id = 'palace_theater'
+
+    async def release_room(self, room_id: str) -> None:
+        """Stop watching a room."""
+        async with self._room_lock:
+            state = self._rooms.pop(room_id, None)
+        if not state:
+            return
+        state.phase = ScenePhase.CLOSED
+        if state.watcher_task and not state.watcher_task.done():
+            state.watcher_task.cancel()
+            try:
+>               await state.watcher_task
+E               RuntimeError: Task <Task pending name='anyio.from_thread.BlockingPortal._call_func' coro=<TaskHandle._run_coro() running at /root/.local/lib/python3.12/site-packages/anyio/_core/_tasks.py:327> cb=[TaskGroup._spawn.<locals>.task_done() at /root/.local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:870]> got Future <Task cancelling name='jeremy:palace_theater' coro=<RoomConductor._watcher_loop() running at /workspace/scratch/e48ad5ab9079/build/october/modules/room_conductor.py:555> wait_for=<Future cancelled>> attached to a different loop
+
+modules/room_conductor.py:504: RuntimeError
+------------------------------ Captured log call -------------------------------
+WARNING  pubcast.bridge:bridge_bulletproof.py:587 🌉 SHM segment not found
+ERROR    pubcast.bridge:bridge_bulletproof.py:698 ❌ TCP connection failed: [Errno 111] Connection refused
+ERROR    pubcast.bridge:bridge_bulletproof.py:447 🚨 Bridge using Path C (File System) - severe performance impact
+WARNING  pubcast.pete_enhanced:pete_enhanced.py:458 e-PETE: bridge fallback path accepted command test; primary bridge not active (status=emergency)
+____ test_main_visual_patch_approve_requires_mod_and_persists_when_approved ____
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-11/test_main_visual_patch_approve0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f62985ebb90>
+
+    def test_main_visual_patch_approve_requires_mod_and_persists_when_approved(tmp_path, monkeypatch):
+        monkeypatch.setenv("PUBCAST_ENFORCE_AUTH", "1")
+        monkeypatch.setattr(main, "DATA_DIR", tmp_path)
+        payload = {
+            "patch_kind": "adaptive_extension",
+            "target": "both",
+            "scene_id": "scene_default",
+            "asset_id": "route_tail_chair_patch",
+            "approval": {"state": "approved"},
+            "adaptive_extension": {
+                "extension_id": "route_tail_chair_patch",
+                "object_id": "chair_01",
+                "object_type": "chair",
+                "interaction": "sit",
+                "reason": "make chair usable for avatar silhouette and tail clearance",
+                "voxel_patch": {
+                    "dimensions": [6, 4, 4],
+                    "subtractive_cutouts": [{"operation": "subtract", "kind": "tail_slot"}],
+                },
+            },
+        }
+>       with TestClient(main.app) as client:
+             ^^^^^^^^^^^^^^^^^^^^
+
+tests/test_main_route_authorization_parity.py:203: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:750: in __exit__
+    self.exit_stack.close()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:618: in close
+    self.__exit__(None, None, None)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:610: in __exit__
+    raise exc_details[1]
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:595: in __exit__
+    if cb(*exc_details):
+       ^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:478: in _exit_wrapper
+    callback(*args, **kwds)
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:743: in wait_shutdown
+    portal.call(self.wait_shutdown)
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:340: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:791: in wait_shutdown
+    await receive()
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:780: in receive
+    self.task.result()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:449: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:755: in lifespan
+    await self.app(scope, self.stream_receive.receive, self.stream_send.send)
+/root/.local/lib/python3.12/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/applications.py:113: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/errors.py:152: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/base.py:101: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/gzip.py:22: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/cors.py:77: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py:48: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:715: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:724: in app
+    await self.lifespan(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:693: in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+thinking_context/mount.py:236: in _lifespan
+    async with _existing_lifespan(application):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+main.py:861: in lifespan
+    await rearmed_conductor.shutdown()
+modules/room_conductor.py:511: in shutdown
+    await self.release_room(rid)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <modules.room_conductor.RoomConductor object at 0x7f62a0cd1790>
+room_id = 'stage'
+
+    async def release_room(self, room_id: str) -> None:
+        """Stop watching a room."""
+        async with self._room_lock:
+            state = self._rooms.pop(room_id, None)
+        if not state:
+            return
+        state.phase = ScenePhase.CLOSED
+        if state.watcher_task and not state.watcher_task.done():
+            state.watcher_task.cancel()
+            try:
+>               await state.watcher_task
+E               RuntimeError: Task <Task pending name='anyio.from_thread.BlockingPortal._call_func' coro=<TaskHandle._run_coro() running at /root/.local/lib/python3.12/site-packages/anyio/_core/_tasks.py:327> cb=[TaskGroup._spawn.<locals>.task_done() at /root/.local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:870]> got Future <Task cancelling name='jeremy:stage' coro=<RoomConductor._watcher_loop() running at /workspace/scratch/e48ad5ab9079/build/october/modules/room_conductor.py:555> wait_for=<Future cancelled>> attached to a different loop
+
+modules/room_conductor.py:504: RuntimeError
+------------------------------ Captured log call -------------------------------
+WARNING  pubcast.bridge:bridge_bulletproof.py:587 🌉 SHM segment not found
+ERROR    pubcast.bridge:bridge_bulletproof.py:698 ❌ TCP connection failed: [Errno 111] Connection refused
+ERROR    pubcast.bridge:bridge_bulletproof.py:447 🚨 Bridge using Path C (File System) - severe performance impact
+WARNING  pubcast.pete_enhanced:pete_enhanced.py:458 e-PETE: bridge fallback path accepted command test; primary bridge not active (status=emergency)
+_____________ test_main_bot_speak_requires_mod_when_auth_enforced ______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f62a0e30ef0>
+
+    def test_main_bot_speak_requires_mod_when_auth_enforced(monkeypatch):
+        monkeypatch.setenv("PUBCAST_ENFORCE_AUTH", "1")
+>       with TestClient(main.app) as client:
+             ^^^^^^^^^^^^^^^^^^^^
+
+tests/test_main_route_authorization_parity.py:253: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:750: in __exit__
+    self.exit_stack.close()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:618: in close
+    self.__exit__(None, None, None)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:610: in __exit__
+    raise exc_details[1]
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:595: in __exit__
+    if cb(*exc_details):
+       ^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:478: in _exit_wrapper
+    callback(*args, **kwds)
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:743: in wait_shutdown
+    portal.call(self.wait_shutdown)
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:340: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:791: in wait_shutdown
+    await receive()
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:780: in receive
+    self.task.result()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:449: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:755: in lifespan
+    await self.app(scope, self.stream_receive.receive, self.stream_send.send)
+/root/.local/lib/python3.12/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/applications.py:113: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/errors.py:152: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/base.py:101: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/gzip.py:22: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/cors.py:77: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py:48: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:715: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:724: in app
+    await self.lifespan(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:693: in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+thinking_context/mount.py:236: in _lifespan
+    async with _existing_lifespan(application):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+main.py:861: in lifespan
+    await rearmed_conductor.shutdown()
+modules/room_conductor.py:511: in shutdown
+    await self.release_room(rid)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <modules.room_conductor.RoomConductor object at 0x7f62a0cd1790>
+room_id = 'studio'
+
+    async def release_room(self, room_id: str) -> None:
+        """Stop watching a room."""
+        async with self._room_lock:
+            state = self._rooms.pop(room_id, None)
+        if not state:
+            return
+        state.phase = ScenePhase.CLOSED
+        if state.watcher_task and not state.watcher_task.done():
+            state.watcher_task.cancel()
+            try:
+>               await state.watcher_task
+E               RuntimeError: Task <Task pending name='anyio.from_thread.BlockingPortal._call_func' coro=<TaskHandle._run_coro() running at /root/.local/lib/python3.12/site-packages/anyio/_core/_tasks.py:327> cb=[TaskGroup._spawn.<locals>.task_done() at /root/.local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:870]> got Future <Task cancelling name='jeremy:studio' coro=<RoomConductor._watcher_loop() running at /workspace/scratch/e48ad5ab9079/build/october/modules/room_conductor.py:555> wait_for=<Future cancelled>> attached to a different loop
+
+modules/room_conductor.py:504: RuntimeError
+------------------------------ Captured log call -------------------------------
+WARNING  pubcast.bridge:bridge_bulletproof.py:587 🌉 SHM segment not found
+ERROR    pubcast.bridge:bridge_bulletproof.py:698 ❌ TCP connection failed: [Errno 111] Connection refused
+ERROR    pubcast.bridge:bridge_bulletproof.py:447 🚨 Bridge using Path C (File System) - severe performance impact
+WARNING  pubcast.pete_enhanced:pete_enhanced.py:458 e-PETE: bridge fallback path accepted command test; primary bridge not active (status=emergency)
+____________ test_governance_audit_requires_mod_when_auth_enforced _____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f62dba9a7b0>
+
+    def test_governance_audit_requires_mod_when_auth_enforced(monkeypatch):
+        monkeypatch.setenv("PUBCAST_ENFORCE_AUTH", "1")
+>       with TestClient(main.app) as client:
+             ^^^^^^^^^^^^^^^^^^^^
+
+tests/test_main_route_authorization_parity.py:283: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:750: in __exit__
+    self.exit_stack.close()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:618: in close
+    self.__exit__(None, None, None)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:610: in __exit__
+    raise exc_details[1]
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:595: in __exit__
+    if cb(*exc_details):
+       ^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:478: in _exit_wrapper
+    callback(*args, **kwds)
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:743: in wait_shutdown
+    portal.call(self.wait_shutdown)
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:340: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:791: in wait_shutdown
+    await receive()
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:780: in receive
+    self.task.result()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:449: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:755: in lifespan
+    await self.app(scope, self.stream_receive.receive, self.stream_send.send)
+/root/.local/lib/python3.12/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/applications.py:113: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/errors.py:152: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/base.py:101: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/gzip.py:22: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/cors.py:77: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py:48: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:715: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:724: in app
+    await self.lifespan(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:693: in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+thinking_context/mount.py:236: in _lifespan
+    async with _existing_lifespan(application):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+main.py:861: in lifespan
+    await rearmed_conductor.shutdown()
+modules/room_conductor.py:511: in shutdown
+    await self.release_room(rid)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <modules.room_conductor.RoomConductor object at 0x7f62a0cd1790>
+room_id = 'vortex'
+
+    async def release_room(self, room_id: str) -> None:
+        """Stop watching a room."""
+        async with self._room_lock:
+            state = self._rooms.pop(room_id, None)
+        if not state:
+            return
+        state.phase = ScenePhase.CLOSED
+        if state.watcher_task and not state.watcher_task.done():
+            state.watcher_task.cancel()
+            try:
+>               await state.watcher_task
+E               RuntimeError: Task <Task pending name='anyio.from_thread.BlockingPortal._call_func' coro=<TaskHandle._run_coro() running at /root/.local/lib/python3.12/site-packages/anyio/_core/_tasks.py:327> cb=[TaskGroup._spawn.<locals>.task_done() at /root/.local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:870]> got Future <Task cancelling name='jeremy:vortex' coro=<RoomConductor._watcher_loop() running at /workspace/scratch/e48ad5ab9079/build/october/modules/room_conductor.py:555> wait_for=<Future cancelled>> attached to a different loop
+
+modules/room_conductor.py:504: RuntimeError
+------------------------------ Captured log call -------------------------------
+WARNING  pubcast.bridge:bridge_bulletproof.py:587 🌉 SHM segment not found
+ERROR    pubcast.bridge:bridge_bulletproof.py:698 ❌ TCP connection failed: [Errno 111] Connection refused
+ERROR    pubcast.bridge:bridge_bulletproof.py:447 🚨 Bridge using Path C (File System) - severe performance impact
+WARNING  pubcast.pete_enhanced:pete_enhanced.py:458 e-PETE: bridge fallback path accepted command test; primary bridge not active (status=emergency)
+__________ test_governance_user_audit_requires_mod_when_auth_enforced __________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f62a0d4f2f0>
+
+    def test_governance_user_audit_requires_mod_when_auth_enforced(monkeypatch):
+        monkeypatch.setenv("PUBCAST_ENFORCE_AUTH", "1")
+>       with TestClient(main.app) as client:
+             ^^^^^^^^^^^^^^^^^^^^
+
+tests/test_main_route_authorization_parity.py:302: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:750: in __exit__
+    self.exit_stack.close()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:618: in close
+    self.__exit__(None, None, None)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:610: in __exit__
+    raise exc_details[1]
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:595: in __exit__
+    if cb(*exc_details):
+       ^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:478: in _exit_wrapper
+    callback(*args, **kwds)
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:743: in wait_shutdown
+    portal.call(self.wait_shutdown)
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:340: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:791: in wait_shutdown
+    await receive()
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:780: in receive
+    self.task.result()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:449: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.local/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.local/lib/python3.12/site-packages/starlette/testclient.py:755: in lifespan
+    await self.app(scope, self.stream_receive.receive, self.stream_send.send)
+/root/.local/lib/python3.12/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/applications.py:113: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/errors.py:152: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/base.py:101: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/gzip.py:22: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/cors.py:77: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/middleware/exceptions.py:48: in __call__
+    await self.app(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:715: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:724: in app
+    await self.lifespan(scope, receive, send)
+/root/.local/lib/python3.12/site-packages/starlette/routing.py:693: in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+thinking_context/mount.py:236: in _lifespan
+    async with _existing_lifespan(application):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+/root/.local/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+main.py:861: in lifespan
+    await rearmed_conductor.shutdown()
+modules/room_conductor.py:511: in shutdown
+    await self.release_room(rid)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <modules.room_conductor.RoomConductor object at 0x7f62a0cd1790>
+room_id = 'waiting_room'
+
+    async def release_room(self, room_id: str) -> None:
+        """Stop watching a room."""
+        async with self._room_lock:
+            state = self._rooms.pop(room_id, None)
+        if not state:
+            return
+        state.phase = ScenePhase.CLOSED
+        if state.watcher_task and not state.watcher_task.done():
+            state.watcher_task.cancel()
+            try:
+>               await state.watcher_task
+E               RuntimeError: Task <Task pending name='anyio.from_thread.BlockingPortal._call_func' coro=<TaskHandle._run_coro() running at /root/.local/lib/python3.12/site-packages/anyio/_core/_tasks.py:327> cb=[TaskGroup._spawn.<locals>.task_done() at /root/.local/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:870]> got Future <Task cancelling name='jeremy:waiting_room' coro=<RoomConductor._watcher_loop() running at /workspace/scratch/e48ad5ab9079/build/october/modules/room_conductor.py:555> wait_for=<Future cancelled>> attached to a different loop
+
+modules/room_conductor.py:504: RuntimeError
+------------------------------ Captured log call -------------------------------
+WARNING  pubcast.bridge:bridge_bulletproof.py:587 🌉 SHM segment not found
+ERROR    pubcast.bridge:bridge_bulletproof.py:698 ❌ TCP connection failed: [Errno 111] Connection refused
+ERROR    pubcast.bridge:bridge_bulletproof.py:447 🚨 Bridge using Path C (File System) - severe performance impact
+WARNING  pubcast.pete_enhanced:pete_enhanced.py:458 e-PETE: bridge fallback path accepted command test; primary bridge not active (status=emergency)
+=============================== warnings summary ===============================
+../../../../../root/.local/lib/python3.12/site-packages/starlette/testclient.py:40
+  /root/.local/lib/python3.12/site-packages/starlette/testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/horizon_ref_character_audit_regressions.py::test_user_state_route_cannot_escape_data_root
+FAILED tests/test_main_route_authorization_parity.py::test_main_production_state_requires_mod_when_auth_enforced
+FAILED tests/test_main_route_authorization_parity.py::test_main_camera_switch_requires_mod_when_auth_enforced
+FAILED tests/test_main_route_authorization_parity.py::test_main_session_register_rejects_spoofed_user_when_auth_enforced
+FAILED tests/test_main_route_authorization_parity.py::test_main_avatar_route_rejects_header_token_mismatch_when_auth_enforced
+FAILED tests/test_main_route_authorization_parity.py::test_main_session_role_requires_mod_when_auth_enforced
+FAILED tests/test_main_route_authorization_parity.py::test_main_visual_patch_approve_requires_mod_and_persists_when_approved
+FAILED tests/test_main_route_authorization_parity.py::test_main_bot_speak_requires_mod_when_auth_enforced
+FAILED tests/test_main_route_authorization_parity.py::test_governance_audit_requires_mod_when_auth_enforced
+FAILED tests/test_main_route_authorization_parity.py::test_governance_user_audit_requires_mod_when_auth_enforced
+10 failed, 171 passed, 1 warning in 35.01s

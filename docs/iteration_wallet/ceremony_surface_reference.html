@@ -1,0 +1,2460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iteration Wallet — Rear View Foresight</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════
+   THE INTERRUPTED ESTATE
+   Warm oak. Brass fittings. Leather that cost real money.
+   The room that got finished. Beautiful materials, 
+   confidently placed, mid-sentence when the funding stopped.
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  /* Walls & surfaces */
+  --cream:       #F4EDE0;
+  --cream-deep:  #EDE3D0;
+  --cream-mid:   #E8DCC8;
+  --parchment:   #D9CDB8;
+  --linen:       #F9F5EE;
+
+  /* Oak & wood */
+  --walnut:      #140C04;
+  --walnut-mid:  #1E1108;
+  --walnut-warm: #2A1A0C;
+  --oak:         #5A3818;
+  --oak-light:   #7A5228;
+
+  /* Brass hardware */
+  --brass:       #B8872A;
+  --brass-light: #D4A84B;
+  --brass-dim:   #7A5C1A;
+  --brass-glow:  rgba(184,137,42,0.15);
+
+  /* Leather */
+  --leather:     #6B3B2C;
+  --leather-mid: #8B5240;
+  --leather-dim: rgba(107,61,46,0.12);
+
+  /* Status */
+  --sage:        #4A6741;
+  --sage-glow:   rgba(74,103,65,0.14);
+  --clay:        #8B4030;
+  --clay-glow:   rgba(139,64,48,0.14);
+  --sand:        #8B7355;
+
+  /* Text */
+  --ink:         #1A1208;
+  --ink-mid:     #4A3828;
+  --ink-dim:     #8A7060;
+  --ink-ghost:   #B8A898;
+
+  /* Borders & lines */
+  --rule:        #C8B898;
+  --rule-light:  #DDD0BC;
+  --rule-dark:   #A89078;
+
+  /* Fonts */
+  --serif:       'Playfair Display', Georgia, serif;
+  --body:        'Crimson Pro', 'Georgia', serif;
+  --mono:        'JetBrains Mono', 'Courier New', monospace;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Oak grain texture overlay — very subtle */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: 
+    repeating-linear-gradient(
+      92deg,
+      transparent,
+      transparent 120px,
+      rgba(90,55,20,0.018) 120px,
+      rgba(90,55,20,0.018) 121px
+    ),
+    repeating-linear-gradient(
+      180deg,
+      transparent,
+      transparent 80px,
+      rgba(90,55,20,0.012) 80px,
+      rgba(90,55,20,0.012) 81px
+    );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── APP SHELL ── */
+.app {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  grid-template-rows: 64px 1fr;
+  height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+/* ═══════════════════════════════════════════
+   HEADER — The oak door frame of the house
+   ═══════════════════════════════════════════ */
+.header {
+  grid-column: 1 / -1;
+  background: var(--walnut);
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  gap: 0;
+  position: relative;
+  z-index: 100;
+  border-bottom: 3px solid var(--brass-dim);
+  box-shadow: 0 2px 24px rgba(10,6,2,0.35);
+}
+
+/* Inlaid brass detail line */
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: -6px; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--brass-dim), var(--brass), var(--brass-dim), transparent);
+  opacity: 0.6;
+}
+
+.logo {
+  display: flex; align-items: center; gap: 14px;
+  text-decoration: none; flex-shrink: 0;
+}
+
+.logo-lockup {
+  width: 36px; height: 36px;
+  border: 1.5px solid var(--brass-dim);
+  border-radius: 2px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(184,137,42,0.08);
+  position: relative;
+}
+
+.logo-lockup::before {
+  content: '';
+  position: absolute; inset: 3px;
+  border: 1px solid rgba(184,137,42,0.2);
+  border-radius: 1px;
+}
+
+.logo-lockup svg {
+  width: 18px; height: 18px;
+}
+
+.logo-text {
+  display: flex; flex-direction: column; gap: 1px;
+}
+
+.logo-name {
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--cream);
+  letter-spacing: 0.03em;
+  line-height: 1;
+}
+
+.logo-estate {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--brass-dim);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  line-height: 1;
+  font-weight: 300;
+}
+
+.header-divider {
+  width: 1px;
+  height: 32px;
+  background: rgba(184,137,42,0.2);
+  margin: 0 28px;
+  flex-shrink: 0;
+}
+
+.header-tagline {
+  font-family: var(--body);
+  font-size: 12px;
+  color: rgba(244,237,224,0.4);
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+.header-right {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 20px;
+}
+
+/* Watcher — the estate's groundskeeper indicator */
+.watcher-row {
+  display: flex; align-items: center; gap: 7px;
+  font-family: var(--mono); font-size: 9px;
+  color: rgba(184,137,42,0.6);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.heartbeat {
+  display: flex; gap: 2px; align-items: flex-end;
+  height: 12px;
+}
+
+.heartbeat span {
+  width: 2px;
+  background: var(--brass-dim);
+  border-radius: 1px;
+  animation: beat 1.8s ease-in-out infinite;
+}
+
+.heartbeat span:nth-child(1) { height: 4px; animation-delay: 0s; }
+.heartbeat span:nth-child(2) { height: 10px; animation-delay: 0.1s; }
+.heartbeat span:nth-child(3) { height: 6px; animation-delay: 0.2s; }
+.heartbeat span:nth-child(4) { height: 12px; animation-delay: 0.05s; }
+.heartbeat span:nth-child(5) { height: 4px; animation-delay: 0.15s; }
+
+@keyframes beat {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; background: var(--brass); }
+}
+
+/* Vault status — the front door lock */
+.vault-lock {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 16px;
+  border: 1px solid rgba(184,137,42,0.2);
+  border-radius: 2px;
+  background: rgba(20,12,4,0.4);
+  cursor: default;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.vault-lock::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--clay);
+  transition: background 0.3s;
+}
+
+.vault-lock.open::before { background: var(--sage); }
+
+.vault-lock-icon { width: 14px; height: 14px; flex-shrink: 0; }
+.vault-lock-text {
+  font-family: var(--mono); font-size: 10px;
+  color: rgba(244,237,224,0.55);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: color 0.3s;
+}
+
+.vault-lock.open .vault-lock-text { color: rgba(244,237,224,0.8); }
+
+/* ═══════════════════════════════════════════
+   SIDEBAR — The hallway with the leather wainscoting
+   ═══════════════════════════════════════════ */
+.sidebar {
+  background: var(--walnut-mid);
+  border-right: 2px solid var(--walnut-warm);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* Leather panel effect on the sidebar */
+.sidebar::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  top: 0; bottom: 80px;
+  background: 
+    repeating-linear-gradient(
+      180deg,
+      transparent,
+      transparent 48px,
+      rgba(255,255,255,0.015) 48px,
+      rgba(255,255,255,0.015) 49px
+    );
+  pointer-events: none;
+}
+
+/* Brass runner at the bottom of the hall */
+.sidebar::after {
+  content: '';
+  position: absolute;
+  bottom: 80px; left: 16px; right: 16px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--brass-dim), transparent);
+}
+
+.sidebar-inner { padding: 20px 0; flex: 1; }
+
+.nav-group { padding: 0 12px 20px; }
+
+.nav-section-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--brass-dim);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  padding: 0 8px 10px;
+  border-bottom: 1px solid rgba(184,137,42,0.12);
+  margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 300;
+}
+
+.nav-section-label::before {
+  content: '';
+  width: 3px; height: 3px;
+  background: var(--brass-dim);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.nav-item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 9px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  font-family: var(--body);
+  font-size: 13px;
+  color: rgba(244,237,224,0.45);
+  transition: all 0.18s;
+  border: 1px solid transparent;
+  position: relative;
+  user-select: none;
+  letter-spacing: 0.01em;
+}
+
+.nav-item:hover {
+  background: rgba(244,237,224,0.06);
+  color: rgba(244,237,224,0.75);
+}
+
+.nav-item.active {
+  background: rgba(184,137,42,0.1);
+  color: var(--cream);
+  border-color: rgba(184,137,42,0.15);
+}
+
+/* Brass bracket on active item */
+.nav-item.active::before {
+  content: '';
+  position: absolute; left: -1px; top: 4px; bottom: 4px;
+  width: 2px;
+  background: var(--brass);
+  border-radius: 0 1px 1px 0;
+}
+
+.nav-item svg { width: 14px; height: 14px; flex-shrink: 0; opacity: .6; }
+.nav-item.active svg { opacity: 1; color: var(--brass); }
+
+.nav-badge {
+  margin-left: auto;
+  font-family: var(--mono); font-size: 9px;
+  color: var(--brass-dim); font-weight: 300;
+  background: rgba(184,137,42,0.08);
+  border: 1px solid rgba(184,137,42,0.15);
+  padding: 1px 6px; border-radius: 2px;
+  min-width: 20px; text-align: center;
+}
+
+/* Command buttons — the heavy brass pulls */
+.cmd-section { padding: 0 12px 0; }
+
+.cmd-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.12em;
+  color: rgba(244,237,224,0.35);
+  transition: all 0.15s;
+  border: 1px solid transparent;
+  user-select: none;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+}
+
+.cmd-item svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+.cmd-open:hover {
+  background: rgba(184,137,42,0.1);
+  color: var(--brass-light);
+  border-color: rgba(184,137,42,0.2);
+}
+
+.cmd-remove:hover {
+  background: rgba(107,61,46,0.15);
+  color: var(--leather-mid);
+  border-color: rgba(107,61,46,0.25);
+}
+
+.cmd-release:hover {
+  background: rgba(139,64,48,0.12);
+  color: #C07060;
+  border-color: rgba(139,64,48,0.2);
+}
+
+/* Sidebar footer — the architect's plate */
+.sidebar-foot {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(184,137,42,0.1);
+}
+
+.sidebar-foot-mark {
+  font-family: var(--mono); font-size: 8px;
+  color: rgba(184,137,42,0.3);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.8; font-weight: 300;
+}
+
+.sidebar-foot-quote {
+  font-family: var(--body); font-size: 10px;
+  color: rgba(244,237,224,0.2);
+  font-style: italic;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+/* ═══════════════════════════════════════════
+   MAIN — The room that got finished
+   Beautiful wide-plank floors, tall windows, 
+   the good plaster on the walls
+   ═══════════════════════════════════════════ */
+.main {
+  overflow-y: auto;
+  background: var(--cream);
+  position: relative;
+}
+
+/* Subtle floor-plank texture */
+.main::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: 
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 200px,
+      rgba(160,110,60,0.025) 200px,
+      rgba(160,110,60,0.025) 201px
+    );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.view {
+  display: none;
+  padding: 36px 40px;
+  animation: room-enter .22s ease;
+  position: relative; z-index: 1;
+  min-height: 100%;
+}
+.view.active { display: block; animation: viewIn 0.22s ease; }
+@keyframes viewIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes room-enter {
+  from { opacity: 0; transform: translateX(8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── VIEW HEADING ── */
+.view-heading {
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--rule);
+  display: flex; align-items: flex-end; justify-content: space-between;
+}
+
+.view-title {
+  font-family: var(--serif);
+  font-size: 30px;
+  font-weight: 400;
+  color: var(--walnut);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.view-title em {
+  font-style: italic;
+  color: var(--oak-light);
+}
+
+.view-sub {
+  font-family: var(--mono);
+  font-size: 9px; font-weight: 300;
+  color: var(--ink-ghost);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-top: 5px;
+}
+
+.view-action {
+  flex-shrink: 0; margin-left: 20px;
+}
+
+/* ── VAULT STATUS BAR ── */
+.estate-status {
+  background: var(--walnut);
+  border-radius: 3px;
+  padding: 20px 24px;
+  margin-bottom: 28px;
+  display: flex; align-items: center; gap: 32px;
+  border: 1px solid var(--walnut-warm);
+  box-shadow: 0 2px 12px rgba(10,6,2,0.15), inset 0 1px 0 rgba(255,255,255,0.04);
+  position: relative; overflow: hidden;
+}
+
+/* Wood grain stripe on the status bar */
+.estate-status::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--brass-dim), var(--brass), var(--brass-dim));
+  opacity: 0.8;
+}
+
+.estate-status-item { flex: 1; }
+
+.estate-status-label {
+  font-family: var(--mono); font-size: 8px; font-weight: 300;
+  color: rgba(184,137,42,0.5);
+  letter-spacing: 0.2em; text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.estate-status-value {
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.06em;
+  color: rgba(244,237,224,0.5);
+  transition: color 0.3s;
+}
+
+.estate-status-value.locked { color: #C07060; }
+.estate-status-value.open   { color: #8DC085; }
+.estate-status-value.running { color: rgba(244,237,224,0.65); }
+
+.estate-open-btn {
+  background: transparent;
+  border: 1px solid var(--brass-dim);
+  color: var(--brass);
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 10px 20px; border-radius: 2px;
+  cursor: pointer; transition: all 0.2s;
+  flex-shrink: 0;
+  font-weight: 400;
+  position: relative;
+}
+
+.estate-open-btn::before {
+  content: '';
+  position: absolute; inset: 3px;
+  border: 1px solid rgba(184,137,42,0.08);
+  border-radius: 1px;
+  transition: all 0.2s;
+}
+
+.estate-open-btn:hover {
+  background: rgba(184,137,42,0.12);
+  border-color: var(--brass);
+  box-shadow: 0 0 16px rgba(184,137,42,0.15);
+}
+
+.estate-open-btn.lock {
+  border-color: rgba(244,237,224,0.15);
+  color: rgba(244,237,224,0.4);
+}
+
+.estate-open-btn.lock::before { border-color: transparent; }
+
+.estate-open-btn.lock:hover {
+  background: rgba(244,237,224,0.05);
+  border-color: rgba(244,237,224,0.25);
+  color: rgba(244,237,224,0.6);
+  box-shadow: none;
+}
+
+/* ── STATS ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  background: var(--linen);
+  border: 1px solid var(--rule-light);
+  border-radius: 3px;
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.stat-card::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--brass-dim), var(--brass-light), var(--brass-dim));
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.stat-card:hover { border-color: var(--rule); }
+.stat-card:hover::after { opacity: 0.6; }
+
+.stat-number {
+  font-family: var(--serif);
+  font-size: 38px; font-weight: 400;
+  color: var(--walnut);
+  line-height: 1;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+
+.stat-label {
+  font-family: var(--mono); font-size: 8px; font-weight: 300;
+  color: var(--ink-dim);
+  letter-spacing: 0.16em; text-transform: uppercase;
+}
+
+/* ── SECTION HEADER ── */
+.sec-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.sec-name {
+  font-family: var(--serif); font-size: 18px; font-weight: 400;
+  color: var(--walnut-warm);
+  letter-spacing: -0.005em;
+}
+
+.sec-action {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--brass-dim);
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: color 0.15s;
+}
+.sec-action:hover { color: var(--brass); }
+.sec-name em { font-style: italic; color: var(--oak-light); }
+
+/* ── BUTTONS ── */
+.btn {
+  font-family: var(--mono); font-size: 9px; font-weight: 400;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  padding: 8px 16px; border-radius: 2px;
+  cursor: pointer; transition: all 0.15s;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink-mid);
+  position: relative;
+}
+
+.btn:hover {
+  border-color: var(--oak-light);
+  color: var(--walnut);
+  background: rgba(92,58,30,0.04);
+}
+
+.btn-brass {
+  background: var(--brass-glow);
+  border-color: var(--brass-dim);
+  color: var(--brass);
+}
+
+.btn-brass:hover {
+  background: rgba(184,137,42,0.2);
+  border-color: var(--brass);
+  color: var(--brass-light);
+}
+
+/* ── PROJECT CARDS ── */
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+  margin-bottom: 32px;
+}
+
+.project-card {
+  background: var(--linen);
+  border: 1px solid var(--rule-light);
+  border-radius: 3px;
+  padding: 20px 22px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+/* The wainscoting cap on each card */
+.project-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--brass-dim), var(--brass-light), var(--brass-dim));
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+/* Leather tab on right edge */
+.project-card::after {
+  content: '';
+  position: absolute; right: 0; top: 20px; bottom: 20px;
+  width: 3px;
+  background: var(--leather);
+  opacity: 0;
+  transition: opacity 0.2s;
+  border-radius: 2px 0 0 2px;
+}
+
+.project-card:hover {
+  border-color: var(--rule);
+  box-shadow: 0 4px 20px rgba(30,18,8,0.08);
+  transform: translateY(-1px);
+}
+
+.project-card:hover::before { opacity: 1; }
+.project-card:hover::after  { opacity: 1; }
+
+.project-card-name {
+  font-family: var(--serif); font-size: 17px; font-weight: 400;
+  color: var(--walnut); margin-bottom: 4px;
+  letter-spacing: -0.005em;
+}
+
+.project-card-path {
+  font-family: var(--mono); font-size: 9px; font-weight: 300;
+  color: var(--ink-ghost); margin-bottom: 16px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.project-card-foot {
+  display: flex; gap: 20px; align-items: center;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule-light);
+}
+
+.project-card-stat {
+  font-family: var(--mono); font-size: 9px; font-weight: 300;
+  color: var(--ink-dim);
+}
+
+.project-card-stat strong {
+  color: var(--oak); font-weight: 500;
+}
+
+.version-tag {
+  position: absolute; top: 16px; right: 16px;
+  font-family: var(--mono); font-size: 8px; font-weight: 300;
+  color: var(--brass-dim);
+  background: rgba(184,137,42,0.08);
+  border: 1px solid rgba(184,137,42,0.15);
+  padding: 2px 8px; border-radius: 2px;
+  letter-spacing: 0.1em;
+}
+
+/* ── FILE TABLE ── */
+.table-wrap {
+  background: var(--linen);
+  border: 1px solid var(--rule-light);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+
+.table-head {
+  display: grid;
+  grid-template-columns: 2fr 1fr 100px 1fr 100px;
+  padding: 11px 20px;
+  background: var(--cream-deep);
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--mono); font-size: 8px; font-weight: 300;
+  color: var(--ink-ghost); letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 100px 1fr 100px;
+  padding: 11px 20px;
+  border-bottom: 1px solid var(--rule-light);
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.table-row:last-child { border-bottom: none; }
+.table-row:hover { background: var(--cream-deep); }
+
+.table-file-name {
+  display: flex; align-items: center; gap: 9px;
+  font-family: var(--body); font-size: 13px;
+  color: var(--walnut-warm);
+}
+
+.table-file-icon {
+  width: 14px; height: 14px;
+  color: var(--oak-light); opacity: .8; flex-shrink: 0;
+}
+
+.table-cell {
+  font-family: var(--mono); font-size: 9px; font-weight: 300;
+  color: var(--ink-dim);
+}
+
+/* Status chips — like the room's condition labels */
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--mono); font-size: 8px; font-weight: 300;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 2px;
+}
+
+.chip-safe {
+  background: var(--sage-glow);
+  color: var(--sage);
+  border: 1px solid rgba(74,103,65,0.25);
+}
+
+.chip-staging {
+  background: rgba(184,137,42,0.1);
+  color: var(--brass);
+  border: 1px solid rgba(184,137,42,0.2);
+}
+
+.chip-archive {
+  background: var(--cream-mid);
+  color: var(--sand);
+  border: 1px solid var(--rule);
+}
+
+.chip-alert {
+  background: var(--clay-glow);
+  color: var(--clay);
+  border: 1px solid rgba(139,64,48,0.25);
+}
+
+.table-actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+.table-btn {
+  background: transparent;
+  border: 1px solid var(--rule);
+  color: var(--ink-dim);
+  font-family: var(--mono); font-size: 8px; font-weight: 300;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 5px 10px; border-radius: 2px;
+  cursor: pointer; transition: all 0.12s;
+}
+
+.table-btn:hover { border-color: var(--oak-light); color: var(--walnut); }
+.table-btn.remove:hover { border-color: var(--brass-dim); color: var(--brass); }
+.table-btn.release:hover { border-color: rgba(139,64,48,0.4); color: var(--clay); }
+
+/* ── EVENT LOG ── */
+.log-wrap {
+  background: var(--linen);
+  border: 1px solid var(--rule-light);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.log-header {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--cream-deep);
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: var(--serif); font-size: 14px; font-weight: 400;
+  color: var(--walnut-warm); font-style: italic;
+}
+
+.log-header span {
+  font-family: var(--mono); font-size: 8px; font-weight: 300;
+  color: var(--ink-ghost); font-style: normal;
+  letter-spacing: 0.12em;
+}
+
+.log-entries { max-height: 260px; overflow-y: auto; }
+
+.log-entry {
+  display: grid;
+  grid-template-columns: 52px 180px 1fr;
+  gap: 0;
+  padding: 9px 20px;
+  border-bottom: 1px solid var(--rule-light);
+  font-family: var(--mono); font-size: 9px; font-weight: 300;
+  align-items: baseline;
+}
+
+.log-entry:last-child { border-bottom: none; }
+
+.log-ts { color: var(--ink-ghost); }
+.log-type { color: var(--oak); letter-spacing: 0.06em; }
+.log-type.alert   { color: var(--clay); }
+.log-type.restored { color: var(--sage); }
+.log-type.warn    { color: var(--brass); }
+.log-desc { color: var(--ink-dim); }
+
+/* ── ARCHIVE DISTRICT ── */
+.archive-block { margin-bottom: 24px; }
+
+.archive-version-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 20px;
+  background: var(--cream-deep);
+  border: 1px solid var(--rule);
+  border-bottom: none;
+  border-radius: 3px 3px 0 0;
+  font-family: var(--serif); font-size: 15px; font-weight: 400;
+  color: var(--walnut-warm);
+}
+
+.archive-version-head em { font-style: italic; color: var(--oak-light); }
+.archive-version-meta {
+  font-family: var(--mono); font-size: 8px; font-weight: 300;
+  color: var(--ink-ghost);
+}
+
+.archive-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 80px;
+  padding: 10px 20px;
+  border: 1px solid var(--rule-light); border-top: none;
+  align-items: center;
+  font-family: var(--mono); font-size: 9px; font-weight: 300;
+  color: var(--ink-dim);
+  background: var(--linen);
+  transition: background 0.12s;
+}
+
+.archive-row:last-child { border-radius: 0 0 3px 3px; }
+.archive-row:hover { background: var(--cream-mid); }
+
+/* ── DRIVE MONITOR ── */
+.drive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px; margin-bottom: 28px;
+}
+
+.drive-card {
+  background: var(--linen);
+  border: 1px solid var(--rule-light);
+  border-radius: 3px; padding: 20px;
+  transition: all 0.2s;
+}
+
+.drive-card.has-vault { border-color: var(--brass-dim); }
+
+.drive-letter {
+  font-family: var(--serif); font-size: 32px; font-weight: 400;
+  color: var(--walnut); line-height: 1; margin-bottom: 8px;
+}
+
+.drive-status {
+  font-family: var(--mono); font-size: 9px; font-weight: 300;
+  color: var(--ink-dim); line-height: 1.7;
+}
+
+.drive-warning {
+  margin-top: 8px;
+  font-family: var(--mono); font-size: 9px; font-weight: 300;
+  color: var(--brass);
+  padding: 6px 10px;
+  background: rgba(184,137,42,0.08);
+  border-left: 2px solid var(--brass-dim);
+  border-radius: 0 2px 2px 0;
+}
+
+/* ── EMPTY STATES ── */
+.empty {
+  text-align: center;
+  padding: 60px 24px;
+}
+
+.empty-ornament {
+  width: 48px; height: 48px;
+  margin: 0 auto 18px;
+  opacity: 0.2;
+  color: var(--walnut);
+}
+
+.empty-title {
+  font-family: var(--serif); font-size: 18px; font-weight: 400;
+  font-style: italic; color: var(--ink-mid);
+  margin-bottom: 8px;
+}
+
+.empty-body {
+  font-family: var(--mono); font-size: 9px; font-weight: 300;
+  color: var(--ink-ghost); letter-spacing: 0.08em;
+}
+
+/* ═══════════════════════════════════════════
+   COMMAND MODAL — The heavy door, properly hung
+   ═══════════════════════════════════════════ */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(20,12,4,0.75);
+  backdrop-filter: blur(4px);
+  z-index: 500;
+  display: none; place-items: center;
+}
+.overlay.open { display: grid; animation: room-enter .18s ease; }
+
+.modal {
+  background: var(--cream);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  width: 440px;
+  box-shadow:
+    0 40px 100px rgba(10,6,2,0.5),
+    0 0 0 1px rgba(184,137,42,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.5);
+  overflow: hidden;
+  position: relative;
+}
+
+/* The door frame — a brass inlay at the top */
+.modal::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--brass-dim), var(--brass), var(--brass-dim), transparent);
+}
+
+.modal-head {
+  background: var(--cream-deep);
+  padding: 20px 28px 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.modal-eyebrow {
+  font-family: var(--mono); font-size: 8px; font-weight: 300;
+  color: var(--ink-ghost); letter-spacing: 0.22em;
+  text-transform: uppercase; margin-bottom: 6px;
+}
+
+.modal-title {
+  font-family: var(--serif); font-size: 22px; font-weight: 400;
+  color: var(--walnut); line-height: 1.2;
+}
+
+.modal-title em { font-style: italic; color: var(--oak-light); }
+
+.modal-body { padding: 24px 28px; }
+
+.modal-instruction {
+  font-family: var(--body); font-size: 13px;
+  color: var(--ink-mid); line-height: 1.6;
+  margin-bottom: 22px;
+}
+
+/* The command plate — like the door sign */
+.cmd-plate {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.cmd-plate-word {
+  font-family: var(--mono); font-size: 32px;
+  letter-spacing: 0.5em; padding-left: 0.5em;
+  color: var(--walnut);
+  display: inline-block;
+  padding: 16px 28px;
+  background: var(--cream-deep);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  position: relative;
+  transition: color 0.3s;
+}
+
+.cmd-plate-word.c-brass  { color: var(--brass); border-color: var(--brass-dim); background: var(--brass-glow); }
+.cmd-plate-word.c-leather { color: var(--leather-mid); border-color: rgba(107,61,46,0.25); background: rgba(107,61,46,0.05); }
+.cmd-plate-word.c-clay   { color: var(--clay); border-color: rgba(139,64,48,0.25); background: var(--clay-glow); }
+
+.cmd-hint {
+  font-family: var(--mono); font-size: 8px; font-weight: 300;
+  color: var(--ink-ghost); letter-spacing: 0.12em;
+  text-align: center; margin-bottom: 14px;
+}
+
+/* The command input — the keyhole */
+.cmd-input {
+  width: 100%;
+  background: var(--walnut);
+  border: 1px solid var(--walnut-warm);
+  border-radius: 2px;
+  color: var(--cream);
+  font-family: var(--mono); font-size: 18px; font-weight: 300;
+  letter-spacing: 0.35em; padding-left: 0.35em;
+  text-align: center; padding-top: 14px; padding-bottom: 14px;
+  outline: none;
+  transition: all 0.2s;
+  caret-color: var(--brass);
+  margin-bottom: 22px;
+  display: block;
+}
+
+.cmd-input:focus {
+  border-color: var(--brass-dim);
+  box-shadow: 0 0 0 2px rgba(184,137,42,0.1);
+}
+
+.cmd-input.error {
+  border-color: var(--clay);
+  animation: shake .32s ease;
+}
+
+.cmd-input.success {
+  border-color: var(--sage);
+  box-shadow: 0 0 0 2px rgba(74,103,65,0.12);
+}
+
+@keyframes shake {
+  0%,100%{transform:translateX(0);}
+  20%{transform:translateX(-5px);}
+  40%{transform:translateX(5px);}
+  60%{transform:translateX(-3px);}
+  80%{transform:translateX(3px);}
+}
+
+.modal-actions {
+  display: flex; gap: 10px; justify-content: flex-end;
+  padding: 16px 28px 22px;
+  border-top: 1px solid var(--rule-light);
+  background: var(--linen);
+}
+
+.modal-cancel {
+  background: transparent; border: 1px solid var(--rule);
+  color: var(--ink-dim); font-family: var(--mono);
+  font-size: 9px; font-weight: 300; letter-spacing: 0.14em;
+  padding: 9px 18px; border-radius: 2px;
+  cursor: pointer; transition: all 0.12s;
+  text-transform: uppercase;
+}
+.modal-cancel:hover { border-color: var(--rule-dark); color: var(--ink-mid); }
+
+.modal-confirm {
+  background: var(--brass-glow);
+  border: 1px solid var(--brass-dim);
+  color: var(--brass);
+  font-family: var(--mono); font-size: 9px; font-weight: 400;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 9px 22px; border-radius: 2px;
+  cursor: pointer; transition: all 0.15s;
+}
+.modal-confirm:hover { background: rgba(184,137,42,0.2); border-color: var(--brass); }
+
+.modal-danger {
+  background: var(--clay-glow);
+  border: 1px solid rgba(139,64,48,0.3);
+  color: var(--clay);
+  font-family: var(--mono); font-size: 9px; font-weight: 400;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 9px 22px; border-radius: 2px;
+  cursor: pointer; transition: all 0.15s;
+}
+.modal-danger:hover { background: rgba(139,64,48,0.2); border-color: var(--clay); }
+
+/* ── FORM ── */
+.form-group { margin-bottom: 18px; }
+
+.form-label {
+  font-family: var(--mono); font-size: 8px; font-weight: 300;
+  color: var(--ink-dim); letter-spacing: 0.18em;
+  text-transform: uppercase; display: block; margin-bottom: 7px;
+}
+
+.form-input {
+  width: 100%;
+  background: var(--cream-deep);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  color: var(--walnut);
+  font-family: var(--body); font-size: 14px;
+  padding: 10px 13px; outline: none;
+  transition: all 0.15s;
+}
+.form-input:focus { border-color: var(--oak-light); box-shadow: 0 0 0 2px rgba(92,58,30,0.06); }
+select.form-input { cursor: pointer; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--walnut);
+  border: 1px solid var(--walnut-warm);
+  color: var(--cream);
+  font-family: var(--body); font-size: 13px;
+  padding: 13px 20px; border-radius: 3px;
+  z-index: 600; display: none;
+  animation: toast-in .2s ease;
+  box-shadow: 0 16px 48px rgba(10,6,2,0.45);
+  max-width: 380px; line-height: 1.5;
+}
+
+.toast.show { display: block; }
+
+.toast-left {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; border-radius: 3px 0 0 3px;
+}
+
+.toast .toast-left { background: var(--brass); }
+.toast.ok .toast-left { background: var(--sage); }
+.toast.bad .toast-left { background: var(--clay); }
+.toast.note .toast-left { background: var(--brass); }
+
+@keyframes toast-in { from{opacity:0;transform:translateY(10px);} to{opacity:1;transform:translateY(0);} }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--parchment); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--rule-dark); }
+
+/* ═══════════════════════════════════════════
+   FIRST-RUN TUTORIAL — The architect's introduction
+   ═══════════════════════════════════════════ */
+.tutorial {
+  position: fixed; inset: 0;
+  background: rgba(20,12,4,0.88);
+  backdrop-filter: blur(6px);
+  z-index: 700;
+  display: flex; align-items: center; justify-content: center;
+  animation: room-enter .3s ease;
+}
+
+.tutorial-card {
+  background: var(--cream);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  width: 540px;
+  box-shadow: 0 60px 140px rgba(10,6,2,0.7), 0 0 0 1px rgba(184,137,42,0.1);
+  overflow: hidden;
+}
+
+/* The entry hall of the tutorial */
+.tutorial-head {
+  background: var(--walnut);
+  padding: 26px 36px 22px;
+  border-bottom: 2px solid var(--brass-dim);
+  position: relative;
+}
+
+.tutorial-head::after {
+  content: '';
+  position: absolute; bottom: -5px; left: 36px; right: 36px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--brass-dim), transparent);
+}
+
+.tutorial-progress {
+  display: flex; gap: 6px; margin-bottom: 14px;
+}
+
+.tutorial-pip {
+  height: 2px; flex: 1;
+  background: rgba(184,137,42,0.2);
+  border-radius: 1px;
+  transition: background 0.4s;
+}
+.tutorial-pip.done { background: var(--brass); }
+
+.tutorial-eyebrow {
+  font-family: var(--mono); font-size: 8px; font-weight: 300;
+  color: rgba(184,137,42,0.5); letter-spacing: 0.22em;
+  text-transform: uppercase; margin-bottom: 6px;
+}
+
+.tutorial-head-title {
+  font-family: var(--serif); font-size: 22px; font-weight: 400;
+  color: var(--cream); line-height: 1.2;
+}
+.tutorial-head-title em { font-style: italic; color: var(--brass-light); }
+
+.tutorial-body { padding: 28px 36px; }
+
+.tutorial-text {
+  font-family: var(--body); font-size: 14px;
+  color: var(--ink-mid); line-height: 1.75;
+  margin-bottom: 22px;
+}
+
+/* Practice file in tutorial */
+.tutorial-file {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 16px;
+  background: var(--linen);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  margin-bottom: 20px;
+}
+
+.tutorial-file-icon { width: 20px; height: 20px; color: var(--oak-light); flex-shrink: 0; }
+.tutorial-file-name { font-family: var(--body); font-size: 14px; color: var(--walnut-warm); }
+.tutorial-file-status { margin-left: auto; }
+
+.tutorial-cmd-word {
+  font-family: var(--mono); font-size: 26px; font-weight: 300;
+  letter-spacing: 0.5em; padding-left: 0.5em;
+  text-align: center; margin-bottom: 8px;
+  display: block; color: var(--walnut);
+}
+.tutorial-cmd-word.brass   { color: var(--brass); }
+.tutorial-cmd-word.leather { color: var(--leather-mid); }
+.tutorial-cmd-word.clay    { color: var(--clay); }
+
+.tutorial-hint {
+  font-family: var(--mono); font-size: 8px; font-weight: 300;
+  color: var(--ink-ghost); letter-spacing: 0.12em;
+  text-align: center; margin-bottom: 13px;
+}
+
+.tutorial-input {
+  width: 100%;
+  background: var(--walnut);
+  border: 1px solid var(--walnut-warm);
+  border-radius: 2px;
+  color: var(--cream);
+  font-family: var(--mono); font-size: 18px; font-weight: 300;
+  letter-spacing: 0.3em; padding-left: 0.3em;
+  text-align: center; padding-top: 13px; padding-bottom: 13px;
+  outline: none; display: block;
+  transition: all 0.2s; caret-color: var(--brass);
+  margin-bottom: 4px;
+}
+.tutorial-input:focus { border-color: var(--brass-dim); box-shadow: 0 0 0 2px rgba(184,137,42,0.1); }
+.tutorial-input.error { border-color: var(--clay); animation: shake .32s ease; }
+.tutorial-input.done  { border-color: var(--sage); box-shadow: 0 0 0 2px rgba(74,103,65,0.12); }
+
+.tutorial-success {
+  font-family: var(--body); font-size: 12px; font-style: italic;
+  color: var(--sage); text-align: center;
+  height: 20px; opacity: 0;
+  transition: opacity .3s; margin-bottom: 18px;
+}
+.tutorial-success.show { opacity: 1; }
+
+.tutorial-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 36px 24px;
+}
+
+.tutorial-skip {
+  background: transparent; border: none;
+  font-family: var(--mono); font-size: 9px; font-weight: 300;
+  color: var(--ink-ghost); letter-spacing: 0.1em;
+  cursor: pointer; transition: color .15s;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.tutorial-skip:hover { color: var(--ink-dim); }
+
+.tutorial-next {
+  background: var(--brass-glow);
+  border: 1px solid var(--brass-dim);
+  color: var(--brass);
+  font-family: var(--mono); font-size: 9px; font-weight: 400;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 10px 24px; border-radius: 2px;
+  cursor: pointer; transition: all .15s;
+}
+.tutorial-next:hover { background: rgba(184,137,42,0.2); border-color: var(--brass); }
+.tutorial-next:disabled { opacity: .3; pointer-events: none; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════ TUTORIAL -->
+<div class="tutorial" id="tutorial">
+  <div class="tutorial-card">
+    <div class="tutorial-head">
+      <div class="tutorial-progress">
+        <div class="tutorial-pip" id="tp0"></div>
+        <div class="tutorial-pip" id="tp1"></div>
+        <div class="tutorial-pip" id="tp2"></div>
+        <div class="tutorial-pip" id="tp3"></div>
+      </div>
+      <div class="tutorial-eyebrow" id="tut-eyebrow">Introduction</div>
+      <div class="tutorial-head-title" id="tut-title">Welcome to <em>Iteration Wallet.</em></div>
+    </div>
+
+    <!-- Step 0: welcome -->
+    <div id="tut-step-0">
+      <div class="tutorial-body">
+        <p class="tutorial-text">
+          Before you protect anything real, spend two minutes here.<br><br>
+          There are three commands — <strong>OPEN</strong>, <strong>REMOVE</strong>, <strong>RELEASE</strong>.<br>
+          You will practise each one on a file that does not exist.<br><br>
+          Nothing destructive can happen without you typing the word yourself,<br>
+          one character at a time, in your own time.
+        </p>
+      </div>
+      <div class="tutorial-foot">
+        <button class="tutorial-skip" onclick="exitTutorial()">Skip — I understand how this works</button>
+        <button class="tutorial-next" onclick="tutAdvance(1)">Begin →</button>
+      </div>
+    </div>
+
+    <!-- Step 1: OPEN -->
+    <div id="tut-step-1" style="display:none">
+      <div class="tutorial-body">
+        <p class="tutorial-text">Nothing moves inside the Vault until you unlock it. Type <strong>OPEN</strong> to unlock the practice vault below.</p>
+        <div class="tutorial-file">
+          <svg class="tutorial-file-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 2h8.5L16 5.5V18H4V2z"/><path d="M12 2v4h4"/></svg>
+          <span class="tutorial-file-name">practice_document.txt</span>
+          <span class="tutorial-file-status"><span class="chip chip-safe">● Protected</span></span>
+        </div>
+        <span class="tutorial-cmd-word brass">OPEN</span>
+        <div class="tutorial-hint">Type it below — no paste, no autofill</div>
+        <input class="tutorial-input" id="ti1" type="text" autocomplete="off" spellcheck="false" maxlength="6" placeholder="type here...">
+        <div class="tutorial-success" id="ts1">✓ Vault opened. The file is now accessible.</div>
+      </div>
+      <div class="tutorial-foot">
+        <button class="tutorial-skip" onclick="exitTutorial()">Skip</button>
+        <button class="tutorial-next" id="tn1" onclick="tutAdvance(2)" disabled>Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: REMOVE -->
+    <div id="tut-step-2" style="display:none">
+      <div class="tutorial-body">
+        <p class="tutorial-text">REMOVE takes the file out of the Vault into a holding area. It still exists. You can still change your mind. Type <strong>REMOVE</strong>.</p>
+        <div class="tutorial-file">
+          <svg class="tutorial-file-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 2h8.5L16 5.5V18H4V2z"/><path d="M12 2v4h4"/></svg>
+          <span class="tutorial-file-name">practice_document.txt</span>
+          <span class="tutorial-file-status"><span class="chip chip-safe">● Protected</span></span>
+        </div>
+        <span class="tutorial-cmd-word leather">REMOVE</span>
+        <div class="tutorial-hint">Type it below — character by character</div>
+        <input class="tutorial-input" id="ti2" type="text" autocomplete="off" spellcheck="false" maxlength="8" placeholder="type here...">
+        <div class="tutorial-success" id="ts2">✓ File moved to holding. Still recoverable.</div>
+      </div>
+      <div class="tutorial-foot">
+        <button class="tutorial-skip" onclick="exitTutorial()">Skip</button>
+        <button class="tutorial-next" id="tn2" onclick="tutAdvance(3)" disabled>Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: RELEASE -->
+    <div id="tut-step-3" style="display:none">
+      <div class="tutorial-body">
+        <p class="tutorial-text">RELEASE is a live-person custody transfer. A file must be REMOVEd before it can be released from Iteration Wallet custody. Nothing is destroyed inside Iteration Wallet.</p>
+        <div class="tutorial-file" style="opacity:.55">
+          <svg class="tutorial-file-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 2h8.5L16 5.5V18H4V2z"/><path d="M12 2v4h4"/></svg>
+          <span class="tutorial-file-name">practice_document.txt</span>
+          <span class="tutorial-file-status"><span class="chip chip-staging">● Holding</span></span>
+        </div>
+        <span class="tutorial-cmd-word clay">RELEASE</span>
+        <div class="tutorial-hint">Type it — feel the weight of it</div>
+        <input class="tutorial-input" id="ti3" type="text" autocomplete="off" spellcheck="false" maxlength="8" placeholder="type here...">
+        <div class="tutorial-success" id="ts3">✓ Done. You know how the Vault works.</div>
+      </div>
+      <div class="tutorial-foot">
+        <button class="tutorial-skip" onclick="exitTutorial()">Skip</button>
+        <button class="tutorial-next" id="tn3" onclick="tutAdvance(4)" disabled>Continue →</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Done -->
+    <div id="tut-step-4" style="display:none">
+      <div class="tutorial-body">
+        <p class="tutorial-text">
+          Three commands. That is the complete system.<br><br>
+          <strong>OPEN</strong> — unlock the Vault for a session<br>
+          <strong>REMOVE</strong> — move a file to holding<br>
+          <strong>RELEASE</strong> — live-person release from Iteration Wallet custody (requires REMOVE first)<br><br>
+          Nothing happens to your files until you decide it should.<br>
+          Not an AI tool. Not a sync service. Not ransomware. Nothing.
+        </p>
+      </div>
+      <div class="tutorial-foot">
+        <span></span>
+        <button class="tutorial-next" onclick="exitTutorial()">Enter your Vault →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ APP -->
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <a class="logo" href="#">
+      <div class="logo-lockup">
+        <svg viewBox="0 0 20 20" fill="none">
+          <rect x="2" y="7" width="16" height="12" rx="1.5" stroke="#B8892A" stroke-width="1.3"/>
+          <path d="M6.5 7V5.5a3.5 3.5 0 017 0V7" stroke="#B8892A" stroke-width="1.3" stroke-linecap="round"/>
+          <circle cx="10" cy="13" r="2.2" stroke="#B8892A" stroke-width="1.3"/>
+          <line x1="10" y1="15.2" x2="10" y2="17.5" stroke="#B8892A" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <span class="logo-name">Iteration Wallet</span>
+        <span class="logo-estate">Rear View Foresight</span>
+      </div>
+    </a>
+
+    <div class="header-divider"></div>
+    <div class="header-tagline">Let find something right where you left it.</div>
+
+    <div class="header-right">
+      <div class="watcher-row">
+        <div class="heartbeat">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <span>Watcher active</span>
+      </div>
+
+      <div class="vault-lock" id="vaultLock">
+        <svg class="vault-lock-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3">
+          <rect x="1" y="5.5" width="12" height="8" rx="1" id="lock-body"/>
+          <path d="M4 5.5V4a3 3 0 016 0v1.5" id="lock-shackle"/>
+          <circle cx="7" cy="9.5" r="1.5" fill="currentColor" stroke="none"/>
+          <line x1="7" y1="11" x2="7" y2="12.5" stroke="currentColor" stroke-linecap="round"/>
+        </svg>
+        <span class="vault-lock-text" id="lockText">Vault Locked</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-inner">
+      <div class="nav-group">
+        <div class="nav-section-label">Navigate</div>
+        <div class="nav-item active" id="nav-dash" onclick="goTo('dash',this)">
+          <svg viewBox="0 0 14 14" fill="currentColor"><rect x="1" y="1" width="5.5" height="5.5" rx=".5"/><rect x="7.5" y="1" width="5.5" height="5.5" rx=".5"/><rect x="1" y="7.5" width="5.5" height="5.5" rx=".5"/><rect x="7.5" y="7.5" width="5.5" height="5.5" rx=".5"/></svg>
+          Dashboard
+        </div>
+        <div class="nav-item" id="nav-projects" onclick="goTo('projects',this)">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 4h10v8H2z"/><path d="M2 4l2.5-3h5L12 4"/></svg>
+          Cradle Projects
+          <span class="nav-badge" id="badgeProjects">0</span>
+        </div>
+        <div class="nav-item" id="nav-vault" onclick="goTo('vault',this)">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="3.5" width="12" height="9.5" rx="1"/><path d="M4.5 3.5V2.5a2.5 2.5 0 015 0v1"/><circle cx="7" cy="8" r="1.8"/><line x1="7" y1="9.8" x2="7" y2="12"/></svg>
+          Vault Files
+          <span class="nav-badge" id="badgeFiles">0</span>
+        </div>
+        <div class="nav-item" id="nav-archive" onclick="goTo('archive',this)">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="2" width="12" height="10" rx="1"/><line x1="1" y1="6" x2="13" y2="6"/><line x1="4.5" y1="9.5" x2="9.5" y2="9.5"/></svg>
+          Archive District
+        </div>
+        <div class="nav-item" id="nav-drives" onclick="goTo('drives',this)">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><ellipse cx="7" cy="3.5" rx="6" ry="2"/><path d="M1 3.5v7c0 1.1 2.7 2 6 2s6-.9 6-2v-7"/><line x1="1" y1="7.5" x2="13" y2="7.5"/></svg>
+          Drive Monitor
+        </div>
+        <div class="nav-item" id="nav-log" onclick="goTo('log',this)">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><line x1="2" y1="3.5" x2="12" y2="3.5"/><line x1="2" y1="7" x2="12" y2="7"/><line x1="2" y1="10.5" x2="8" y2="10.5"/></svg>
+          Event Log
+          <span class="nav-badge" id="badgeLog">0</span>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-section-label">Commands</div>
+        <div class="cmd-item cmd-open" onclick="triggerCmd('OPEN')" id="btnOpen">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="6" width="12" height="7.5" rx="1"/><path d="M4.5 6V4.5a2.5 2.5 0 014.5-1.2"/></svg>
+          Open Vault
+        </div>
+        <div class="cmd-item cmd-remove" onclick="triggerCmd('REMOVE')">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3.5 7h7M9 4.5l2.5 2.5L9 9.5"/></svg>
+          Remove File
+        </div>
+        <div class="cmd-item cmd-release" onclick="triggerCmd('RELEASE')">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><polyline points="1.5,3.5 12.5,3.5"/><path d="M4.5 3.5V2h5v1.5M5.5 6v5M8.5 6v5"/><rect x="2.5" y="3.5" width="9" height="9.5" rx="1"/></svg>
+          Release File
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-foot">
+      <div class="sidebar-foot-mark">
+        Iteration Wallet v4.0<br>
+        Rear View Foresight LLC<br>
+      </div>
+      <div class="sidebar-foot-quote">
+        "Feic Mo Chroí — See My Heart"
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div class="view active" id="view-dash">
+      <div class="view-heading">
+        <div>
+          <div class="view-title">Your <em>Vault</em></div>
+          <div class="view-sub">// Dashboard</div>
+        </div>
+        <div class="view-action">
+          <button class="btn btn-brass" onclick="showModal('newProject')">+ New Cradle</button>
+        </div>
+      </div>
+
+      <div class="estate-status" id="estateBar">
+        <div class="estate-status-item">
+          <div class="estate-status-label">Vault Status</div>
+          <div class="estate-status-value locked" id="barStatus">● Locked — all files protected</div>
+        </div>
+        <div class="estate-status-item">
+          <div class="estate-status-label">File Watcher</div>
+          <div class="estate-status-value running">● Running — integrity checks active</div>
+        </div>
+        <div class="estate-status-item">
+          <div class="estate-status-label">Last verified</div>
+          <div class="estate-status-value running" id="lastCheck">—</div>
+        </div>
+        <button class="estate-open-btn" id="barBtn" onclick="triggerCmd('OPEN')">Open Vault</button>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-number" id="sCradles">0</div>
+          <div class="stat-label">Cradle Projects</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="sProtected">0</div>
+          <div class="stat-label">Protected Files</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="sArchived">0</div>
+          <div class="stat-label">Archived Versions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="sEvents">0</div>
+          <div class="stat-label">Vault Events</div>
+        </div>
+      </div>
+
+      <div class="sec-head">
+        <div class="sec-name">Recent <em>projects</em></div>
+        <span class="sec-action" onclick="goTo('projects',document.getElementById('nav-projects'))">View all →</span>
+      </div>
+      <div class="projects-grid" id="dashProjects"></div>
+
+      <div class="sec-head" style="margin-top:4px">
+        <div class="sec-name">Recent <em>activity</em></div>
+      </div>
+      <div class="log-wrap">
+        <div class="log-header">Event record <span id="logCount">0 entries</span></div>
+        <div class="log-entries" id="dashLog"></div>
+      </div>
+    </div>
+
+    <!-- PROJECTS -->
+    <div class="view" id="view-projects">
+      <div class="view-heading">
+        <div>
+          <div class="view-title">Cradle <em>Projects</em></div>
+          <div class="view-sub">// Protected workspaces</div>
+        </div>
+        <div class="view-action">
+          <button class="btn btn-brass" onclick="showModal('newProject')">+ New Cradle</button>
+        </div>
+      </div>
+      <div class="projects-grid" id="allProjects"></div>
+    </div>
+
+    <!-- VAULT FILES -->
+    <div class="view" id="view-vault">
+      <div class="view-heading">
+        <div>
+          <div class="view-title">Vault <em>Files</em></div>
+          <div class="view-sub">// All protected files</div>
+        </div>
+        <div class="view-action">
+          <button class="btn btn-brass" onclick="showModal('addFile')">+ Add File</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-head">
+          <span>File Name</span>
+          <span>Project</span>
+          <span>Version</span>
+          <span>Status</span>
+          <span></span>
+        </div>
+        <div id="vaultFileRows"></div>
+      </div>
+    </div>
+
+    <!-- ARCHIVE DISTRICT -->
+    <div class="view" id="view-archive">
+      <div class="view-heading">
+        <div>
+          <div class="view-title">Archive <em>District</em></div>
+          <div class="view-sub">// Historical versions — fully protected</div>
+        </div>
+      </div>
+      <div id="archiveBody"></div>
+    </div>
+
+    <!-- DRIVE MONITOR -->
+    <div class="view" id="view-drives">
+      <div class="view-heading">
+        <div>
+          <div class="view-title">Drive <em>Monitor</em></div>
+          <div class="view-sub">// Detection — not prevention</div>
+        </div>
+      </div>
+      <p style="font-family:var(--body);font-size:13px;color:var(--ink-mid);line-height:1.7;max-width:560px;margin-bottom:28px;">
+        The Drive Monitor tells you which drives carry Vault data. If a drive containing your Vault is about to be formatted or erased, you will see a clear warning here first. The system detects — it is your decision to act.
+      </p>
+      <div class="sec-head"><div class="sec-name">Connected <em>drives</em></div></div>
+      <div class="drive-grid">
+        <div class="drive-card has-vault">
+          <div class="drive-letter">C:\</div>
+          <div class="drive-status">System drive<br>Vault data present</div>
+          <div class="drive-warning">⚠ Vault active on this drive</div>
+        </div>
+        <div class="drive-card">
+          <div class="drive-letter">D:\</div>
+          <div class="drive-status">Data drive<br>No Vault data</div>
+        </div>
+      </div>
+
+      <div class="sec-head"><div class="sec-name">Staging <em>area</em></div></div>
+      <div class="table-wrap">
+        <div class="table-head" style="grid-template-columns:2fr 1fr 1fr 100px">
+          <span>File</span><span>Project</span><span>Removed</span><span>Manual release</span>
+        </div>
+        <div id="stagingBody"></div>
+      </div>
+    </div>
+
+    <!-- EVENT LOG -->
+    <div class="view" id="view-log">
+      <div class="view-heading">
+        <div>
+          <div class="view-title">Event <em>Log</em></div>
+          <div class="view-sub">// Complete audit record</div>
+        </div>
+        <span style="font-family:var(--mono);font-size:9px;color:var(--ink-ghost);" id="fullLogMeta"></span>
+      </div>
+      <div class="log-wrap">
+        <div class="log-header">Vault record <span id="fullLogCount"></span></div>
+        <div class="log-entries" id="fullLog" style="max-height:calc(100vh - 260px)"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ════════════════════════════════════════ COMMAND MODAL -->
+<div class="overlay" id="cmdOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-eyebrow">Vault command required</div>
+      <div class="modal-title" id="cmdModalTitle">Open the <em>Vault</em></div>
+    </div>
+    <div class="modal-body">
+      <p class="modal-instruction" id="cmdModalInstr"></p>
+      <div class="cmd-plate">
+        <span class="cmd-plate-word" id="cmdPlateWord">OPEN</span>
+      </div>
+      <div class="cmd-hint">Type the command above — no paste, no autofill, your own pace</div>
+      <input class="cmd-input" id="cmdIn" type="text" autocomplete="off" spellcheck="false" maxlength="10" placeholder="type here...">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('cmdOverlay')">Cancel</button>
+      <button class="modal-confirm" id="cmdConfirm" onclick="submitCmd()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ NEW PROJECT MODAL -->
+<div class="overlay" id="newProjectOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-eyebrow">New workspace</div>
+      <div class="modal-title">Create a <em>Cradle</em></div>
+    </div>
+    <div class="modal-body">
+      <p class="modal-instruction">Name your project and point it at a folder. Everything in that folder will be tracked against your Vault master copies.</p>
+      <div class="form-group">
+        <label class="form-label">Project Name</label>
+        <input class="form-input" id="npName" placeholder="My Novel  ·  Tax 2025  ·  Music Project">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Root Folder</label>
+        <input class="form-input" id="npPath" placeholder="C:\Users\...\MyProject">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('newProjectOverlay')">Cancel</button>
+      <button class="modal-confirm" onclick="createProject()">Create Cradle</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ ADD FILE MODAL -->
+<div class="overlay" id="addFileOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-eyebrow">Protect a file</div>
+      <div class="modal-title">Add to the <em>Vault</em></div>
+    </div>
+    <div class="modal-body">
+      <p class="modal-instruction">A protected copy and a restoration backup will both be stored. The original is left where it is.</p>
+      <div class="form-group">
+        <label class="form-label">File Path</label>
+        <input class="form-input" id="afPath" placeholder="C:\Users\...\document.docx">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cradle Project</label>
+        <select class="form-input" id="afProject"><option value="">Select a project...</option></select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('addFileOverlay')">Cancel</button>
+      <button class="modal-confirm" onclick="addFile()">Add to Vault</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toastEl"><div class="toast-left"></div><span id="toastMsg"></span></div>
+
+<script>
+/* ═══════════════════════════════════════════
+   API LAYER
+   ═══════════════════════════════════════════ */
+const API_BASE = 'http://localhost:7432/api';
+
+async function api(method, path, body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API_BASE + path, opts);
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({ detail: 'Request failed' }));
+    throw new Error(err.detail || 'Request failed');
+  }
+  return r.json();
+}
+
+async function refreshState() {
+  try {
+    const state = await api('GET', '/state');
+    S.projects = state.projects || [];
+    S.files    = state.files    || [];
+    S.events   = state.events   || [];
+    if (typeof state.vaultOpen === 'boolean') setOpen(state.vaultOpen);
+    renderAll();
+    document.getElementById('badgeLog').textContent = S.events.length;
+    renderDashLog();
+  } catch (e) {
+    console.error('[IW] State refresh failed:', e);
+    // Show offline indicator if server unreachable
+    document.getElementById('lastCheck').textContent = 'offline';
+  }
+}
+
+function initWebSocket() {
+  const ws = new WebSocket('ws://localhost:7432/ws');
+  ws.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type && msg.type !== 'ping') refreshState();
+    } catch (_) {}
+  };
+  ws.onclose = () => setTimeout(initWebSocket, 2000);
+}
+
+/* ═══════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════ */
+const S = {
+  open: false,
+  projects: [],
+  files:    [],
+  events:   [],
+  pending:  null,   // {cmd, fileId}
+  ks:       [],     // keystroke times for current command input
+};
+
+const MIN_MS = 50, MAX_MS = 10000;
+
+/* ═══════════════════════════════════════════
+   TUTORIAL
+   ═══════════════════════════════════════════ */
+const TUT_STEPS = [
+  { eyebrow:'Introduction', title:'Welcome to <em>Iteration Wallet.</em>' },
+  { eyebrow:'Step 1 of 3',  title:'<em>Open</em> the Vault' },
+  { eyebrow:'Step 2 of 3',  title:'<em>Remove</em> a file' },
+  { eyebrow:'Step 3 of 3',  title:'<em>Release</em> a file' },
+  { eyebrow:'Complete',     title:'You know the <em>Vault.</em>' },
+];
+
+let tutStep = 0;
+
+function tutAdvance(n) {
+  document.getElementById(`tut-step-${tutStep}`).style.display = 'none';
+  tutStep = n;
+  document.getElementById(`tut-step-${tutStep}`).style.display = '';
+
+  const s = TUT_STEPS[tutStep];
+  document.getElementById('tut-eyebrow').textContent = s.eyebrow;
+  document.getElementById('tut-title').innerHTML = s.title;
+
+  for (let i = 0; i < 4; i++)
+    document.getElementById(`tp${i}`).className = 'tutorial-pip' + (i < tutStep ? ' done' : '');
+}
+
+function wireTutInput(n, cmd, next) {
+  const inp = document.getElementById(`ti${n}`);
+  const msg = document.getElementById(`ts${n}`);
+  const btn = document.getElementById(`tn${n}`);
+  let ks = [];
+
+  inp.addEventListener('paste', e => e.preventDefault());
+  inp.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'v') { e.preventDefault(); return; }
+    const now = Date.now();
+    if (ks.length && now - ks[ks.length-1] < MIN_MS) {
+      inp.classList.add('error');
+      setTimeout(() => inp.classList.remove('error'), 400);
+      inp.value = ''; ks = []; return;
+    }
+    ks.push(now);
+  });
+  inp.addEventListener('input', () => {
+    inp.value = inp.value.toUpperCase().replace(/[^A-Z]/g,'');
+    if (inp.value === cmd) {
+      inp.classList.add('done');
+      msg.classList.add('show');
+      btn.disabled = false;
+    } else {
+      inp.classList.remove('done');
+      msg.classList.remove('show');
+      btn.disabled = true;
+    }
+  });
+}
+
+wireTutInput(1, 'OPEN',   2);
+wireTutInput(2, 'REMOVE', 3);
+wireTutInput(3, 'RELEASE', 4);
+
+function exitTutorial() {
+  document.getElementById('tutorial').style.display = 'none';
+  refreshState().then(() => {
+    logEvent('SYSTEM_READY', 'Vault initialised. File watcher active.');
+  });
+  startWatcher();
+  initWebSocket();
+}
+
+/* ═══════════════════════════════════════════
+   NAVIGATION
+   ═══════════════════════════════════════════ */
+function goTo(id, el) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+
+  if (id === 'vault')   renderVaultFiles();
+  if (id === 'archive') renderArchive();
+  if (id === 'log')     renderFullLog();
+  if (id === 'drives')  renderDrives();
+}
+
+/* ═══════════════════════════════════════════
+   VAULT STATE
+   ═══════════════════════════════════════════ */
+function setOpen(open) {
+  S.open = open;
+  const lock  = document.getElementById('vaultLock');
+  const ltxt  = document.getElementById('lockText');
+  const bar   = document.getElementById('barStatus');
+  const btn   = document.getElementById('barBtn');
+  const bopen = document.getElementById('btnOpen');
+
+  if (open) {
+    lock.classList.add('open');
+    ltxt.textContent = 'Vault Open';
+    bar.className = 'estate-status-value open';
+    bar.textContent = '● Open — vault accessible';
+    btn.textContent = 'Lock Vault';
+    btn.className = 'estate-open-btn lock';
+    btn.onclick = lockVault;
+    bopen.style.opacity = '.35';
+  } else {
+    lock.classList.remove('open');
+    ltxt.textContent = 'Vault Locked';
+    bar.className = 'estate-status-value locked';
+    bar.textContent = '● Locked — all files protected';
+    btn.textContent = 'Open Vault';
+    btn.className = 'estate-open-btn';
+    btn.onclick = () => triggerCmd('OPEN');
+    bopen.style.opacity = '1';
+  }
+}
+
+async function lockVault() {
+  try {
+    await api('POST', '/vault/lock');
+  } catch (_) {}
+  setOpen(false);
+  logEvent('VAULT_LOCKED', 'Vault locked.');
+  toast('Vault locked.', 'note');
+}
+
+/* ═══════════════════════════════════════════
+   COMMAND ENFORCEMENT
+   ═══════════════════════════════════════════ */
+const CMD = {
+  OPEN:   { title:'Open the <em>Vault</em>',     instr:'The Vault must be manually unlocked before any file can be moved.',
+            plate:'c-brass',   confirm:'modal-confirm',  label:'Open Vault' },
+  REMOVE: { title:'<em>Remove</em> a file',       instr:'The file will be moved to a holding area. It still exists. You can still recover it.',
+            plate:'c-leather', confirm:'modal-confirm',  label:'Remove File' },
+  RELEASE: { title:'<em>Release</em> from Wallet custody', instr:'This is a live-person custody release. Iteration Wallet will not destroy the file. It must be Removed first.',
+            plate:'c-clay',    confirm:'modal-danger',   label:'Release from Wallet' },
+};
+
+const cmdIn = document.getElementById('cmdIn');
+let lastLen = 0;
+
+cmdIn.addEventListener('paste', e => { e.preventDefault(); toast('Type the command — paste is blocked.', 'bad'); shake(cmdIn); });
+cmdIn.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v') { e.preventDefault(); return; }
+  if (e.key === 'Enter') { submitCmd(); return; }
+  const now = Date.now();
+  if (S.ks.length) {
+    const g = now - S.ks[S.ks.length-1];
+    if (g < MIN_MS) {
+      toast('Typing too fast — please type naturally.', 'bad');
+      cmdIn.value = ''; lastLen = 0; S.ks = []; shake(cmdIn); return;
+    }
+    if (g > MAX_MS) {
+      toast('Session timed out — start again.', 'note');
+      cmdIn.value = ''; lastLen = 0; S.ks = []; return;
+    }
+  }
+  S.ks.push(now);
+});
+cmdIn.addEventListener('input', () => {
+  if (cmdIn.value.length - lastLen > 1) {
+    cmdIn.value = cmdIn.value.slice(0, lastLen);
+    toast('Paste blocked. Type the command.', 'bad');
+    shake(cmdIn);
+  }
+  cmdIn.value = cmdIn.value.toUpperCase().replace(/[^A-Z]/g,'');
+  lastLen = cmdIn.value.length;
+});
+
+function triggerCmd(cmd, fileId = null) {
+  S.pending = { cmd, fileId };
+  S.ks = []; cmdIn.value = ''; lastLen = 0;
+  const c = CMD[cmd];
+  document.getElementById('cmdModalTitle').innerHTML = c.title;
+  document.getElementById('cmdModalInstr').textContent = c.instr;
+  const plate = document.getElementById('cmdPlateWord');
+  plate.textContent = cmd;
+  plate.className = 'cmd-plate-word ' + c.plate;
+  const conf = document.getElementById('cmdConfirm');
+  conf.className = c.confirm;
+  conf.textContent = c.label;
+  document.getElementById('cmdOverlay').classList.add('open');
+  setTimeout(() => cmdIn.focus(), 80);
+}
+
+function submitCmd() {
+  const { cmd, fileId } = S.pending;
+  const typed = cmdIn.value.trim();
+  if (typed !== cmd) { shake(cmdIn); toast(`Type exactly "${cmd}".`, 'bad'); return; }
+  if (S.ks.length < cmd.length) { shake(cmdIn); toast('Type each character individually.', 'bad'); return; }
+  closeModal('cmdOverlay');
+  execCmd(cmd, fileId);
+}
+
+async function execCmd(cmd, fileId) {
+  try {
+    if (cmd === 'OPEN') {
+      await api('POST', '/vault/open');
+      setOpen(true);
+      logEvent('VAULT_OPENED', 'Vault opened manually.');
+      toast('Vault is open.', 'ok');
+
+    } else if (cmd === 'REMOVE') {
+      if (!S.open) { toast('Open the Vault first.', 'bad'); return; }
+      if (fileId) {
+        const f = await api('POST', `/files/${fileId}/remove`);
+        logEvent('FILE_REMOVED', `${f.name} moved to holding.`);
+        toast(`${f.name} moved to holding. It remains preserved; use RELEASE only for live-person custody transfer.`, 'note');
+      }
+
+    } else if (cmd === 'RELEASE') {
+      if (fileId) {
+        const fRec = S.files.find(x => x.id === fileId);
+        const f = await api('POST', `/files/${fileId}/release`, { confirmation: 'RELEASE' });
+        logEvent('FILE_RELEASED_FROM_CUSTODY', `${fRec ? fRec.name : 'File'} released from Iteration Wallet custody.`);
+        toast(`${fRec ? fRec.name : 'File'} released from Wallet custody.`, 'ok');
+      }
+    }
+    await refreshState();
+  } catch (e) {
+    toast(e.message || 'Operation failed.', 'bad');
+  }
+}
+
+/* ═══════════════════════════════════════════
+   MODALS
+   ═══════════════════════════════════════════ */
+function showModal(name) {
+  if (name === 'newProject') {
+    document.getElementById('newProjectOverlay').classList.add('open');
+    setTimeout(() => document.getElementById('npName').focus(), 80);
+  } else if (name === 'addFile') {
+    const sel = document.getElementById('afProject');
+    sel.innerHTML = '<option value="">Select a project...</option>' +
+      S.projects.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+    document.getElementById('addFileOverlay').classList.add('open');
+    setTimeout(() => document.getElementById('afPath').focus(), 80);
+  }
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'cmdOverlay') { cmdIn.value = ''; lastLen = 0; S.ks = []; S.pending = null; }
+  if (id === 'newProjectOverlay') { document.getElementById('npName').value = ''; document.getElementById('npPath').value = ''; }
+  if (id === 'addFileOverlay') { document.getElementById('afPath').value = ''; }
+}
+
+// Close overlay on background click
+document.querySelectorAll('.overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) closeModal(o.id); });
+});
+
+/* ═══════════════════════════════════════════
+   PROJECTS
+   ═══════════════════════════════════════════ */
+async function createProject() {
+  const name = document.getElementById('npName').value.trim();
+  const path = document.getElementById('npPath').value.trim();
+  if (!name) { toast('A project name is required.', 'bad'); return; }
+  try {
+    const project = await api('POST', '/projects', { name, path });
+    closeModal('newProjectOverlay');
+    logEvent('CRADLE_CREATED', `Cradle created: "${project.name}"`);
+    toast(`Cradle created — ${project.name}`, 'ok');
+    await refreshState();
+  } catch (e) {
+    toast(e.message || 'Could not create project.', 'bad');
+  }
+}
+
+function projectCards(containerId) {
+  const el = document.getElementById(containerId);
+  if (!S.projects.length) {
+    el.innerHTML = `<div class="empty" style="grid-column:1/-1">
+      <svg class="empty-ornament" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="12" width="40" height="30" rx="2"/><path d="M12 12V9a5 5 0 0110 0v3"/><circle cx="24" cy="27" r="4"/><line x1="24" y1="31" x2="24" y2="36"/></svg>
+      <div class="empty-title">No projects yet</div>
+      <div class="empty-body">Create your first Cradle to begin protecting files</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML = S.projects.map(p => {
+    const count = S.files.filter(f => f.project === p.id && !f.isArchive).length;
+    return `<div class="project-card" onclick="goTo('vault',document.getElementById('nav-vault'))">
+      <span class="version-tag">${p.version}</span>
+      <div class="project-card-name">${esc(p.name)}</div>
+      <div class="project-card-path">${esc(p.path)}</div>
+      <div class="project-card-foot">
+        <div class="project-card-stat"><strong>${count}</strong> files</div>
+        <div class="project-card-stat">Created <strong>${p.createdAt}</strong></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════
+   FILES
+   ═══════════════════════════════════════════ */
+async function addFile() {
+  const path = document.getElementById('afPath').value.trim();
+  const proj = document.getElementById('afProject').value;
+  if (!path) { toast('A file path is required.', 'bad'); return; }
+  if (!proj)  { toast('Select a project.', 'bad'); return; }
+  const parts = path.replace(/\\/g,'/').split('/');
+  const name  = parts[parts.length-1] || path;
+  try {
+    await api('POST', '/files', { path, project: proj });
+    closeModal('addFileOverlay');
+    logEvent('FILE_ADDED', `${name} added to vault`);
+    toast(`${name} is now protected.`, 'ok');
+    await refreshState();
+  } catch (e) {
+    toast(e.message || 'Could not add file.', 'bad');
+  }
+}
+
+function renderVaultFiles() {
+  const el = document.getElementById('vaultFileRows');
+  const active = S.files.filter(f => !f.isArchive);
+  if (!active.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-body">No files in the vault yet</div></div>`;
+    return;
+  }
+  el.innerHTML = active.map(f => {
+    const p = S.projects.find(x => x.id === f.project);
+    const chip = chipFor(f.status);
+    const canRemove = f.status === 'protected' && S.open;
+    const canRelease = f.status === 'staging';
+    return `<div class="table-row">
+      <div class="table-file-name">
+        <svg class="table-file-icon" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M3 1h5.5L11 3.5V13H3V1z"/><path d="M8.5 1v2.5H11"/></svg>
+        ${esc(f.name)}
+      </div>
+      <div class="table-cell">${esc(p ? p.name : '—')}</div>
+      <div class="table-cell">${f.version}</div>
+      <div>${chip}</div>
+      <div class="table-actions">
+        ${canRemove ? `<button class="table-btn remove" onclick="triggerCmd('REMOVE','${f.id}')">Remove</button>` : ''}
+        ${canRelease ? `<button class="table-btn release" onclick="triggerCmd('RELEASE','${f.id}')">Release</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function chipFor(status) {
+  const m = {
+    protected: `<span class="chip chip-safe">● Protected</span>`,
+    staging:   `<span class="chip chip-staging">● Holding</span>`,
+    archived:  `<span class="chip chip-archive">● Archived</span>`,
+    alert:     `<span class="chip chip-alert">● Alert</span>`,
+  };
+  return m[status] || `<span class="chip chip-archive">${status}</span>`;
+}
+
+/* ═══════════════════════════════════════════
+   ARCHIVE
+   ═══════════════════════════════════════════ */
+function renderArchive() {
+  const el = document.getElementById('archiveBody');
+  const archived = S.files.filter(f => f.isArchive);
+  if (!archived.length) {
+    el.innerHTML = `<div class="empty">
+      <svg class="empty-ornament" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="8" width="40" height="32" rx="2"/><line x1="4" y1="18" x2="44" y2="18"/><line x1="16" y1="30" x2="32" y2="30"/></svg>
+      <div class="empty-title">No archived versions yet</div>
+      <div class="empty-body">Promote a project version to create archive entries</div>
+    </div>`;
+    return;
+  }
+  const byProj = {};
+  archived.forEach(f => {
+    const key = f.project + '||' + f.version;
+    (byProj[key] = byProj[key] || { project: f.project, version: f.version, files: [] }).files.push(f);
+  });
+
+  el.innerHTML = Object.values(byProj).map(g => {
+    const p = S.projects.find(x => x.id === g.project);
+    return `<div class="archive-block">
+      <div class="archive-version-head">
+        <span>${esc(p ? p.name : g.project)} — <em>${g.version}</em></span>
+        <span class="archive-version-meta">${g.files.length} files</span>
+      </div>
+      ${g.files.map(f => `<div class="archive-row">
+        <span>${esc(f.name)}</span>
+        <span>${esc(p ? p.name : '—')}</span>
+        <span>${f.createdAt}</span>
+        <div><button class="table-btn" onclick="restoreFile('${f.id}')">Restore</button></div>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+async function restoreFile(id) {
+  try {
+    const f = await api('POST', `/files/${id}/restore`);
+    logEvent('ARCHIVE_RESTORED', `${f.name} restored from ${f.version}`);
+    toast(`Restored from archive: ${f.version}`, 'ok');
+    await refreshState();
+  } catch (e) {
+    toast(e.message || 'Restore failed.', 'bad');
+  }
+}
+
+/* ═══════════════════════════════════════════
+   DRIVES / STAGING
+   ═══════════════════════════════════════════ */
+function renderDrives() {
+  const staging = S.files.filter(f => f.status === 'staging');
+  const el = document.getElementById('stagingBody');
+  if (!staging.length) {
+    el.innerHTML = `<div class="empty" style="padding:32px"><div class="empty-body">No files in staging</div></div>`;
+    return;
+  }
+  el.innerHTML = staging.map(f => {
+    const p = S.projects.find(x => x.id === f.project);
+    const removedAt = f.removedAt ? new Date(f.removedAt).toLocaleDateString() : '—';
+    const daysLeft  = f.removedAt ?
+      Math.max(0, 30 - Math.floor((Date.now() - new Date(f.removedAt)) / 86400000)) : '—';
+    const dColor = typeof daysLeft === 'number' && daysLeft < 5 ? 'var(--clay)' : 'var(--ink-dim)';
+    return `<div class="table-row" style="grid-template-columns:2fr 1fr 1fr 100px">
+      <span class="table-cell">${esc(f.name)}</span>
+      <span class="table-cell">${esc(p ? p.name : '—')}</span>
+      <span class="table-cell">${removedAt}</span>
+      <span class="table-cell" style="color:${dColor}">${daysLeft} days</span>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════
+   EVENT LOG
+   ═══════════════════════════════════════════ */
+function logEvent(type, desc) {
+  const ts = new Date().toTimeString().slice(0,8);
+  S.events.unshift({ type, desc, ts });
+  renderDashLog();
+  updateStats();
+  document.getElementById('badgeLog').textContent = S.events.length;
+}
+
+function typeClass(type) {
+  if (/VIOLATION|FAILED|RELEASE/.test(type))  return 'alert';
+  if (/RESTORED|READY|OPENED/.test(type))    return 'restored';
+  if (/REMOVED|PURGED/.test(type))           return 'warn';
+  return '';
+}
+
+function logEntries(events) {
+  return events.map(e => `
+    <div class="log-entry">
+      <span class="log-ts">${e.ts}</span>
+      <span class="log-type ${typeClass(e.type)}">${e.type}</span>
+      <span class="log-desc">${esc(e.desc)}</span>
+    </div>
+  `).join('');
+}
+
+function renderDashLog() {
+  document.getElementById('dashLog').innerHTML = logEntries(S.events.slice(0,20));
+  document.getElementById('logCount').textContent = `${S.events.length} entries`;
+}
+
+function renderFullLog() {
+  document.getElementById('fullLog').innerHTML = logEntries(S.events);
+  const txt = `${S.events.length} events`;
+  document.getElementById('fullLogMeta').textContent = txt;
+  document.getElementById('fullLogCount').textContent = txt;
+}
+
+/* ═══════════════════════════════════════════
+   STATS & RENDER ALL
+   ═══════════════════════════════════════════ */
+function updateStats() {
+  const protected_ = S.files.filter(f => !f.isArchive && f.status === 'protected').length;
+  const archived   = S.files.filter(f => f.isArchive).length;
+  document.getElementById('sCradles').textContent  = S.projects.length;
+  document.getElementById('sProtected').textContent = protected_;
+  document.getElementById('sArchived').textContent  = archived;
+  document.getElementById('sEvents').textContent    = S.events.length;
+  document.getElementById('badgeProjects').textContent = S.projects.length;
+  document.getElementById('badgeFiles').textContent    = protected_;
+}
+
+function renderAll() {
+  projectCards('dashProjects');
+  projectCards('allProjects');
+  renderVaultFiles();
+  updateStats();
+  renderDashLog();
+}
+
+/* ═══════════════════════════════════════════
+   WATCHER
+   ═══════════════════════════════════════════ */
+function startWatcher() {
+  setInterval(() => {
+    const t = new Date().toTimeString().slice(0,8);
+    document.getElementById('lastCheck').textContent = t;
+  }, 1000);
+}
+
+/* ═══════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════ */
+let _toastTimer;
+function toast(msg, type = 'note') {
+  const el  = document.getElementById('toastEl');
+  document.getElementById('toastMsg').textContent = msg;
+  el.className = `toast show ${type}`;
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 3600);
+}
+
+/* ═══════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════ */
+function shake(el) {
+  el.classList.add('error');
+  setTimeout(() => el.classList.remove('error'), 400);
+}
+
+function esc(s) {
+  return String(s||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function uid() { return Math.random().toString(36).slice(2,14); }
+function today() { return new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }); }
+
+/* ═══════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════ */
+(async () => {
+  await refreshState();
+  // Show tutorial only if this is a fresh vault with no data
+  if (S.projects.length === 0 && S.events.length === 0) {
+    // Tutorial is already visible by default — nothing to do
+  } else {
+    // Skip tutorial and go straight to vault
+    document.getElementById('tutorial').style.display = 'none';
+    startWatcher();
+    initWebSocket();
+  }
+})();
+</script>
+</body>
+</html>

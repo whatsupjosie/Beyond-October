@@ -1,0 +1,243 @@
+{
+  "parent": "b44db358455d1d5e2467e4802afd91b3f3051dba",
+  "files": [
+    {
+      "path": "modules/evo/evo_integration.py",
+      "sha256": "d9751268a91eb85302879713c098102def8c1af9b020746d959dc935bd96236a",
+      "git_blob": "d464ca8002b646727c3e02a4891b8b5ecdbe2822",
+      "parent_blob": "c09693287b490d0f50e7f0e7635be77f1368480a",
+      "changed": true
+    },
+    {
+      "path": "modules/evo/semantic_events.py",
+      "sha256": "e09de3c9c96495ed3f64ca8e068d91218b193abc40c5116e298d982d09500014",
+      "git_blob": "7e79a1788a7b2b02b212dfa9c5ba70881274bfd0",
+      "parent_blob": null,
+      "changed": true
+    },
+    {
+      "path": "modules/evo/camera_manager.py",
+      "sha256": "75fd0bab1dee44c57e97e62964fedf876e0dcf8cf815e325797fb0daf4be593a",
+      "git_blob": "7edffc3e8e7d8595591c5babc8e5a7e308c18319",
+      "parent_blob": "7edffc3e8e7d8595591c5babc8e5a7e308c18319",
+      "changed": false
+    },
+    {
+      "path": "modules/evo/mutation.py",
+      "sha256": "d033bbc6d81ef795782463b8be55b90e60e462e45f77779a033d9f1751c7058c",
+      "git_blob": "5149cbaee2e56fbec19241d3e681b07f8e06ba89",
+      "parent_blob": null,
+      "changed": true
+    },
+    {
+      "path": "modules/evo/arbitration.py",
+      "sha256": "4abd9c745c074d66913482e76cf18f382b7536ee6e9c6db8d8e807b852d3a9bd",
+      "git_blob": "d5021d91bb1527ae0b03ce44928ca4902bceea1d",
+      "parent_blob": null,
+      "changed": true
+    },
+    {
+      "path": "modules/evo/event_bus.py",
+      "sha256": "45f491939370998c5a9afcba498765cbe4888fb455fcff39fec6437154337362",
+      "git_blob": "28f0020d3850e358e39c5a0785e1bdfc554ae008",
+      "parent_blob": null,
+      "changed": true
+    },
+    {
+      "path": "modules/evo/facial_performance.py",
+      "sha256": "361cc7d768d12b53b3c932562dbaaf35bd424d12453a71f46c299a715a12dffa",
+      "git_blob": "8066eebe978e1a689a3d6bb3d037366009d2a310",
+      "parent_blob": "8066eebe978e1a689a3d6bb3d037366009d2a310",
+      "changed": false
+    },
+    {
+      "path": "modules/evo/distributed_engine.py",
+      "sha256": "ca741ec074a8cbe5d327928205cb0cca054d5a90a62f1e4e02269a23d61d7a70",
+      "git_blob": "ad8baedfd8f42810cde1277cb5c20235c9969007",
+      "parent_blob": "ad8baedfd8f42810cde1277cb5c20235c9969007",
+      "changed": false
+    },
+    {
+      "path": "modules/evo/switchblade_governor.py",
+      "sha256": "b6d3a9f985e975c0ee680944f01cb5256bd5567fa656560df4c9c9ff90a6f9aa",
+      "git_blob": "47043ccb5f390449256786103981163a6a8cf56a",
+      "parent_blob": "47043ccb5f390449256786103981163a6a8cf56a",
+      "changed": false
+    },
+    {
+      "path": "modules/evo/__init__.py",
+      "sha256": "c6ce8243ac0da46cc96aff8a2eff4f40c2bb158df05b8659f627bad0ddeb542b",
+      "git_blob": "26f73f7c030a5eb7249c731a209a7a844def90e4",
+      "parent_blob": "eb9074325ea46c0a4313569beae6987099d5dae2",
+      "changed": true
+    },
+    {
+      "path": "modules/evo/semantic_runtime.py",
+      "sha256": "58e49a9ae68879ce4161925b00dc0b824c3bd8bf6ccaa465de568f102aa18171",
+      "git_blob": "12566b8182a69559231d494a5fd6f014ccadb566",
+      "parent_blob": null,
+      "changed": true
+    },
+    {
+      "path": "modules/evo/voice_characters.py",
+      "sha256": "b9a949c81b5d083db65ccfd3d7cb99f763c90b58694562d8eb34f5ab6420bd6d",
+      "git_blob": "73b62f75b8bab5cf50f1136e792f031513cf7827",
+      "parent_blob": "73b62f75b8bab5cf50f1136e792f031513cf7827",
+      "changed": false
+    },
+    {
+      "path": "modules/evo/semantic_field.py",
+      "sha256": "5fc2ccc85dc82a3f959e2bdc010a2574449242e1d031bdd90fabc32aca5fd507",
+      "git_blob": "0c1c753513818b76073b875bb8528be29560c034",
+      "parent_blob": null,
+      "changed": true
+    },
+    {
+      "path": "modules/evo/prosody_engine.py",
+      "sha256": "ab7b42b18b7b0c6c339be98fba4f5cf2badc8529dc2f3aeac004e768fe787fbd",
+      "git_blob": "e6697fd2e5e4bae4b76efd387f19b19847c7ce39",
+      "parent_blob": "75c85027d700530d92b9c7f09d05ec7a876ef45b",
+      "changed": true
+    },
+    {
+      "path": "modules/evo/prosody_semantic_adapter.py",
+      "sha256": "b8e67aca1e364ca858080e252e487007a7841016312da08a0548764bd6bac09e",
+      "git_blob": "d1babb5322c733aa1d9d5d88c770680dd2075ae9",
+      "parent_blob": null,
+      "changed": true
+    },
+    {
+      "path": "modules/evo/pete.py",
+      "sha256": "8a3edaa2a194a93bb4c8a3539e5c68a432ccdd47c9c689d0d36473d701cecd90",
+      "git_blob": "9d1be2c3c46f2bc502bed1f0b7f0845630ee1840",
+      "parent_blob": "9d1be2c3c46f2bc502bed1f0b7f0845630ee1840",
+      "changed": false
+    },
+    {
+      "path": "modules/evo/vdi_engine.py",
+      "sha256": "a1328dad491ec47f6948e361aed05439fb41f94ffa302020838060e882bf882a",
+      "git_blob": "40f205638d246f82e6fff4892a70f00a3d67f2d8",
+      "parent_blob": "40f205638d246f82e6fff4892a70f00a3d67f2d8",
+      "changed": false
+    },
+    {
+      "path": "modules/evo/epete.py",
+      "sha256": "c68aac6b4442fa3ad192e912487f5557dcbde658c23d3b80b82d95ca54060591",
+      "git_blob": "60e1592acdd63851da20d59c4651a9fe6d3f949c",
+      "parent_blob": "cd4a5f5fcd970c01d9611ee23169e038584fd072",
+      "changed": true
+    },
+    {
+      "path": "modules/evo/vdi_semantic_adapter.py",
+      "sha256": "acf4dfe7b820182f037367514fd3cfa3164922e03a9810c141ed66028ad01102",
+      "git_blob": "002643b7ae5421a492d191de7968dc1f1c0e9edc",
+      "parent_blob": null,
+      "changed": true
+    },
+    {
+      "path": "modules/__init__.py",
+      "sha256": "b20476a224dd1c05ced7c0527e709c1715664a014b8fccf24fcebaed9ef6d10c",
+      "git_blob": "641594581710744b4eb2c31a778a07a797f81773",
+      "parent_blob": "641594581710744b4eb2c31a778a07a797f81773",
+      "changed": false
+    },
+    {
+      "path": "modules/irm.py",
+      "sha256": "df28cc811b621b114f7dad0ec8fdc41965c8611eb65dafe9b515bb923d53a681",
+      "git_blob": "e6a692b8f63be20ffee93ed9ed6ab24b1f51c82d",
+      "parent_blob": "e6a692b8f63be20ffee93ed9ed6ab24b1f51c82d",
+      "changed": false
+    },
+    {
+      "path": "modules/circuit_breaker.py",
+      "sha256": "7be40c84283699b0c142f5915aba999a4313bc9c9b52b3a7b596499780065f00",
+      "git_blob": "8b6cf455cc2936e24a769e58142c5bff2b7f7686",
+      "parent_blob": "8b6cf455cc2936e24a769e58142c5bff2b7f7686",
+      "changed": false
+    },
+    {
+      "path": "modules/bridge_raw.py",
+      "sha256": "47457b6b5c92ef6ef99477d9af104f439a7fcf87523aefc18dc70f68f61424bf",
+      "git_blob": "99691a2d728007e4708a3cfd3f4d725ef8b1894d",
+      "parent_blob": "99691a2d728007e4708a3cfd3f4d725ef8b1894d",
+      "changed": false
+    },
+    {
+      "path": "tests/test_evo_october_integration.py",
+      "sha256": "2de6ee53d0e7139382a059d85b6e8ca33e0284092ce5188115b5e32a94b17c42",
+      "git_blob": "5218b54970ff9eeaaf018c566614109576cc2316",
+      "parent_blob": null,
+      "changed": true
+    },
+    {
+      "path": "tests/test_evo_orchestrator_semantic_wiring.py",
+      "sha256": "5c8b76f341695e0b22924efb278ed36ccc8ab0144607e3d11f97100f3263e38f",
+      "git_blob": "9820c7b3a2bb5800589aad5fc54af117b5c7d6f5",
+      "parent_blob": null,
+      "changed": true
+    },
+    {
+      "path": "tests/test_evo_semantic_runtime_coordinator.py",
+      "sha256": "0390c899095309c7fe28f9594a50ffee6cf683535a7a46d06c8f017eca5ed789",
+      "git_blob": "0934f93aed3580e4163c10de3693b7bcabcabcc5",
+      "parent_blob": null,
+      "changed": true
+    },
+    {
+      "path": "tests/test_evo_protocol.py",
+      "sha256": "5cfba725e64bd9daa85f08d52fbd7c41d7da820394be8ff37cc5f4f7b75dfb00",
+      "git_blob": "25f6f23623b6b5a03d2933221ec047a470c5dce9",
+      "parent_blob": "25f6f23623b6b5a03d2933221ec047a470c5dce9",
+      "changed": false
+    },
+    {
+      "path": "tests/test_evo_semantic_runtime.py",
+      "sha256": "a9ae847d4b8d25bc34c877f7a11cc7cf04bdba6d94e2702611765154b19b79b4",
+      "git_blob": "c6c20bfb21239241ca5e6da7ba2ef4e3bfde9724",
+      "parent_blob": null,
+      "changed": true
+    },
+    {
+      "path": "tests/test_evo_event_bus.py",
+      "sha256": "59da5f08c98f1475f83776a56edbf0c7924e6750f7eb4d180a6a540f777d0807",
+      "git_blob": "be662e384c68b32c111f9b6e42f46314548f9be5",
+      "parent_blob": null,
+      "changed": true
+    },
+    {
+      "path": "tests/test_evo_semantic_prosody_tick.py",
+      "sha256": "15cecd8f1337deeea619cf20aab8fa764c678a7c715a6932bebc11f858574310",
+      "git_blob": "56c022baa597c6d24812cffff46eb79bbed62e0e",
+      "parent_blob": null,
+      "changed": true
+    },
+    {
+      "path": "tests/test_epete_lifecycle_deadlines.py",
+      "sha256": "15290e1adfa7af370fe25c0f996916a109f9012791589e4af97d41fda192bbde",
+      "git_blob": "9d75c5048100ff30cf825e8d1d802ec7a585cbb6",
+      "parent_blob": null,
+      "changed": true
+    },
+    {
+      "path": "tests/test_prosody_semantic_adapter.py",
+      "sha256": "c251d30880f7431ceedc3bc6382b310abb58e13addd47cf0e5dbc29ae2542f1e",
+      "git_blob": "dbe2341689924baac9cdeb1f87c61f8e0f61c3c6",
+      "parent_blob": null,
+      "changed": true
+    },
+    {
+      "path": "tests/test_vdi_semantic_adapter.py",
+      "sha256": "e493cd885c04cbcda1ac3b0269d1be0de95a6cce24be02c2f7d1bc0b8b5656e1",
+      "git_blob": "ffc32b682e039a7e0a280682f34e090a7a1bc5f1",
+      "parent_blob": null,
+      "changed": true
+    },
+    {
+      "path": "tests/test_round9_evo_irm_bridge_contract.py",
+      "sha256": "58bc3053257fb87c137de8fb705ce011f0c645d4e4daac4435d254ae6f502d3e",
+      "git_blob": "a8013477d4f539eb6feb59bb7cf0c43bff9f3f06",
+      "parent_blob": "a8013477d4f539eb6feb59bb7cf0c43bff9f3f06",
+      "changed": false
+    }
+  ]
+}

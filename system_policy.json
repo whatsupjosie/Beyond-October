@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "default_profile": "medium",
+  "profiles": {
+    "low": {
+      "description": "Maximum stability for weak hardware or heavy load.",
+      "stage_target_fps": 20,
+      "choreo_tick_hz": 20,
+      "stage_static_fx": true,
+      "architect_enabled": false,
+      "architect_max_concurrency": 1,
+      "architect_timeout_s": 6,
+      "breaker_threshold": 2,
+      "breaker_cooldown_s": 30,
+      "studio_model": "ministral-pubcast:3b",
+      "model_context": 1024,
+      "model_predict": 100
+    },
+    "medium": {
+      "description": "Balanced default for daily production.",
+      "stage_target_fps": 35,
+      "choreo_tick_hz": 30,
+      "stage_static_fx": false,
+      "architect_enabled": true,
+      "architect_max_concurrency": 1,
+      "architect_timeout_s": 12,
+      "breaker_threshold": 3,
+      "breaker_cooldown_s": 60,
+      "studio_model": "ministral-pubcast:3b",
+      "model_context": 1024,
+      "model_predict": 120
+    },
+    "high": {
+      "description": "Higher visual smoothness where client hardware can handle it.",
+      "stage_target_fps": 60,
+      "choreo_tick_hz": 45,
+      "stage_static_fx": false,
+      "architect_enabled": true,
+      "architect_max_concurrency": 1,
+      "architect_timeout_s": 16,
+      "breaker_threshold": 5,
+      "breaker_cooldown_s": 120,
+      "studio_model": "ministral-pubcast:3b",
+      "model_context": 2048,
+      "model_predict": 160
+    }
+  }
+}

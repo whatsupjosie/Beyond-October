@@ -1,0 +1,1911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PubWorld — A Rear View Foresight Production</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@400;700&family=Share+Tech+Mono&display=swap');
+
+:root {
+  --gold:#c9a84c; --gold-l:#f0d060; --gold-d:#7a5a1a;
+  --accent:#00e5cc; --red:#cc2200; --red-l:#ff4422;
+  --body:#0a0805; --hud:rgba(5,4,3,.95);
+  --font:'Cinzel',serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background:#0a0805;
+  overflow:hidden;
+  font-family:var(--font);
+  cursor:none;
+  user-select:none;
+  width:100vw; height:100vh;
+}
+
+/* ── CURSOR ── */
+#cur {
+  position:fixed; width:18px; height:18px;
+  border:2px solid var(--gold); border-radius:50%;
+  pointer-events:none; z-index:9999;
+  transform:translate(-50%,-50%);
+  box-shadow:0 0 8px var(--gold);
+  transition:width .15s,height .15s;
+}
+#cur.big { width:32px; height:32px; background:rgba(201,168,76,.12); }
+
+/* ── TRANSITION OVERLAY ── */
+#transition {
+  position:fixed; inset:0; z-index:500;
+  background:#000; opacity:0;
+  pointer-events:none;
+  transition:opacity .4s ease;
+}
+#transition.fade-out { opacity:1; pointer-events:all; }
+#transition.portal-wipe {
+  opacity:1; pointer-events:all;
+  background:
+    radial-gradient(circle at center, rgba(255,255,255,.18) 0%, rgba(255,255,255,.06) 12%, rgba(0,0,0,.25) 24%, rgba(0,0,0,.88) 70%),
+    conic-gradient(from 0deg, rgba(0,229,204,.0), rgba(0,229,204,.26), rgba(201,168,76,.16), rgba(0,0,0,0) 55%, rgba(0,229,204,.18), rgba(0,0,0,0));
+  animation:portalSwirl .88s cubic-bezier(.18,.72,.22,1) forwards;
+}
+@keyframes portalSwirl {
+  0%   { opacity:0; transform:scale(1) rotate(0deg); filter:blur(0px); }
+  40%  { opacity:.75; transform:scale(1.03) rotate(32deg); filter:blur(2px); }
+  100% { opacity:1; transform:scale(1.18) rotate(110deg); filter:blur(7px); }
+}
+
+/* ── ROOM TITLE ── */
+#room-title {
+  position:fixed; top:0; left:0; right:0; height:52px;
+  background:var(--hud);
+  display:flex; align-items:center; padding:0 24px; gap:14px;
+  z-index:200; pointer-events:none;
+}
+#room-name {
+  font-family:'Cinzel Decorative',serif;
+  color:var(--gold); font-size:13px; letter-spacing:5px;
+  text-shadow:0 0 18px var(--gold-l); flex:1;
+}
+.badge {
+  padding:3px 12px; border:1px solid var(--gold-d);
+  color:var(--gold); font-size:8px; letter-spacing:3px;
+  background:rgba(201,168,76,.07);
+  clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
+}
+.badge.red {
+  border-color:#aa2200; color:var(--red-l);
+  text-shadow:0 0 8px var(--red-l);
+  animation:blink 1.5s infinite; background:rgba(139,0,0,.4);
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* ── HINT ── */
+#hint {
+  position:fixed; bottom:14px; left:20px;
+  color:rgba(201,168,76,.35); font-size:8px; letter-spacing:2px;
+  z-index:200; line-height:1.9; pointer-events:none;
+}
+#hint b { color:rgba(201,168,76,.65); }
+
+
+/* ── ROOM ATLAS ── */
+#room-atlas {
+  position:fixed; top:68px; left:16px; width:290px;
+  padding:16px 18px 14px;
+  background:linear-gradient(180deg, rgba(8,7,6,.92), rgba(8,7,6,.82));
+  border:1px solid rgba(201,168,76,.26);
+  box-shadow:0 18px 34px rgba(0,0,0,.28), inset 0 0 20px rgba(201,168,76,.05);
+  z-index:210; pointer-events:none;
+  clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%);
+}
+#atlas-kicker {
+  color:rgba(0,229,204,.8); font-size:8px; letter-spacing:3.5px; margin-bottom:7px;
+}
+#atlas-title {
+  font-family:'Cinzel Decorative',serif; color:var(--gold); font-size:15px;
+  letter-spacing:3px; line-height:1.25; text-shadow:0 0 18px rgba(201,168,76,.22);
+}
+#atlas-copy {
+  color:rgba(230,217,183,.68); font-size:9px; line-height:1.75; letter-spacing:1.1px;
+  margin-top:10px;
+}
+#atlas-routes {
+  display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;
+}
+.atlas-route {
+  border:1px solid rgba(201,168,76,.22); color:rgba(201,168,76,.82);
+  background:rgba(201,168,76,.05); padding:4px 8px; font-size:7px; letter-spacing:2px;
+}
+
+/* ── ROOM FX ── */
+#room-fx {
+  position:absolute; inset:0; z-index:1; pointer-events:none; opacity:0; transition:opacity .45s ease;
+}
+#room-fx.active { opacity:1; }
+#room-fx.fx-lobby {
+  background:
+    radial-gradient(circle at 18% 42%, rgba(255,224,160,.16), transparent 22%),
+    radial-gradient(circle at 76% 18%, rgba(255,214,128,.10), transparent 25%),
+    linear-gradient(180deg, rgba(16,8,2,.16), transparent 34%, rgba(0,0,0,.16));
+}
+#room-fx.fx-lobby::after,
+#room-fx.fx-hallway::after {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(circle at center, rgba(255,255,255,.14), transparent 52%);
+  opacity:.14; mix-blend-mode:screen; animation:marqueeDust 8s linear infinite;
+}
+#room-fx.fx-hallway {
+  background:
+    radial-gradient(circle at 10% 36%, rgba(255,213,138,.10), transparent 20%),
+    linear-gradient(90deg, rgba(0,0,0,.12), transparent 24%, transparent 76%, rgba(0,0,0,.12));
+}
+#room-fx.fx-greenroom {
+  background:
+    radial-gradient(circle at 16% 16%, rgba(255,224,170,.16), transparent 20%),
+    radial-gradient(circle at 50% 13%, rgba(255,230,180,.18), transparent 16%),
+    radial-gradient(circle at 82% 18%, rgba(255,224,170,.15), transparent 18%),
+    radial-gradient(circle at 49% 41%, rgba(0,229,204,.12), transparent 19%),
+    linear-gradient(180deg, rgba(24,16,8,.10), transparent 45%, rgba(0,0,0,.18));
+}
+#room-fx.fx-greenroom::after {
+  content:''; position:absolute; left:42%; top:18%; width:18%; height:24%;
+  background:radial-gradient(circle at center, rgba(255,244,198,.16), rgba(255,244,198,.05) 42%, transparent 72%);
+  filter:blur(8px); opacity:.8; animation:consolePulse 3.8s ease-in-out infinite;
+}
+#room-fx.fx-dressing {
+  background:
+    radial-gradient(circle at 11% 26%, rgba(255,230,184,.22), transparent 18%),
+    radial-gradient(circle at 22% 28%, rgba(255,222,156,.14), transparent 16%),
+    radial-gradient(circle at 32% 26%, rgba(255,230,184,.18), transparent 16%),
+    radial-gradient(circle at 51% 29%, rgba(0,229,204,.08), transparent 18%),
+    linear-gradient(180deg, rgba(40,24,8,.09), transparent 42%, rgba(0,0,0,.16));
+}
+#room-fx.fx-dressing::after {
+  content:''; position:absolute; left:14%; top:13%; width:26%; height:34%;
+  background:radial-gradient(circle at center, rgba(255,250,230,.24), rgba(255,240,190,.08) 36%, transparent 70%);
+  filter:blur(10px); opacity:.9; animation:consolePulse 4.2s ease-in-out infinite;
+}
+#room-fx.fx-controlroom {
+  background:
+    radial-gradient(circle at 70% 22%, rgba(0,229,204,.18), transparent 18%),
+    radial-gradient(circle at 31% 22%, rgba(255,222,156,.16), transparent 22%),
+    radial-gradient(circle at 78% 56%, rgba(0,229,204,.10), transparent 24%),
+    linear-gradient(180deg, rgba(18,10,4,.18), transparent 38%, rgba(0,0,0,.22));
+}
+#room-fx.fx-controlroom::before {
+  content:''; position:absolute; left:58%; top:15%; width:26%; height:20%;
+  background:linear-gradient(180deg, rgba(0,229,204,.22), rgba(0,229,204,.04) 55%, transparent 100%);
+  filter:blur(10px); opacity:.9; animation:consolePulse 3.3s ease-in-out infinite;
+}
+#room-fx.fx-controlroom::after {
+  content:''; position:absolute; inset:0;
+  background:
+    repeating-linear-gradient(180deg, rgba(255,255,255,.02) 0px, rgba(255,255,255,.02) 1px, transparent 2px, transparent 5px),
+    radial-gradient(circle at 34% 37%, rgba(255,245,215,.12), transparent 12%);
+  mix-blend-mode:screen; opacity:.26;
+}
+#room-fx.fx-writers {
+  background:
+    radial-gradient(circle at 26% 32%, rgba(255,242,214,.18), transparent 20%),
+    radial-gradient(circle at 74% 26%, rgba(255,228,180,.12), transparent 18%),
+    radial-gradient(circle at 50% 72%, rgba(80,140,255,.10), transparent 24%),
+    linear-gradient(180deg, rgba(32,18,10,.10), transparent 44%, rgba(0,0,0,.16));
+}
+#room-fx.fx-writers::after {
+  content:''; position:absolute; left:16%; top:32%; width:28%; height:26%;
+  background:radial-gradient(circle at center, rgba(255,255,255,.14), rgba(255,250,236,.04) 44%, transparent 72%);
+  filter:blur(10px); opacity:.7; animation:consolePulse 5s ease-in-out infinite;
+}
+#room-fx.fx-vortex {
+  background:
+    radial-gradient(circle at 54% 72%, rgba(90,165,255,.22), transparent 22%),
+    radial-gradient(circle at 52% 40%, rgba(255,255,255,.09), transparent 18%),
+    radial-gradient(circle at 82% 26%, rgba(255,216,144,.12), transparent 18%),
+    linear-gradient(180deg, rgba(4,8,16,.22), transparent 36%, rgba(0,0,0,.26));
+}
+#room-fx.fx-vortex::before {
+  content:''; position:absolute; left:34%; top:54%; width:34%; height:32%;
+  background:radial-gradient(circle at center, rgba(255,255,255,.18), rgba(80,150,255,.10) 36%, transparent 72%);
+  filter:blur(12px); opacity:.75; animation:vortexPulse 4.4s ease-in-out infinite;
+}
+#room-fx.fx-vortex::after {
+  content:''; position:absolute; inset:0;
+  background:repeating-radial-gradient(circle at 50% 70%, rgba(255,255,255,.05) 0px, rgba(255,255,255,.05) 2px, transparent 6px, transparent 22px);
+  mix-blend-mode:screen; opacity:.22;
+}
+@keyframes marqueeDust {
+  0% { transform:translateX(-3%) translateY(0); opacity:.08; }
+  50% { transform:translateX(2%) translateY(-1.5%); opacity:.16; }
+  100% { transform:translateX(-3%) translateY(0); opacity:.08; }
+}
+@keyframes vortexPulse {
+  0%, 100% { transform:scale(.98); opacity:.58; }
+  50% { transform:scale(1.04); opacity:.9; }
+}
+@keyframes consolePulse {
+  0%,100% { opacity:.42; transform:scale(1); }
+  50% { opacity:.82; transform:scale(1.03); }
+}
+
+/* ── DETAIL HOTSPOTS ── */
+.feature {
+  position:absolute; z-index:7; transform:translateX(-50%); cursor:none;
+}
+.feature-glow {
+  width:100%; height:100%; border:1px dashed rgba(0,229,204,.15); border-radius:8px;
+  background:linear-gradient(180deg, rgba(0,229,204,.03), rgba(201,168,76,.04));
+  box-shadow:inset 0 0 12px rgba(0,229,204,.04);
+  transition:all .25s ease;
+}
+.feature-label {
+  margin-top:4px; padding:2px 8px; background:rgba(4,6,6,.74); color:rgba(0,229,204,.82);
+  font-size:7px; letter-spacing:2px; opacity:0; transition:opacity .2s ease;
+  text-align:center; white-space:nowrap;
+}
+.feature:hover .feature-glow {
+  border-color:rgba(0,229,204,.55);
+  box-shadow:0 0 18px rgba(0,229,204,.16), inset 0 0 14px rgba(0,229,204,.07);
+  background:linear-gradient(180deg, rgba(0,229,204,.06), rgba(201,168,76,.06));
+}
+.feature:hover .feature-label { opacity:1; }
+
+/* ── PROMPT ── */
+#prompt {
+  position:fixed; bottom:70px; left:50%; transform:translateX(-50%);
+  padding:10px 26px; background:rgba(5,4,3,.92);
+  border:1px solid var(--gold); color:var(--gold);
+  font-size:10px; letter-spacing:4px; text-align:center;
+  opacity:0; transition:opacity .35s; z-index:200; pointer-events:none;
+  clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);
+  box-shadow:0 0 24px rgba(201,168,76,.15);
+}
+#prompt.show { opacity:1; }
+.key {
+  display:inline-block; padding:1px 7px;
+  border:1px solid var(--gold); margin:0 3px; font-size:9px;
+}
+
+/* ── MINIMAP ── */
+#minimap {
+  position:fixed; bottom:14px; right:16px;
+  width:160px; height:100px;
+  background:rgba(5,4,3,.85);
+  border:1px solid rgba(201,168,76,.25);
+  z-index:200; pointer-events:none;
+  padding:6px;
+}
+#minimap-title {
+  color:rgba(201,168,76,.4); font-size:6px; letter-spacing:3px;
+  margin-bottom:4px; text-align:center;
+}
+#minimap svg { width:100%; height:80px; }
+
+/* ── SCENE ── */
+#scene {
+  position:relative; width:100vw; height:100vh; overflow:hidden;
+}
+
+/* ── ROOM BG ── */
+#room-bg {
+  position:absolute; inset:0;
+  background-size:cover;
+  background-position:center bottom;
+  background-repeat:no-repeat;
+  transition:none;
+}
+
+/* Procedural dressing room bg fallback */
+#dressing-room-bg {
+  position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse 60% 40% at 50% 30%, rgba(40,20,8,.8) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 60% at 30% 60%, rgba(0,60,50,.3) 0%, transparent 50%),
+    linear-gradient(160deg, #1e0c06 0%, #120804 40%, #0a0604 100%);
+  display:none;
+}
+
+/* ── FLOOR DARK ── */
+#floor-dark {
+  position:absolute; bottom:0; left:0; right:0; height:28%;
+  background:linear-gradient(to top,rgba(0,0,0,.5),transparent);
+  pointer-events:none; z-index:2;
+}
+
+/* ── DOOR HOTSPOTS ── */
+.door {
+  position:absolute; z-index:5;
+  pointer-events:none;
+  transform:translateX(-50%);
+  display:flex; flex-direction:column; align-items:center;
+  gap:4px;
+}
+.door-glow {
+  border:1.5px solid rgba(201,168,76,0);
+  border-radius:4px;
+  transition:border-color .3s, box-shadow .3s, background .3s;
+  background:transparent;
+}
+.door.near .door-glow {
+  border-color:rgba(201,168,76,.7);
+  box-shadow:0 0 20px rgba(201,168,76,.3), inset 0 0 12px rgba(201,168,76,.08);
+  background:rgba(201,168,76,.04);
+  animation:dp 1.2s ease-in-out infinite;
+}
+@keyframes dp{0%,100%{box-shadow:0 0 20px rgba(201,168,76,.3)}50%{box-shadow:0 0 35px rgba(201,168,76,.6)}}
+.door-label {
+  color:var(--gold); font-size:7px; letter-spacing:3px;
+  white-space:nowrap; opacity:0; transition:opacity .3s;
+  text-shadow:0 0 8px var(--gold);
+  background:rgba(5,4,3,.7); padding:2px 8px;
+}
+.door.near .door-label { opacity:1; }
+
+/* ── AVATAR (ethereal glow) ── */
+#spr {
+  position:absolute; z-index:10;
+  pointer-events:none; transform:translateX(-50%);
+  filter: drop-shadow(0 0 6px rgba(0,229,204,.5)) drop-shadow(0 0 18px rgba(0,229,204,.2));
+  transition: filter .3s ease;
+}
+#spr-cv { display:block; image-rendering:auto; }
+#spr-shadow {
+  position:absolute; bottom:-4px; left:50%;
+  transform:translateX(-50%);
+  background:radial-gradient(ellipse,rgba(0,220,200,.35),transparent 70%);
+  filter:blur(5px);
+  animation: shadowPulse 3s ease-in-out infinite;
+}
+@keyframes shadowPulse {
+  0%, 100% { opacity:.7; transform:translateX(-50%) scale(1); }
+  50% { opacity:1; transform:translateX(-50%) scale(1.08); }
+}
+
+/* ── SCANLINES ── */
+#scanlines {
+  position:fixed; inset:0; pointer-events:none; z-index:1;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.03) 0px,transparent 1px,transparent 3px);
+}
+
+/* ── DRESSING ROOM OVERLAY (procedural) ── */
+#dressing-room {
+  position:fixed; inset:0; z-index:300;
+  background:
+    linear-gradient(180deg, rgba(10,8,5,.58), rgba(10,8,5,.74)),
+    radial-gradient(circle at 18% 18%, rgba(255,224,170,.18), transparent 20%),
+    url('/assets/rooms/dressing_polish.png');
+  background-size:cover;
+  background-position:center 52%;
+  display:none; flex-direction:column; align-items:center; justify-content:center;
+}
+#dressing-room.open { display:flex; }
+
+.dr-mirror {
+  width:200px; height:280px;
+  border:3px solid var(--gold);
+  border-radius:50% 50% 4px 4px / 30% 30% 4px 4px;
+  background:linear-gradient(135deg,rgba(0,229,204,.08),rgba(201,168,76,.04));
+  box-shadow:0 0 40px rgba(201,168,76,.2), inset 0 0 30px rgba(0,229,204,.05);
+  display:flex; align-items:center; justify-content:center;
+  position:relative; margin-bottom:20px;
+}
+.dr-mirror-label {
+  position:absolute; bottom:10px; left:50%; transform:translateX(-50%);
+  color:rgba(201,168,76,.4); font-size:7px; letter-spacing:4px; white-space:nowrap;
+}
+.dr-title {
+  font-family:'Cinzel Decorative',serif;
+  color:var(--gold); font-size:18px; letter-spacing:6px;
+  text-shadow:0 0 20px var(--gold); margin-bottom:8px;
+}
+.dr-sub {
+  color:rgba(201,168,76,.4); font-size:8px; letter-spacing:4px; margin-bottom:24px;
+}
+.dr-btn {
+  padding:10px 28px; border:1px solid var(--gold-d);
+  color:var(--gold); background:rgba(201,168,76,.06);
+  font-family:var(--font); font-size:9px; letter-spacing:4px;
+  cursor:none; transition:all .2s;
+  clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+}
+.dr-btn:hover { background:rgba(201,168,76,.18); border-color:var(--gold); box-shadow:0 0 16px rgba(201,168,76,.2); }
+</style>
+  <script src="/static/reach_auth.js"></script>
+<script src="/static/program_audio_runtime.js"></script>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="scanlines"></div>
+<div id="transition"></div>
+
+<!-- HUD -->
+<div id="room-title">
+  <div id="room-name">PUBWORLD — 2.5D STUDIO</div>
+  <div class="badge" id="company-badge">2.5D MAIN STUDIO</div>
+  <div class="badge red">● LIVE</div>
+</div>
+
+<!-- HINT -->
+<div id="hint">
+  <b>A/←</b> LEFT &nbsp;·&nbsp; <b>D/→</b> RIGHT &nbsp;·&nbsp;
+  <b>E</b> ENTER DOOR / PORTAL &nbsp;·&nbsp; <b>CLICK</b> GLINTING DETAILS &nbsp;·&nbsp; <b>ESC</b> GREEN ROOM
+</div>
+
+<div id="room-atlas">
+  <div id="atlas-kicker">HOUSE GUIDE</div>
+  <div id="atlas-title">PUBWORLD MAIN STUDIO</div>
+  <div id="atlas-copy">The main 2.5D studio path begins backstage and leads forward through the set.</div>
+  <div id="atlas-routes"></div>
+</div>
+
+<!-- PROMPT -->
+<div id="prompt">PRESS <span class="key">E</span> TO ENTER</div>
+
+<!-- MINIMAP -->
+<div id="minimap">
+  <div id="minimap-title">PUBWORLD — 2.5D STUDIO MAP</div>
+  <svg id="mm-svg" viewBox="0 0 160 80">
+    <!-- Rooms -->
+    <rect x="60" y="2" width="40" height="18" fill="rgba(201,168,76,.08)" stroke="rgba(201,168,76,.3)" stroke-width=".5" rx="1"/>
+    <text x="80" y="13" text-anchor="middle" fill="rgba(201,168,76,.5)" font-size="4" font-family="Cinzel">LOBBY</text>
+
+    <rect x="60" y="26" width="40" height="18" fill="rgba(201,168,76,.08)" stroke="rgba(201,168,76,.3)" stroke-width=".5" rx="1"/>
+    <text x="80" y="37" text-anchor="middle" fill="rgba(201,168,76,.5)" font-size="4" font-family="Cinzel">GREEN ROOM</text>
+
+    <rect x="2" y="26" width="30" height="14" fill="rgba(201,168,76,.08)" stroke="rgba(201,168,76,.3)" stroke-width=".5" rx="1"/>
+    <text x="17" y="35" text-anchor="middle" fill="rgba(201,168,76,.5)" font-size="3.5" font-family="Cinzel">WRITERS</text>
+
+    <rect x="128" y="26" width="30" height="14" fill="rgba(201,168,76,.08)" stroke="rgba(201,168,76,.3)" stroke-width=".5" rx="1"/>
+    <text x="143" y="35" text-anchor="middle" fill="rgba(201,168,76,.5)" font-size="3.5" font-family="Cinzel">VORTEX</text>
+
+    <rect x="2" y="50" width="30" height="14" fill="rgba(201,168,76,.08)" stroke="rgba(201,168,76,.3)" stroke-width=".5" rx="1"/>
+    <text x="17" y="59" text-anchor="middle" fill="rgba(201,168,76,.5)" font-size="3" font-family="Cinzel">DRESSING</text>
+
+    <rect x="55" y="50" width="30" height="14" fill="rgba(201,168,76,.08)" stroke="rgba(201,168,76,.3)" stroke-width=".5" rx="1"/>
+    <text x="70" y="59" text-anchor="middle" fill="rgba(201,168,76,.5)" font-size="3.5" font-family="Cinzel">STUDIO SET</text>
+
+    <rect x="100" y="50" width="38" height="14" fill="rgba(201,168,76,.08)" stroke="rgba(201,168,76,.3)" stroke-width=".5" rx="1"/>
+    <text x="119" y="59" text-anchor="middle" fill="rgba(201,168,76,.5)" font-size="3.5" font-family="Cinzel">CTRL ROOM</text>
+
+    <!-- Connectors -->
+    <line x1="80" y1="20" x2="80" y2="26" stroke="rgba(201,168,76,.2)" stroke-width=".5"/>
+    <line x1="32" y1="33" x2="60" y2="33" stroke="rgba(201,168,76,.2)" stroke-width=".5"/>
+    <line x1="100" y1="33" x2="128" y2="33" stroke="rgba(201,168,76,.2)" stroke-width=".5"/>
+    <line x1="17" y1="40" x2="17" y2="50" stroke="rgba(201,168,76,.2)" stroke-width=".5"/>
+    <line x1="70" y1="44" x2="70" y2="50" stroke="rgba(201,168,76,.2)" stroke-width=".5"/>
+    <line x1="119" y1="44" x2="119" y2="50" stroke="rgba(201,168,76,.2)" stroke-width=".5"/>
+
+    <!-- Player dot -->
+    <circle id="mm-dot" cx="80" cy="11" r="2.5" fill="var(--accent)" opacity=".9">
+      <animate attributeName="opacity" values="1;.4;1" dur="1.5s" repeatCount="indefinite"/>
+    </circle>
+  </svg>
+</div>
+
+<!-- SCENE -->
+<div id="scene">
+  <div id="dressing-room-bg"></div>
+  <div id="room-bg"></div>
+  <div id="room-fx"></div>
+  <div id="floor-dark"></div>
+
+  <!-- Door hotspots — populated by JS per room -->
+  <div id="doors-layer"></div>
+  <div id="feature-layer"></div>
+
+  <!-- Ethereal Avatar -->
+  <div id="spr" style="left:50%;bottom:22%">
+    <canvas id="spr-cv" width="64" height="96"></canvas>
+    <div id="spr-shadow" style="width:64px;height:11px"></div>
+  </div>
+</div>
+
+<!-- DRESSING ROOM (procedural overlay) -->
+<div id="dressing-room">
+  <div class="dr-title">DRESSING ROOM</div>
+  <div class="dr-sub">HOME BASE IN 2.5D · FOLLOW THE HALLWAY OR GREEN ROOM PATH · SAVE THE PUBWORLD CROSSING FOR LATER</div>
+  <div class="dr-mirror">
+    <canvas id="avatar-mirror" width="160" height="220"></canvas>
+    <div class="dr-mirror-label">YOUR AVATAR</div>
+  </div>
+  <div class="dr-btn" onclick="exitDressingRoom()">STEP OUT OF THE DRESSING ROOM</div>
+</div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════════════
+//  POLYFILL
+// ══════════════════════════════════════════════════════
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
+    const rv=Math.min(Array.isArray(r)?r[0]:r||0,w/2,h/2);
+    this.moveTo(x+rv,y);this.lineTo(x+w-rv,y);this.arcTo(x+w,y,x+w,y+rv,rv);
+    this.lineTo(x+w,y+h-rv);this.arcTo(x+w,y+h,x+w-rv,y+h,rv);
+    this.lineTo(x+rv,y+h);this.arcTo(x,y+h,x,y+h-rv,rv);
+    this.lineTo(x,y+rv);this.arcTo(x,y,x+rv,y,rv);this.closePath();return this;
+  };
+}
+
+// ══════════════════════════════════════════════════════
+//  CURSOR
+// ══════════════════════════════════════════════════════
+const cur = document.getElementById('cur');
+document.addEventListener('mousemove', e => { cur.style.left=e.clientX+'px'; cur.style.top=e.clientY+'px'; });
+document.addEventListener('mouseover', e => {
+  cur.classList.toggle('big', e.target.matches('.dr-btn,.door-glow,.feature,.feature-glow'));
+});
+
+// ══════════════════════════════════════════════════════
+//  ROOM DEFINITIONS
+// ══════════════════════════════════════════════════════
+// Each room defines:
+//   bg: image filename (relative)
+//   bgPos: background-position
+//   name: display name
+//   walkY: bottom % where sprite walks
+//   spriteScale: size of sprite in this room
+//   mmDot: minimap dot position {cx,cy}
+//   doors: array of door hotspot objects
+
+const ROOMS = {
+
+  lobby: {
+    bg: '/assets/rooms/lobby_polish.jpg',
+    bgPos: 'center 54%',
+    name: 'THE LOBBY — GRAND ENTRY',
+    subtitle: 'A faded movie-palace threshold with the whole 2.5D studio tucked deeper inside.',
+    atlas: 'From here the route narrows into the backstage hallway, then opens out into the green room, dressing room, and set path.',
+    routes: ['HALLWAY', 'GREEN ROOM', 'DRESSING ROUTE'],
+    fx: 'lobby',
+    walkY: 74,
+    spriteScale: 1.0,
+    mmDot: {cx:80, cy:11},
+    features: [
+      {
+        id:'feature-plaque', label:'HOUSE PLAQUE', left:8, bottom:41, width:76, height:120,
+        title:'HOUSE PLAQUE',
+        body:'The lobby carries the rules of the house: pause, orient yourself, and only then move inward. It makes the whole studio feel like a hidden theater instead of a generic menu.'
+      },
+      {
+        id:'feature-boxoffice', label:'BOX OFFICE', left:26, bottom:28, width:150, height:94,
+        title:'BOX OFFICE',
+        body:'A little relic station to suggest tickets, call-times, and arrivals. It turns the lobby into an actual threshold instead of just another hallway backdrop.'
+      }
+    ],
+    doors: [
+      {
+        id:'door-hallway',
+        label:'INTO THE HOUSE →',
+        left:63, bottom:30,
+        width:90, height:110,
+        target:'hallway',
+        prompt:'HEAD DEEPER INTO THE STUDIO — PRESS <span class="key">E</span> TO ENTER THE HALLWAY'
+      }
+    ]
+  },
+
+  hallway: {
+    bg: '/assets/rooms/hallway_polish.jpg',
+    bgPos: 'center 52%',
+    bgSize: 'cover',
+    name: 'HALLWAY — HOUSE SPINE',
+    subtitle: 'A worn theatrical corridor that quietly braids the public lobby into the private backstage rooms.',
+    atlas: 'This is the hinge of the 2.5D house: lobby behind you, dressing and green room ahead, and the writers route tucked off to the side.',
+    routes: ['LOBBY', 'DRESSING ROOM', 'GREEN ROOM', 'WRITERS'],
+    fx: 'hallway',
+    walkY: 78,
+    spriteScale: 0.9,
+    mmDot: {cx:80, cy:22},
+    features: [
+      {
+        id:'feature-hall-plaque', label:'HOUSE RULES', left:8, bottom:44, width:76, height:154,
+        title:'HOUSE RULES',
+        body:'The hallway still carries a little old-house formality: respect the set, move with intent, and do not drift into a room unless you mean to enter it.'
+      },
+      {
+        id:'feature-hall-statue', label:'LOBBY STATUE', left:56, bottom:27, width:92, height:182,
+        title:'LOBBY STATUE',
+        body:'A theatrical anchor planted right in the spine of the building. It makes the corridor feel ceremonial instead of disposable.'
+      }
+    ],
+    doors: [
+      {
+        id:'door-lobby',
+        label:'← LOBBY',
+        left:6, bottom:30,
+        width:82, height:190,
+        target:'lobby',
+        edge:'left'
+      },
+      {
+        id:'door-writers',
+        label:'WRITERS ROOM',
+        left:26, bottom:33,
+        width:70, height:108,
+        target:'writers',
+        facing:'right'
+      },
+      {
+        id:'door-dressing-hall',
+        label:'DRESSING ROOM',
+        left:50, bottom:34,
+        width:74, height:116,
+        target:'dressing',
+        facing:'up',
+        prompt:'PRESS <span class="key">E</span> TO STEP INTO THE DRESSING ROOM'
+      },
+      {
+        id:'door-greenroom',
+        label:'GREEN ROOM →',
+        left:89, bottom:28,
+        width:84, height:154,
+        target:'greenroom',
+        edge:'right',
+        prompt:'PRESS <span class="key">E</span> TO DRIFT DEEPER BACKSTAGE INTO THE GREEN ROOM'
+      }
+    ]
+  },
+
+  writers: {
+    bg: '/assets/rooms/writers.jpg',
+    bgPos: 'center 46%',
+    bgSize: 'cover',
+    name: 'WRITERS ROOM — STORY CIRCLE',
+    subtitle: 'A soft art-nouveau conference chamber where scripts, structure, and odd sparks of inspiration can all sit at the same table.',
+    atlas: 'The writers room should feel intelligent and hospitable: equal parts salon, story lab, and conference nook tucked just off the main hallway.',
+    routes: ['HALLWAY', 'GREEN ROOM', 'STORY TABLE', 'COFFEE NICHE'],
+    fx: 'writers',
+    walkY: 78,
+    spriteScale: 0.9,
+    mmDot: {cx:17, cy:33},
+    features: [
+      {
+        id:'feature-writers-table', label:'STORY TABLE', left:41, bottom:12, width:274, height:198,
+        title:'STORY TABLE', image:'/assets/details/writers_story_table.png',
+        body:'This is the room\'s true center of gravity: the round table where outlines, scene beats, revisions, and impossible ideas all get a fair hearing.'
+      },
+      {
+        id:'feature-writers-orrery', label:'IDEA ORRERY', left:8, bottom:26, width:166, height:212,
+        title:'IDEA ORRERY', image:'/assets/details/writers_idea_orrery.png',
+        body:'A sculptural little symbol for how this room should work — thoughts circling each other until one of them suddenly locks into place.'
+      },
+      {
+        id:'feature-writers-coffee', label:'COFFEE NICHE', left:73, bottom:30, width:168, height:176,
+        title:'COFFEE NICHE', image:'/assets/details/writers_coffee_niche.png',
+        body:'No real writers room feels finished without somewhere to stand, sip, stall, and pretend a breakthrough is about to happen any second now.'
+      }
+    ],
+    doors: [
+      {
+        id:'door-back-hallway',
+        label:'← HALLWAY',
+        left:9, bottom:25,
+        width:72, height:176,
+        target:'hallway',
+        edge:'left',
+        prompt:'PRESS <span class="key">E</span> TO STEP BACK INTO THE HALLWAY'
+      }
+    ]
+  },
+
+  greenroom: {
+    bg: '/assets/rooms/greenroom_polish.jpg',
+    bgPos: 'center 34%',
+    name: 'GREEN ROOM — BACKSTAGE HUB',
+    subtitle: 'Warm, lived-in, and connected — this is the heart of the 2.5D side before you step out onto the studio path.',
+    atlas: 'The green room is the connective tissue of PubCast 2.5D: lounge, regroup, then branch toward dressing, studio, control, or the bar.',
+    routes: ['DRESSING ROOM', 'STUDIO SET', 'CONTROL ROOM', 'VORTEX BAR', 'WRITERS'],
+    fx: 'greenroom',
+    walkY: 80,
+    spriteScale: 1.0,
+    mmDot: {cx:80, cy:35},
+    features: [
+      {
+        id:'feature-makeup', label:'MAKEUP STATION', left:49, bottom:41, width:146, height:92,
+        title:'MAKEUP STATION', image:'/assets/details/makeup_station.png', use:'makeup',
+        body:'A more intimate backstage detail. This should feel like the place where a performer pauses, resets, powders off, and gets ready to step back into the show.'
+      },
+      {
+        id:'feature-callboard', label:'CALL BOARD', left:73, bottom:33, width:152, height:96,
+        title:'CALL BOARD', image:'/assets/details/call_board.png', use:'message_board',
+        body:'A practical little anchor for notes, lineup reminders, and backstage texture. It makes the green room feel inhabited, not merely navigable.'
+      },
+      {
+        id:'feature-tv', label:'TV', left:64, bottom:38, width:80, height:64,
+        title:'GREEN ROOM TV', use:'tv',
+        body:'Flip between prerecorded segments and live studio feed. The show is always on somewhere.'
+      },
+      {
+        id:'feature-couch', label:'SIT', left:43, bottom:30, width:120, height:80,
+        title:'COUCH', use:'sit',
+        body:'Take a seat and watch the show from backstage. Sometimes the best view is the one nobody else gets.'
+      }
+    ],
+    doors: [
+      {
+        id:'door-writers-gr',
+        label:'CONFERENCE / WRITERS',
+        left:22, bottom:44,
+        width:58, height:78,
+        target:'writers',
+        facing:'up'
+      },
+      {
+        id:'door-studio-overlook',
+        label:'STUDIO SET',
+        left:55, bottom:24,
+        width:84, height:54,
+        target:'studio_overlook',
+        facing:'up',
+        prompt:'PRESS <span class="key">E</span> TO LEAVE THE LOUNGE AND WALK TOWARD THE STUDIO SET'
+      },
+      {
+        id:'door-controlroom',
+        label:'CONTROL ROOM',
+        left:93, bottom:44,
+        width:64, height:82,
+        target:'controlroom',
+        facing:'up'
+      },
+      {
+        id:'door-dressing',
+        label:'DRESSING ROOM',
+        left:8, bottom:46,
+        width:56, height:78,
+        target:'dressing',
+        edge:'left'
+      },
+      {
+        id:'door-vortex',
+        label:'COCKTAIL RING / VORTEX',
+        left:72, bottom:45,
+        width:58, height:76,
+        target:'vortex',
+        edge:'right'
+      },
+      {
+        id:'door-hallway-gr',
+        label:'← HALLWAY',
+        left:36, bottom:18,
+        width:66, height:44,
+        target:'hallway',
+        edge:'bottom'
+      }
+    ]
+  },
+
+  studio_overlook: {
+    bg: '/assets/rooms/studio.jpg',
+    bgPos: 'center 30%',
+    bgSize: 'cover',
+    name: 'STUDIO SET — OVERLOOK',
+    walkY: 78,
+    spriteScale: 0.9,
+    mmDot: {cx:68, cy:57},
+    doors: [
+      {
+        id:'door-greenroom-s',
+        label:'← GREEN ROOM',
+        left:15, bottom:22,
+        width:60, height:80,
+        target:'greenroom',
+        edge:'left'
+      },
+      {
+        id:'door-fixed-sets',
+        label:'FIXED SETS CLOSE-UP →',
+        left:77, bottom:26,
+        width:66, height:84,
+        target:'studio_fixedsets',
+        edge:'right',
+        prompt:'WALK THE SET — PRESS <span class="key">E</span> TO MOVE TOWARD THE FIXED SETS'
+      },
+      {
+        id:'door-controlroom-s',
+        label:'CONTROL ROOM',
+        left:55, bottom:43,
+        width:62, height:76,
+        target:'controlroom',
+        facing:'up'
+      }
+    ]
+  },
+
+  studio_fixedsets: {
+    bg: '/assets/rooms/studio.jpg',
+    bgPos: '68% 34%',
+    bgSize: '148%',
+    name: 'FIXED SETS — CLOSE VIEW',
+    walkY: 79,
+    spriteScale: 0.88,
+    mmDot: {cx:73, cy:57},
+    doors: [
+      {
+        id:'door-director-threshold',
+        label:'← DIRECTOR CHAIR IMAGE',
+        left:12, bottom:24,
+        width:68, height:88,
+        target:'studio_director',
+        edge:'left',
+        prompt:'ON THE FAR LEFT: <span class="key">E</span> TO MOVE TO THE DIRECTOR CHAIR VIEW'
+      },
+      {
+        id:'door-studio-overlook-return',
+        label:'OVERLOOK →',
+        left:88, bottom:24,
+        width:62, height:84,
+        target:'studio_overlook',
+        edge:'right'
+      }
+    ]
+  },
+
+  studio_director: {
+    bg: '/assets/rooms/studio.jpg',
+    bgPos: '34% 34%',
+    bgSize: '165%',
+    name: 'DIRECTOR CHAIR — PUBWORLD THRESHOLD',
+    walkY: 80,
+    spriteScale: 0.88,
+    mmDot: {cx:78, cy:57},
+    doors: [
+      {
+        id:'door-fixedsets-return',
+        label:'FIXED SETS →',
+        left:86, bottom:25,
+        width:62, height:82,
+        target:'studio_fixedsets',
+        edge:'right'
+      },
+      {
+        id:'door-pubworld-portal',
+        label:'PUBCAST 3D STAGE',
+        left:56, bottom:46,
+        width:92, height:86,
+        href:'/stage?room=studio&entry=pubworld&from=director-chair',
+        kind:'portal',
+        prompt:'WALK TOWARD THE BACK — <span class="key">E</span> TO CROSS INTO PUBCAST 3D',
+        edge:'center'
+      }
+    ]
+  },
+
+  controlroom: {
+    bg: '/assets/rooms/controlroom.jpg',
+    bgPos: 'center 58%',
+    name: 'CONTROL ROOM — BROADCAST NERVE CENTER',
+    subtitle: 'Warm wood, live glass, and blinking monitors — the control room should feel like the place the whole house quietly pivots around.',
+    atlas: 'The control room is where the show becomes intentional: watch the set through the glass, check the multiview wall, then step into the live console without breaking the 2.5D flow.',
+    routes: ['GREEN ROOM', 'STUDIO SET', 'LIVE CONSOLE', 'MULTIVIEW WALL'],
+    fx: 'controlroom',
+    walkY: 76,
+    spriteScale: 1.0,
+    mmDot: {cx:119, cy:57},
+    features: [
+      {
+        id:'feature-control-switcher', label:'LIVE CONSOLE', left:49, bottom:27, width:244, height:184,
+        title:'LIVE CONSOLE', image:'/assets/details/control_switcher.png',
+        body:'The heart of the room: switching, pacing, and all the invisible judgement calls that make a show feel effortless. This should feel like a beautiful place to run the whole house from.',
+        buttons:[{label:'OPEN CONTROL UI', href:'/control'}]
+      },
+      {
+        id:'feature-control-multiview', label:'MULTIVIEW WALL', left:74, bottom:45, width:218, height:126,
+        title:'MULTIVIEW WALL', image:'/assets/details/control_multiview.png',
+        body:'Program, preview, and all the little live anxieties. The multiview wall makes the room feel operational instead of merely decorative — a real broadcast brain with a pulse.'
+      },
+      {
+        id:'feature-control-window', label:'STAGE WINDOW', left:31, bottom:38, width:286, height:190,
+        title:'STAGE WINDOW', image:'/assets/details/control_stage_window.png',
+        body:'A literal line of sight into the set. From here the control room still belongs to the theater around it — not a disconnected bunker, but a backstage chamber with eyes on the stage.'
+      },
+      {
+        id:'feature-control-notes', label:'RUN SHEET DESK', left:10, bottom:18, width:126, height:144,
+        title:'RUN SHEET DESK', image:'/assets/details/control_scriptdesk.png',
+        body:'Cue sheets, last-minute rewrites, and timing notes. This little desk is a human reminder that every polished show still depends on paper, pencils, and someone keeping the chaos legible.'
+      }
+    ],
+    doors: [
+      {
+        id:'door-greenroom-cr',
+        label:'← GREEN ROOM',
+        left:10, bottom:22,
+        width:60, height:80,
+        target:'greenroom',
+        edge:'left'
+      },
+      {
+        id:'door-studio-cr',
+        label:'STUDIO SET',
+        left:30, bottom:26,
+        width:55, height:75,
+        target:'studio_overlook',
+        facing:'left'
+      }
+    ]
+  },
+
+  vortex: {
+    bg: '/assets/rooms/vortex.jpg',
+    bgPos: 'center 44%',
+    bgSize: 'cover',
+    name: 'THE VORTEX BAR — AFTER HOURS THRESHOLD',
+    subtitle: 'Part cocktail lounge, part dimensional bruise — the bar is where the 2.5D house gets glamorous, strange, and just a little dangerous.',
+    atlas: 'The Vortex Bar should feel like a stylish side chamber for decompression, gossip, and theatrical mystery before you drift back into the practical backstage rooms.',
+    routes: ['GREEN ROOM', 'BAR RAIL', 'VORTEX FLOOR', 'BOOTHS'],
+    fx: 'vortex',
+    walkY: 76,
+    spriteScale: 1.0,
+    mmDot: {cx:143, cy:33},
+    features: [
+      {
+        id:'feature-vortex-bar', label:'BAR RAIL', left:77, bottom:18, width:220, height:220,
+        title:'BAR RAIL', image:'/assets/details/vortex_bar_rail.png',
+        body:'The bar keeps the room from becoming only a gimmick. It grounds the surreal floor with something social, familiar, and temptingly well lit.'
+      },
+      {
+        id:'feature-vortex-floor', label:'VORTEX FLOOR', left:34, bottom:4, width:240, height:204,
+        title:'VORTEX FLOOR', image:'/assets/details/vortex_floor_portal.png',
+        body:'This is the room\'s signature danger: a visual whirlpool worked into the floor so elegantly that it reads as both design statement and dimensional warning.'
+      },
+      {
+        id:'feature-vortex-booths', label:'SHADOW BOOTHS', left:8, bottom:18, width:170, height:214,
+        title:'SHADOW BOOTHS', image:'/assets/details/vortex_booths.png',
+        body:'The booths make the bar playable instead of merely scenic — private corners for scheming, cooling down, or disappearing into a conversation after the show.'
+      },
+      {
+        id:'feature-vortex-door', label:'BACK DOOR', left:49, bottom:30, width:118, height:176,
+        title:'BACK DOOR', image:'/assets/details/vortex_back_door.png',
+        body:'A promising little door at the back of the room that makes the bar feel connected to a larger mythos, even before the rest of that myth is fully built.'
+      }
+    ],
+    doors: [
+      {
+        id:'door-greenroom-v',
+        label:'← GREEN ROOM',
+        left:11, bottom:24,
+        width:74, height:186,
+        target:'greenroom',
+        edge:'left',
+        prompt:'PRESS <span class="key">E</span> TO LEAVE THE VORTEX AND RETURN TO THE GREEN ROOM'
+      }
+    ]
+  },
+
+  dressing: {
+    bg: '/assets/rooms/dressing_polish.png',
+    bgPos: 'center 52%',
+    bgSize: 'cover',
+    name: 'DRESSING ROOM — WRITER\'S VANITY',
+    subtitle: 'Warm, private, and theatrical — the 2.5D home base where scripts, costumes, and nerves all meet before the show.',
+    atlas: 'The dressing room should feel inhabited: get your bearings here, then step into the green room or slip back through the hallway without replaying an intro every time.',
+    routes: ['GREEN ROOM', 'HALLWAY', 'VANITY', 'CALL BOARD'],
+    fx: 'dressing',
+    walkY: 79,
+    spriteScale: 0.92,
+    mmDot: {cx:17, cy:57},
+    features: [
+      {
+        id:'feature-dressing-vanity', label:'VANITY MIRROR', left:17, bottom:32, width:188, height:188,
+        title:'VANITY MIRROR', use:'makeup',
+        body:'This is where the room breathes. The bulbs, powders, and mirrored glass turn the dressing room into a place of preparation rather than a generic bedroom with a costume rack.'
+      },
+      {
+        id:'feature-dressing-callboard', label:'CALL BOARD', left:56, bottom:49, width:120, height:118,
+        title:'CALL BOARD', image:'/assets/details/dressing_corkboard.png', use:'message_board',
+        body:'A tiny production brain pinned to the wall: reminders, coffee orders, call sheets, and the feeling that there is always something already in motion.'
+      },
+      {
+        id:'feature-dressing-desk', label:'WRITING DESK', left:49, bottom:5, width:284, height:176,
+        title:'WRITING DESK', use:'typewriter',
+        body:'The writing desk is a good kind of clutter: a typewriter, notes, and a telephone that make the room feel like a place ideas can actually arrive, not just a corridor between scenes.'
+      },
+      {
+        id:'feature-dressing-wardrobe', label:'WARDROBE', left:85, bottom:30, width:154, height:202,
+        title:'WARDROBE', use:'wardrobe',
+        body:'Costumes and backup selves. The wardrobe makes the room feel performative in the best way — full of options, masks, and alternate versions of whoever is about to go onstage.'
+      },
+      {
+        id:'feature-dressing-phone', label:'PHONE', left:77, bottom:23, width:100, height:80,
+        title:'PHONE', use:'phone',
+        body:'A direct line to the outside world. Pick up and join a quick chat, a full meeting, or just check in on the control room.'
+      },
+      {
+        id:'feature-dressing-foundry', label:'AVATAR FOUNDRY', left:32, bottom:52, width:160, height:140,
+        title:'AVATAR FOUNDRY', use:'avatar_foundry',
+        body:'Step onto the foundry platform and shape your ethereal form. Choose your glow color, adjust your silhouette, and become the version of yourself this show needs.'
+      }
+    ],
+    doors: [
+      {
+        id:'door-hallway-d',
+        label:'← HALLWAY',
+        left:7, bottom:29,
+        width:74, height:190,
+        target:'hallway',
+        edge:'left'
+      },
+      {
+        id:'door-greenroom-d',
+        label:'GREEN ROOM',
+        left:66, bottom:28,
+        width:78, height:134,
+        target:'greenroom',
+        facing:'up',
+        prompt:'PRESS <span class="key">E</span> TO LEAVE THE DRESSING ROOM FOR THE GREEN ROOM'
+      }
+    ]
+  }
+
+};
+
+// ══════════════════════════════════════════════════════
+//  GAME STATE
+// ══════════════════════════════════════════════════════
+let currentRoom   = 'dressing';
+let sx            = 50;
+let sdir          = 1;
+let walking       = false;
+let wt            = 0;
+let nearDoor      = null;
+let transitioning = false;
+let edgeCooldown  = false; // prevent edge trigger firing every frame
+let dressingIntroSeen = false;
+const keys        = {};
+
+// ══════════════════════════════════════════════════════
+//  ETHEREAL AVATAR
+// ══════════════════════════════════════════════════════
+const sprWrap = document.getElementById('spr');
+const sprCV   = document.getElementById('spr-cv');
+const sprCtx  = sprCV.getContext('2d');
+const sprShad = document.getElementById('spr-shadow');
+
+// Avatar color — can be changed per-user via ethereal system
+let avatarHue = {r:0, g:229, b:204}; // default cyan
+function setAvatarColor(r,g,b) { avatarHue = {r,g,b}; }
+
+function drawAvatar(walk, dir, t, scale=1.0) {
+  const W=64, H=96;
+  sprCV.width=W; sprCV.height=H;
+  sprCV.style.width  = Math.round(W*scale)+'px';
+  sprCV.style.height = Math.round(H*scale)+'px';
+  sprShad.style.width  = Math.round(64*scale)+'px';
+  sprShad.style.height = Math.round(11*scale)+'px';
+
+  const ctx = sprCtx;
+  ctx.clearRect(0,0,W,H);
+
+  const cx=32;
+  const {r,g,b} = avatarHue;
+  const C  = `rgb(${r},${g},${b})`;
+  const CF = `rgba(${r},${g},${b},`;
+
+  // Breathing: gentle pulse even when standing still
+  const breath = Math.sin(t * 1.8) * 1.2;
+  const bob    = walk ? Math.abs(Math.sin(t*5.5))*2.5 : breath * 0.4;
+  const leg    = walk ? Math.sin(t*5.5)*12 : 0;
+  const arm    = walk ? Math.sin(t*5.5)*9 : Math.sin(t*1.2)*2;
+  const sway   = walk ? 0 : Math.sin(t*0.9)*0.5;
+
+  if (dir===-1){ctx.save();ctx.translate(W,0);ctx.scale(-1,1);}
+
+  // Ambient energy field (very subtle outer glow)
+  const grd = ctx.createRadialGradient(cx, 44, 4, cx, 44, 38);
+  grd.addColorStop(0, CF+'0.04)');
+  grd.addColorStop(0.6, CF+'0.02)');
+  grd.addColorStop(1, 'transparent');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.shadowBlur=14; ctx.shadowColor=C;
+  ctx.lineCap='round'; ctx.lineJoin='round';
+
+  // ── Legs (graceful tapered lines) ──
+  ctx.strokeStyle=C; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(cx-5, 54+bob); ctx.quadraticCurveTo(cx-5+leg*0.4, 62+bob, cx-4+leg, 78+bob); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx+5, 54+bob); ctx.quadraticCurveTo(cx+5-leg*0.4, 62+bob, cx+4-leg, 78+bob); ctx.stroke();
+
+  // Feet glow dots
+  ctx.fillStyle=CF+'0.6)'; ctx.shadowBlur=6;
+  ctx.beginPath(); ctx.arc(cx-4+leg, 79+bob, 1.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+4-leg, 79+bob, 1.5, 0, Math.PI*2); ctx.fill();
+
+  // ── Torso (smooth capsule with energy veins) ──
+  ctx.shadowBlur=12;
+  ctx.beginPath(); ctx.roundRect(cx-10, 28+bob+sway, 20, 28, 6);
+  ctx.strokeStyle=C; ctx.lineWidth=1.8; ctx.stroke();
+  ctx.fillStyle=CF+'0.05)'; ctx.fill();
+
+  // Energy veins (flowing lines inside torso)
+  ctx.strokeStyle=CF+'0.18)'; ctx.lineWidth=0.8;
+  for(let i=0; i<3; i++){
+    const vy = 34 + i*7 + bob + sway;
+    const wave = Math.sin(t*2.5 + i*1.3)*3;
+    ctx.beginPath();
+    ctx.moveTo(cx-7, vy);
+    ctx.quadraticCurveTo(cx+wave, vy-1.5, cx+7, vy);
+    ctx.stroke();
+  }
+
+  // ── Arms (flowing curves, not stiff lines) ──
+  ctx.strokeStyle=C; ctx.lineWidth=2; ctx.shadowBlur=10;
+  // Left arm
+  ctx.beginPath();
+  ctx.moveTo(cx-10, 32+bob+sway);
+  ctx.quadraticCurveTo(cx-18, 36+bob, cx-16+arm, 50+bob+sway);
+  ctx.stroke();
+  // Right arm
+  ctx.beginPath();
+  ctx.moveTo(cx+10, 32+bob+sway);
+  ctx.quadraticCurveTo(cx+18, 36+bob, cx+16-arm, 50+bob+sway);
+  ctx.stroke();
+
+  // Hand glow dots
+  ctx.fillStyle=CF+'0.5)'; ctx.shadowBlur=5;
+  ctx.beginPath(); ctx.arc(cx-16+arm, 50+bob+sway, 1.3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+16-arm, 50+bob+sway, 1.3, 0, Math.PI*2); ctx.fill();
+
+  // ── Neck (graceful taper) ──
+  ctx.strokeStyle=C; ctx.lineWidth=2; ctx.shadowBlur=10;
+  ctx.beginPath(); ctx.moveTo(cx, 28+bob+sway); ctx.lineTo(cx+sway*0.5, 22+bob); ctx.stroke();
+
+  // ── Head (soft oval with inner glow) ──
+  ctx.beginPath(); ctx.ellipse(cx+sway*0.3, 14+bob, 9, 10, 0, 0, Math.PI*2);
+  ctx.strokeStyle=C; ctx.lineWidth=1.8; ctx.shadowBlur=16; ctx.stroke();
+  // Inner head glow
+  const headGrd = ctx.createRadialGradient(cx, 14+bob, 0, cx, 14+bob, 9);
+  headGrd.addColorStop(0, CF+'0.08)');
+  headGrd.addColorStop(1, CF+'0.02)');
+  ctx.fillStyle = headGrd; ctx.fill();
+
+  // ── Eyes (soft, luminous) ──
+  ctx.fillStyle=C; ctx.shadowBlur=8; ctx.shadowColor=C;
+  const eyeBlink = Math.random()>0.995 ? 0.3 : 1.0;
+  ctx.globalAlpha = eyeBlink;
+  ctx.beginPath(); ctx.arc(cx-3.5, 14+bob, 1.6, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+3.5, 14+bob, 1.6, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 1.0;
+
+  // ── Energy corona (subtle orbiting particle) ──
+  const particleAngle = t * 1.5;
+  const px = cx + Math.cos(particleAngle) * 14;
+  const py = 36 + bob + Math.sin(particleAngle) * 18;
+  ctx.fillStyle=CF+'0.3)'; ctx.shadowBlur=12;
+  ctx.beginPath(); ctx.arc(px, py, 1.2, 0, Math.PI*2); ctx.fill();
+
+  if(dir===-1) ctx.restore();
+}
+
+// Alias for backward compatibility with room loading code
+const drawSprite = drawAvatar;
+
+// ══════════════════════════════════════════════════════
+//  ROOM LOADING
+// ══════════════════════════════════════════════════════
+const roomBg       = document.getElementById('room-bg');
+const roomFx       = document.getElementById('room-fx');
+const roomName     = document.getElementById('room-name');
+const doorsLayer   = document.getElementById('doors-layer');
+const featureLayer = document.getElementById('feature-layer');
+const promptEl     = document.getElementById('prompt');
+const mmDot        = document.getElementById('mm-dot');
+const dressingOv   = document.getElementById('dressing-room');
+const atlasTitle   = document.getElementById('atlas-title');
+const atlasCopy    = document.getElementById('atlas-copy');
+const atlasKicker  = document.getElementById('atlas-kicker');
+const atlasRoutes  = document.getElementById('atlas-routes');
+
+function loadRoom(roomId, spawnX=50) {
+  const room = ROOMS[roomId];
+  if (!room) return;
+  currentRoom = roomId;
+  window.dispatchEvent(new CustomEvent("pubcast:room", {detail: {room: roomId}}));
+  sx = spawnX;
+
+  // Update HUD
+  roomName.textContent = room.name;
+
+  // Update BG
+  if (room.bg) {
+    roomBg.style.backgroundImage  = `url('${room.bg}')`;
+    roomBg.style.backgroundSize   = room.bgSize || 'cover';
+    roomBg.style.backgroundPosition = room.bgPos || 'center bottom';
+    roomBg.style.display = '';
+    document.getElementById('dressing-room-bg').style.display='none';
+  } else {
+    // Procedural room (dressing room)
+    roomBg.style.display='none';
+    document.getElementById('dressing-room-bg').style.display='block';
+  }
+
+  // Update minimap dot
+  if (mmDot && room.mmDot) {
+    mmDot.setAttribute('cx', room.mmDot.cx);
+    mmDot.setAttribute('cy', room.mmDot.cy);
+  }
+
+  applyRoomAtlas(room);
+  applyRoomFX(room);
+
+  // Highlight current room on minimap
+  updateMinimap(roomId);
+
+  // Build door hotspots
+  buildDoors(room.doors);
+  buildFeatures(room.features || []);
+
+  // Special: dressing room intro opens only on the first arrival
+  if (roomId === 'dressing' && !dressingIntroSeen) {
+    dressingOv.style.display='flex';
+    animateMirror();
+  } else {
+    dressingOv.style.display='none';
+  }
+}
+
+function updateMinimap(roomId) {
+  // Highlight active room
+  const roomMMMap = {
+    lobby:{cx:80,cy:2,w:40,h:18},
+    hallway:{cx:80,cy:2,w:40,h:18},
+    greenroom:{cx:60,cy:26,w:40,h:18},
+    writers:{cx:2,cy:26,w:30,h:14},
+    vortex:{cx:128,cy:26,w:30,h:14},
+    dressing:{cx:2,cy:50,w:30,h:14},
+    studio_overlook:{cx:55,cy:50,w:24,h:14},
+    studio_fixedsets:{cx:79,cy:50,w:18,h:14},
+    studio_director:{cx:97,cy:50,w:18,h:14},
+    controlroom:{cx:116,cy:50,w:22,h:14}
+  };
+  const svg = document.getElementById('mm-svg');
+  // Remove old highlights
+  svg.querySelectorAll('.mm-active').forEach(e=>e.remove());
+  const rm = roomMMMap[roomId];
+  if (rm) {
+    const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x', rm.cx);
+    rect.setAttribute('y', rm.cy);
+    rect.setAttribute('width', rm.w);
+    rect.setAttribute('height', rm.h);
+    rect.setAttribute('fill','rgba(0,229,204,.15)');
+    rect.setAttribute('stroke','rgba(0,229,204,.6)');
+    rect.setAttribute('stroke-width','1');
+    rect.setAttribute('rx','1');
+    rect.setAttribute('class','mm-active');
+    svg.insertBefore(rect, svg.firstChild);
+  }
+}
+
+
+function applyRoomAtlas(room) {
+  atlasKicker.textContent = room.subtitle ? 'NOW PLAYING' : 'HOUSE GUIDE';
+  atlasTitle.textContent = room.name || 'PUBWORLD';
+  atlasCopy.textContent = room.atlas || room.subtitle || 'Move through the 2.5D studio and use the marked doors to change rooms.';
+  atlasRoutes.innerHTML = '';
+  (room.routes || []).forEach(route => {
+    const chip = document.createElement('div');
+    chip.className = 'atlas-route';
+    chip.textContent = route;
+    atlasRoutes.appendChild(chip);
+  });
+}
+
+function applyRoomFX(room) {
+  roomFx.className = '';
+  roomFx.id = 'room-fx';
+  if (room && room.fx) {
+    roomFx.classList.add('active', `fx-${room.fx}`);
+  }
+}
+
+function buildFeatures(features) {
+  featureLayer.innerHTML = '';
+  if (!features || !features.length) return;
+  features.forEach(f => {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'feature';
+    el.style.left = f.left + '%';
+    el.style.bottom = f.bottom + '%';
+    el.style.width = f.width + 'px';
+    el.style.height = f.height + 'px';
+    el.style.background = 'none';
+    el.style.border = 'none';
+    el.style.padding = '0';
+
+    const glow = document.createElement('div');
+    glow.className = 'feature-glow';
+    const label = document.createElement('div');
+    label.className = 'feature-label';
+    label.textContent = f.label;
+    el.appendChild(glow);
+    el.appendChild(label);
+    el.addEventListener('click', () => {
+      // If this feature has a USE_HANDLER, call it instead of showing static modal
+      if (f.use && USE_HANDLERS[f.use]) {
+        USE_HANDLERS[f.use]();
+        return;
+      }
+      const imageHTML = f.image
+        ? `<img src="${f.image}" alt="${f.title}" style="display:block;width:100%;max-height:220px;object-fit:cover;border:1px solid rgba(201,168,76,.18);margin-bottom:14px;">`
+        : '';
+      const buttons = Array.isArray(f.buttons)
+        ? f.buttons.map(btn => ({
+            label: btn.label,
+            action: () => {
+              if (btn.href) window.location.href = btn.href;
+            }
+          }))
+        : [];
+      showNookModal(f.title, `${imageHTML}<p>${f.body}</p>`, buttons);
+    });
+    featureLayer.appendChild(el);
+  });
+}
+
+function buildDoors(doors) {
+  doorsLayer.innerHTML = '';
+  if (!doors) return;
+  doors.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'door';
+    el.id = d.id;
+    el.style.left   = d.left   + '%';
+    el.style.bottom = d.bottom + '%';
+    el.dataset.target = d.target || '';
+    el.dataset.href   = d.href || '';
+    el.dataset.kind   = d.kind || 'door';
+    el.dataset.prompt = d.prompt || '';
+    el.dataset.left   = d.left;
+
+    const glow = document.createElement('div');
+    glow.className = 'door-glow';
+    glow.style.width  = d.width  + 'px';
+    glow.style.height = d.height + 'px';
+
+    const label = document.createElement('div');
+    label.className = 'door-label';
+    label.textContent = d.label;
+
+    el.appendChild(glow);
+    el.appendChild(label);
+    doorsLayer.appendChild(el);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  PROXIMITY CHECK
+// ══════════════════════════════════════════════════════
+function checkDoors() {
+  nearDoor = null;
+  const doors = doorsLayer.querySelectorAll('.door');
+  doors.forEach(d => {
+    const doorLeft = parseFloat(d.dataset.left);
+    const dist = Math.abs(sx - doorLeft);
+    if (dist < 8) {
+      nearDoor = d;
+      d.classList.add('near');
+    } else {
+      d.classList.remove('near');
+    }
+  });
+  if (nearDoor) {
+    promptEl.innerHTML = nearDoor.dataset.prompt || (
+      nearDoor.dataset.kind === 'portal'
+        ? 'PRESS <span class="key">E</span> TO CROSS INTO THE 3D STUDIO'
+        : 'PRESS <span class="key">E</span> TO ENTER'
+    );
+  }
+  promptEl.classList.toggle('show', !!nearDoor);
+}
+
+// ══════════════════════════════════════════════════════
+//  ROOM TRANSITION
+// ══════════════════════════════════════════════════════
+const transEl = document.getElementById('transition');
+
+function useDoor(doorEl) {
+  if (!doorEl || transitioning) return;
+  if (doorEl.dataset.kind === 'portal' && doorEl.dataset.href) {
+    transitioning = true;
+    transEl.classList.remove('fade-out');
+    void transEl.offsetWidth;
+    transEl.classList.add('portal-wipe');
+    setTimeout(() => { window.location.href = doorEl.dataset.href; }, 860);
+    return;
+  }
+  const target = doorEl.dataset.target;
+  if (!target) return;
+  const doorLeft = parseFloat(doorEl.dataset.left);
+  let spawnX = 50;
+  if (doorLeft < 30) spawnX = 82;
+  else if (doorLeft > 70) spawnX = 18;
+  else spawnX = 50;
+  goToRoom(target, spawnX);
+}
+
+
+function goToRoom(targetId, spawnX=50) {
+  if (transitioning) return;
+  transitioning = true;
+  transEl.classList.add('fade-out');
+  setTimeout(() => {
+    loadRoom(targetId, spawnX);
+    setTimeout(() => {
+      transEl.classList.remove('fade-out','portal-wipe');
+      transitioning = false;
+      edgeCooldown  = false; // reset after transition
+    }, 400);
+  }, 400);
+}
+
+// ══════════════════════════════════════════════════════
+//  DRESSING ROOM
+// ══════════════════════════════════════════════════════
+function animateMirror() {
+  const cv = document.getElementById('avatar-mirror');
+  if (!cv) return;
+  const c = cv.getContext('2d');
+  const W=cv.width, H=cv.height;
+  let t=0;
+  function draw(){
+    c.clearRect(0,0,W,H);
+    c.fillStyle='rgba(0,229,204,0.03)'; c.fillRect(0,0,W,H);
+    // Draw avatar in mirror
+    const cx=W/2, pulse=0.85+Math.sin(t*1.5)*0.15;
+    const C='rgba(0,229,204,';
+    c.shadowBlur=20*pulse; c.shadowColor='#00e5cc';
+    // legs
+    c.strokeStyle=`${C}${0.6*pulse})`; c.lineWidth=3; c.lineCap='round';
+    c.beginPath();c.moveTo(cx-5,160);c.lineTo(cx-10,200);c.stroke();
+    c.beginPath();c.moveTo(cx+5,160);c.lineTo(cx+10,200);c.stroke();
+    // body
+    c.beginPath();c.roundRect(cx-18,100,36,65,6);
+    c.strokeStyle=`${C}${0.7*pulse})`; c.lineWidth=2; c.stroke();
+    c.fillStyle=`${C}0.05)`; c.fill();
+    // scanlines
+    c.strokeStyle=`${C}${0.18*pulse})`; c.lineWidth=1;
+    for(let i=0;i<6;i++){c.beginPath();c.moveTo(cx-15,110+i*8);c.lineTo(cx+15,110+i*8);c.stroke();}
+    // arms
+    c.strokeStyle=`${C}${0.55*pulse})`; c.lineWidth=2.5;
+    c.beginPath();c.moveTo(cx-18,110);c.lineTo(cx-30,145);c.stroke();
+    c.beginPath();c.moveTo(cx+18,110);c.lineTo(cx+30,145);c.stroke();
+    // neck
+    c.beginPath();c.moveTo(cx,100);c.lineTo(cx,85);c.lineWidth=2.5;c.stroke();
+    // head
+    c.beginPath();c.roundRect(cx-16,62,32,26,5);
+    c.strokeStyle=`${C}${0.8*pulse})`; c.lineWidth=2; c.stroke();
+    c.fillStyle=`${C}0.06)`; c.fill();
+    // eyes
+    c.fillStyle=`${C}${0.9*pulse})`; c.shadowBlur=8;
+    c.beginPath();c.arc(cx-6,76,3,0,Math.PI*2);c.fill();
+    c.beginPath();c.arc(cx+6,76,3,0,Math.PI*2);c.fill();
+    // scanline overlay
+    c.fillStyle='rgba(0,0,0,0.03)';
+    for(let y=0;y<H;y+=3){c.fillRect(0,y,W,1);}
+    c.shadowBlur=0; t+=0.02;
+    if(dressingOv.style.display!=='none') requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+window.exitDressingRoom = function() {
+  dressingOv.style.display='none';
+  // Already in dressing room state, go to green room
+  goToRoom('greenroom', 12);
+};
+
+// ══════════════════════════════════════════════════════
+//  INPUT
+// ══════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  // Prevent arrow keys from scrolling the page
+  if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
+  if ((e.key==='e'||e.key==='E') && nearDoor && !transitioning) {
+    useDoor(nearDoor);
+  }
+  if (e.key==='Escape') {
+    // Return to green room from anywhere
+    if (currentRoom !== 'greenroom') goToRoom('greenroom', 50);
+  }
+});
+document.addEventListener('keyup', e => { keys[e.key] = false; });
+
+// ══════════════════════════════════════════════════════
+//  MAIN LOOP
+// ══════════════════════════════════════════════════════
+const SPEED = 0.22;
+let lastT = 0;
+
+function gameLoop(now) {
+  const dt = Math.min((now-lastT)/1000, 0.05); lastT=now;
+
+  if (!transitioning && dressingOv.style.display==='none') {
+    const L = keys['ArrowLeft']  || keys['a'] || keys['A'];
+    const R = keys['ArrowRight'] || keys['d'] || keys['D'];
+
+    if (R) { sx=Math.min(92,sx+SPEED*60*dt); sdir=1;  walking=true; }
+    else if (L) { sx=Math.max(8,sx-SPEED*60*dt);  sdir=-1; walking=true; }
+    else walking=false;
+
+    // Auto-trigger door at screen edges — find the leftmost/rightmost door
+    if (!transitioning && !edgeCooldown) {
+      const allDoors = [...doorsLayer.querySelectorAll('.door')];
+      if (sx >= 91 && allDoors.length) {
+        const rightDoor = allDoors.reduce((best, d) =>
+          parseFloat(d.dataset.left) > parseFloat(best.dataset.left) ? d : best
+        );
+        if (rightDoor && parseFloat(rightDoor.dataset.left) > 60 && rightDoor.dataset.kind !== 'portal' && rightDoor.dataset.target) {
+          edgeCooldown = true;
+          goToRoom(rightDoor.dataset.target, 12);
+        }
+      } else if (sx <= 9 && allDoors.length) {
+        const leftDoor = allDoors.reduce((best, d) =>
+          parseFloat(d.dataset.left) < parseFloat(best.dataset.left) ? d : best
+        );
+        if (leftDoor && parseFloat(leftDoor.dataset.left) < 40 && leftDoor.dataset.kind !== 'portal' && leftDoor.dataset.target) {
+          edgeCooldown = true;
+          goToRoom(leftDoor.dataset.target, 85);
+        }
+      }
+    }
+  } else {
+    walking = false;
+  }
+
+  if (walking) wt+=dt;
+
+  const room = ROOMS[currentRoom];
+  const scale = room ? (room.spriteScale || 1.0) : 1.0;
+  const walkY = room ? room.walkY : 76;
+
+  sprWrap.style.left   = sx + '%';
+  sprWrap.style.bottom = walkY + '%';
+  drawSprite(walking, sdir, wt, scale);
+  checkDoors();
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ══════════════════════════════════════════════════════
+//  BACKEND INTEGRATION — PubCast WebSocket Bridge
+// ══════════════════════════════════════════════════════
+
+const CLIENT_ID  = 'pw_' + Math.random().toString(36).slice(2, 10);
+let   backendWS  = null;
+let   backendOK  = false;
+let   reconnectT = null;
+let   backendReady = false;
+
+const liveBadge = document.querySelector('.badge.red');
+
+function wsConnect() {
+  clearTimeout(reconnectT);
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const url = `${proto}//${location.host}/pubworld/ws/${CLIENT_ID}`;
+  try {
+    backendWS = new WebSocket(url);
+  } catch(e) {
+    scheduleReconnect(); return;
+  }
+
+  backendWS.onopen = () => {
+    backendReady = false;
+    backendOK = false;
+    const token = window.ReachAuth?.getToken?.() || '';
+    if (token) {
+      backendWS.send(JSON.stringify({ type:'auth', token }));
+    } else {
+      markBackendReady();
+    }
+  };
+
+  backendWS.onmessage = (ev) => {
+    try { handleBackendMessage(JSON.parse(ev.data)); } catch(e) {}
+  };
+
+  backendWS.onclose = () => {
+    backendReady = false;
+    backendOK = false;
+    updateHUDBadge(false);
+    scheduleReconnect();
+  };
+
+  backendWS.onerror = () => {
+    backendOK = false;
+    updateHUDBadge(false);
+  };
+}
+
+function scheduleReconnect() {
+  reconnectT = setTimeout(wsConnect, 4000);
+}
+
+function markBackendReady() {
+  if (backendReady) return;
+  backendReady = true;
+  backendOK = true;
+  updateHUDBadge(true);
+  wsSend({ type:'room_change', room:currentRoom, x:Math.round(sx) });
+}
+
+function worldActorId() {
+  const info = window.ReachAuth?.getUser?.() || {};
+  return String(info.user_id || info.username || CLIENT_ID);
+}
+
+function wsSend(obj) {
+  if (backendReady && backendWS && backendWS.readyState === WebSocket.OPEN) {
+    backendWS.send(JSON.stringify(obj));
+    return true;
+  }
+  return false;
+}
+
+// REST fallback when WS is down
+function restFallback(endpoint, body) {
+  body.client_id = worldActorId();
+  fetch('/pubworld/api/' + endpoint, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body)
+  }).catch(() => {});
+}
+
+function handleBackendMessage(msg) {
+  const t = msg.type;
+
+  if (t === 'auth_ok') {
+    markBackendReady();
+  } else if (t === 'auth_error') {
+    backendReady = false;
+    backendOK = false;
+    updateHUDBadge(false);
+    window.ReachAuth?.clearSession?.();
+    window.ReachAuth?.redirectToLogin?.('/static/world.html');
+  } else if (t === 'pong') {
+    // keepalive confirmed
+  } else if (t === 'welcome') {
+    markBackendReady();
+    if (msg.payload && msg.payload.production_state) {
+      applyProductionState(msg.payload.production_state);
+    }
+  } else if (t === 'production_state') {
+    if (msg.payload) applyProductionState(msg.payload);
+  } else if (t === 'room_ack') {
+    // Backend confirmed room change
+  } else if (t === 'hotspot_result') {
+    // Response handled by the requesting interaction.
+  } else if (t === 'player_moved') {
+    // Future presence visualization.
+  }
+}
+
+function applyProductionState(state) {
+  // Update LIVE badge based on whether we're on-air
+  if (state.on_air !== undefined) {
+    if (liveBadge) {
+      liveBadge.textContent = state.on_air ? '● LIVE' : '● OFF AIR';
+      liveBadge.style.background = state.on_air
+        ? 'rgba(139,0,0,.4)' : 'rgba(40,40,40,.4)';
+    }
+  }
+}
+
+function updateHUDBadge(online) {
+  const badge = document.getElementById('company-badge');
+  if (!badge) return;
+  if (online) {
+    badge.style.borderColor = '';
+    badge.style.color       = '';
+    badge.title             = 'Backend connected';
+  } else {
+    badge.style.borderColor = 'rgba(120,80,20,.4)';
+    badge.style.color       = 'rgba(201,168,76,.35)';
+    badge.title             = 'Backend offline — navigation still works';
+  }
+}
+
+// ── Patch goToRoom to report moves to backend ────────────────────────────
+const _origGoToRoom = goToRoom;
+window.goToRoom = function(targetId, spawnX=50) {
+  _origGoToRoom(targetId, spawnX);
+  // Report the new room to backend (after transition starts)
+  setTimeout(() => {
+    const sent = wsSend({ type:'room_change', room:targetId, x:Math.round(spawnX) });
+    if (!sent) restFallback('room-change', { room:targetId, x:Math.round(spawnX) });
+  }, 450); // after fade completes
+};
+
+// ── Hotspot API caller ───────────────────────────────────────────────────
+function callHotspotAPI(action, data={}) {
+  return new Promise((resolve) => {
+    const msg = { type:'hotspot', room:currentRoom, action, data };
+
+    const sent = wsSend(msg);
+    if (sent) {
+      // Result will come back via handleBackendMessage → hotspot_result
+      // For now also do REST for the return value
+    }
+    // Always do REST for synchronous result
+    fetch('/pubworld/api/hotspot', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ client_id:CLIENT_ID, room:currentRoom, action, data })
+    }).then(r=>r.json()).then(resolve).catch(() => resolve({ status:'offline' }));
+  });
+}
+
+// ── USE_HANDLERS — wire hotspots to backend ──────────────────────────────
+const USE_HANDLERS = {
+  async typewriter() {
+    const res = await callHotspotAPI('typewriter');
+    showNookModal('SCRIPT EDITOR',
+      `<p>Draft ID: <b>${res.result?.draft_id || 'new'}</b></p>`,
+      [{ label:'WRITE SCRIPT', action: () => alert('Script editor — coming next session') },
+       { label:'REVIEW SCRIPTS', action: () => callHotspotAPI('scripts').then(r => alert(r.result?.scripts?.join('\n') || 'None yet')) }]
+    );
+  },
+  async phone() {
+    const user = (() => { try { return JSON.parse(sessionStorage.getItem('pubcast_user') || 'null') || {}; } catch(e) { return {}; } })();
+    const res = await callHotspotAPI('phone', { session_id: sessionStorage.getItem('pubcastSessionId') || 'default', project_id: localStorage.getItem('pubcastProjectId') || 'default', display_name: user.display_name || user.name || CLIENT_ID });
+    const contacts = (res.result?.contacts || []).map(c => `<li><b>${c.credit_name || c.display_name}</b> — ${(c.session_role||[]).join(', ') || 'session contact'} · ${c.availability || 'available'}</li>`).join('');
+    showNookModal('MIRROR MIRROR / SESSION CALLS',
+      `<p>Session: <b>${res.result?.session_token || '—'}</b></p><p>Join: ${res.result?.join_url || '—'}</p><p>Your session handle: <b>${res.result?.call_handle || '—'}</b></p><ul style="margin-left:18px">${contacts || '<li>No connected dressing rooms yet.</li>'}</ul>`,
+      [{ label:'USE WEBCAM', action: () => alert('Mirror Mirror webcam mode lives in dressing room') },
+       { label:'AUDIO ONLY', action: () => alert('Audio-only call mode ready for session routing') }]
+    );
+  },
+  async camera_remote() {
+    const res = await callHotspotAPI('camera_remote');
+    const cams = res.result?.cameras || [];
+    showNookModal('CAMERA REMOTE',
+      `<p>${cams.join(' &nbsp;·&nbsp; ') || 'No cameras'}</p>`,
+      cams.map(c => ({ label: c, action: () => callHotspotAPI('select_camera', {camera:c}) }))
+    );
+  },
+  async tv() {
+    const res = await callHotspotAPI('tv');
+    const ch = res.result?.channel || 'off';
+    const labels = { off:'OFF', stage_feed:'STAGE FEED', crew_chatter:'CREW CHATTER', uploaded_dailies:'UPLOADED DAILIES', previs:'PREVIS', teaser_trailer:'TEASER TRAILER', pitch_presentation:'PITCH PRESENTATION', director_inspiration:'DIRECTOR INSPIRATION', my_media:'MY MEDIA', my_music:'MY MUSIC', pubcast_ai_channel:'PUBCAST AI CHANNEL' };
+    const channels = (res.result?.available_channels || []).map(c => labels[c] || c).join(' · ');
+    showNookModal('DRESSING ROOM MEDIA CONSOLE',
+      `<p>Channel: <b>${labels[ch] || ch}</b></p><p style="font-size:10px;opacity:.8">${channels}</p>`,
+      [{ label:'FLIP CHANNEL', action: () => USE_HANDLERS.tv() }]
+    );
+  },
+  async wardrobe() {
+    const res = await callHotspotAPI('wardrobe');
+    const items = res.result?.wardrobe_items || [];
+    showNookModal('WARDROBE',
+      `<p>Current: <b>${res.result?.current || 'default'}</b></p>`,
+      items.map(item => ({ label: item.toUpperCase().replace(/_/g,' '), action: () => callHotspotAPI('wardrobe', {current:item}).then(() => USE_HANDLERS.wardrobe()) }))
+    );
+  },
+  async makeup() {
+    const res = await callHotspotAPI('makeup');
+    const styles = res.result?.styles || [];
+    showNookModal('HAIR & MAKEUP',
+      `<p>Current look: <b>${res.result?.current || 'natural'}</b></p>`,
+      styles.map(s => ({ label: s.toUpperCase().replace(/_/g,' '), action: () => callHotspotAPI('makeup', {current:s}).then(() => USE_HANDLERS.makeup()) }))
+    );
+  },
+  async message_board() {
+    const res = await callHotspotAPI('message_board');
+    const msgs = res.result?.messages || [];
+    const html = msgs.map(m => `<p><b>${m.from}:</b> ${m.text}</p>`).join('');
+    showNookModal('MESSAGE BOARD', html || '<p>No messages.</p>', []);
+  },
+  async avatar_foundry() {
+    const res = await callHotspotAPI('avatar_foundry');
+    const url = res.result?.foundry_url || '/static/avatar_studio_demo.html';
+    const colors = res.result?.available_colors || [];
+    showNookModal('AVATAR FOUNDRY',
+      `<p>Customize your ethereal avatar</p><p>Colors: ${colors.join(', ')}</p>`,
+      [{ label:'OPEN FOUNDRY', action: () => { window.open(url, '_blank'); } }]
+    );
+  },
+  async sit() {
+    const res = await callHotspotAPI('sit');
+    showNookModal('TAKE A SEAT',
+      `<p>You settle into the ${res.result?.location || 'couch'}.</p>`,
+      [{ label:'STAND UP', action: () => { const m = document.getElementById('pw-modal'); if(m) m.style.display='none'; } }]
+    );
+  }
+};
+
+function showNookModal(title, bodyHTML, buttons=[]) {
+  let modal = document.getElementById('pw-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'pw-modal';
+    modal.style.cssText = `
+      position:fixed; inset:0; z-index:600;
+      display:flex; align-items:center; justify-content:center;
+      background:rgba(0,0,0,.75);
+    `;
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `
+    <div style="
+      background:#0d0a06; border:1px solid var(--gold);
+      padding:32px 40px; min-width:320px; max-width:480px;
+      box-shadow:0 0 40px rgba(201,168,76,.2);
+      clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%);
+    ">
+      <div style="font-family:'Cinzel Decorative',serif;color:var(--gold);font-size:13px;letter-spacing:5px;margin-bottom:16px">${title}</div>
+      <div style="color:rgba(201,168,76,.7);font-size:10px;letter-spacing:2px;line-height:2;margin-bottom:20px">${bodyHTML}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        ${buttons.map((b,i) => `<button id="pw-mb-${i}" style="
+          padding:8px 20px;border:1px solid var(--gold-d);color:var(--gold);
+          background:rgba(201,168,76,.06);font-family:var(--font);
+          font-size:9px;letter-spacing:3px;cursor:pointer
+        ">${b.label}</button>`).join('')}
+        <button id="pw-mb-close" style="
+          padding:8px 20px;border:1px solid rgba(201,168,76,.3);color:rgba(201,168,76,.4);
+          background:none;font-family:var(--font);font-size:9px;letter-spacing:3px;cursor:pointer
+        ">CLOSE</button>
+      </div>
+    </div>
+  `;
+  modal.style.display = 'flex';
+  buttons.forEach((b,i) => {
+    document.getElementById(`pw-mb-${i}`)?.addEventListener('click', () => { b.action(); modal.style.display='none'; });
+  });
+  document.getElementById('pw-mb-close')?.addEventListener('click', () => { modal.style.display='none'; });
+  modal.addEventListener('click', e => { if (e.target === modal) modal.style.display='none'; });
+}
+
+// ── WS keepalive ping every 25s ──────────────────────────────────────────
+setInterval(() => { wsSend({ type:'ping' }); }, 25000);
+
+// ── ESC also closes modal ─────────────────────────────────────────────────
+const _origKeydown = document.onkeydown;
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('pw-modal');
+    if (modal && modal.style.display !== 'none') {
+      modal.style.display = 'none';
+      e.stopImmediatePropagation();
+    }
+  }
+}, true); // capture so it fires before the room ESC handler
+
+// ── Start backend connection ──────────────────────────────────────────────
+// Small delay so the page renders first
+setTimeout(wsConnect, 800);
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+
+// Update image paths to use the backend asset route
+// (allows serving from /pubworld/assets/* when running under PubCast)
+const _origLoadRoom = loadRoom;
+(function patchImagePaths() {
+  // If we're running under PubCast (/pubworld URL), prefix image paths
+  const isEmbedded = location.pathname.startsWith('/pubworld');
+  if (!isEmbedded) return;
+  Object.values(ROOMS).forEach(room => {
+    if (room.bg) room.bg = '/pubworld' + room.bg;  // bg already starts with /assets/
+  });
+})();
+
+// Load starting room
+const _worldParams = new URLSearchParams(location.search);
+const _startRoom = _worldParams.get('room');
+const _startSpawn = Number(_worldParams.get('spawn') || 50);
+loadRoom(ROOMS[_startRoom] ? _startRoom : 'dressing', Number.isFinite(_startSpawn) ? _startSpawn : 50);
+transEl.classList.remove('fade-out','portal-wipe');
+drawSprite(false,1,0,1.0);
+
+// Start loop
+requestAnimationFrame(t => { lastT=t; requestAnimationFrame(gameLoop); });
+</script>
+</body>
+</html>

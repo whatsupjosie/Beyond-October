@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}Dressing Room | PubCast{% endblock %}
+
+{% block head %}
+  <link rel="stylesheet" href="/static/dressing.css" />
+{% endblock %}
+
+{% block body %}
+  <div class="room">
+    <header class="top-bar">
+      <div class="logo">PubCast Dressing Room</div>
+      <div class="status">
+        <span class="voice-mode">Voice: <strong id="voice-mode">Default</strong></span>
+        <span class="halo-speed">Halo Speed: <strong id="halo-speed">1.0x</strong></span>
+      </div>
+    </header>
+    <main class="main">
+      <!-- MAKEUP VANITY AREA (Left) -->
+      <section class="makeup-area">
+        <div class="mirror-frame">
+          <div class="mirror-glow"></div>
+          <canvas id="mirror-canvas" width="600" height="600"></canvas>
+          <div id="avatar-preview" class="avatar-preview">
+            <canvas id="neon-avatar" width="360" height="360"></canvas>
+            <div class="halo" id="avatar-halo"></div>
+            <div class="sphere" id="avatar-sphere">
+              <div class="feature eyes" id="avatar-eyes"></div>
+              <div class="feature mouth" id="avatar-mouth"></div>
+              <div class="feature lashes" id="avatar-lashes"></div>
+              <div class="feature hair" id="avatar-hair"></div>
+              <div class="feature accessory" id="avatar-glasses"></div>
+              <div class="feature accessory" id="avatar-hat"></div>
+              <div class="feature accessory" id="avatar-earrings"></div>
+              <div class="feature outfit" id="avatar-outfit"></div>
+            </div>
+          </div>
+        </div>
+        <div class="mirror-footer">
+          <button id="preset-yellow" class="preset-card" data-preset="neon_yellow_a">
+            <span class="preview" style="background:#ffd84d"></span>
+            <span>Lumen</span>
+          </button>
+          <button id="preset-blue" class="preset-card" data-preset="neon_blue_b">
+            <span class="preview" style="background:#40d9ff"></span>
+            <span>Azure</span>
+          </button>
+          <button id="preset-pink" class="preset-card" data-preset="neon_pink_c">
+            <span class="preview" style="background:#ff4fe2"></span>
+            <span>Nova</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- FULL-LENGTH MIRROR AREA (Center) -->
+      <section class="full-mirror-area">
+        <!-- The full-length mirror -->
+        <div class="full-length-mirror">
+          <div class="mirror-reflection">
+            <div id="full-avatar-preview"></div>
+          </div>
+        </div>
+
+        <!-- Pleasant white wooden stage -->
+        <div class="wooden-stage" id="wooden-stage">
+          <div class="stage-top"></div>
+          <div class="stage-support left"></div>
+          <div class="stage-support right"></div>
+        </div>
+
+        <!-- Foundry platform (appears on stage when activated) -->
+        <div class="foundry-platform" id="foundry-platform" style="display: none;">
+          <div class="grid-floor"></div>
+          <div class="atmo"></div>
+          
+          <div class="platform-wrap">
+            <div class="skeleton-wrap">
+              <svg class="skeleton-svg" viewBox="0 0 120 220" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="60" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7"/>
+                <line x1="60" y1="36" x2="60" y2="120" stroke="currentColor" stroke-width="2"/>
+                <line x1="40" y1="50" x2="80" y2="50" stroke="currentColor" stroke-width="1.5"/>
+                <line x1="40" y1="50" x2="30" y2="90" stroke="currentColor" stroke-width="1.5"/>
+                <line x1="30" y1="90" x2="25" y2="110" stroke="currentColor" stroke-width="1.5"/>
+                <line x1="80" y1="50" x2="90" y2="90" stroke="currentColor" stroke-width="1.5"/>
+                <line x1="90" y1="90" x2="95" y2="110" stroke="currentColor" stroke-width="1.5"/>
+                <line x1="50" y1="120" x2="70" y2="120" stroke="currentColor" stroke-width="1.5"/>
+                <line x1="50" y1="120" x2="45" y2="170" stroke="currentColor" stroke-width="1.5"/>
+                <line x1="45" y1="170" x2="40" y2="210" stroke="currentColor" stroke-width="1.5"/>
+                <line x1="70" y1="120" x2="75" y2="170" stroke="currentColor" stroke-width="1.5"/>
+                <line x1="75" y1="170" x2="80" y2="210" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="40" cy="50" r="3" fill="currentColor"/>
+                <circle cx="80" cy="50" r="3" fill="currentColor"/>
+                <circle cx="30" cy="90" r="3" fill="currentColor"/>
+                <circle cx="90" cy="90" r="3" fill="currentColor"/>
+                <circle cx="50" cy="120" r="3" fill="currentColor"/>
+                <circle cx="70" cy="120" r="3" fill="currentColor"/>
+                <circle cx="45" cy="170" r="3" fill="currentColor"/>
+                <circle cx="75" cy="170" r="3" fill="currentColor"/>
+              </svg>
+            </div>
+
+            <div class="platform" onclick="activateFoundry()">
+              <div class="platform-top">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+              </div>
+              <div class="platform-side"></div>
+            </div>
+
+            <div class="beams">
+              <div class="beam"></div>
+              <div class="beam"></div>
+              <div class="beam"></div>
+            </div>
+            <div class="platform-glow"></div>
+          </div>
+
+          <div class="step-hint" id="step-hint">FOUNDRY STANDBY — CLICK PLATFORM TO ACTIVATE</div>
+        </div>
+
+        <!-- Stage controls -->
+        <div class="stage-controls">
+          <button id="activate-foundry" class="stage-btn">⬡ Activate Forge</button>
+          <button id="deactivate-foundry" class="stage-btn" style="display: none;">← Return to Stage</button>
+        </div>
+      </section>
+
+      <!-- WARDROBE PANEL (Right) -->
+      <aside class="wardrobe">
+        <button id="wardrobe-toggle" class="wardrobe-door">Open Wardrobe</button>
+        <div class="wardrobe-panel" id="wardrobe-panel">
+          <div class="panel-header">
+            <h2 id="panel-title">Avatar Customizer</h2>
+            <button id="close-panel">✕</button>
+          </div>
+
+          <!-- CUSTOMIZER PANEL (Default) -->
+          <div class="panel-body" id="customizer-panel">
+            <div class="section">
+              <label class="field">Display Name
+                <input type="text" id="display-name" maxlength="32" />
+              </label>
+              <label class="field">Gender
+                <select id="gender-select">
+                  <option value="neutral">Neutral</option>
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                </select>
+              </label>
+              <label class="field">Mood
+                <select id="mood-select"></select>
+              </label>
+            </div>
+            <div class="accordion" id="customizer-accordion"></div>
+            <div class="panel-footer">
+              <button id="save-avatar" class="primary">Save Look</button>
+              <span id="save-status" class="save-status" hidden>Saved!</span>
+            </div>
+          </div>
+
+          <!-- FOUNDRY PANEL -->
+          <div class="panel-body" id="foundry-panel" style="display: none;">
+            <div class="foundry-tabs">
+              <button class="tab active" onclick="switchTab('bake', this)">BAKE</button>
+              <button class="tab" onclick="switchTab('identity', this)">IDENTITY</button>
+              <button class="tab" onclick="switchTab('rig', this)">RIG</button>
+            </div>
+
+            <!-- BAKE TAB -->
+            <div class="panel-section active" id="tab-bake">
+              <div class="photo-slots">
+                <div class="photo-slot" id="slot-face" 
+                     ondragover="dragOver(event, this)" 
+                     ondragleave="dragLeave(this)" 
+                     ondrop="dropFile(event, 'face')">
+                  <input type="file" id="file-face" accept="image/*" onchange="fileChosen(event, 'face')" hidden>
+                  <label for="file-face">
+                    <div class="slot-label">FACE</div>
+                    <div class="slot-hint">Required</div>
+                  </label>
+                </div>
+                <div class="photo-slot" id="slot-torso" 
+                     ondragover="dragOver(event, this)" 
+                     ondragleave="dragLeave(this)" 
+                     ondrop="dropFile(event, 'torso')">
+                  <input type="file" id="file-torso" accept="image/*" onchange="fileChosen(event, 'torso')" hidden>
+                  <label for="file-torso">
+                    <div class="slot-label">TORSO</div>
+                    <div class="slot-hint">Optional</div>
+                  </label>
+                </div>
+              </div>
+
+              <div class="quality-row">
+                <div class="quality-label">QUALITY</div>
+                <div class="quality-btns">
+                  <button class="quality-btn" onclick="setQuality('SURFACE', this)">SURFACE</button>
+                  <button class="quality-btn active" onclick="setQuality('TRACK', this)">TRACK</button>
+                  <button class="quality-btn" onclick="setQuality('ORBITAL', this)">ORBITAL</button>
+                </div>
+              </div>
+
+              <div class="toggle-row">
+                <button class="toggle-btn" id="fine-face-btn" onclick="toggleFineFace(this)">
+                  <span class="toggle-dot"></span>
+                  Fine Voxel Face
+                </button>
+                <div class="toggle-detail" id="fine-face-detail">2× resolution face mesh</div>
+              </div>
+
+              <button class="forge-btn" id="bake-btn" onclick="startBake()">⬡ FORGE AVATAR</button>
+
+              <div class="progress-wrap" id="progress-wrap">
+                <div class="progress-bar">
+                  <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="progress-label">
+                  <span id="progress-stage">Initializing...</span>
+                  <span id="progress-pct">0%</span>
+                </div>
+              </div>
+
+              <div class="stats-grid" id="stats-grid">
+                <div class="stat"><span>Voxels</span><strong id="sv">—</strong></div>
+                <div class="stat"><span>Grit</span><strong id="sg">—</strong></div>
+                <div class="stat"><span>Mode</span><strong id="sm">—</strong></div>
+              </div>
+
+              <div class="forge-log" id="forge-log"></div>
+            </div>
+
+            <!-- IDENTITY TAB -->
+            <div class="panel-section" id="tab-identity">
+              <label class="field">Display Name
+                <input type="text" id="foundry-display-name" maxlength="32" />
+              </label>
+              <label class="field">Gender
+                <select id="foundry-gender">
+                  <option value="neutral">Neutral</option>
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                </select>
+              </label>
+              <div class="mood-row">
+                <div class="mood-label">MOOD</div>
+                <div class="mood-btns">
+                  <button class="mood-btn" onclick="setMood('GROUNDED', this)">GROUNDED</button>
+                  <button class="mood-btn active" onclick="setMood('ELEVATED', this)">ELEVATED</button>
+                  <button class="mood-btn" onclick="setMood('ORBITAL', this)">ORBITAL</button>
+                </div>
+              </div>
+              <div class="glow-row">
+                <div class="glow-label">GLOW</div>
+                <div class="swatches">
+                  <div class="swatch active" data-color="#00d4ff" style="background: #00d4ff;"></div>
+                  <div class="swatch" data-color="#ffc940" style="background: #ffc940;"></div>
+                  <div class="swatch" data-color="#ff6b1a" style="background: #ff6b1a;"></div>
+                  <div class="swatch" data-color="#00ff88" style="background: #00ff88;"></div>
+                  <div class="swatch" data-color="#ff4fe2" style="background: #ff4fe2;"></div>
+                </div>
+              </div>
+              <button class="primary" onclick="saveLook()">SAVE IDENTITY</button>
+              <div id="save-feedback" class="save-feedback"></div>
+            </div>
+
+            <!-- RIG TAB -->
+            <div class="panel-section" id="tab-rig">
+              <div class="rig-placeholder">
+                <div class="rig-icon">⬡</div>
+                <div class="rig-text">CS-1 Chibi Skeleton</div>
+                <div class="rig-hint">Coming soon</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="scanline"></div>
+
+  <script src="/static/avatar.js"></script>
+  <script type="module" src="/static/dressing.js"></script>
+{% endblock %}

@@ -1,0 +1,36 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "Alex",
+    "BYOK",
+    "Choreo",
+    "Cobbley",
+    "Ethereal",
+    "Feic",
+    "Jeeves",
+    "Ollama",
+    "Pete",
+    "PubCast",
+    "Pubworld",
+    "Purfolus",
+    "Purfluous",
+    "Repeat",
+    "Rerender",
+    "Switchblade",
+    "VTR",
+    "mocap",
+    "parallax",
+    "preflight",
+    "pubcast",
+    "uvicorn",
+    "voxel"
+  ],
+  "ignorePaths": [
+    "data/**",
+    "incoming_review/**",
+    "visual_reference/**",
+    "*.db",
+    "*.zip"
+  ]
+}

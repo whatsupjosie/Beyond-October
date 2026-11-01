@@ -1,0 +1,54 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+_______ test_caught_inner_write_failure_does_not_commit_its_partial_data _______
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-12/test_caught_inner_write_failur0')
+
+    def test_caught_inner_write_failure_does_not_commit_its_partial_data(tmp_path):
+        node = DockingNode(tmp_path, owner_id="owner", role="resident")
+        try:
+            with node.store.transaction():
+                with patch.object(node.store, "record_change", side_effect=OSError("interrupted")):
+                    with pytest.raises(OSError):
+                        node.record_knowledge("bad", text="Must not persist", friend_id="alex",
+                            source_ref="owner", confirmed=True)
+                node.record_knowledge("good", text="Must persist", friend_id="alex",
+                    source_ref="owner", confirmed=True)
+            entities = node.store.all_entities()
+>           assert [entity.fields["text"] for entity in entities] == ["Must persist"]
+E           AssertionError: assert ['Must not pe...Must persist'] == ['Must persist']
+E             
+E             At index 0 diff: 'Must not persist' != 'Must persist'
+E             Left contains one more item: 'Must persist'
+E             Use -v to get more diff
+
+tests/test_five_round_sync_transactions.py:17: AssertionError
+_____ test_sync_bus_rejects_async_subscriber_instead_of_silently_losing_it _____
+
+    def test_sync_bus_rejects_async_subscriber_instead_of_silently_losing_it():
+        bus = EventBus()
+>       with pytest.raises(TypeError, match="synchronous"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE TypeError
+
+tests/test_evo_sync_event_contract.py:9: Failed
+_ test_wrapped_awaitable_is_a_visible_dispatch_failure_without_unawaited_coroutine _
+
+    def test_wrapped_awaitable_is_a_visible_dispatch_failure_without_unawaited_coroutine():
+        bus = EventBus()
+        async def deferred():
+            raise AssertionError("A sync bus must not pretend this ran")
+        bus.subscribe("tick", lambda _: deferred())
+        seen = []
+        bus.subscribe("tick", seen.append)
+        result = bus.publish(EventEnvelope(source="test", role="system", event_type="tick"))
+>       assert result.delivered == 1
+E       AssertionError: assert 2 == 1
+E        +  where 2 = DispatchResult(event_id='5f835b4d027d43a086a47cad0f91d2f8', delivered=2, duplicate=False, failures=()).delivered
+
+tests/test_evo_sync_event_contract.py:21: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_five_round_sync_transactions.py::test_caught_inner_write_failure_does_not_commit_its_partial_data
+FAILED tests/test_evo_sync_event_contract.py::test_sync_bus_rejects_async_subscriber_instead_of_silently_losing_it
+FAILED tests/test_evo_sync_event_contract.py::test_wrapped_awaitable_is_a_visible_dispatch_failure_without_unawaited_coroutine
+3 failed, 1 warning in 0.87s

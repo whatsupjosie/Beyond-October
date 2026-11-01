@@ -1,0 +1,17 @@
+{
+  "name": "pubcast-reach-dev-tests",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Development/test-only Node dependencies for the PubCast Reach source tree.",
+  "engines": {
+    "node": ">=16"
+  },
+  "scripts": {
+    "test:editor": "node tests/test_reach_editor.cjs",
+    "test:reader": "node tests/test_reader.cjs",
+    "test:node": "node --test tests/test_avatar_glb_motion_consumer_node.js tests/test_program_audio_runtime_node.js tests/test_reach_editor.cjs tests/test_reader.cjs tests/test_studio_console_hotspots_node.js tests/test_voxel_block_preview_client_node.js tests/test_switcher_keyboard_node.js"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0"
+  }
+}

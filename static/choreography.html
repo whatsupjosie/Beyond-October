@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PubCast — Choreography Studio</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1120;--surface:#141926;--border:#2a3050;
+  --gold:#d4a843;--gold-dim:#8e6336;--gold-text:#f2cf93;
+  --text:#e8dfc8;--text-dim:#7a7060;
+  --green:#4caf7d;--red:#c0392b;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Georgia',serif;font-size:13px}
+body{display:grid;grid-template-rows:auto 1fr auto;overflow:hidden;height:100vh}
+
+header{
+  padding:10px 16px;border-bottom:1px solid var(--border);
+  background:var(--surface);display:flex;align-items:center;gap:14px
+}
+header h1{font-size:12px;letter-spacing:3px;color:var(--gold-text);text-transform:uppercase;font-weight:normal}
+#ws-dot{width:7px;height:7px;border-radius:50%;background:var(--text-dim);flex-shrink:0;transition:background .4s}
+#ws-dot.ok{background:var(--green)} #ws-dot.err{background:var(--red)}
+#status-txt{font-size:11px;color:var(--text-dim);letter-spacing:1px}
+
+main{display:grid;grid-template-columns:260px 1fr;overflow:hidden}
+
+/* ── Sidebar ── */
+aside{border-right:1px solid var(--border);overflow-y:auto;background:var(--surface);display:flex;flex-direction:column;gap:0}
+.panel{padding:14px;border-bottom:1px solid var(--border)}
+.panel-title{font-size:10px;letter-spacing:2px;color:var(--gold-dim);text-transform:uppercase;margin-bottom:10px}
+label{display:block;font-size:10px;letter-spacing:1px;color:var(--text-dim);margin-bottom:4px;margin-top:8px}
+label:first-of-type{margin-top:0}
+select,input[type=text],input[type=number]{
+  width:100%;background:var(--bg);border:1px solid var(--border);
+  color:var(--text);padding:6px 8px;font-family:inherit;font-size:12px;border-radius:3px
+}
+select:focus,input:focus{outline:none;border-color:var(--gold-dim)}
+.btn{
+  padding:6px 14px;background:transparent;border:1px solid var(--border);
+  color:var(--text-dim);cursor:pointer;font-family:inherit;font-size:11px;
+  letter-spacing:1px;text-transform:uppercase;border-radius:3px;
+  transition:border-color .2s,color .2s;width:100%;margin-top:6px
+}
+.btn:hover{border-color:var(--gold-dim);color:var(--gold-text)}
+.btn.primary{border-color:var(--gold-dim);color:var(--gold-text)}
+.btn.primary:hover{background:#1a1208}
+.btn.danger{border-color:#601010;color:#c08080}
+.btn.danger:hover{background:#1a0808}
+
+/* Action list */
+#action-list{max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
+.action-item{
+  padding:5px 8px;border:1px solid var(--border);border-radius:3px;cursor:pointer;
+  display:flex;justify-content:space-between;align-items:center;
+  transition:border-color .15s,background .15s;font-size:11px
+}
+.action-item:hover{border-color:var(--gold-dim);background:#1a1208}
+.action-item .cat{font-size:9px;color:var(--text-dim);letter-spacing:1px}
+.action-item .gender-tag{font-size:9px;padding:1px 5px;border-radius:2px;letter-spacing:1px}
+.gender-tag.feminine{background:#2a0a20;color:#d488b0;border:1px solid #601040}
+.gender-tag.masculine{background:#0a1a2a;color:#4488c0;border:1px solid #103060}
+
+/* Sequence list */
+#seq-list{max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:3px}
+.seq-step{
+  padding:4px 8px;border:1px solid var(--border);border-radius:3px;
+  font-size:11px;display:flex;justify-content:space-between;align-items:center
+}
+.seq-step .remove{color:var(--text-dim);cursor:pointer;font-size:14px;line-height:1}
+.seq-step .remove:hover{color:#c08080}
+
+/* ── Stage ── */
+#stage-wrap{display:flex;flex-direction:column;overflow:hidden}
+canvas{width:100%;height:100%;display:block;background:#090c14}
+#time-bar{
+  padding:6px 14px;background:var(--surface);border-top:1px solid var(--border);
+  font-size:11px;color:var(--text-dim);display:flex;gap:20px;letter-spacing:1px
+}
+
+/* Category filter */
+.cat-filters{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.cat-btn{
+  padding:2px 8px;border:1px solid var(--border);border-radius:2px;
+  font-size:9px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;
+  background:transparent;color:var(--text-dim);font-family:inherit
+}
+.cat-btn.active{border-color:var(--gold-dim);color:var(--gold-text);background:#1a1208}
+</style>
+</head>
+<body>
+
+<header>
+  <div id="ws-dot"></div>
+  <h1>Choreography Studio</h1>
+  <span id="status-txt">connecting…</span>
+</header>
+
+<main>
+  <aside>
+    <!-- Avatar setup -->
+    <div class="panel">
+      <div class="panel-title">Avatars</div>
+      <label>Avatar 1 ID</label>
+      <input type="text" id="av1-id" value="manny">
+      <label>Avatar 2 ID (optional)</label>
+      <input type="text" id="av2-id" value="">
+      <label>Render style</label>
+      <select id="style-select">
+        <option value="stick">Stick figure</option>
+        <option value="man_mannequin">Mannequin – Male</option>
+        <option value="woman_mannequin">Mannequin – Female</option>
+      </select>
+    </div>
+
+    <!-- Action picker -->
+    <div class="panel">
+      <div class="panel-title">Actions</div>
+      <div class="cat-filters" id="cat-filters"></div>
+      <input type="text" id="action-search" placeholder="search…" style="margin-bottom:8px">
+      <div id="action-list"></div>
+    </div>
+
+    <!-- Sequence builder -->
+    <div class="panel">
+      <div class="panel-title">Sequence</div>
+      <label>Avatar for next step</label>
+      <select id="step-avatar"></select>
+      <label>Start time (s)</label>
+      <input type="number" id="step-start" value="0" step="0.1" min="0">
+      <label>Duration override (leave 0 for default)</label>
+      <input type="number" id="step-dur" value="0" step="0.1" min="0">
+      <div id="seq-list" style="margin-top:8px"></div>
+      <button class="btn" id="clear-seq" onclick="clearSeq()">Clear sequence</button>
+    </div>
+
+    <!-- Playback -->
+    <div class="panel">
+      <div class="panel-title">Playback</div>
+      <label>Room</label>
+      <input type="text" id="room-id" value="pub">
+      <label>Tick rate (Hz)</label>
+      <input type="number" id="tick-hz" value="30" min="1" max="60">
+      <button class="btn primary" onclick="play()">▶ Play sequence</button>
+      <button class="btn" onclick="stopChoreo()">■ Stop</button>
+      <button class="btn danger" onclick="record()">⏺ Record</button>
+    </div>
+
+    <!-- Cue a single action -->
+    <div class="panel">
+      <div class="panel-title">Quick cue</div>
+      <label>Avatar ID</label>
+      <input type="text" id="cue-avatar" value="manny">
+      <button class="btn" id="cue-btn">Cue selected action</button>
+    </div>
+  </aside>
+
+  <div id="stage-wrap">
+    <canvas id="stage"></canvas>
+    <div id="time-bar">
+      <span id="tb-time">t=0.00s</span>
+      <span id="tb-avatars">avatars: 0</span>
+      <span id="tb-action">—</span>
+    </div>
+  </div>
+</main>
+
+<script src="/static/reach_auth.js"></script>
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+let allActions = {};
+let activeCategory = 'all';
+let searchText = '';
+let sequence = [];
+let selectedAction = null;
+let lastFrame = null;
+let socket;
+let style = 'stick';
+let recording = false;
+let recordedFrames = [];
+
+// ── WebSocket ─────────────────────────────────────────────────────────────────
+function connectWS() {
+  const room = document.getElementById('room-id').value || 'pub';
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  socket = new WebSocket(window.ReachAuth.websocketURL(`/ws/${room}`));
+  const dot = document.getElementById('ws-dot');
+  const txt = document.getElementById('status-txt');
+  socket.onopen  = () => { dot.className='ok'; txt.textContent='connected'; };
+  socket.onclose = () => { dot.className='err'; txt.textContent='reconnecting…'; setTimeout(connectWS,2000); };
+  socket.onmessage = ev => {
+    try {
+      const msg = JSON.parse(ev.data);
+      if (msg.type === 'choreo_frame' && msg.payload) {
+        const room = document.getElementById('room-id').value || 'pub';
+        if (msg.payload.room && msg.payload.room !== room) return;
+        lastFrame = msg.payload;
+        if (recording) recordedFrames.push(lastFrame);
+        draw();
+        updateTimeBar();
+      } else if (msg.type === 'choreo_stop') {
+        lastFrame = null; draw();
+        document.getElementById('status-txt').textContent = 'stopped';
+      } else if (msg.type === 'choreo_complete') {
+        document.getElementById('status-txt').textContent = 'sequence complete';
+      }
+    } catch {}
+  };
+}
+connectWS();
+
+// ── Load actions ──────────────────────────────────────────────────────────────
+async function loadActions() {
+  try {
+    const res = await fetch('/api/choreo/actions');
+    const data = await res.json();
+    allActions = data.actions || {};
+    buildCategoryFilters();
+    renderActionList();
+    updateAvatarDropdown();
+  } catch(e) {
+    document.getElementById('action-list').textContent = 'Could not load actions.';
+  }
+}
+
+function buildCategoryFilters() {
+  const cats = new Set(['all', ...Object.values(allActions).map(a => a.category)]);
+  const el = document.getElementById('cat-filters');
+  el.innerHTML = '';
+  for (const cat of cats) {
+    const btn = document.createElement('button');
+    btn.className = 'cat-btn' + (cat === 'all' ? ' active' : '');
+    btn.textContent = cat;
+    btn.onclick = () => {
+      activeCategory = cat;
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.textContent===cat));
+      renderActionList();
+    };
+    el.appendChild(btn);
+  }
+}
+
+function renderActionList() {
+  const el = document.getElementById('action-list');
+  el.innerHTML = '';
+  const q = searchText.toLowerCase();
+  for (const [id, a] of Object.entries(allActions)) {
+    if (activeCategory !== 'all' && a.category !== activeCategory) continue;
+    if (q && !id.includes(q) && !a.label.toLowerCase().includes(q)) continue;
+    const item = document.createElement('div');
+    item.className = 'action-item';
+    const gender = a.gender && a.gender !== 'neutral' ? a.gender : '';
+    item.innerHTML = `
+      <div>
+        <div style="color:var(--text)">${a.label}</div>
+        <div class="cat">${a.category} · ${a.duration}s</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        ${gender ? `<span class="gender-tag ${gender}">${gender}</span>` : ''}
+        <span style="font-size:10px;color:var(--gold-dim)">＋</span>
+      </div>`;
+    item.onclick = () => selectAction(id, a, item);
+    el.appendChild(item);
+  }
+}
+
+document.getElementById('action-search').addEventListener('input', e => {
+  searchText = e.target.value;
+  renderActionList();
+});
+
+function selectAction(id, a, el) {
+  selectedAction = {id, ...a};
+  document.querySelectorAll('.action-item').forEach(x => x.style.borderColor='');
+  if (el) el.style.borderColor = 'var(--gold-dim)';
+  // Add to sequence
+  const avatarId = document.getElementById('step-avatar').value || document.getElementById('av1-id').value || 'a1';
+  const startTime = parseFloat(document.getElementById('step-start').value) || 0;
+  const durOverride = parseFloat(document.getElementById('step-dur').value) || 0;
+  const step = {
+    avatar_id: avatarId,
+    animation_type: id,
+    start_time: startTime,
+    duration: durOverride > 0 ? durOverride : a.duration,
+    target_position: [0,0,0],
+    target_rotation: [0,0,0],
+    target_skeleton: {}
+  };
+  sequence.push(step);
+  // Auto-advance start time
+  document.getElementById('step-start').value = (startTime + step.duration).toFixed(1);
+  renderSeq();
+}
+
+function updateAvatarDropdown() {
+  const sel = document.getElementById('step-avatar');
+  sel.innerHTML = '';
+  const ids = [
+    document.getElementById('av1-id').value,
+    document.getElementById('av2-id').value
+  ].filter(Boolean);
+  ids.forEach(id => {
+    const o = document.createElement('option');
+    o.value = id; o.textContent = id;
+    sel.appendChild(o);
+  });
+}
+
+document.getElementById('av1-id').addEventListener('input', updateAvatarDropdown);
+document.getElementById('av2-id').addEventListener('input', updateAvatarDropdown);
+
+function renderSeq() {
+  const el = document.getElementById('seq-list');
+  el.innerHTML = '';
+  sequence.forEach((s, i) => {
+    const a = allActions[s.animation_type] || {};
+    const div = document.createElement('div');
+    div.className = 'seq-step';
+    div.innerHTML = `
+      <div>
+        <span style="color:var(--gold-dim)">${s.avatar_id}</span>
+        <span style="margin:0 5px">→</span>${a.label || s.animation_type}
+        <span style="color:var(--text-dim);margin-left:6px">@${s.start_time}s ${s.duration}s</span>
+      </div>
+      <span class="remove" onclick="removeStep(${i})">×</span>`;
+    el.appendChild(div);
+  });
+}
+
+function removeStep(i) { sequence.splice(i,1); renderSeq(); }
+function clearSeq() { sequence=[]; renderSeq(); document.getElementById('step-start').value='0'; }
+
+// ── Playback ──────────────────────────────────────────────────────────────────
+async function play() {
+  if (!sequence.length) { alert('Add steps to the sequence first.'); return; }
+  const room = document.getElementById('room-id').value || 'pub';
+  const tickHz = parseInt(document.getElementById('tick-hz').value) || 30;
+  const av1 = document.getElementById('av1-id').value;
+  const av2 = document.getElementById('av2-id').value;
+  const avatars = [{id: av1, position:[-1,0,0]}];
+  if (av2) avatars.push({id: av2, position:[1,0,0]});
+  const res = await fetch('/api/choreo/start', {
+    method: 'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({room, tick_hz: tickHz, avatars, steps: sequence})
+  });
+  const data = await res.json();
+  if (!res.ok) { document.getElementById('status-txt').textContent = `Error: ${data.detail||res.status}`; return; }
+  document.getElementById('status-txt').textContent = `playing: ${data.steps} steps`;
+}
+
+async function stopChoreo() {
+  await fetch('/api/choreo/stop', {method:'POST'});
+  recording = false;
+}
+
+function record() {
+  if (recording) {
+    recording = false;
+    const json = JSON.stringify({name:'recorded_sequence',frames:recordedFrames},null,2);
+    const blob = new Blob([json],{type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `choreo_${Date.now()}.json`;
+    a.click();
+    recordedFrames = [];
+    document.getElementById('status-txt').textContent = 'recording saved';
+  } else {
+    recording = true;
+    recordedFrames = [];
+    document.getElementById('status-txt').textContent = '⏺ recording…';
+  }
+}
+
+// Quick cue
+document.getElementById('cue-btn').addEventListener('click', async () => {
+  if (!selectedAction) { alert('Select an action first.'); return; }
+  const avatarId = document.getElementById('cue-avatar').value || 'manny';
+  const room = document.getElementById('room-id').value || 'pub';
+  const res = await fetch('/api/choreo/cue', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({room, avatar_id: avatarId, action: selectedAction.id, intensity: 1.0})
+  });
+  const data = await res.json().catch(()=>({}));
+  document.getElementById('status-txt').textContent =
+    res.ok ? `cued: ${selectedAction.label} → ${avatarId}` : `cue failed: ${data.detail||res.status}`;
+});
+
+// ── Canvas ─────────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  const wrap = document.getElementById('stage-wrap');
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight - 32;
+}
+window.addEventListener('resize', () => { resize(); draw(); });
+resize();
+
+document.getElementById('style-select').addEventListener('change', e => { style = e.target.value; draw(); });
+
+function worldToCanvas([x,,z]) {
+  const scale = 80;
+  return [canvas.width/2 + x*scale, canvas.height/2 - z*scale];
+}
+
+function drawGrid() {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  for (let x=0; x<=canvas.width; x+=40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
+  for (let y=0; y<=canvas.height; y+=40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+  // Center cross
+  ctx.strokeStyle = 'rgba(212,168,67,0.2)';
+  ctx.beginPath(); ctx.moveTo(canvas.width/2,0); ctx.lineTo(canvas.width/2,canvas.height); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,canvas.height/2); ctx.lineTo(canvas.width,canvas.height/2); ctx.stroke();
+  ctx.restore();
+}
+
+function drawStick(pos, yaw, label='', color='#d4a843') {
+  const [cx,cy] = worldToCanvas(pos);
+  const s = 50;
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(-yaw);
+  ctx.strokeStyle = color; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(0,-s*.6); ctx.lineTo(0,s*.4); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0,-s*.8,s*.2,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-s*.4,-s*.2); ctx.lineTo(s*.4,-s*.2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,s*.4); ctx.lineTo(-s*.25,s*.9); ctx.moveTo(0,s*.4); ctx.lineTo(s*.25,s*.9); ctx.stroke();
+  if (label) { ctx.rotate(yaw); ctx.font='11px Georgia'; ctx.fillStyle=color; ctx.textAlign='center'; ctx.fillText(label,0,s*1.1); }
+  ctx.restore();
+}
+
+function drawMannequin(pos, yaw, label='', variant='man_mannequin') {
+  const [cx,cy] = worldToCanvas(pos);
+  const s=54, isFem = variant==='woman_mannequin';
+  const shoulder = isFem?26:32, hip = isFem?26:24;
+  const color = isFem ? '#d488b0' : '#7bb8d4';
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(-yaw);
+  ctx.lineWidth=2; ctx.strokeStyle=color; ctx.fillStyle='rgba(255,255,255,0.04)';
+  const top=-s*.6, bot=s*.5;
+  ctx.beginPath();
+  ctx.moveTo(-shoulder/2,top); ctx.lineTo(shoulder/2,top);
+  ctx.quadraticCurveTo(shoulder/2+8,top+10,shoulder/2,top+20);
+  ctx.lineTo(hip/2,bot-10);
+  ctx.quadraticCurveTo(0,bot+14,-hip/2,bot-10);
+  ctx.lineTo(-shoulder/2,top+20);
+  ctx.quadraticCurveTo(-shoulder/2-8,top+10,-shoulder/2,top);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0,top-16,12,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-shoulder/2,top+24); ctx.lineTo(-shoulder/2-20,top+50);
+  ctx.moveTo(shoulder/2,top+24); ctx.lineTo(shoulder/2+20,top+50);
+  ctx.moveTo(-hip/4,bot-2); ctx.lineTo(-hip/4-14,bot+34);
+  ctx.moveTo(hip/4,bot-2); ctx.lineTo(hip/4+14,bot+34);
+  ctx.stroke();
+  if (label) { ctx.rotate(yaw); ctx.font='11px Georgia'; ctx.fillStyle=color; ctx.textAlign='center'; ctx.fillText(label,0,bot+50); }
+  ctx.restore();
+}
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawGrid();
+  if (!lastFrame) {
+    // Draw placeholder avatars
+    const av1 = document.getElementById('av1-id').value || 'a1';
+    const av2 = document.getElementById('av2-id').value;
+    if (style==='stick') {
+      drawStick([-1,0,0],0,av1,'rgba(212,168,67,0.3)');
+      if (av2) drawStick([1,0,0],0,av2,'rgba(212,168,67,0.3)');
+    } else {
+      drawMannequin([-1,0,0],0,av1,style);
+      if (av2) drawMannequin([1,0,0],0,av2,style);
+    }
+    return;
+  }
+  for (const a of lastFrame.avatars) {
+    const pos = a.position||[0,0,0];
+    const yaw = a.rotation?.[1]||0;
+    if (style==='stick') drawStick(pos,yaw,a.id);
+    else drawMannequin(pos,yaw,a.id,style);
+  }
+}
+
+function updateTimeBar() {
+  if (!lastFrame) return;
+  document.getElementById('tb-time').textContent = `t=${lastFrame.time.toFixed(2)}s`;
+  document.getElementById('tb-avatars').textContent = `avatars: ${lastFrame.avatars.length}`;
+}
+
+// Boot
+draw();
+loadActions();
+</script>
+</body>
+</html>

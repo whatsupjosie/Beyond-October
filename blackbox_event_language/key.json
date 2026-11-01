@@ -1,0 +1,50 @@
+{
+  "version": "BBX1",
+  "channels": {
+    "AIT": "AI thought or decision trace",
+    "BRT": "broadcast output trace",
+    "ACT": "AI/tool action trace",
+    "APP": "approval or denial trace",
+    "ERR": "runtime error trace",
+    "REC": "recording pipeline trace",
+    "CRS": "crash-position trace",
+    "ACC": "BlackBox access trace",
+    "LEG": "legal request or disclosure trace",
+    "DSC": "disciplinary or conduct review trace",
+    "WLT": "iteration wallet trace",
+    "PER": "performance budget trace",
+    "CHT": "chat message transcript"
+  },
+  "events": {
+    "LKA": "lock acquired",
+    "LKR": "lock released",
+    "DCP": "decision packet captured",
+    "TCR": "tool call requested",
+    "TCD": "tool call completed",
+    "APR": "approval recorded",
+    "DNY": "denial recorded",
+    "ERR": "error observed",
+    "EXP": "export created",
+    "ACS": "BlackBox accessed",
+    "CPI": "crash-position initiated",
+    "CPS": "crash-position snapshot",
+    "BPR": "budget pressure recorded",
+    "CND": "conduct event recorded",
+    "RVW": "review initiated",
+    "RSP": "response action recorded",
+    "WLR": "wallet rollover requested",
+    "WLA": "wallet rollover approved",
+    "WLD": "wallet rollover denied",
+    "WLP": "manual wallet package recorded",
+    "MSG": "chat message persisted"
+  },
+  "coverage": {
+    "F": "full coverage for declared segment",
+    "P": "partial coverage",
+    "S": "sampled coverage",
+    "U": "unknown coverage"
+  },
+  "budget": {
+    "steady_state_compute_overhead_target_percent": 3
+  }
+}

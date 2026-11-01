@@ -1,0 +1,47 @@
+{
+  "operation": "REACH_IMPORT_013_AUTH_PERSISTENCE_AND_LAUNCHERS",
+  "non_destructive": true,
+  "source": "full Horizon package preserved in FULL_SESSION_HANDOFF",
+  "files": [
+    {
+      "path": "modules/auth.py",
+      "reach_sha256": "7d4ff346d84e2b072d03501a9a5b9a6a0f4ae76b928e38a77ef70a70af7b6086",
+      "source_sha256": "7d4ff346d84e2b072d03501a9a5b9a6a0f4ae76b928e38a77ef70a70af7b6086"
+    },
+    {
+      "path": "modules/auth_routes.py",
+      "reach_sha256": "8db8c397c4790f0e5dc3c189a2d78bfcb2df59e977d8a0d0a06ff2e4f3491c69",
+      "source_sha256": "8db8c397c4790f0e5dc3c189a2d78bfcb2df59e977d8a0d0a06ff2e4f3491c69"
+    },
+    {
+      "path": "modules/userdb.py",
+      "reach_sha256": "965b822d9f94c6dc2ae196190d0a9ade89daa08c4a3f6d1453c425e5615d2034",
+      "source_sha256": "965b822d9f94c6dc2ae196190d0a9ade89daa08c4a3f6d1453c425e5615d2034"
+    },
+    {
+      "path": "modules/persistence.py",
+      "reach_sha256": "b2c9cbf445fc13283f9a934f92cbbc400da977ebfd5b8102bb535b98ffbdb712",
+      "source_sha256": "b2c9cbf445fc13283f9a934f92cbbc400da977ebfd5b8102bb535b98ffbdb712"
+    },
+    {
+      "path": "run_pubpartner.py",
+      "reach_sha256": "ab200d3d32e1e78338c23947eb7d891a68073af84657dab843d24f1ae723ee6c",
+      "source_sha256": "ab200d3d32e1e78338c23947eb7d891a68073af84657dab843d24f1ae723ee6c"
+    },
+    {
+      "path": "RUN_PUBPARTNER_WINDOWS.bat",
+      "reach_sha256": "6331ea03a7a17649867ae58e0e425b5ec9a7bad937a2b39ff680e40d3a1eb5ec",
+      "source_sha256": "6331ea03a7a17649867ae58e0e425b5ec9a7bad937a2b39ff680e40d3a1eb5ec"
+    },
+    {
+      "path": "profiles/alex/identity.json",
+      "reach_sha256": "935ffa9dfbec85dbfd182305ea43f81479661d59fdd084253c836c3ae9edead7",
+      "source_sha256": "935ffa9dfbec85dbfd182305ea43f81479661d59fdd084253c836c3ae9edead7"
+    },
+    {
+      "path": "profiles/alex/alex_source_manifest.json",
+      "reach_sha256": "1919e025ac3390ae11745b2ca44d5f7f84e7f6553f49e1b25e4a8944a85e0539",
+      "source_sha256": "1919e025ac3390ae11745b2ca44d5f7f84e7f6553f49e1b25e4a8944a85e0539"
+    }
+  ]
+}

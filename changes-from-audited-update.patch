@@ -1,0 +1,2711 @@
+diff --git a/2i/2i-assets/file-workspace.js b/2i/2i-assets/file-workspace.js
+new file mode 100644
+index 0000000..424bee3
+--- /dev/null
++++ b/2i/2i-assets/file-workspace.js
+@@ -0,0 +1,112 @@
++/* File adapter for the actual v22 2i editor. Loaded after its native scripts. */
++(async function(){
++'use strict';
++const id=new URLSearchParams(location.search).get('file');
++$('saveBtn').disabled=true;
++// Preserve the editor control’s own undo, redo, copy and paste history.
++document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&['z','y'].includes(event.key.toLowerCase())&&['TEXTAREA','INPUT'].includes(document.activeElement?.tagName))event.stopImmediatePropagation()},true);
++if(!id){
++  // Reuse v22's manuscript state, and add persistent recovery for normal 2i trays.
++  const key='twoi-native-last';let nativeWorkspace,nativeMutation=0,nativeSaved=0;
++  const recover=()=>{const version=nativeMutation;return ForesightFiles.record(key,{id:key,name:documentTitle,twoiState:structuredClone(getDocState()),workspace:nativeWorkspace,updated:Date.now()}).then(saved=>{nativeSaved=Math.max(nativeSaved,version);return saved})};
++  await ForesightFiles.record(key).then(v=>{if(v?.twoiState&&!documentDirty&&!committed.length){nativeWorkspace=v.workspace;documentTitle=v.name;loadDocState(v.twoiState);soloTextarea.value=committed.join('\n');render()}}).catch(console.error);
++  saveDocumentAs=async()=>{
++    const path=prompt('Save a local 2i manuscript in PubCast. Folders are supported.',nativeWorkspace?.path||safeName()+'.2i');if(path===null)return;
++    if(!path.trim().endsWith('.2i'))throw Error('Use a .2i filename to preserve the complete manuscript');
++    const blob=new Blob([JSON.stringify(docPayload(),null,2)],{type:'application/json'});
++    const saved=await ForesightFiles.workspace('file',{path:path.trim(),data:await ForesightFiles.encode(blob),expected_revision:nativeWorkspace?.path===path.trim()?nativeWorkspace.revision:null});
++    nativeWorkspace={path:saved.path,revision:saved.revision};await recover();$('saveIndicator').textContent='Saved local file: '+saved.path;
++  };
++  saveDocument=async()=>{
++    if(!nativeWorkspace)return saveDocumentAs();
++    const blob=new Blob([JSON.stringify(docPayload(),null,2)],{type:'application/json'});
++    const saved=await ForesightFiles.workspace('file',{path:nativeWorkspace.path,data:await ForesightFiles.encode(blob),expected_revision:nativeWorkspace.revision});
++    nativeWorkspace.revision=saved.revision;await recover();$('saveIndicator').textContent='Saved local file: '+saved.path;
++  };
++  $('saveBtn').onclick=()=>saveDocument().catch(e=>{$('saveIndicator').textContent=e.message});
++  openDocument=async()=>{
++    const input=document.createElement('input');input.type='file';
++    input.onchange=async()=>{const file=input.files[0];if(!file)return;try{
++      await recover();const next=crypto.randomUUID();await ForesightFiles.record(next,{id:next,name:file.name,mime:file.type,original:file,updated:Date.now()});
++      parent.postMessage({type:'foresight:open-file',fileId:next,name:file.name},location.origin);
++      if(parent===window)location.assign('/writers-room?file='+encodeURIComponent(next));
++    }catch(e){alert(e.message)}};
++    input.click();
++  };
++  const mark=markDirty;let timer;
++  markDirty=function(){mark();nativeMutation++;clearTimeout(timer);timer=setTimeout(()=>recover().catch(e=>{$('saveIndicator').textContent='Recovery failed: '+e.message}),200)};
++  addEventListener('pagehide',()=>recover().catch(console.error));
++  addEventListener('beforeunload',event=>{if(nativeMutation>nativeSaved){event.preventDefault();event.returnValue=''}});
++  addEventListener('message',async e=>{
++    if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='foresight:file-command'||e.data.fileId)return;
++    try{
++      let result;
++      if(e.data.command==='save'){if(nativeWorkspace)await saveDocument();else{await recover();$('saveIndicator').textContent='Recovery saved in PubCast'}result=true}
++      else if(e.data.command==='export')result={name:safeName()+'.2i',type:'application/json',data:new Blob([JSON.stringify(docPayload(),null,2)],{type:'application/json'})};
++      else return;
++      parent.postMessage({type:'foresight:file-result',requestId:e.data.requestId,result},location.origin);
++    }catch(error){parent.postMessage({type:'foresight:file-result',requestId:e.data.requestId,error:error.message},location.origin)}
++  });
++  $('saveBtn').disabled=false;
++  return;
++}
++// File-mode drafts have their own stable IDs; the normal 2i manuscript is untouched.
++const toolbar=document.createElement('section');toolbar.setAttribute('aria-label','2i file controls');
++const shell=document.querySelector('.app-shell');document.body.insertBefore(toolbar,shell);
++toolbar.style.height='auto';
++const toolbarSize=new ResizeObserver(()=>{if(shell.style.display!=='none')shell.style.height='calc(100vh - '+toolbar.getBoundingClientRect().height+'px)'});toolbarSize.observe(toolbar);
++addEventListener('pagehide',()=>toolbarSize.disconnect());
++const c={data:{fileId:id},state:{}};
++const host={body:toolbar,changed(){},setTitle(title){documentTitle=title;render();parent.postMessage({type:'foresight:file-renamed',fileId:id,name:title},location.origin)}};
++
++let session;
++const originalMarkDirty=markDirty;
++markDirty=function(){originalMarkDirty();if(session){soloTextarea.dispatchEvent(new Event('foresight-native-change'));session.flush().catch(e=>{$('saveIndicator').textContent='Save failed: '+e.message})}};
++try{
++  session=await ForesightFiles.mount(c,host,null,{
++    editor:soloTextarea,
++    getState:()=>getDocState(),
++    getTitle:()=>documentTitle,
++    getText:()=>coWriting?committed.join('\n'):soloTextarea.value,
++    onReady(v){documentTitle=v.name;if(/\.(py|js|ts|jsx|tsx|xml|html|css|json|yaml|yml|toml|ini|sh|ps1|sql|c|cpp|h|rs)$/i.test(v.name)){soloTextarea.style.fontFamily='monospace';soloTextarea.spellcheck=false;}render()},
++    onImage(){shell.style.display='none';toolbar.style.height='100vh'},
++    onPreview(active){shell.style.display=active?'none':'';toolbar.style.height=active?'100vh':'auto';},
++    onError(){shell.style.display='none';toolbar.style.height='100vh'},
++    load(v){
++      documentTitle=v.title||v.name;
++      const state=v.twoiState||{committed:v.draft.split('\n'),buffer:[],pool:[],pointer:0,chapters:[{title:'Document',subtitle:'',startLine:0}],lockedLines:[],coWriting:false,references:[]};
++      loadDocState(state);soloTextarea.value=committed.join('\n');documentDirty=false;render();
++    }
++  });
++  saveDocument=()=>session.save();saveDocumentAs=()=>session.saveAs();
++  async function openFile(file){
++    await session.save();
++    const next=crypto.randomUUID();
++    await ForesightFiles.record(next,{id:next,name:file.name,mime:file.type,original:file,updated:Date.now()});
++    parent.postMessage({type:'foresight:file-selected',previousFileId:id,fileId:next,name:file.name},location.origin);
++    location.assign('/writers-room?file='+encodeURIComponent(next));
++  }
++  openDocument=async()=>{const input=document.createElement('input');input.type='file';input.onchange=()=>{if(input.files[0])openFile(input.files[0]).catch(e=>alert(e.message))};input.click()};
++  newDocument=async()=>openFile(new File([''],'Untitled.txt',{type:'text/plain'}));
++  document.addEventListener('drop',event=>{event.preventDefault();event.stopImmediatePropagation();const file=event.dataTransfer?.files?.[0];if(file)openFile(file).catch(e=>alert(e.message))},true);
++
++  $('saveBtn').onclick=()=>saveDocument().catch(e=>{$('saveIndicator').textContent=e.message});
++  $('saveBtn').disabled=false;
++  // Notify only our same-origin parent, never an arbitrary page.
++  parent.postMessage({type:'foresight:file-ready',fileId:id},location.origin);
++  addEventListener('message',async e=>{
++    if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='foresight:file-command'||e.data.fileId!==id)return;
++    const {requestId,command}=e.data;
++    try{
++      let result;
++      if(command==='save') {await session.save();result=true}
++      else if(command==='export') result=await session.export();
++      else return;
++      parent.postMessage({type:'foresight:file-result',requestId,result},location.origin);
++    }catch(error){parent.postMessage({type:'foresight:file-result',requestId,error:error.message},location.origin)}
++  });
++  addEventListener('pagehide',()=>session.flush().catch(console.error));
++  document.addEventListener('visibilitychange',()=>{if(document.hidden)session.flush().catch(console.error)});
++  addEventListener('beforeunload',event=>{if(session.pending()){event.preventDefault();event.returnValue=''}});
++}catch(error){toolbar.textContent='Could not open file in 2i: '+error.message}
++})();
+diff --git a/2i/writers-room-v22.html b/2i/writers-room-v22.html
+index 60145c9..8747d34 100644
+--- a/2i/writers-room-v22.html
++++ b/2i/writers-room-v22.html
+@@ -4,8 +4,8 @@
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Pubcast 2i — Writer's Room</title>
++<script src="/static/reach_auth.js"></script>
+ <style>
+-@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=Cinzel+Decorative:wght@400;700&display=swap');
+ 
+ /* ═══════════════════════════════════════════════════════════════
+    DESIGN TOKENS
+@@ -1342,7 +1342,7 @@ function markDirty() {
+   if (autosaveTimer) clearTimeout(autosaveTimer);
+   autosaveTimer = setTimeout(writeAutosave, 3000);
+ }
+-const AUTOSAVE_DB = 'pubcast2i-autosave-v2';
++const AUTOSAVE_DB = 'pubcast2i-autosave-v2' + (new URLSearchParams(location.search).get('file') ? '-file-'+new URLSearchParams(location.search).get('file') : '');
+ function openDB() {
+   return new Promise(res => {
+     const req = indexedDB.open(AUTOSAVE_DB, 1);
+@@ -2646,6 +2646,8 @@ loadZoom(); // runs synchronously as soon as this second <script> block parses 
+ /* ── boot ──────────────────────────────────────────────────────────── */
+ 
+ window.addEventListener('load', () => {
++  // Opening an ordinary file must not initiate collaboration or send its text.
++  if(new URLSearchParams(location.search).has('file'))return;
+   setTimeout(ppHealthCheck, 1200);
+   // Periodic commit catches work that never passed through approveBuffer,
+   // such as a long solo-mode session.
+@@ -2668,5 +2670,7 @@ function ppWasGenerated(t) { return PP_GEN.has(ppKey(t)); }
+ function ppForgetGenerated(t) { PP_GEN.delete(ppKey(t)); }
+ 
+ </script>
++<script src="/static/foresight_files.js"></script>
++<script src="/2i-assets/file-workspace.js"></script>
+ </body>
+ </html>
+diff --git a/handoffs/FORESIGHT_AUDIT_2026-10-21.md b/handoffs/FORESIGHT_AUDIT_2026-10-21.md
+index d3150ae..96fe0d0 100644
+--- a/handoffs/FORESIGHT_AUDIT_2026-10-21.md
++++ b/handoffs/FORESIGHT_AUDIT_2026-10-21.md
+@@ -1,3 +1,5 @@
++> Historical audit: current file-workspace implementation and current test limitations are in FORESIGHT_FUNCTIONAL_WORKSPACE_STATUS_2026-10-21.md. The later regression run includes a failing physics timing test.
++
+ # Foresight Counter — self-audit and debugging, October 21, 2026
+ 
+ This is the current audit. The first update's handoff is retained as history,
+@@ -113,6 +115,13 @@ See `VALIDATION.md` in this package for the final test command and results.
+    its name must not be used as evidence of startup-free testing. It was not
+    changed globally without checking its other consumers.
+ 
++## Deferred feature reminder
++
++On future project status and remaining-work reviews, include Performance settings
++and protected background tasks from `PUBCAST_DEFERRED_FEATURES.md`. Requested
++2026-10-21; deliberately deferred until current stabilization work is complete.
++This is a backlog addition, not implemented functionality.
++
+ ## Apply and run
+ 
+ This ZIP is an update for the existing October repository, not the full program.
+diff --git a/handoffs/FORESIGHT_FUNCTIONAL_WORKSPACE_PLAN_2026-10-21.md b/handoffs/FORESIGHT_FUNCTIONAL_WORKSPACE_PLAN_2026-10-21.md
+new file mode 100644
+index 0000000..f276d76
+--- /dev/null
++++ b/handoffs/FORESIGHT_FUNCTIONAL_WORKSPACE_PLAN_2026-10-21.md
+@@ -0,0 +1,39 @@
++# Foresight functional workspace execution plan
++
++Priority: immediate, ahead of tray polish. Performance/background permissions remain deferred in PUBCAST_DEFERRED_FEATURES.md.
++
++## Contract
++
++A tray hosts capabilities and content, independent of its shape. A blank tray can receive a file or program. Reuse existing PubCast/2i/studio programs; preserve authoritative originals. Reading, editing, conversion, saving and reopening are separate capabilities and must be reported separately. Never label a download or saved window layout as a saved application document.
++
++## Approach selected
++
++Considered: OS file associations (requires originating applications and leaves the workspace); a monolithic replacement editor (duplicates existing programs and risks regressions); shared file workspace and format adapters feeding existing programs. Choose the third. Keep Counter geometry and renderer untouched.
++
++## Execution order and tools
++
++1. Durable file workspace: IndexedDB originals and working copies keyed by stable IDs; Counter serialization references IDs. Explicit save, save-copy/download, recovery, rename and supported native Save As. Preserve originals; surface quota/permission failures. Verify reload with actual bytes.
++2. Text/code: UTF-8/UTF-16 text detection and editable textarea fallback for Markdown, scripts, XML, JSON and configuration. Native browser copy/paste and undo. Unknown binary files get original-download and explicit unsupported-format information, never garbled text presented as conversion.
++3. Documents: authenticated local format API, bounded archive parsing and extraction, DOCX/ODT readable text plus conversion-loss notice; DOCX export of edited text. Original remains byte-identical. PDF viewer plus text extraction; spreadsheet data extraction separately from formula-preserving spreadsheet editing. Dependencies must be declared and absent converters must produce clear errors.
++4. Images/media: browser decoding, image rotate/crop and PNG working-copy saving, original retained; persisted audio/video with playback. Do not claim full video editing from playback.
++5. Existing-program handoff: feed text/scripts to the existing 2i editor through a validated same-origin import protocol; preserve unsaved manuscripts before switching. Confirm actual routes for PubPartner, studio, PubWorld and controls; route presence alone is not operational certification.
++6. Development workspace: inventory existing execution tools; owner-authenticated terminal/session bridge with explicit process ownership, stop, cleanup and output; integrate with file editor. A command-output box must not be described as a full interactive terminal.
++7. Browser: preserve existing embedded-webpage support; distinguish embedding from a real browser engine. Inspect supported desktop-host integration before selecting an implementation. Google online documents require authenticated retrieval; .gdoc shortcuts are not document contents. Do not bypass embedding restrictions with an unrestricted proxy.
++8. Quit: flush/check document saves; list unsaved work and active tasks; terminate owned processes and sidecars through launcher supervision; verify no owned listeners/processes remain. Closing a tray remains distinct from quitting the host.
++9. Regression and delivery: Playwright real file inputs/downloads/reload, format round trips and originals hashes, ASGI auth/error tests, existing Counter tests and launcher check. Package cumulative/incremental changes against exact upstream; no remote push. Report remaining unsupported formats and unverified hardware plainly.
++
++## Completion evidence
++
++For each feature record original input, user action, actual output, reload/reopen result and limitations. Required scenarios include Markdown/script edit-save-reopen; DOCX read-convert-edit-export-reopen; image crop/rotate-save-reopen; media reopen; 2i handoff; real terminal lifecycle; external browser handling and clean quit. No universal file-format promise, no placeholder controls, no weakened tests.
++
++## Estimates
++
++No credible full completion estimate until adapters and host lifecycle have been exercised. Work proceeds now; do not stop after this plan. A settings mockup or source inspection does not satisfy the user request.
++
++## Execution checkpoint
++
++Implemented and verified work, current failures and remaining dependencies are recorded in FORESIGHT_FUNCTIONAL_WORKSPACE_STATUS_2026-10-21.md. The entire plan is not declared complete. The animation/asset question is recorded separately for later and must not displace this work.
++
++## Offline-first execution update
++
++The user clarified that Google, browser-vendor APIs, Playwright and optional services must not control essential file work. Current implementation and per-capability evidence are in FORESIGHT_OFFLINE_CORE_2026-10-21.md. Local disk folder saving, native 2i manuscript saving, local Python checking/execution, offline browser checks and installer-free startup are implemented. Optional cloud retrieval, full browser embedding, full TTY emulation and physical studio commissioning remain explicitly bounded; do not claim those passed.
+diff --git a/handoffs/FORESIGHT_FUNCTIONAL_WORKSPACE_STATUS_2026-10-21.md b/handoffs/FORESIGHT_FUNCTIONAL_WORKSPACE_STATUS_2026-10-21.md
+new file mode 100644
+index 0000000..fbea052
+--- /dev/null
++++ b/handoffs/FORESIGHT_FUNCTIONAL_WORKSPACE_STATUS_2026-10-21.md
+@@ -0,0 +1,50 @@
++> Superseded by FORESIGHT_OFFLINE_CORE_2026-10-21.md for current behavior, offline constraints, save destinations and test evidence.
++
++# Foresight functional workspace — implementation and evidence
++
++This supersedes the earlier 2026-10-21 audit for the current implementation status. It does not declare the entire PubCast studio commissioned. Source baseline remains 82ebf26755d3706f8d4d7d75d823bb73f4d1b07e. No remote push or installation into the user's computer was performed.
++
++## Implemented
++
++- Existing Counter file picker and blank-tray Import now route ordinary documents, text and scripts into the actual served 2i v22 editor. A shared file adapter provides basic rotate/crop image editing inside 2i, rather than replacing the typing program.
++- Original file bytes and independent working copies are persisted in IndexedDB under stable file IDs. Counter layouts reference those IDs. Saved files are discoverable from Programs > Saved files. Original download remains available even for unsupported formats.
++- Text/scripts/XML/Markdown/JSON use strict Unicode text decoding, native textarea editing, copy/paste and native undo. Invalid binary data is not silently decoded into garbage. Text exports use UTF-8; source bytes are preserved separately.
++- Save saves a working copy. Save As uses the native destination chooser where supported and otherwise downloads an edited copy through the browser. A chosen filesystem handle is retained where the browser can persist it; further writes require permission. Native filesystem permissions and picker behavior on the user's OS remain unverified. Ordinary file-input selection does not grant permission to overwrite the original.
++- DOCX, ODT, PPTX, XLSX and PDF have local authenticated text-copy conversion. DOCX export writes edited text to a new DOCX. Conversion loss is displayed persistently: this is not an Office layout editor. DOCX extraction covers main-body paragraphs and table cells, not headers, footers or footnotes; spreadsheet formulas are text, not calculated results; scanned PDF OCR is unavailable.
++- 2i manuscript export retains its full native state, separately from plain-text exports. Normal 2i trays gain persistent recovery and Counter Save/Export messaging. File-mode recovery is isolated by file ID. Separate writers cannot silently overwrite a newer file working copy.
++- Picked audio/video originals are retained for reopening and continue using the existing browser media player. Dedicated VLC/FFmpeg integration is deliberately deferred by the user.
++- Browser .url shortcuts and recognized tray-metadata JSON have a matching import route. File export now obtains actual working content from 2i rather than merely saving window metadata.
++- Open… > Development > Host shell starts a real authenticated-owner shell with streamed input/output, a workspace directory and explicit Stop. Disconnect and host exit terminate its process group. This is a shell console over pipes, not a full TTY emulator; full-screen terminal applications are not certified. Windows process cleanup is implemented but untested here.
++- File > Quit PubCast saves supported file/2i working or recovery copies, lists local open trays and warns to finish other programs' own work. Authenticated owner Quit then shuts down the supervised Reach launcher, owned shells and its sidecar. It does not close the user's browser application or claim automatic task protection for recordings/rendering. The advanced protected-task feature remains deferred.
++
++## Evidence
++
++- Latest new functional suite: 17 passed. Includes actual browser file-to-2i mounting, editing, saving, reload/reopen, original-byte preservation, edited Save As download, full 2i state export, native undo/clipboard paste, image rotation/crop/restore and cancelled crop, binary fallback, stale-writer rejection, shortcut/tray import round trips; real format adapters and authentication; real shell process execution and cleanup.
++- Broader targeted regression run: 87 passed, 1 failed. The unchanged drag-physics timing assertion measured 20.19 ms against its 16 ms limit. Geometry/progress assertions in that test passed. Earlier concurrent run measured 26.83 ms. No timing threshold or collision assertion was relaxed. Newer extra functional cases were subsequently checked in the 17-test suite; do not add these overlapping counts together.
++- Actual launcher/loopback HTTP check passed: Counter and exact updated script served, anonymous protected route rejected, character bridge healthy, owner setup and host status available, authenticated Quit exited the launcher with code zero. This check used --no-legacy-2i and no physical hardware; a complete production run still needs verification of all other service/process cleanup.
++- JavaScript syntax, Python compilation, targeted Ruff checks and patch whitespace checks passed. The inherited Starlette AnyIO deprecation warning remains.
++- Browser tests execute repository source and real 2i/IndexedDB operations; intercepted same-origin requests serve local source and call actual format parsers. They do not establish a signed-in Google session, a native file-picker dialog on Windows, real audio hardware, GPU performance, or complete studio operation.
++
++## Remaining functional work — do not hide it
++
++1. Online Google Docs/Drive retrieval and writeback need runtime account authorization and a provider adapter. Downloaded DOCX/ODT documents are supported locally; a .gdoc shortcut is not the document body.
++2. Legacy binary .doc/.xls/.ppt, RTF conversion, format-preserving Office editing, PDF annotation/OCR, advanced image operations and specialized project formats are not complete. Unsupported originals remain recoverable. No arbitrary-file universal opening promise.
++3. A full embedded Chrome/Firefox-class browser is not supplied by an iframe. Existing embedded-webpage and external-browser opening remain; blocked sites still require an external browser or a later supported desktop-host integration.
++4. A full TTY terminal, run/debug integration with the code editor, cross-platform file-picker verification, and full application-specific save/stop contracts remain work. The new shell console is useful but not an IDE.
++5. PubPartner, studio, PubWorld, camera and control-room routes remain hosted in trays. Route presence is not evidence that every hardware and production workflow operates. Those end-to-end workflows remain to be commissioned.
++6. Dense Counter physics performance and strict zero-overlap certification remain unresolved. This update did not switch back to physics optimization.
++
++## Scope guard
++
++The user asked about FBX/OBJ/GLB animation preview and 2D/3D/parallax modes, then explicitly clarified not to abandon the current work. Some isolated exploratory files were started prematurely; they are unwired and excluded from this deliverable. Record the asset-viewer requirement for later; do not claim it is implemented. Existing asset and animation code should be reused when that work is selected.
++
++The deferred Performance/protected-task proposal remains in PUBCAST_DEFERRED_FEATURES.md. Include it in project status reviews without starting it automatically.
++
++## Apply
++
++This package updates the existing October repository; it is not a full source distribution. Preserve a backup or clean git state. Use exactly one patch:
++
++- `changes.patch`: original upstream baseline 82ebf26755d3706f8d4d7d75d823bb73f4d1b07e.
++- `changes-from-audited-update.patch`: previous audited update (74-test report / prior package version).
++
++Run `git apply --check PATH_TO_PATCH`, then `git apply PATH_TO_PATCH`. Install declared dependencies with `python -m pip install -r requirements.txt`. Launch `python run_reach.py --start-page foresight-counter`. Do not apply both patches. A newer or independently modified repository must be reconciled rather than overwritten. Native user documents remain untouched by applying the source update.
+diff --git a/handoffs/FORESIGHT_OFFLINE_CORE_2026-10-21.md b/handoffs/FORESIGHT_OFFLINE_CORE_2026-10-21.md
+new file mode 100644
+index 0000000..f07d249
+--- /dev/null
++++ b/handoffs/FORESIGHT_OFFLINE_CORE_2026-10-21.md
+@@ -0,0 +1,79 @@
++# Foresight offline file and code workspace — current handoff
++
++This is the current implementation report. Earlier same-day audits remain historical. It is an update to the existing October source, baseline 82ebf26755d3706f8d4d7d75d823bb73f4d1b07e. It is not an installation into the user's computer or a full source distribution. No remote push was made.
++
++## Governing constraints
++
++Essential file work is local. Google services, cloud accounts, Chromium, Playwright and the optional Node utilities are not runtime prerequisites for opening and editing text. Browser tests use Playwright as development tooling only. Files use documented formats and ordinary folders; integrations must remain replaceable. The tray hosts existing programs, including the actual 2i v22 editor.
++
++## Working capabilities and evidence
++
++| Capability | Current behavior |
++| --- | --- |
++| Text, Markdown, XML and scripts | Open in 2i, edit, native undo/copy/paste, keep original, save working copy, export and reopen |
++| Save As / folders | Save to ordinary files under the user's local PubCast workspace, including nested folders, through a browser-independent local API |
++| Save existing local file | Subsequent Save updates the chosen workspace file; content revisions reject conflicting replacements |
++| Native manuscripts | Both normal 2i and file-mode 2i can save complete .2i manuscript state to local folders |
++| Optional device picker | Save to device remains available where supported; download fallback works without that picker |
++| Reopen after restart | Disk files survive router restart and are listed under Local PubCast folders in Saved files; browser working copies remain available too |
++| DOCX | Local main-body/table text reading; native ZIP/XML DOCX text-copy export verified by an independent reader; no Word or Google Docs required |
++| Other documents | Existing local ODT/PPTX/XLSX/PDF text extraction retained, with explicit fidelity limits; original bytes remain recoverable |
++| Images | Rotate, crop, save PNG working copy, export and reopen inside 2i; original retained; cancelled crop leaves original output intact |
++| Audio/media | Existing browser media playback retained; a local WAV was decoded, played muted and reopened with external requests blocked |
++| Coding | Local Python syntax check without execution; explicit Run Python opens an owned local process console with stdout, stdin, traceback, exit status and Stop |
++| Terminal | Existing owner-only host shell console; streamed standard input/output; process-group cleanup on disconnect and Quit |
++| Account access | Reuses the local Reach authentication adapter and login/setup pages; no Google sign-in. Login and served 2i font requests no longer contact Google |
++| Startup / Quit | Normal startup never installs optional Node dependencies. Explicit --install-legacy-2i is required to permit that download. Supervised authenticated Quit exits Reach and its owned consoles |
++
++## Independence checks
++
++- The 2i Google Fonts import and login-page Google Fonts link were removed. Local/system font fallbacks remain.
++- Ordinary file-mode opening no longer initiates automatic collaboration checks or periodic manuscript submission. Explicit collaboration controls remain available.
++- Browser tests abort external requests and fail if any were attempted. All tested file workflows passed that check.
++- Tests disable showSaveFilePicker; local-folder Save As and later Save still write actual disk files.
++- Native DOCX export was tested with the external docx writer module unavailable. The writer now uses standard-library ZIP/XML; python-docx is a development compatibility oracle only.
++- Core runtime requirements do not include Playwright or Chromium. Browser binaries used for verification are not installed or launched by PubCast.
++- Optional Node-service startup was tested with installer execution forbidden. Already-installed utilities remain usable; their absence does not block the native file workflow.
++
++## Verification
++
++- Latest functional suite: **27 passed** across workspace files, document formats, owned host controls and browser file workflows. This includes real disk persistence/restart, ownership isolation, stale-write conflicts, local syntax checking, actual Python execution/traceback, media reopening and native 2i manuscript saving, and preservation of manuscript titles and extension metadata.
++- Related integration suite: **17 passed** for existing Foresight wiring, cohesive program routes, front door and real Reach startup. These are separate tests from the functional suite.
++- Real launcher/HTTP audit passed: default offline-safe startup, page/assets, authentication, local disk save/readback, Python syntax API and supervised exit with code zero.
++- JavaScript syntax, Python compilation, targeted Ruff checks and patch whitespace checks pass. The inherited Starlette AnyIO deprecation warning remains.
++- The most recent broader Counter regression remains **87 passed, 1 failed**: unchanged physics timing measured 20.19 ms against its 16 ms budget. It was not loosened or hidden and no new physics optimization was undertaken in this pass.
++- Firefox verification was attempted but did not become usable in this sandbox and was interrupted. It is not reported as passed. The passing browser tests establish behavior with the vendor-specific picker absent; a real Firefox/Windows workstation check is still required.
++
++Functional command:
++`python -m pytest -q tests/test_foresight_workspace.py tests/test_foresight_file_formats.py tests/test_foresight_host_tools.py tests/test_foresight_file_workspace.py`
++
++Related integration command:
++`python -m pytest -q tests/test_foresight_8787_wiring.py tests/test_foresight_cohesive_program.py tests/test_foresight_front_door.py tests/test_foresight_reach_runtime.py`
++
++Launcher command: `python tools/foresight_checks/audit_launcher.py`
++
++## Boundaries and remaining work
++
++- Internet browsing remains the existing embedded webpage plus external-browser fallback. Sites that reject embedding still require the fallback. No compulsory Chrome/Chromium engine or unrestricted page proxy was added.
++- Online Google Docs/Drive access and writeback remain optional integration work requiring runtime account authorization. Downloaded supported document files are readable locally. A .gdoc shortcut is a pointer, not its document contents.
++- DOCX text copies do not preserve Word layout, images, headers, footers or footnotes. Spreadsheet formulas are text, not recalculated spreadsheets. Legacy .doc/.xls/.ppt and RTF conversion, PDF OCR/annotation and advanced media editing remain unsupported here; originals remain available.
++- The shell console is useful for coding and troubleshooting but is not a full TTY emulator or breakpoint debugger. The Python runner executes only after explicit owner action; syntax checking does not execute source.
++- Local folder paths are relative to each authenticated user's PubCast data workspace. This is a real disk folder on the Reach host. Arbitrary host folders can be reached through supported device-saving/downloading workflows; native OS picker permissions remain unverified on the user's machine.
++- Browser recovery belongs to the browser profile; it is not account-isolated storage for a shared profile. Local disk folders are separated by authenticated identity.
++- Browser recovery is not a substitute for exporting or saving important work to disk. Pending normal-2i recovery now prompts before leaving; asynchronous browser shutdown cannot be certified for every platform.
++- Studio, PubPartner, PubWorld and control-room pages remain hosted by their existing routes. Physical camera/audio/GPU/model and full production workflow commissioning requires the actual workstation. Route availability does not certify those subsystems.
++- The animation-viewer question and Performance/protected-background-task proposal remain deferred in PUBCAST_DEFERRED_FEATURES.md. They were not allowed to displace this work.
++
++## Apply exactly one patch
++
++Back up or preserve the current git state first. Use the patch matching the installed source:
++
++1. `changes.patch`: original upstream baseline 82ebf26755d3706f8d4d7d75d823bb73f4d1b07e.
++2. `changes-from-audited-update.patch`: earlier audited Counter update with the 74-test report.
++3. `changes-from-file-workspace-update.patch`: immediately preceding file-workspace update with the 17-new-test report.
++
++Run `git apply --check PATH_TO_PATCH`, then `git apply PATH_TO_PATCH`. Do not apply multiple patches. Conflicts in a newer repository must be reconciled, not overwritten. All supplied patches were actually applied to their matching snapshots and resulting changed files compared byte-for-byte.
++
++Install runtime dependencies with `python -m pip install -r requirements.txt` during setup; normal application use does not run an installer. Launch `python run_reach.py --start-page foresight-counter`. First-run local account setup uses /login. In a blank tray choose Import, or use File > Open. Saved files includes both working copies and local folder files. Development > Host shell opens the console; Python files also expose Check Python and Run Python.
++
++For development verification only, install requirements-dev.txt and the local browser needed by the test runner. Those tools are not runtime prerequisites.
+diff --git a/handoffs/PUBCAST_DEFERRED_FEATURES.md b/handoffs/PUBCAST_DEFERRED_FEATURES.md
+new file mode 100644
+index 0000000..6ca144e
+--- /dev/null
++++ b/handoffs/PUBCAST_DEFERRED_FEATURES.md
+@@ -0,0 +1,37 @@
++# PubCast deferred feature: Performance and protected background tasks
++Date: 2026-10-21
++Status: Requested; deliberately deferred. Do not implement during current Counter stabilization work.
++
++## Standing project-status reminder
++Whenever reviewing "where are we at?" or "what have we got to do?", include this feature in the deferred backlog. Keep it distinct from implemented functionality and current blockers. Bring it forward for prioritization without silently starting it.
++
++## User intent
++Settings > Performance controls how much runs simultaneously and which PubCast activities may continue in the background. Inactive programs retain essential saving/state preservation while optional playback, animation, polling and automatic checks can pause. Task assignment can explicitly authorize background execution until completion, with a visible activity/progress indicator and completion notification.
++
++Protected activities include downloads, uploads, installations, rendering, integration, recording and explicitly authorized AI work. Before applying a setting that would disrupt them, list the actual affected tasks and let the user decide individually: finish, pause/checkpoint where supported, safely cancel, or open the task to wrap it up. Apply only after those decisions. Finish grants a task-specific exception that expires at completion. Closing a window is distinct from cancelling its task. Do not offer pause/resume or rollback unless supported by that operation; commit phases must reach a safe stopping point.
++
++Provide task visibility, progress, resource contention explanation, and appropriate pause, end, save and revisit controls. Preserve essential saves when restricting background work.
++
++A durable outgoing queue can hold explicitly authorized uploads to a specified GitHub repository, Google Drive/Docs destination, or email recipient. Retain the intended saved version, destination and connection policy. Support waiting for a user-approved connection suitable for file size, avoiding phone/metered internet as requested. Survive restart, retry safely and prevent duplicate deliveries. Scheduling a queued action does not grant unrelated recipient or destination permissions.
++
++Optional OS integration should use supported, explicit controls for nonessential background work without disabling security. PubCast cannot assume universal control over unrelated applications or updaters. Investigate platform support separately.
++
++## Engineering acceptance criteria for later
++- Discover and reuse existing task/job, persistence, settings and transfer mechanisms before adding new ones.
++- Central task lifecycle independent of window focus; program adapters enforce policies.
++- Warning enumerates real affected tasks and supported decisions; revalidate if tasks change before applying.
++- Protected work is not interrupted silently; task exceptions expire on completion.
++- Checkpoint/restart, cancellation, failure recovery and transfer deduplication are tested.
++- Verify with real workloads and existing audio/rendering workflows.
++- This feature reduces workload contention; it does not replace fixing expensive tray physics.
++
++## Scope and estimate
++A settings mockup is not a working scheduler. No claim that the full feature can be built and verified in 5–10 minutes. Estimate after inventorying existing task infrastructure and adapters; OS integration and outgoing transfers are separate stages.
++
++## Current priority
++Continue Counter stabilization, performance investigation and real-workflow verification. No runtime implementation authorized by this note; the user explicitly requested deferral.
++
++
++## Asset-preview clarification, also deferred
++
++The user expects FBX/OBJ/GLB asset preview, compatible embedded or separately loaded animations, and 2D/3D/parallax viewing choices. This is an asset viewer, not Blender or a complete scene editor. Animation compatibility/retargeting must be explicit. The user clarified this was a related question and explicitly directed continuation of the current file-workspace work. Do not switch to building the viewer without prioritizing it separately.
+diff --git a/main.py b/main.py
+index 4f03280..95440a5 100644
+--- a/main.py
++++ b/main.py
+@@ -1779,6 +1779,9 @@ async def lifespan(application: FastAPI):
+ 
+     # — Shutdown —
+     logger.info("— PubCast AI shutting down —")
++    _stop_shells = getattr(application.state, "foresight_stop_sessions", None)
++    if callable(_stop_shells):
++        await _stop_shells()
+     if choreo_controller and hasattr(choreo_controller, "stop"):
+         try:
+             await choreo_controller.stop()
+@@ -1857,6 +1860,14 @@ app.include_router(create_conversation_router(DATA_DIR))
+ # optional 2i utilities. It calls the authoritative managers; no copies.
+ from modules.foresight_gateway import create_foresight_gateway
+ app.include_router(create_foresight_gateway(lambda: bot_manager, lambda: hub))
++from modules.foresight_file_formats import create_file_format_router
++app.include_router(create_file_format_router())
++from modules.foresight_workspace import create_workspace_router
++app.include_router(create_workspace_router(DATA_DIR))
++from modules.foresight_host_tools import create_host_tools_router
++_foresight_host_tools = create_host_tools_router(DATA_DIR)
++app.include_router(_foresight_host_tools)
++app.state.foresight_stop_sessions = _foresight_host_tools.stop_owned_sessions
+ 
+ 
+ 
+diff --git a/modules/foresight_file_formats.py b/modules/foresight_file_formats.py
+new file mode 100644
+index 0000000..f44bd8e
+--- /dev/null
++++ b/modules/foresight_file_formats.py
+@@ -0,0 +1,238 @@
++"""Local, non-destructive document adapters for tray working copies.
++
++No file paths or remote URLs are accepted. Original bytes stay with the client.
++Conversion explicitly returns editable text, not a fidelity-preserving Office editor.
++"""
++
++from __future__ import annotations
++
++import base64
++import binascii
++import io
++import zipfile
++from pathlib import Path
++from xml.etree import ElementTree as ET
++
++from fastapi import APIRouter, Depends, HTTPException
++from pydantic import BaseModel, Field
++from .route_security import current_identity
++
++MAX_BYTES = 24 * 1024 * 1024
++MAX_EXPANDED = 64 * 1024 * 1024
++MAX_TEXT = 5 * 1024 * 1024
++
++
++class ConvertRequest(BaseModel):
++    name: str = Field(max_length=255)
++    data: str = Field(max_length=MAX_BYTES * 4 // 3 + 8)
++
++
++class ExportRequest(BaseModel):
++    text: str = Field(max_length=MAX_TEXT)
++    format: str
++
++
++def archive(raw: bytes) -> zipfile.ZipFile:
++    try:
++        z = zipfile.ZipFile(io.BytesIO(raw))
++        entries = z.infolist()
++        if len(entries) > 10000 or sum(e.file_size for e in entries) > MAX_EXPANDED:
++            z.close()
++            raise ValueError("Document archive exceeds the conversion limit")
++        if any(e.flag_bits & 1 for e in entries):
++            z.close()
++            raise ValueError("Encrypted documents must be unlocked before conversion")
++        return z
++    except zipfile.BadZipFile as exc:
++        raise ValueError("Invalid document archive") from exc
++
++
++def xml_member(z: zipfile.ZipFile, name: str):
++    data = z.read(name)
++    if b"<!DOCTYPE" in data.upper() or b"<!ENTITY" in data.upper():
++        raise ValueError("Document XML entities are not supported")
++    return ET.fromstring(data)
++
++
++def convert(name: str, raw: bytes) -> dict:
++    if len(raw) > MAX_BYTES:
++        raise ValueError("Document exceeds 24 MB conversion limit")
++    ext = Path(name).suffix.lower()
++    warning = "Editable text copy: layout, styling, images, comments and other document features are not preserved. The original is unchanged."
++    if ext in {".docx", ".odt", ".pptx", ".xlsx"}:
++        with archive(raw) as z:
++            if ext == ".docx":
++                warning += " Main document text and table cells are extracted; headers, footers and footnotes are not included."
++                ns = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
++                root = xml_member(z, "word/document.xml")
++                lines = []
++                for p in root.iter(ns + "p"):
++                    parts = []
++                    for node in p.iter():
++                        if node.tag == ns + "t":
++                            parts.append(node.text or "")
++                        elif node.tag == ns + "tab":
++                            parts.append("\t")
++                        elif node.tag in {ns + "br", ns + "cr"}:
++                            parts.append("\n")
++                    lines.append("".join(parts))
++            elif ext == ".odt":
++                root = xml_member(z, "content.xml")
++                ns = "{urn:oasis:names:tc:opendocument:xmlns:text:1.0}"
++                lines = [
++                    "".join(p.itertext())
++                    for p in root.iter()
++                    if p.tag in {ns + "p", ns + "h"}
++                ]
++            elif ext == ".pptx":
++                import re
++
++                names = sorted(
++                    (
++                        n
++                        for n in z.namelist()
++                        if re.fullmatch(r"ppt/slides/slide\d+\.xml", n)
++                    ),
++                    key=lambda n: int(re.search(r"(\d+)\.xml", n)[1]),
++                )
++                ns = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
++                lines = []
++                for i, n in enumerate(names, 1):
++                    lines.append(f"--- Slide {i} ---")
++                    lines.extend(
++                        "".join(t.itertext()) for t in xml_member(z, n).iter(ns + "t")
++                    )
++                warning += " Slide positioning and speaker notes are not included."
++            else:
++                from openpyxl import load_workbook
++
++                book = load_workbook(
++                    io.BytesIO(raw), read_only=True, data_only=False, keep_links=False
++                )
++                lines = []
++                try:
++                    count = 0
++                    for sheet in book:
++                        lines.append("--- " + sheet.title + " ---")
++                        for row in sheet.iter_rows(values_only=True):
++                            count += len(row)
++                            if count > 200000:
++                                raise ValueError(
++                                    "Spreadsheet exceeds 200,000-cell conversion limit"
++                                )
++                            lines.append(
++                                "\t".join("" if v is None else str(v) for v in row)
++                            )
++                finally:
++                    book.close()
++                warning += " Cells are tab-separated; formulas are shown as text and are not recalculated."
++            text = "\n".join(lines)
++    elif ext == ".pdf":
++        from pypdf import PdfReader
++
++        reader = PdfReader(io.BytesIO(raw))
++        if reader.is_encrypted:
++            raise ValueError("Encrypted PDFs must be unlocked before conversion")
++        if len(reader.pages) > 500:
++            raise ValueError("PDF exceeds 500-page conversion limit")
++        text = "\n\n".join(p.extract_text() or "" for p in reader.pages)
++        warning = "Extracted PDF text; layout is not retained. Scanned pages require OCR, which is not provided here. Original unchanged."
++    else:
++        raise ValueError(
++            "No local converter for this format. Keep the original or use an installed format-specific application."
++        )
++    if len(text) > MAX_TEXT:
++        raise ValueError("Extracted text exceeds 5 MB editor limit")
++    return {"text": text, "warning": warning, "format": ext.lstrip(".")}
++
++
++def create_file_format_router():
++    router = APIRouter(
++        prefix="/api/foresight/files",
++        tags=["Foresight files"],
++        dependencies=[Depends(current_identity)],
++    )
++
++    @router.post("/convert")
++    def convert_file(body: ConvertRequest):
++        try:
++            raw = base64.b64decode(body.data, validate=True)
++            return convert(body.name, raw)
++        except ImportError as exc:
++            raise HTTPException(
++                503, "Install the declared document dependencies to use this converter"
++            ) from exc
++        except (
++            ValueError,
++            KeyError,
++            ET.ParseError,
++            binascii.Error,
++            zipfile.BadZipFile,
++            RuntimeError,
++        ) as exc:
++            raise HTTPException(422, str(exc)) from exc
++        except Exception as exc:
++            import logging
++
++            logging.getLogger(__name__).warning(
++                "Document parser rejected %s: %s", body.name, type(exc).__name__
++            )
++            raise HTTPException(
++                422,
++                "This document could not be converted. It may be damaged, encrypted or unsupported; original unchanged.",
++            ) from exc
++
++    @router.post("/export")
++    def export_file(body: ExportRequest):
++        if body.format != "docx":
++            raise HTTPException(422, "Supported document export: docx")
++        if any(
++            (ord(c) < 32 and c not in "\t\n\r")
++            or 0xD800 <= ord(c) <= 0xDFFF
++            or ord(c) in {0xFFFE, 0xFFFF}
++            for c in body.text
++        ):
++            raise HTTPException(
++                422, "Text contains characters not supported by XML documents"
++            )
++        # DOCX is an open ZIP/XML format. Plain-text copies need no Office application
++        # or third-party document writer at runtime.
++        ns = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
++        ET.register_namespace("w", ns)
++        document = ET.Element("{" + ns + "}document")
++        content = ET.SubElement(document, "{" + ns + "}body")
++        for line in body.text.split("\n"):
++            paragraph = ET.SubElement(content, "{" + ns + "}p")
++            for index, part in enumerate(line.split("\t")):
++                run = ET.SubElement(paragraph, "{" + ns + "}r")
++                if index:
++                    ET.SubElement(run, "{" + ns + "}tab")
++                text = ET.SubElement(
++                    run,
++                    "{" + ns + "}t",
++                    {"{http://www.w3.org/XML/1998/namespace}space": "preserve"},
++                )
++                text.text = part
++        ET.SubElement(content, "{" + ns + "}sectPr")
++        out = io.BytesIO()
++        with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
++            z.writestr(
++                "[Content_Types].xml",
++                '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>',
++            )
++            z.writestr(
++                "_rels/.rels",
++                '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>',
++            )
++            z.writestr(
++                "word/document.xml",
++                ET.tostring(document, encoding="utf-8", xml_declaration=True),
++            )
++        from fastapi.responses import Response
++
++        return Response(
++            out.getvalue(),
++            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
++        )
++
++    return router
+diff --git a/modules/foresight_host_tools.py b/modules/foresight_host_tools.py
+new file mode 100644
+index 0000000..54c0a5c
+--- /dev/null
++++ b/modules/foresight_host_tools.py
+@@ -0,0 +1,255 @@
++"""Explicit owner-only host shell sessions and supervised Reach exit.
++
++The shell is a real host process, not a sandbox or a terminal emulator. Processes
++belong to their connection and are stopped on disconnect or application shutdown.
++"""
++
++from __future__ import annotations
++import asyncio
++import os
++import signal
++import subprocess
++import sys
++import uuid
++import re
++from pathlib import Path
++
++from fastapi import (
++    APIRouter,
++    BackgroundTasks,
++    Depends,
++    HTTPException,
++    Request,
++    WebSocket,
++)
++from .auth import decode_access_token
++from .route_security import current_identity
++
++
++async def owner(identity=Depends(current_identity)):
++    if not identity.get("authenticated") or identity.get("role") != "owner":
++        raise HTTPException(403, "An authenticated owner is required for host controls")
++    return identity
++
++
++def terminate_tree(process):
++    if os.name == "nt":
++        subprocess.run(
++            ["taskkill", "/PID", str(process.pid), "/T", "/F"],
++            capture_output=True,
++            timeout=10,
++            check=False,
++        )
++    else:
++        try:
++            os.killpg(process.pid, signal.SIGTERM)
++        except ProcessLookupError:
++            return
++        # Reap the shell even if a child ignores SIGTERM; then kill its process group.
++        try:
++            process.wait(timeout=2)
++        except subprocess.TimeoutExpired:
++            pass
++        try:
++            os.killpg(process.pid, signal.SIGKILL)
++        except ProcessLookupError:
++            pass
++    try:
++        process.wait(timeout=5)
++    except subprocess.TimeoutExpired:
++        process.kill()
++        process.wait(timeout=5)
++
++
++def create_host_tools_router(data_dir: Path):
++    from contextlib import asynccontextmanager
++
++    processes = set()
++
++    @asynccontextmanager
++    async def lifecycle(app):
++        try:
++            yield
++        finally:
++            await stop_sessions()
++
++    router = APIRouter(
++        prefix="/api/foresight/host",
++        tags=["Foresight host controls"],
++        lifespan=lifecycle,
++    )
++
++    async def stop_sessions():
++        for process in tuple(processes):
++            await asyncio.to_thread(terminate_tree, process)
++            processes.discard(process)
++
++    @router.get("/status", dependencies=[Depends(owner)])
++    def status(request: Request):
++        return {
++            "shell_sessions": len(processes),
++            "quit_available": callable(
++                getattr(request.app.state, "foresight_request_exit", None)
++            ),
++        }
++
++    @router.post("/quit", dependencies=[Depends(owner)])
++    def quit_host(request: Request, background: BackgroundTasks):
++        callback = getattr(request.app.state, "foresight_request_exit", None)
++        if not callable(callback):
++            raise HTTPException(
++                409,
++                "This host was not started by the supervised Reach launcher. Stop it from its launch terminal.",
++            )
++
++        async def finish():
++            await stop_sessions()
++            callback()
++
++        background.add_task(finish)
++        return {"status": "quitting"}
++
++    @router.websocket("/shell")
++    async def shell(ws: WebSocket):
++        origin = ws.headers.get("origin", "")
++        allowed = {
++            v.strip()
++            for v in os.getenv("PUBCAST_ALLOWED_ORIGINS", "").split(",")
++            if v.strip()
++        }
++        allowed.add(f"{ws.url.scheme.replace('ws', 'http')}://{ws.headers.get('host')}")
++        if origin not in allowed:
++            await ws.close(code=1008)
++            return
++        await ws.accept()
++        process = None
++        output = None
++        lock = asyncio.Lock()
++
++        async def send(data):
++            async with lock:
++                await ws.send_json(data)
++
++        try:
++            hello = await asyncio.wait_for(ws.receive_json(), timeout=10)
++            if not isinstance(hello, dict):
++                await ws.close(code=1008)
++                return
++            payload = decode_access_token(str(hello.get("token", "")))
++            if not payload or payload.get("role") != "owner":
++                await ws.close(code=1008)
++                return
++            work = Path(data_dir) / "workspace"
++            work.mkdir(parents=True, exist_ok=True)
++            command = (
++                [os.environ.get("COMSPEC", "cmd.exe"), "/Q"]
++                if os.name == "nt"
++                else ["/bin/bash", "--noprofile", "--norc"]
++            )
++            mode = "shell-pipes"
++            if hello.get("mode") == "python":
++                source = hello.get("source")
++                if not isinstance(source, str) or len(source) > 5 * 1024 * 1024:
++                    await ws.close(code=1009)
++                    return
++                name = re.sub(
++                    r"[^A-Za-z0-9_.-]", "_", str(hello.get("name") or "script.py")
++                )[-120:]
++                if not name.endswith(".py"):
++                    name += ".py"
++                work = work / "runs" / uuid.uuid4().hex
++                work.mkdir(parents=True, exist_ok=True)
++                script = work / name
++                with script.open("w", encoding="utf-8", newline="") as f:
++                    f.write(source)
++                    f.flush()
++                    os.fsync(f.fileno())
++                command = [sys.executable, "-u", str(script)]
++                mode = "python"
++            options = (
++                {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
++                if os.name == "nt"
++                else {"start_new_session": True}
++            )
++            process = subprocess.Popen(
++                command,
++                cwd=work,
++                stdin=subprocess.PIPE,
++                stdout=subprocess.PIPE,
++                stderr=subprocess.STDOUT,
++                bufsize=0,
++                **options,
++            )
++            processes.add(process)
++            await send(
++                {
++                    "type": "started",
++                    "cwd": str(work),
++                    "pid": process.pid,
++                    "mode": mode,
++                }
++            )
++
++            async def pump():
++                import codecs
++
++                decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
++                while True:
++                    chunk = await asyncio.to_thread(
++                        os.read, process.stdout.fileno(), 4096
++                    )
++                    if not chunk:
++                        break
++                    await send({"type": "output", "text": decoder.decode(chunk)})
++                tail = decoder.decode(b"", final=True)
++                if tail:
++                    await send({"type": "output", "text": tail})
++                await asyncio.to_thread(process.wait)
++                await send({"type": "exited", "code": process.returncode})
++                await ws.close()
++
++            output = asyncio.create_task(pump())
++            while True:
++                message = await ws.receive_json()
++                if not isinstance(message, dict):
++                    await ws.close(code=1008)
++                    break
++                if message.get("type") == "stop":
++                    break
++                if message.get("type") != "input":
++                    continue
++                text = message.get("text")
++                if not isinstance(text, str) or len(text) > 65536:
++                    await ws.close(code=1009)
++                    break
++                if process.poll() is not None:
++                    break
++                await asyncio.to_thread(process.stdin.write, text.encode("utf-8"))
++        except (asyncio.TimeoutError, ValueError, RuntimeError, OSError):
++            pass
++        except Exception as exc:
++            from starlette.websockets import WebSocketDisconnect
++
++            if not isinstance(exc, WebSocketDisconnect):
++                raise
++        finally:
++            # Disconnect cancels the request scope. Cleanup must outlive that cancellation.
++            import anyio
++
++            with anyio.CancelScope(shield=True):
++                if output:
++                    output.cancel()
++                    await asyncio.gather(output, return_exceptions=True)
++                if process is not None:
++                    await asyncio.to_thread(terminate_tree, process)
++                    processes.discard(process)
++                    for pipe in (process.stdin, process.stdout):
++                        if pipe:
++                            pipe.close()
++                try:
++                    await ws.close()
++                except (RuntimeError, OSError):
++                    pass
++
++    router.stop_owned_sessions = stop_sessions
++    return router
+diff --git a/modules/foresight_sidecar.py b/modules/foresight_sidecar.py
+index eeeb19a..a126888 100644
+--- a/modules/foresight_sidecar.py
++++ b/modules/foresight_sidecar.py
+@@ -18,7 +18,7 @@ from urllib.request import urlopen
+ 
+ class Legacy2iService:
+     def __init__(self, root: Path, data_dir: Path, reach_port: int,
+-                 *, install: bool = True):
++                 *, install: bool = False):
+         self.root = Path(root)
+         self.project = self.root / '2i-backend'
+         self.data_dir = Path(data_dir)
+diff --git a/modules/foresight_workspace.py b/modules/foresight_workspace.py
+new file mode 100644
+index 0000000..1b19be1
+--- /dev/null
++++ b/modules/foresight_workspace.py
+@@ -0,0 +1,171 @@
++"""Portable local workspace files: ordinary disk files, no browser-vendor API.
++
++Paths are relative to the authenticated user's PubCast workspace. Atomic writes
++and content-hash revisions prevent silent replacement of concurrent edits.
++"""
++
++from __future__ import annotations
++import base64
++import binascii
++import hashlib
++import os
++from pathlib import Path, PurePosixPath
++import tempfile
++import threading
++
++from fastapi import APIRouter, Depends, HTTPException
++from pydantic import BaseModel, Field
++from .route_security import current_identity
++
++MAX_FILE = 32 * 1024 * 1024
++
++
++class SaveFile(BaseModel):
++    path: str = Field(min_length=1, max_length=1024)
++    data: str = Field(max_length=MAX_FILE * 4 // 3 + 8)
++    expected_revision: str | None = None
++
++
++class CheckPython(BaseModel):
++    text: str = Field(max_length=5 * 1024 * 1024)
++    name: str = Field(default="script.py", max_length=255)
++
++
++def create_workspace_router(data_dir):
++    router = APIRouter(prefix="/api/foresight/workspace", tags=["Local workspace"])
++    lock = threading.RLock()
++
++    def root(identity):
++        key = hashlib.sha256(identity["user_id"].encode()).hexdigest()[:32]
++        path = Path(data_dir) / "workspace" / "files" / key
++        path.mkdir(parents=True, exist_ok=True)
++        return path.resolve()
++
++    def target(identity, name):
++        relative = PurePosixPath(name.replace("\\", "/"))
++        if (
++            relative.is_absolute()
++            or ".." in relative.parts
++            or not relative.parts
++            or any(":" in p or p.startswith(".") or "\0" in p for p in relative.parts)
++        ):
++            raise HTTPException(
++                422, "Choose a relative workspace path, for example Scripts/example.py"
++            )
++        reserved = {"CON", "PRN", "AUX", "NUL"} | {
++            f"{prefix}{i}" for prefix in ("COM", "LPT") for i in range(1, 10)
++        }
++        if any(
++            part.rstrip(" .") != part
++            or part.split(".")[0].upper() in reserved
++            or any(ord(c) < 32 for c in part)
++            for part in relative.parts
++        ):
++            raise HTTPException(
++                422, "Filename is not portable across supported operating systems"
++            )
++        base = root(identity)
++        path = (base / relative).resolve()
++        if not path.is_relative_to(base) or path == base:
++            raise HTTPException(422, "Path must stay inside your PubCast workspace")
++        return path, base
++
++    def revision(raw):
++        return hashlib.sha256(raw).hexdigest()
++
++    @router.get("/files")
++    def list_files(identity=Depends(current_identity)):
++        base = root(identity)
++        files = []
++        with lock:
++            for p in base.rglob("*"):
++                if (
++                    p.is_file()
++                    and not p.is_symlink()
++                    and p.resolve().is_relative_to(base)
++                    and not any(
++                        part.startswith(".") for part in p.relative_to(base).parts
++                    )
++                ):
++                    files.append(
++                        {
++                            "path": p.relative_to(base).as_posix(),
++                            "size": p.stat().st_size,
++                        }
++                    )
++        return {"files": sorted(files, key=lambda f: f["path"])}
++
++    @router.get("/file")
++    def read_file(path: str, identity=Depends(current_identity)):
++        p, _ = target(identity, path)
++        with lock:
++            if not p.is_file():
++                raise HTTPException(404, "Workspace file not found")
++            if p.stat().st_size > MAX_FILE:
++                raise HTTPException(413, "File exceeds 32 MB workspace transfer limit")
++            raw = p.read_bytes()
++        return {
++            "path": path,
++            "data": base64.b64encode(raw).decode(),
++            "revision": revision(raw),
++        }
++
++    @router.post("/file")
++    def save_file(body: SaveFile, identity=Depends(current_identity)):
++        p, base = target(identity, body.path)
++        try:
++            raw = base64.b64decode(body.data, validate=True)
++        except (ValueError, binascii.Error) as exc:
++            raise HTTPException(422, "Invalid file bytes") from exc
++        if len(raw) > MAX_FILE:
++            raise HTTPException(413, "File exceeds 32 MB workspace transfer limit")
++        with lock:
++            if p.exists():
++                if not p.is_file():
++                    raise HTTPException(409, "Destination is not a file")
++                current = revision(p.read_bytes())
++                if current != body.expected_revision:
++                    raise HTTPException(
++                        409,
++                        "File changed or already exists. Open it before replacing it, or choose another name.",
++                    )
++            elif body.expected_revision is not None:
++                raise HTTPException(
++                    409,
++                    "The previously saved file was removed. Choose a new destination.",
++                )
++            p.parent.mkdir(parents=True, exist_ok=True)
++            temporary = None
++            try:
++                with tempfile.NamedTemporaryFile(dir=p.parent, delete=False) as f:
++                    temporary = Path(f.name)
++                    f.write(raw)
++                    f.flush()
++                    os.fsync(f.fileno())
++                os.replace(temporary, p)
++                from .persistence import _fsync_directory
++
++                _fsync_directory(p.parent)
++            finally:
++                if temporary:
++                    temporary.unlink(missing_ok=True)
++        return {
++            "path": p.relative_to(base).as_posix(),
++            "revision": revision(raw),
++            "size": len(raw),
++        }
++
++    @router.post("/check-python")
++    def check_python(body: CheckPython, identity=Depends(current_identity)):
++        try:
++            compile(body.text, body.name, "exec")
++        except (SyntaxError, ValueError) as exc:
++            return {
++                "ok": False,
++                "message": str(exc),
++                "line": getattr(exc, "lineno", None),
++                "column": getattr(exc, "offset", None),
++            }
++        return {"ok": True, "message": "Python syntax is valid; code was not executed."}
++
++    return router
+diff --git a/requirements-dev.txt b/requirements-dev.txt
+index 81a1aef..48ddf89 100644
+--- a/requirements-dev.txt
++++ b/requirements-dev.txt
+@@ -4,3 +4,9 @@
+ #   pip install -r requirements.txt -r requirements-dev.txt
+ pytest>=8.0
+ pytest-asyncio>=0.23
++
++# Independent compatibility oracle for native DOCX export tests
++python-docx>=1.1.2,<2
++
++# Browser verification only; never imported or installed by the PubCast runtime
++playwright==1.56.0
+diff --git a/requirements.txt b/requirements.txt
+index 3745964..1c45e1f 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -44,3 +44,7 @@ cryptography>=48.0.1,<49.0
+ # google-api-python-client
+ # google-auth
+ # google-auth-oauthlib
++
++# Local non-destructive document working copies in Foresight
++openpyxl>=3.1.5,<4
++pypdf>=5.0,<7
+diff --git a/run_reach.py b/run_reach.py
+index b8f9f36..fd24d6f 100644
+--- a/run_reach.py
++++ b/run_reach.py
+@@ -38,6 +38,7 @@ def main() -> int:
+     parser.add_argument("--port", type=int, default=8000)
+     parser.add_argument("--data-dir", default="reach_userdata")
+     parser.add_argument("--no-browser", action="store_true")
++    parser.add_argument("--install-legacy-2i", action="store_true", help="explicitly allow installing optional Node utilities; normal startup never downloads them")
+     parser.add_argument("--no-legacy-2i", action="store_true", help="skip optional original 2i Node utilities")
+     parser.add_argument("--start-page", choices=("foresight", "foresight-counter", "writers-room", "lobby"), default="foresight",
+                         help="page to open after Reach starts")
+@@ -80,12 +81,15 @@ def main() -> int:
+         # The UI only speaks same-origin Reach. This subordinate utility process
+         # is supervised here, not launched by a second user command.
+         sidecar = Legacy2iService(root, data, args.port,
+-                                  install=not args.no_legacy_2i)
++                                  install=args.install_legacy_2i and not args.no_legacy_2i)
+         if not args.no_legacy_2i:
+             sidecar.start()
+         try:
+             import uvicorn
+             server = uvicorn.Server(uvicorn.Config("main:app", host="127.0.0.1", port=args.port, reload=False))
++            # Only this supervised launcher exposes a true application Quit.
++            import main
++            main.app.state.foresight_request_exit = lambda: setattr(server, "should_exit", True)
+             server.run(sockets=[listener])
+             return 0 if server.started else 1
+         finally:
+diff --git a/static/foresight_counter.html b/static/foresight_counter.html
+index 15a2500..d1c82a8 100644
+--- a/static/foresight_counter.html
++++ b/static/foresight_counter.html
+@@ -94,6 +94,7 @@
+ <script src="/static/foresight_gl.js"></script>
+ <script src="/static/foresight_chain.js"></script>
+ <script src="/static/foresight_counter.js"></script>
++<script src="/static/foresight_files.js"></script>
+ <script src="/static/foresight_programs.js"></script>
+ <script>
+ 'use strict';
+@@ -200,6 +201,19 @@ function showShortcuts(){
+   ask({title: 'Keyboard and mouse', sub: 'Keys work when the counter itself has focus; keys pressed inside a tray go to that program.', info});
+ }
+ const THEMES = [['tigereye', "Tiger's eye"], ['nero', 'Nero marble'], ['pearl', 'Pearl marble'], ['indigo', 'Indigo stone']];
++async function quitPubCast(){
++  const list=counter.trays.map(t=>counter.active(t).title);
++  const info=document.createElement('div');
++  info.textContent='Quit the Reach host and stop its owned shell sessions. Supported file and 2i recovery copies will be saved. Finish recording or other work in programs that have their own Save controls first. Open trays: '+(list.join(', ')||'none');
++  if(!await ask({title:'Quit PubCast',info,okLabel:'Save and quit',cancel:true}))return;
++  if(await counter.save(null)===false)return;
++  try{
++    const token=sessionStorage.getItem('pubcast_token')||localStorage.getItem('pubpartner.auth.token.v1');
++    const response=await fetch('/api/foresight/host/quit',{method:'POST',headers:token?{Authorization:'Bearer '+token}:{}});
++    if(!response.ok){let body;try{body=await response.json()}catch{}throw Error(body?.detail||'Quit failed: HTTP '+response.status)}
++    counter.toast('Reach is shutting down. This browser tab may now be closed.');
++  }catch(error){counter.toast(error.message)}
++}
+ function menuModel(){
+   const t = sel(), state = x => x.closed ? ' (in the fan)' : x.parked ? ' (put away)' : '';
+   const windows = counter.trays.map(x => ({label: (x.closed ? '○ ' : x.parked ? '– ' : x === counter.selected ? '● ' : '◦ ') + counter.active(x).title + state(x),
+@@ -218,10 +232,12 @@ function menuModel(){
+       {label: 'Export this tray', run: () => counter.exportTray(t), disabled: !t},
+       {label: 'Screen capture of this tray', run: () => counter.capture(t), disabled: !t},
+       {sep: true},
+-      {label: 'Save the countertop', run: () => counter.save(null)},
++      {label: 'Save open files and countertop', run: () => counter.save(null)},
+       {label: 'Close this tray into the fan', key: 'Alt+W', run: closeSelected, disabled: !t},
+       {label: 'Close all into the fan', run: closeAllIntoFan, disabled: !openTrays().length},
+       {label: 'Clear the countertop…', run: clearCountertop, disabled: !counter.trays.length},
++      {sep:true},
++      {label:'Quit PubCast…',run:quitPubCast},
+     ]},
+     {name: 'View', items: [
+       {label: 'Full screen', key: 'Alt+F', run: () => counter.fullScreen(t), disabled: !t},
+diff --git a/static/foresight_counter.js b/static/foresight_counter.js
+index 51743fd..d1862dc 100644
+--- a/static/foresight_counter.js
++++ b/static/foresight_counter.js
+@@ -710,8 +710,13 @@
+     }
+     async function save(t){
+       hideMenu();
+-      if(t && provider.save){ try{ const r = await provider.save(activeContent(t)); if(r !== false){ saveCounter(); toast('Saved ' + activeContent(t).title); return; } }catch(err){ toast('Save did not work: ' + (err && err.message || err)); return; } }
+-      const ok = saveCounter(); toast(ok ? 'Saved the counter in this browser' : 'Could not save here (browser storage is off)');
++      if(t && provider.save){ try{ const r = await provider.save(activeContent(t)); if(r !== false){ saveCounter(); toast('Saved working copy of ' + activeContent(t).title); return; } }catch(err){ toast('Save did not work: ' + (err && err.message || err)); return; } }
++      if(!t&&provider.save){
++        try{for(const tray of trays)for(const content of tray.stack)await provider.save(content)}
++        catch(error){toast('Save failed: '+error.message);return false;}
++      }
++      const ok = saveCounter(); toast(ok ? (t?'Saved counter layout; use this program’s own controls to save its work':'Saved supported files and the counter in this browser') : 'Could not save here (browser storage is off)');
++      return ok;
+     }
+ 
+     // ---------- keeping the counter across reloads
+@@ -827,9 +832,9 @@
+     }
+     function pickFile(t){
+       const inp = document.createElement('input'); inp.type = 'file';
+-      inp.addEventListener('change', () => {
++      inp.addEventListener('change', async () => {
+         const f = inp.files && inp.files[0]; if(!f) return;
+-        const r = provider.fromFile ? provider.fromFile(f) : null;
++        let r;try{r=provider.resolveFile?await provider.resolveFile(f):provider.fromFile?provider.fromFile(f):null;}catch(error){toast(error.message);return;}
+         if(!r){ toast('That kind of file cannot be opened in a tray yet'); return; }
+         if(t) importInto(t, r.type, r.data); else open(r.type, r.data);
+       });
+diff --git a/static/foresight_file_shelf.html b/static/foresight_file_shelf.html
+new file mode 100644
+index 0000000..49133c7
+--- /dev/null
++++ b/static/foresight_file_shelf.html
+@@ -0,0 +1,7 @@
++<!doctype html><html><head><meta charset="utf-8"><title>PubCast saved files</title><style>body{background:#1c1510;color:#f0dfc1;font:16px system-ui;padding:16px}button{padding:8px;margin:4px;background:#3b3022;color:inherit;border:1px solid #8c7651}li{margin:10px 0}small{opacity:.8}</style></head><body><h2>Saved working files</h2><p>Originals and working copies stored by this browser. Export copies to keep them outside PubCast.</p><button id="refresh">Refresh</button><ul id="files"></ul><h3>Local PubCast folders</h3><ul id="disk-files"></ul><p role="status" id="status"></p><script src="/static/foresight_files.js"></script><script>
++'use strict';
++async function refresh(){try{const files=(await ForesightFiles.list()).filter(f=>f.id!=='twoi-native-last');const list=document.getElementById('files');list.replaceChildren();for(const f of files.sort((a,b)=>b.updated-a.updated)){const li=document.createElement('li'),button=document.createElement('button');button.textContent=f.name;button.onclick=()=>{if(parent===window)location.assign('/writers-room?file='+encodeURIComponent(f.id));else parent.postMessage({type:'foresight:open-file',fileId:f.id,name:f.name},location.origin)};li.append(button,document.createTextNode(' · '+new Date(f.updated).toLocaleString()+' · '+f.size+' bytes'));list.append(li)}document.getElementById('status').textContent=files.length+' saved working copies';
++const disk=await ForesightFiles.workspace('files');const dl=document.getElementById('disk-files');dl.replaceChildren();
++for(const f of disk.files){const li=document.createElement('li'),b=document.createElement('button');b.textContent=f.path;b.onclick=async()=>{try{const saved=await ForesightFiles.workspace('file?path='+encodeURIComponent(f.path));const bytes=Uint8Array.from(atob(saved.data),c=>c.charCodeAt(0)),id=crypto.randomUUID(),name=f.path.split('/').pop();await ForesightFiles.record(id,{id,name,mime:'',original:new File([bytes],name),workspace:{path:f.path,revision:saved.revision,format:name.endsWith('.2i')?'2i':undefined},updated:Date.now()});if(parent===window)location.assign('/writers-room?file='+id);else parent.postMessage({type:'foresight:open-file',fileId:id,name},location.origin)}catch(e){document.getElementById('status').textContent=e.message}};li.append(b);dl.append(li)}}catch(e){document.getElementById('status').textContent=e.message}}
++document.getElementById('refresh').onclick=refresh;refresh();
++</script></body></html>
+diff --git a/static/foresight_files.js b/static/foresight_files.js
+new file mode 100644
+index 0000000..842cddb
+--- /dev/null
++++ b/static/foresight_files.js
+@@ -0,0 +1,203 @@
++/* Shared file working copies. Tray geometry belongs to Counter; bytes belong here. */
++(function(root){
++'use strict';
++const DB='pubcast-foresight-files-v1', STORE='files';
++let database;
++function db(){
++  if(!database) database=new Promise((resolve,reject)=>{
++    const r=indexedDB.open(DB,1);
++    r.onupgradeneeded=()=>r.result.createObjectStore(STORE,{keyPath:'id'});
++    r.onsuccess=()=>{r.result.onversionchange=()=>{r.result.close();database=null};resolve(r.result)};
++    r.onerror=()=>{database=null;reject(r.error)};
++    r.onblocked=()=>{database=null;reject(Error('Close other PubCast tabs to upgrade file storage'))};
++  });
++  return database;
++}
++async function record(id,value,expected){
++  const d=await db();
++  return new Promise((resolve,reject)=>{
++    const tx=d.transaction(STORE,value?'readwrite':'readonly'),store=tx.objectStore(STORE);
++    let result,error;
++    if(value&&expected!==undefined){
++      const read=store.get(id);
++      read.onsuccess=()=>{
++        if((read.result?.revision||0)!==expected){error=Error('This working copy changed in another window. Export your edits before reopening it.');tx.abort();return;}
++        result={...value,revision:expected+1};store.put(result);
++      };
++    }else{const r=value?store.put(value):store.get(id);r.onsuccess=()=>{result=value||r.result};}
++    tx.oncomplete=()=>resolve(result);
++    tx.onabort=tx.onerror=()=>reject(error||tx.error||Error('File storage failed'));
++  });
++}
++
++function node(tag,attrs={},text){
++  const n=document.createElement(tag);
++  for(const [k,v] of Object.entries(attrs)) {if(k==='style')n.style.cssText=v;else n.setAttribute(k,v)}
++  if(text!==undefined)n.textContent=text;
++  return n;
++}
++function download(name,blob){
++  const a=node('a',{download:name,href:URL.createObjectURL(blob)});document.body.append(a);a.click();a.remove();
++  setTimeout(()=>URL.revokeObjectURL(a.href),30000);
++}
++function headers(){
++  const token=sessionStorage.getItem('pubcast_token')||localStorage.getItem('pubpartner.auth.token.v1');
++  return token?{Authorization:'Bearer '+token}:{};
++}
++async function api(path,body){
++  const r=await fetch('/api/foresight/files/'+path,{method:'POST',headers:{...headers(),'Content-Type':'application/json'},body:JSON.stringify(body)});
++  if(!r.ok){let d;try{d=await r.json()}catch{}throw Error(typeof d?.detail==='string'?d.detail:'File service returned HTTP '+r.status)}
++  return r;
++}
++async function workspace(path,body){
++  const r=await fetch('/api/foresight/workspace/'+path,{method:body?'POST':'GET',headers:{...headers(),...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});
++  if(!r.ok){let d;try{d=await r.json()}catch{}throw Error(typeof d?.detail==='string'?d.detail:'Local workspace returned HTTP '+r.status)}
++  return r.json();
++}
++async function base64(blob){
++  return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result.split(',')[1]);r.onerror=()=>reject(r.error);r.readAsDataURL(blob)});
++}
++const ext=name=>(String(name).match(/\.([^.]+)$/)||[])[1]?.toLowerCase()||'';
++async function decodeText(blob){
++  if(blob.size>5*1024*1024)throw Error('Text exceeds the 5 MB editor limit. Original remains available.');
++  const bytes=new Uint8Array(await blob.arrayBuffer());let encoding='utf-8';
++  if(bytes[0]===255&&bytes[1]===254)encoding='utf-16le';
++  if(bytes[0]===254&&bytes[1]===255)encoding='utf-16be';
++  const text=new TextDecoder(encoding,{fatal:true}).decode(bytes);
++  if(text.includes('\0'))throw Error('This appears to be a binary file; no text conversion was applied.');
++  return text;
++}
++const sessions=new WeakMap();
++async function mount(c,host,file,options={}){
++  const body=host.body;body.replaceChildren();
++  const wrap=node('div',{'class':'ff-workspace',style:'display:flex;flex-direction:column;height:100%;min-height:0;padding:12px;box-sizing:border-box;color:#efdfc2;gap:8px'});
++  const bar=node('div',{style:'display:flex;flex-wrap:wrap;gap:6px'}),status=node('div',{role:'status',style:'font-size:12px;white-space:pre-wrap'}),area=node('div',{style:'flex:1;min-height:0;overflow:auto'});
++  wrap.append(bar,status,area);body.append(wrap);
++  let alive=true, value, editor, image, canvas, url, handle, timer, saving=Promise.resolve(), serial=0, changed=false, processing=Promise.resolve();
++  const say=s=>{if(alive)status.textContent=s};
++  function button(label,fn){const b=node('button',{type:'button',class:'fp-btn'},label);b.onclick=()=>Promise.resolve().then(fn).catch(e=>say(e.message));bar.append(b);return b}
++  function snapshot(){return {...value,draft:editor?(options.getText?.()??editor.value):value.draft,title:options.getTitle?.()||value.title,twoiState:options.getState?{...value.twoiState,...structuredClone(options.getState())}:value.twoiState,updated:Date.now()}}
++  function persist(){
++    if(!value)return Promise.reject(Error('File has not finished opening'));
++    clearTimeout(timer);const v=snapshot(),version=serial;
++    saving=saving.catch(()=>{}).then(()=>record(v.id,v,value.revision||0)).then(saved=>{value.revision=saved.revision;if(serial===version){changed=false;say(handle?'Saved to chosen file and PubCast · source snapshot retained':'Working copy saved in PubCast · source snapshot retained')}return v});
++    return saving;
++  }
++  function dirty(){serial++;changed=true;say('Unsaved changes');host.changed();clearTimeout(timer);timer=setTimeout(()=>persist().catch(e=>say('Save failed: '+e.message)),350)}
++  async function output(format){
++    await processing;
++    if(!format&&editor&&ext(value.name)==='2i')format='2i';
++    if(editor){
++      if(format==='2i')return new Blob([JSON.stringify({format:'2i-document',version:4,title:options.getTitle?.()||value.title||value.name,state:{...value.twoiState,...options.getState?.()}},null,2)],{type:'application/json'});
++      if(format==='docx')return (await api('export',{text:options.getText?.()??editor.value,format})).blob();
++      return new Blob([options.getText?.()??editor.value],{type:'text/plain;charset=utf-8'});
++    }
++    return value.working||value.original;
++  }
++  function outputName(format){
++    const name=value.name;
++    if(format==='docx')return name.replace(/\.[^.]*$/,'')+'.docx';
++    if(editor&&value.converted)return name.replace(/\.[^.]*$/,'')+'.txt';
++    if(value.working)return name.replace(/\.[^.]*$/,'')+'.png';
++    return name;
++  }
++  async function saveAs(){
++    // Obtain the native handle during the user gesture; generating a document can be asynchronous.
++    const name=outputName();let picked;
++    if(root.showSaveFilePicker) {try{picked=await root.showSaveFilePicker({suggestedName:name})}catch(e){if(e.name==='AbortError')return;throw e}}
++    const target=ext(picked?.name||name);
++    const format=editor&&['docx','2i'].includes(target)?target:undefined;
++    if(editor&&['pdf','png','jpg','jpeg','xlsx','pptx','doc','odt','zip'].includes(target))throw Error('Use a text, DOCX or 2i destination for this editable copy; this format cannot be written.');
++    if(canvas&&target!=='png')throw Error('Edited images must be saved as PNG; choose a .png destination.');
++    const blob=await output(format);
++    if(picked){const stream=await picked.createWritable();try{await stream.write(blob);await stream.close()}catch(e){await stream.abort().catch(()=>{});throw e}handle=picked;delete value.workspace;value.handle=handle;value.savedFormat=format;value.name=picked.name;c.data.name=value.name;host.setTitle(value.name);say('Saved file: '+picked.name)}
++    else {download(name,blob);say('Copy downloaded · destination follows your browser settings')}
++
++    await persist();
++  }
++  async function saveToWorkspace(){
++    const chosen=prompt('Save in your local PubCast workspace. Use folders such as Scripts/example.py.',value.workspace?.path||outputName());
++    if(chosen===null)return false;
++    const path=chosen.trim();if(!path)throw Error('Enter a filename');
++    const target=ext(path),format=editor&&['docx','2i'].includes(target)?target:undefined;
++    if(editor&&['pdf','png','jpg','jpeg','xlsx','pptx','doc','odt','zip'].includes(target))throw Error('Choose a text, DOCX or 2i filename for this text copy.');
++    if(value.working&&target!=='png')throw Error('Edited images are saved as PNG.');
++    const saved=await workspace('file',{path,data:await base64(await output(format)),expected_revision:value.workspace?.path===path?value.workspace.revision:null});
++    value.workspace={path:saved.path,revision:saved.revision,format};handle=undefined;delete value.handle;await persist();say('Saved local file: '+saved.path);return true;
++  }
++  async function save(){
++    if(value.workspace){const saved=await workspace('file',{path:value.workspace.path,data:await base64(await output(value.workspace.format)),expected_revision:value.workspace.revision});value.workspace.revision=saved.revision;await persist();say('Saved local file: '+saved.path);return true;}
++    if(handle){if(handle.queryPermission&&await handle.queryPermission({mode:'readwrite'})!=='granted'&&await handle.requestPermission({mode:'readwrite'})!=='granted')throw Error('File permission was not granted. Use Save As to choose a destination.');const blob=await output(value.savedFormat);const stream=await handle.createWritable();try{await stream.write(blob);await stream.close()}catch(e){await stream.abort().catch(()=>{});throw e}}
++    return persist();
++  }
++  const session={save,export:async()=>{const data=await output();return {name:outputName(),data,type:data.type}},
++    pending:()=>changed,dispose:()=>{alive=false;clearTimeout(timer);if(value)persist().catch(console.error);if(url)URL.revokeObjectURL(url);if(image)image.src='';const media=area.querySelector('video,audio');if(media){media.pause();media.removeAttribute('src');media.load()}},
++    flush:persist,saveAs:saveToWorkspace};
++  sessions.set(c,session);
++  try{
++    c.data.fileId=c.data.fileId||crypto.randomUUID();host.changed();
++    value=await record(c.data.fileId);
++    if(!value&&file){value={id:c.data.fileId,name:file.name,mime:file.type,original:file,updated:Date.now()};await record(value.id,value)}
++    if(!alive)return session;
++    if(!value){say('No saved file bytes found. Choose the file again using Import.');return session}
++    handle=value.handle;
++    options.onReady?.(value);
++    button('Local account…',async()=>{await persist();const top=window.top;top.location.assign('/login?next='+encodeURIComponent(top.location.pathname+top.location.search))});
++    button('Save',()=>session.save());button('Save As…',saveToWorkspace);button('Save to device…',saveAs);
++    button('Download original',()=>download(value.original.name||value.name,value.original));
++    button('Rename working copy',async()=>{const n=prompt('Working copy filename',value.name);if(n?.trim()){value.name=n.trim().replace(/[\\/]/g,'_').slice(0,255);c.data.name=value.name;host.setTitle(value.name);await persist();host.changed()}});
++    const extension=ext(value.name), mime=value.mime||'';
++    if(mime.startsWith('image/')||/^(png|jpe?g|gif|webp|bmp|svg|avif)$/.test(extension)){
++      options.onImage?.();
++      image=new Image();url=URL.createObjectURL(value.working||value.original);
++      await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=()=>reject(Error('This image cannot be decoded by your browser'));image.src=url});
++      if(!alive)return session;
++      canvas=node('canvas',{'aria-label':'Image editor',style:'max-width:100%;height:auto'});canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
++      if(canvas.width*canvas.height>40000000)throw Error('Image exceeds the 40-megapixel editing limit');
++      canvas.getContext('2d').drawImage(image,0,0);area.append(canvas);
++
++      async function commit(){
++        const version=++serial;changed=true;
++        const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('Could not encode image')),'image/png'));
++        if(version!==serial)return;
++        value.working=blob;await persist();
++      }
++      function imageAction(fn){processing=processing.catch(()=>{}).then(async()=>{if(fn()!==false)await commit()});return processing}
++      function rotate(){return imageAction(()=>{const copy=node('canvas');copy.width=canvas.width;copy.height=canvas.height;copy.getContext('2d').drawImage(canvas,0,0);canvas.width=copy.height;canvas.height=copy.width;const ctx=canvas.getContext('2d');ctx.translate(canvas.width,0);ctx.rotate(Math.PI/2);ctx.drawImage(copy,0,0)})}
++      button('Rotate 90°',rotate);
++      button('Crop…',()=>imageAction(()=>{
++        const raw=prompt('Crop rectangle in pixels: left, top, width, height',`0, 0, ${canvas.width}, ${canvas.height}`);if(raw===null)return false;
++        const v=raw.split(',').map(x=>Number(x.trim()));
++        if(v.length!==4||!v.every(Number.isInteger)||v[0]<0||v[1]<0||v[2]<1||v[3]<1||v[0]+v[2]>canvas.width||v[1]+v[3]>canvas.height)throw Error('Crop must be a rectangle inside the image');
++        const pixels=canvas.getContext('2d').getImageData(...v);canvas.width=v[2];canvas.height=v[3];canvas.getContext('2d').putImageData(pixels,0,0);
++      }));
++      const oldSave=session.save;session.save=async()=>{await processing;return oldSave()};session.flush=session.save;
++      const oldExport=session.export;session.export=async()=>{await processing;return oldExport()};
++      say('Image ready · edits save as a PNG working copy · original retained');
++    }else if(mime.startsWith('video/')||mime.startsWith('audio/')||/^(mp4|webm|mov|m4v|ogv|mp3|wav|m4a|ogg|flac)$/.test(extension)){
++      const media=node(mime.startsWith('audio/')||/^(mp3|wav|m4a|ogg|flac)$/.test(extension)?'audio':'video',{controls:'',style:'max-width:100%;max-height:100%'});
++      url=URL.createObjectURL(value.original);media.src=url;media.onerror=()=>say('Your browser cannot decode this media format. Original retained.');area.append(media);say('Media ready · original saved for reopening');
++    }else{
++      if(value.draft===undefined&&extension==='2i'){if(value.original.size>5*1024*1024)throw Error('2i document exceeds the 5 MB editor limit');const d=JSON.parse(await value.original.text());if(d.format!=='2i-document'||d.version>4||!d.state||!Array.isArray(d.state.committed)||!d.state.committed.every(line=>typeof line==='string'))throw Error('Invalid 2i document');value.title=typeof d.title==='string'?d.title:value.name;value.twoiState=d.state;value.draft=d.state.committed.join('\n');}
++      if(value.draft===undefined&&/^(docx|odt|pptx|xlsx|pdf)$/.test(extension)){
++        say('Converting a working copy…');
++        const result=await (await api('convert',{name:value.name,data:await base64(value.original)})).json();
++        value.draft=result.text;value.warning=result.warning;value.converted=true;await record(value.id,value);
++      }
++      if(value.draft===undefined)value.draft=await decodeText(value.original);
++      if(value.warning)wrap.insertBefore(node('div',{role:'note',style:'font-size:12px;line-height:1.4'},value.warning),area);
++      if(!alive)return session;
++      editor=options.editor||node('textarea',{'aria-label':'File editor',spellcheck:'false',style:'box-sizing:border-box;width:100%;height:100%;min-height:180px;resize:none;background:#171511;color:#f3e5ca;border:1px solid #887455;padding:12px;font:14px/1.5 monospace;tab-size:4'});
++      editor.value=value.draft;options.load?.(value);editor.addEventListener('input',dirty);editor.addEventListener('foresight-native-change',dirty);if(!options.editor)area.append(editor);else area.style.display='none';
++      button('Export DOCX',async()=>{download(outputName('docx'),await output('docx'));say('DOCX text copy downloaded; original unchanged')});
++      if(/\.py$/i.test(value.name)){button('Check Python',async()=>{const r=await workspace('check-python',{name:value.name,text:options.getText?.()??editor.value});say(r.message)});button('Run Python',async()=>{await persist();if(parent===window)window.open('/static/foresight_shell.html?script='+encodeURIComponent(value.id),'_blank','noopener');else parent.postMessage({type:'foresight:run-python',fileId:value.id,name:value.name},location.origin)})}
++      if(options.getState)button('Export 2i manuscript',async()=>download(value.name.replace(/\.[^.]*$/,'')+'.2i',await output('2i')));
++      if(extension==='pdf')button('View original PDF',()=>{options.onPreview?.(true);area.style.display='block';if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(value.original);const f=node('iframe',{src:url,title:value.name,style:'width:100%;height:100%;border:0'});area.replaceChildren(f);button('Return to editor',()=>{if(options.editor){area.replaceChildren();area.style.display='none';options.onPreview?.(false)}else area.replaceChildren(editor)})});
++      say(value.warning||'2i text editor ready · working copy auto-saves · text exports use UTF-8');
++    }
++  }catch(e){options.onError?.();if(value&&ext(value.name)==='pdf')button('View original PDF',()=>{if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(value.original);area.replaceChildren(node('iframe',{src:url,title:value.name,style:'width:100%;height:100%;border:0'}))});say('Could not open working copy: '+e.message+'\nThe original has not been altered.');if(value&&!bar.querySelector('button'))button('Download original',()=>download(value.original.name||value.name,value.original))}
++  return session;
++}
++async function list(){const d=await db();return new Promise((resolve,reject)=>{const t=d.transaction(STORE,'readonly'),r=t.objectStore(STORE).getAll();t.oncomplete=()=>resolve(r.result.map(({id,name,updated,original})=>({id,name,updated,size:original?.size||0})));t.onerror=()=>reject(t.error)})}
++root.ForesightFiles={encode:base64,workspace,list,mount,get:c=>sessions.get(c),record,decodeText,download};
++})(window);
+diff --git a/static/foresight_programs.js b/static/foresight_programs.js
+index 63d7c33..d9350b3 100644
+--- a/static/foresight_programs.js
++++ b/static/foresight_programs.js
+@@ -65,6 +65,8 @@
+     {id: 'dressing', title: 'Dressing Room', group: 'Studio Rooms', kind: 'page', url: '/static/dressing.html', w: 780, h: 540, minW: 480, minH: 340, shape: 'room', singleton: true},
+     {id: 'waiting_room', title: 'Waiting Room', group: 'Studio Rooms', kind: 'page', url: '/static/waiting_room.html', w: 720, h: 500, minW: 440, minH: 320, shape: 'room', singleton: true},
+     {id: 'map', title: 'Map / Walk', group: 'Studio Rooms', kind: 'page', url: '/static/map.html', w: 780, h: 540, minW: 480, minH: 340, shape: 'room', singleton: true},
++    {id:'saved_files',title:'Saved files',group:'Programs',kind:'page',url:'/static/foresight_file_shelf.html',w:680,h:500,minW:400,minH:300,shape:'wide'},
++    {id:'shell',title:'Host shell',group:'Development',kind:'page',url:'/static/foresight_shell.html',w:820,h:540,minW:480,minH:320,shape:'wide'},
+     // production tools
+     {id: 'teleprompter', title: 'Teleprompter', group: 'Production Tools', kind: 'page', url: '/static/pubcast_teleprompter.html', w: 660, h: 480, minW: 420, minH: 300, shape: 'tool', singleton: true},
+     {id: 'gallery', title: 'Gallery', group: 'Production Tools', kind: 'page', url: '/static/gallery.html', w: 660, h: 480, minW: 420, minH: 300, shape: 'tool', singleton: true},
+@@ -112,7 +114,7 @@
+     if(mime.startsWith('video/') || mime.startsWith('audio/') || /\.(mp4|webm|mov|m4v|ogv|mp3|wav|m4a|ogg|flac)$/i.test(name)) return 'video';
+     if(mime.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp|svg|avif)$/i.test(name)) return 'image';
+     if(mime === 'application/pdf' || /\.pdf$/i.test(name)) return 'pdf';
+-    if(mime.startsWith('text/') || /\.(txt|md|csv|json|log)$/i.test(name)) return 'text';
++    if(mime.startsWith('text/') || /\.(txt|md|csv|json|log|py|js|ts|jsx|tsx|xml|html|css|yaml|yml|toml|ini|cfg|sh|ps1|sql|c|cpp|h|hpp|rs|docx|odt|pptx|xlsx|2i)$/i.test(name)) return 'text';
+     return null;
+   }
+   // A cross-origin server cannot be inspected from here, but a no-cors request resolves when the server answers
+@@ -131,7 +133,7 @@
+     const toast = opts.toast || (t => console.log(t));
+     let counter = null;
+     const frames = new Map();     // iframe window -> content, for messages from pages inside trays
+-    const files = new WeakMap();  // content -> File (a picked file is never written to storage)
++    const files = new WeakMap();  // content -> picked File; durable originals live in ForesightFiles
+     const urlOf = p => typeof p.url === 'function' ? p.url(config) : p.url;
+ 
+     function programFor(type){ return byId(type); }
+@@ -163,7 +165,8 @@
+       if(type === 'chat') title = safeLabel(data.title, 'Chat');
+       if(type === 'file'){ const k = fileKind(data.name || '', data.mime || ''); title = safeLabel(data.name, 'File'); shape = k || 'image'; if(k === 'text'){ ink = 'light'; } }
+       if(type === 'video' || type === 'file') bg = '#050403';
+-      return {title, family: SHAPE[shape] || 'pentagon', w: p.w, h: p.h, minW: p.minW, minH: p.minH, minScale: p.minScale || 0.7, ink, bg};
++      const editor=type==='file'&&!['image','video'].includes(fileKind(data.name||'',data.mime||''));
++      return {title, family: SHAPE[shape] || 'pentagon', w: editor?980:p.w, h: editor?620:p.h, minW: editor?640:p.minW, minH: editor?420:p.minH, minScale: p.minScale || 0.7, ink, bg};
+     }
+ 
+     // --- putting a content on its screen
+@@ -172,7 +175,7 @@
+       c.data = c.data || {};
+       const body = host.body; body.classList.add('fp-body');
+       c.host = host;
+-      if(p.kind === 'page') frameFor(c, body, urlOf(p));
++      if(p.kind === 'page') frameFor(c, body, urlOf(p)+(c.type==='shell'&&c.data.scriptId?'?script='+encodeURIComponent(c.data.scriptId):''));
+       else if(p.kind === 'external') mountExternal(c, body, p);
+       else if(p.kind === 'status') mountStatus(c, body, p);
+       else if(p.kind === 'browser') mountBrowser(c, body);
+@@ -260,8 +263,17 @@
+       if(c.data.address){ addr.value = c.data.address; frame.src = c.data.address; } else setTimeout(() => addr.focus(), 60);
+     }
+ 
+-    function mountVideo(c, body){
+-      const d = c.data, file = files.get(c);
++    async function mountVideo(c, body){
++      const d = c.data;
++      let file = files.get(c);
++      if(d.type==='file'&&d.fileId){
++        try{
++          if(file&&!await ForesightFiles.record(d.fileId))await ForesightFiles.record(d.fileId,{id:d.fileId,name:file.name,mime:file.type,original:file,updated:Date.now()});
++          if(!file)file=(await ForesightFiles.record(d.fileId))?.original;
++          if(file)files.set(c,file);
++        }catch(error){panel(body,'Media storage failed',error.message);return;}
++        if(c.stopped)return;
++      }
+       if(d.type === 'file' && !file){
+         panel(body, 'Choose the video again', ['Browsers do not keep access to files from your computer after the page reloads. Choose ' + (d.name || 'the file') + ' again to keep watching.'],
+           [['Choose file…', () => pickInto(c)]]);
+@@ -295,26 +307,34 @@
+     }
+ 
+     async function mountFile(c, body){
+-      const d = c.data, file = files.get(c), kind = fileKind(d.name || '', d.mime || '');
+-      if(!file){
+-        panel(body, 'Choose the file again', ['Browsers do not keep access to files from your computer after the page reloads. Choose ' + (d.name || 'the file') + ' again to keep working with it.'],
+-          [['Choose file…', () => pickInto(c)]]);
+-        return;
++      const file=files.get(c);
++      if(!c.data.fileId){
++        if(!file){panel(body,'Choose the file again','No saved file bytes found.',[['Choose file…',()=>pickInto(c)]]);return;}
++        c.data.fileId=crypto.randomUUID();c.host.changed();
+       }
+-      body.innerHTML = '';
+-      if(c.objectUrl){ URL.revokeObjectURL(c.objectUrl); c.objectUrl = null; }
+-      if(kind === 'image'){
+-        c.objectUrl = URL.createObjectURL(file);
+-        const img = el('img', {alt: d.name || '', class: 'fp-img'}); img.src = c.objectUrl;
+-        img.addEventListener('error', () => panel(body, 'Image unavailable', 'This browser cannot show this image file.', [['Choose another file…', () => pickInto(c)]]));
+-        body.appendChild(img);
+-      } else if(kind === 'pdf'){
+-        c.objectUrl = URL.createObjectURL(file); frameFor(c, body, c.objectUrl, {title: d.name || 'Document'});
+-      } else if(kind === 'text'){
+-        if(file.size > 5*1024*1024){ panel(body, 'File too large to show', 'Text files over 5 MB are not shown in a tray.'); return; }
+-        const pre = el('pre', {class: 'fp-text'}); pre.textContent = await file.text(); body.appendChild(pre);
+-      } else panel(body, 'Cannot show this file', 'This kind of file cannot be shown in a tray.');
++      try{
++        if(file&&!await ForesightFiles.record(c.data.fileId))await ForesightFiles.record(c.data.fileId,{id:c.data.fileId,name:file.name,mime:file.type,original:file,updated:Date.now()});
++        if(c.stopped)return;
++        body.replaceChildren();
++        frameFor(c,body,'/writers-room?file='+encodeURIComponent(c.data.fileId),{title:'2i · '+(c.data.name||'File')});
++      }catch(error){panel(body,'File storage failed',error.message,[...(file?[['Download original',()=>ForesightFiles.download(file.name,file)]]:[]),['Choose file…',()=>pickInto(c)]]);}
+     }
++    const fileCommands=new Map();
++    function fileCommand(c,command){
++      if(!c.frame)return Promise.reject(Error('File editor is not open'));
++      return new Promise((resolve,reject)=>{
++        const requestId=crypto.randomUUID();
++        const timer=setTimeout(()=>{fileCommands.delete(requestId);reject(Error('2i file editor did not respond; open the tray and retry'))},15000);
++        fileCommands.set(requestId,{resolve,reject,timer,source:c.frame.contentWindow});
++        c.frame.contentWindow.postMessage({type:'foresight:file-command',fileId:c.data.fileId,requestId,command},location.origin);
++      });
++    }
++    addEventListener('message',e=>{
++      if(e.origin!==location.origin||e.data?.type!=='foresight:file-result')return;
++      const pending=fileCommands.get(e.data.requestId);if(!pending||pending.source!==e.source)return;
++      clearTimeout(pending.timer);fileCommands.delete(e.data.requestId);
++      if(e.data.error)pending.reject(Error(e.data.error));else pending.resolve(e.data.result);
++    });
+ 
+     async function mountRecordings(c, body){
+       panel(body, 'Recordings', 'Loading recordings…');
+@@ -339,23 +359,40 @@
+ 
+     // A file picked to go into an existing content (one asking for its file again).
+     function pickInto(c){
+-      const input = el('input', {type: 'file', accept: 'image/*,video/*,audio/*,application/pdf,text/plain,.txt,.md,.csv,.json,.log'});
+-      input.addEventListener('change', () => {
++      const input = el('input', {type: 'file', accept: '*/*'});
++      input.addEventListener('change', async () => {
+         const f = input.files && input.files[0]; if(!f) return;
+-        const r = fromFile(f); if(!r){ toast('This file type cannot be shown in a tray: ' + f.name); return; }
++        let r;try{r=await resolveFile(f)}catch(error){toast(error.message);return;} if(!r){ toast('This file type cannot be shown in a tray: ' + f.name); return; }
+         if(c.tray && counter){ counter.importInto(c.tray, r.type, r.data); }
+       });
+       input.click();
+     }
+ 
+-    // --- a file from this computer: which content shows it. The file itself is kept in memory only.
++    // --- route a picked file; mount persists its original before opening the editor.
+     const pendingFiles = new Map();   // data object -> File, until the content is made from it
+     function fromFile(file){
+       const kind = fileKind(file.name, file.type);
+-      if(!kind) return null;
+-      const data = kind === 'video' ? {type: 'file', name: file.name, mime: file.type || ''} : {name: file.name, mime: file.type || ''};
++      // Unknown types still retain their original and try the strict text fallback.
++
++      const data = {name:file.name,mime:file.type||'',fileId:crypto.randomUUID()};
+       pendingFiles.set(data, file);
+-      return {type: kind === 'video' ? 'video' : 'file', data};
++      if(kind==='video')data.type='file';
++      return {type:kind==='video'?'video':'file',data};
++    }
++    async function resolveFile(file){
++      if(/\.url$/i.test(file.name)&&file.size<8192){
++        const text=await file.text(),match=text.match(/^URL=(.+)$/m);
++        if(text.includes('[InternetShortcut]')&&match)return {type:'browser',data:{address:normalizeAddress(match[1].trim())}};
++      }
++      if(/\.json$/i.test(file.name)&&file.size<5*1024*1024){
++        let value;try{value=JSON.parse(await file.text())}catch{}
++        if(value?.kind==='foresight.content'){
++          const type=value.program||value.type;
++          if(!byId(type))throw Error('This exported tray names an unavailable program: '+String(type));
++          return {type,data:value.data&&typeof value.data==='object'?value.data:{}};
++        }
++      }
++      return fromFile(file);
+     }
+     // claim a picked file for the content made from it (mount runs right after makeContent)
+     const mountInner = mount;
+@@ -373,6 +410,7 @@
+     // --- Export: the content as a file to keep
+     async function exportContent(c){
+       const p = programFor(c.type), file = files.get(c);
++      if(c.type==='twoi'||c.type==='file'&&c.data.fileId)return fileCommand(c,'export');
+       if(file) return {name: file.name, data: file, type: file.type};
+       if(c.type === 'browser' && c.data.address){
+         // a Windows internet shortcut: double-click it to open the page
+@@ -390,7 +428,7 @@
+     // --- the picker (New blade, File > Open, a tray's Import…)
+     function catalog(){
+       const items = [];
+-      const groups = ['Programs', 'Chat & Collaboration', 'Studio Rooms', 'Production Tools', 'Status'];
++      const groups = ['Programs', 'Chat & Collaboration', 'Studio Rooms', 'Production Tools', 'Development', 'Status'];
+       for(const g of groups) for(const p of PROGRAMS.filter(x => x.group === g && !['browser', 'video', 'file', 'chat'].includes(x.id))){
+         items.push({type: p.id, title: p.title, group: g === 'Chat & Collaboration' ? 'Programs' : g, hint: isOpen(p.id) ? 'Already open: brings it forward' : ''});
+       }
+@@ -410,6 +448,7 @@
+     }
+     function beforeOpen(type, data, tray){
+       const p = programFor(type);
++      if(type==='file'&&data?.fileId&&counter){const existing=counter.trays.find(t=>t.stack.some(c=>c.type==='file'&&c.data?.fileId===data.fileId));if(existing){bringForward(existing,type);return false;}}
+       if(p && p.singleton){ const t = trayWith(type); if(t){ bringForward(t, type); toast(p.title + ' is already open in its own tray'); return false; } }
+       return true;
+     }
+@@ -460,6 +499,10 @@
+       // alone must not authorize that new page to issue host commands.
+       if(e.origin !== location.origin) return;
+       const c = frames.get(e.source); if(!c || !e.data || typeof e.data !== 'object') return;
++      if(e.data.type==='foresight:run-python'&&c.type==='file'&&e.data.fileId===c.data.fileId){openProgram('shell',{scriptId:e.data.fileId});return;}
++      if(e.data.type==='foresight:open-file'&&/^[a-f0-9-]{36}$/.test(e.data.fileId)){openProgram('file',{fileId:e.data.fileId,name:safeLabel(e.data.name,'File')});return;}
++      if(e.data.type==='foresight:file-renamed'&&c.type==='file'&&e.data.fileId===c.data.fileId){c.data.name=safeLabel(e.data.name,'File');c.host.setTitle(c.data.name);c.host.changed();return;}
++      if(e.data.type==='foresight:file-selected'&&c.type==='file'&&e.data.previousFileId===c.data.fileId&&/^[a-f0-9-]{36}$/.test(e.data.fileId)){c.data.fileId=e.data.fileId;c.data.name=safeLabel(e.data.name,'File');c.host.setTitle(c.data.name);c.host.changed();return;}
+       if(e.data.type === 'foresight:new-chat'){ newChat(); return; }
+       if(e.data.type === 'foresight:open-conversation' && e.data.conversationId){ openProgram('chat', {conversationId: String(e.data.conversationId), title: safeLabel(e.data.title, 'Chat')}); return; }
+       if(e.data.type === 'foresight:portal-conversation' && c.type === 'chat' && e.data.conversationId){
+@@ -468,7 +511,7 @@
+       }
+     });
+ 
+-    const provider = {catalog, describe, mount: mountWithFile, serialize, exportContent, fromFile, beforeOpen};
++    const provider = {catalog, describe, mount: mountWithFile, serialize, exportContent, fromFile, resolveFile, beforeOpen,save:c=>['file','twoi'].includes(c.type)?fileCommand(c,'save'):false};
+     return {
+       provider, programs: PROGRAMS, config, normalizeAddress, reload, newChat, askVideoUrl,
+       bind(c){ counter = c; },
+diff --git a/static/foresight_shell.html b/static/foresight_shell.html
+new file mode 100644
+index 0000000..6e5253b
+--- /dev/null
++++ b/static/foresight_shell.html
+@@ -0,0 +1,26 @@
++<!doctype html><html><head><meta charset="utf-8"><title>PubCast shell</title><style>
++html,body{margin:0;height:100%;background:#18130f;color:#f2dfbd;font:14px monospace}body{display:flex;flex-direction:column;padding:14px;box-sizing:border-box;gap:8px}button,input,textarea{font:inherit}header{display:flex;gap:8px;align-items:center;flex-wrap:wrap}pre{flex:1;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;margin:0;padding:10px;background:#0c0b09}form{display:flex;gap:8px}input{flex:1;min-width:0;background:#222;color:#fff}small{line-height:1.4}
++</style></head><body><header><button id="connect">Start shell</button><button id="stop" disabled>Stop shell and children</button><span id="status" role="status">Stopped</span></header><small>Owner host shell. Commands run on this computer in PubCast’s workspace folder. This console uses standard input/output; full-screen terminal applications require a terminal emulator.</small><pre id="output" aria-label="Shell output" tabindex="0"></pre><form id="form"><input id="command" aria-label="Shell command" autocomplete="off" spellcheck="false" disabled><button id="send" disabled>Run</button></form><script src="/static/foresight_files.js"></script><script>
++'use strict';
++const $=id=>document.getElementById(id);let socket;
++function print(text){$('output').textContent=($('output').textContent+text).slice(-250000);$('output').scrollTop=$('output').scrollHeight}
++if(new URLSearchParams(location.search).has('script'))$('connect').textContent='Run Python working copy';
++$('connect').onclick=async()=>{
++ const token=sessionStorage.getItem('pubcast_token')||localStorage.getItem('pubpartner.auth.token.v1');
++ if(!token){$('status').textContent='Sign in as owner before starting a host shell';return}
++ socket=new WebSocket(location.origin.replace(/^http/,'ws')+'/api/foresight/host/shell');$('connect').disabled=true;
++ socket.onopen=async()=>{
++ try{
++  const id=new URLSearchParams(location.search).get('script');
++  if(id){const file=await ForesightFiles.record(id);if(!file||typeof file.draft!=='string')throw Error('Saved script working copy not found');socket.send(JSON.stringify({token,mode:'python',source:file.draft,name:file.name}));print('Running saved working copy: '+file.name+'\n')}
++  else socket.send(JSON.stringify({token}));
++ }catch(e){$('status').textContent=e.message;socket.close()}
++};
++ socket.onmessage=e=>{const d=JSON.parse(e.data);if(d.type==='started'){print('Workspace: '+d.cwd+'\n');$('status').textContent='Running · PID '+d.pid;$('command').disabled=$('send').disabled=$('stop').disabled=false;$('command').focus()}else if(d.type==='output')print(d.text);else if(d.type==='exited')print('\nShell exited: '+d.code+'\n')};
++ socket.onerror=()=>{$('status').textContent='Connection failed'};
++ socket.onclose=e=>{$('status').textContent=e.code===1008?'Owner authorization or origin refused':'Stopped';$('connect').disabled=false;$('command').disabled=$('send').disabled=$('stop').disabled=true};
++};
++$('form').onsubmit=e=>{e.preventDefault();if(socket?.readyState!==1)return;const text=$('command').value;print('> '+text+'\n');socket.send(JSON.stringify({type:'input',text:text+'\n'}));$('command').value=''};
++$('stop').onclick=()=>{if(socket?.readyState===1)socket.send(JSON.stringify({type:'stop'}))};
++addEventListener('pagehide',()=>socket?.close());
++</script></body></html>
+diff --git a/static/login.html b/static/login.html
+index cceedb5..327a599 100644
+--- a/static/login.html
++++ b/static/login.html
+@@ -4,7 +4,6 @@
+   <meta charset="utf-8"/>
+   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+   <title>PubCast — Sign In</title>
+-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+   <style>
+     :root{--bg:#0a0b0f;--s:#111318;--s2:#181b24;--border:rgba(255,255,255,0.07);--accent:#00e0ff;--text:#b8bdd0;--bright:#eef0f6;--muted:#4a5068;--r:6px;--warn:#e05555}
+     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+diff --git a/tests/test_foresight_file_formats.py b/tests/test_foresight_file_formats.py
+new file mode 100644
+index 0000000..62bfaf0
+--- /dev/null
++++ b/tests/test_foresight_file_formats.py
+@@ -0,0 +1,149 @@
++"""Real format and auth tests: no Office application or cloud service required."""
++
++import base64
++import io
++import zipfile
++
++import pytest
++from fastapi import FastAPI
++from fastapi.testclient import TestClient
++from docx import Document
++from openpyxl import Workbook
++from modules.foresight_file_formats import create_file_format_router, convert
++from modules.auth import create_access_token
++
++
++def docx_bytes(text):
++    doc = Document()
++    doc.add_paragraph(text)
++    doc.add_table(rows=1, cols=1).cell(0, 0).text = "Table content"
++    stream = io.BytesIO()
++    doc.save(stream)
++    return stream.getvalue()
++
++
++def test_docx_read_original_unchanged_and_export_roundtrip(monkeypatch):
++    monkeypatch.setenv("PUBCAST_ENFORCE_AUTH", "1")
++    app = FastAPI()
++    app.include_router(create_file_format_router())
++    client = TestClient(app)
++    raw = docx_bytes("Hello\tCurtsey\nSecond line")
++    original = bytes(raw)
++    body = {"name": "sample.docx", "data": base64.b64encode(raw).decode()}
++    assert client.post("/api/foresight/files/convert", json=body).status_code == 401
++    headers = {
++        "Authorization": "Bearer "
++        + create_access_token({"sub": "owner", "role": "owner"})
++    }
++    result = client.post("/api/foresight/files/convert", headers=headers, json=body)
++    assert result.status_code == 200, result.text
++    assert result.json()["text"] == "Hello\tCurtsey\nSecond line\nTable content"
++    assert "not preserved" in result.json()["warning"]
++    exported = client.post(
++        "/api/foresight/files/export",
++        headers=headers,
++        json={"text": result.json()["text"] + "\nEdited", "format": "docx"},
++    )
++    assert exported.status_code == 200
++    assert convert("output.docx", exported.content)["text"].endswith("\nEdited")
++    assert raw == original
++
++
++def test_xlsx_formulas_are_text_not_false_calculated_values():
++    book = Workbook()
++    book.active.append(["Name", "Formula"])
++    book.active.append(["Curtsey", "=1+2"])
++    data = io.BytesIO()
++    book.save(data)
++    result = convert("sheet.xlsx", data.getvalue())
++    assert "Curtsey\t=1+2" in result["text"]
++    assert "not recalculated" in result["warning"]
++
++
++def test_invalid_and_entity_archives_rejected():
++    with pytest.raises(ValueError, match="Invalid document archive"):
++        convert("bad.docx", b"not a zip")
++    out = io.BytesIO()
++    with zipfile.ZipFile(out, "w") as z:
++        z.writestr("word/document.xml", '<!DOCTYPE foo [<!ENTITY x "oops">]><foo/>')
++    with pytest.raises(ValueError, match="entities"):
++        convert("entity.docx", out.getvalue())
++
++
++def test_odt_and_pptx_extraction():
++    out = io.BytesIO()
++    with zipfile.ZipFile(out, "w") as z:
++        z.writestr(
++            "content.xml",
++            '<root xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"><text:p>One <text:span>two</text:span></text:p></root>',
++        )
++    assert convert("test.odt", out.getvalue())["text"] == "One two"
++    out = io.BytesIO()
++    with zipfile.ZipFile(out, "w") as z:
++        for number in [10, 2, 1]:
++            z.writestr(
++                f"ppt/slides/slide{number}.xml",
++                f'<root xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:t>{number}</a:t></root>',
++            )
++    assert (
++        convert("test.pptx", out.getvalue())["text"]
++        == "--- Slide 1 ---\n1\n--- Slide 2 ---\n2\n--- Slide 3 ---\n10"
++    )
++
++
++def test_pdf_text_extraction_without_office_or_ocr():
++    from pypdf import PdfWriter
++    from pypdf.generic import DictionaryObject, NameObject, DecodedStreamObject
++
++    writer = PdfWriter()
++    page = writer.add_blank_page(width=200, height=200)
++    font = DictionaryObject(
++        {
++            NameObject("/Type"): NameObject("/Font"),
++            NameObject("/Subtype"): NameObject("/Type1"),
++            NameObject("/BaseFont"): NameObject("/Helvetica"),
++        }
++    )
++    page[NameObject("/Resources")] = DictionaryObject(
++        {
++            NameObject("/Font"): DictionaryObject(
++                {NameObject("/F1"): writer._add_object(font)}
++            )
++        }
++    )
++    content = DecodedStreamObject()
++    content.set_data(b"BT /F1 12 Tf 10 10 Td (Curtsey PDF) Tj ET")
++    page[NameObject("/Contents")] = writer._add_object(content)
++    out = io.BytesIO()
++    writer.write(out)
++    result = convert("text.pdf", out.getvalue())
++    assert "Curtsey PDF" in result["text"]
++    assert "OCR" in result["warning"]
++
++
++def test_native_docx_export_does_not_require_external_writer(monkeypatch):
++    import sys
++
++    monkeypatch.setenv("PUBCAST_ENFORCE_AUTH", "0")
++    monkeypatch.setitem(sys.modules, "docx", None)
++    app = FastAPI()
++    app.include_router(create_file_format_router())
++    client = TestClient(app)
++    result = client.post(
++        "/api/foresight/files/export",
++        json={"text": "  Spaces\t<&>\nUnicode: café 🌳\n", "format": "docx"},
++    )
++    assert result.status_code == 200
++    assert (
++        convert("native.docx", result.content)["text"]
++        == "  Spaces\t<&>\nUnicode: café 🌳\n"
++    )
++    # Independent reader verifies package structure, not merely our own parser.
++    assert Document(io.BytesIO(result.content)).paragraphs[0].text == "  Spaces\t<&>"
++    assert (
++        client.post(
++            "/api/foresight/files/export",
++            json={"text": "bad\u0000text", "format": "docx"},
++        ).status_code
++        == 422
++    )
+diff --git a/tests/test_foresight_file_workspace.py b/tests/test_foresight_file_workspace.py
+new file mode 100644
+index 0000000..56e855b
+--- /dev/null
++++ b/tests/test_foresight_file_workspace.py
+@@ -0,0 +1,461 @@
++"""Actual 2i v22, provider, IndexedDB and browser file operations.
++
++Local routing supplies repository bytes; browser rendering is real. No claim of
++GPU Counter physics or physical audio. Format API calls use the real converters.
++"""
++
++import base64
++import io
++import mimetypes
++import os
++from pathlib import Path
++from urllib.parse import urlparse
++
++import pytest
++from playwright.sync_api import sync_playwright
++from docx import Document
++from PIL import Image
++from modules.foresight_file_formats import convert
++from modules.foresight_workspace import create_workspace_router
++from modules.auth import create_access_token
++from fastapi import FastAPI
++from fastapi.testclient import TestClient
++
++ROOT = Path(__file__).resolve().parents[1]
++HTML = """<html><head><style>#host>iframe{width:100%;height:100%;border:0}</style></head><body><div id="host" style="width:1100px;height:850px"></div>
++<script src="/static/foresight_files.js"></script><script src="/static/foresight_programs.js"></script>
++<script>
++window.app=ForesightPrograms.create({});window.p=app.provider;
++window.openFile=(name,text,mime='text/plain')=>{
++ const r=p.fromFile(new File([text],name,{type:mime}));localStorage.setItem('file-data',JSON.stringify(r.data));localStorage.setItem('file-type',r.type);return mount(r.data,r.type);
++};
++window.mount=(data,type='file')=>{window.c={type,data,state:{},body:document.getElementById('host')};window.host={body:c.body,changed(){},setTitle(){}};return p.mount(c,host)};
++window.restore=()=>mount(JSON.parse(localStorage.getItem('file-data')),localStorage.getItem('file-type')||'file');
++</script></body></html>"""
++
++
++@pytest.fixture
++def page(tmp_path):
++    with sync_playwright() as p:
++        engine = os.environ.get("FORESIGHT_TEST_BROWSER", "chromium")
++        browser = (
++            p.firefox.launch(timeout=20000)
++            if engine == "firefox"
++            else p.chromium.launch(
++                args=["--single-process", "--no-zygote", "--use-angle=swiftshader"]
++            )
++        )
++        context = browser.new_context(
++            viewport={"width": 1400, "height": 1000}, accept_downloads=True
++        )
++
++        external = []
++        api_app = FastAPI()
++        api_app.include_router(create_workspace_router(tmp_path))
++        api_client = TestClient(api_app)
++        test_token = create_access_token({"sub": "offline-writer", "role": "owner"})
++        context.add_init_script(
++            "sessionStorage.setItem('pubcast_token',"
++            + __import__("json").dumps(test_token)
++            + ");window.showSaveFilePicker=undefined;"
++        )
++
++        def route(r):
++            address = urlparse(r.request.url)
++            if address.netloc != "localhost":
++                external.append(r.request.url)
++                r.abort()
++                return
++            path = address.path
++            if path.startswith("/api/foresight/workspace/"):
++                response = api_client.request(
++                    r.request.method,
++                    path + ("?" + address.query if address.query else ""),
++                    content=r.request.post_data,
++                    headers={
++                        k: v
++                        for k, v in r.request.headers.items()
++                        if k.lower() in {"authorization", "content-type"}
++                    },
++                )
++                r.fulfill(
++                    status=response.status_code,
++                    body=response.content,
++                    content_type=response.headers.get(
++                        "content-type", "application/json"
++                    ),
++                )
++                return
++            if path == "/test":
++                r.fulfill(body=HTML, content_type="text/html")
++                return
++            if path == "/api/foresight/files/convert":
++                b = r.request.post_data_json
++                try:
++                    r.fulfill(json=convert(b["name"], base64.b64decode(b["data"])))
++                except ValueError as e:
++                    r.fulfill(status=422, json={"detail": str(e)})
++                return
++            if path == "/writers-room":
++                file = ROOT / "2i/writers-room-v22.html"
++            elif path.startswith("/static/"):
++                file = ROOT / path.lstrip("/")
++            elif path.startswith("/2i-assets/"):
++                file = ROOT / "2i" / path.lstrip("/")
++            else:
++                r.fulfill(status=404, body="Not found")
++                return
++            if file.is_file():
++                r.fulfill(
++                    body=file.read_bytes(),
++                    content_type=mimetypes.guess_type(file.name)[0]
++                    or "application/octet-stream",
++                )
++            else:
++                r.fulfill(status=404, body="Not found")
++
++        context.route("**/*", route)
++        page = context.new_page()
++        page.goto("http://localhost/test")
++        page.workspace_root = tmp_path
++        yield page
++        browser.close()
++        api_client.close()
++        assert not external, "File work attempted external network access: " + repr(
++            external
++        )
++
++
++def editor(page):
++    return page.frame_locator("#host iframe").locator("#soloTextarea")
++
++
++def test_native_2i_edit_save_export_and_reopen(page):
++    page.evaluate("openFile('script.py', 'print(\"original\")\\n')")
++    text = editor(page)
++    text.wait_for()
++    page.wait_for_function(
++        "document.querySelector('#host iframe')?.contentWindow.document.querySelector('.ff-workspace [role=status]')?.textContent.includes('ready')"
++    )
++    assert text.input_value() == 'print("original")\n'
++    text.fill('print("edited")\n# retained\n')
++    page.evaluate("p.save(c)")
++    result = page.evaluate(
++        "async()=>{const f=await p.exportContent(c);return {name:f.name,text:await f.data.text()}}"
++    )
++    assert result == {"name": "script.py", "text": 'print("edited")\n# retained\n'}
++    page.reload()
++    page.evaluate("restore()")
++    text = editor(page)
++    text.wait_for()
++    page.wait_for_function(
++        "document.querySelector('#host iframe')?.contentWindow.document.querySelector('#soloTextarea')?.value.includes('edited')"
++    )
++    assert text.input_value() == result["text"]
++    original = page.evaluate(
++        "async()=>{const v=await ForesightFiles.record(c.data.fileId);return await v.original.text()}"
++    )
++    assert original == 'print("original")\n'
++
++
++def test_docx_opens_in_native_2i_as_explicit_text_copy(page):
++    d = Document()
++    d.add_paragraph("Curtsey document")
++    b = io.BytesIO()
++    d.save(b)
++    page.evaluate(
++        "b=>{const bytes=Uint8Array.from(atob(b),c=>c.charCodeAt(0));return openFile('work.docx',bytes,'application/vnd.openxmlformats-officedocument.wordprocessingml.document')}",
++        base64.b64encode(b.getvalue()).decode(),
++    )
++    page.wait_for_function(
++        "document.querySelector('#host iframe')?.contentWindow.document.querySelector('#soloTextarea')?.value==='Curtsey document'"
++    )
++    assert (
++        "not preserved"
++        in page.frame_locator("#host iframe").locator("[role=status]").inner_text()
++    )
++    editor(page).fill("Edited document")
++    page.evaluate("p.save(c)")
++    result = page.evaluate(
++        "async()=>{const f=await p.exportContent(c);return {name:f.name,text:await f.data.text()}}"
++    )
++    assert result == {"name": "work.txt", "text": "Edited document"}
++    assert page.evaluate(
++        "async()=>{const v=await ForesightFiles.record(c.data.fileId);return v.original.size}"
++    ) == len(b.getvalue())
++
++
++def test_image_rotate_crop_download_and_restore(page):
++    out = io.BytesIO()
++    Image.new("RGB", (80, 40), "red").save(out, format="PNG")
++    page.evaluate(
++        "b=>openFile('picture.png',Uint8Array.from(atob(b),c=>c.charCodeAt(0)),'image/png')",
++        base64.b64encode(out.getvalue()).decode(),
++    )
++    frame = page.frame_locator("#host iframe")
++    canvas = frame.locator('canvas[aria-label="Image editor"]')
++    canvas.wait_for()
++    frame.get_by_role("button", name="Rotate 90°", exact=True).click()
++    page.wait_for_function(
++        "document.querySelector('#host iframe')?.contentWindow.document.querySelector('canvas[aria-label=\"Image editor\"]')?.width===40"
++    )
++    page.once("dialog", lambda dialog: dialog.accept("0, 0, 20, 30"))
++    frame.get_by_role("button", name="Crop…", exact=True).click()
++    page.evaluate("p.save(c)")
++    result = page.evaluate(
++        "async()=>{const f=await p.exportContent(c);const a=new Uint8Array(await f.data.arrayBuffer());return Array.from(a)}"
++    )
++    image = Image.open(io.BytesIO(bytes(result)))
++    assert image.size == (20, 30)
++    page.reload()
++    page.evaluate("restore()")
++    page.wait_for_function(
++        "document.querySelector('#host iframe')?.contentWindow.document.querySelector('canvas[aria-label=\"Image editor\"]')?.width===20"
++    )
++
++
++def test_unknown_binary_preserves_original_without_false_text(page):
++    page.evaluate(
++        "openFile('unknown.bin',new Uint8Array([0,1,2,255]),'application/octet-stream')"
++    )
++    frame = page.frame_locator("#host iframe")
++    frame.get_by_role("button", name="Download original", exact=True).wait_for()
++    page.wait_for_function(
++        "document.querySelector('#host iframe')?.contentWindow.document.querySelector('[role=status]')?.textContent.includes('Could not open')"
++    )
++    assert not editor(page).input_value()
++    with page.expect_download() as dl:
++        frame.get_by_role("button", name="Download original", exact=True).click()
++    assert Path(dl.value.path()).read_bytes() == bytes([0, 1, 2, 255])
++
++
++def test_save_as_download_is_edited_file_and_2i_export_keeps_state(page):
++    page.evaluate("openFile('notes.md', '# Original\\n')")
++    text = editor(page)
++    text.wait_for()
++    page.wait_for_function(
++        "document.querySelector('#host iframe')?.contentWindow.document.querySelector('[role=status]')?.textContent.includes('ready')"
++    )
++    text.fill("# Edited\nParagraph")
++    frame = page.frame_locator("#host iframe")
++    page.evaluate(
++        "document.querySelector('#host iframe').contentWindow.showSaveFilePicker=undefined"
++    )
++    with page.expect_download() as result:
++        frame.get_by_role("button", name="Save to device…", exact=True).click()
++    assert Path(result.value.path()).read_text() == "# Edited\nParagraph"
++    assert result.value.suggested_filename == "notes.md"
++    with page.expect_download() as result:
++        frame.get_by_role("button", name="Export 2i manuscript", exact=True).click()
++    import json
++
++    saved = json.loads(Path(result.value.path()).read_text())
++    assert saved["format"] == "2i-document"
++    assert saved["state"]["committed"] == ["# Edited", "Paragraph"]
++
++
++def test_tray_metadata_and_browser_shortcut_import_roundtrip(page):
++    result = page.evaluate(
++        "async()=>{const c={type:'browser',data:{address:'https://example.org/article'},state:{}};const f=await p.exportContent(c);return await p.resolveFile(new File([f.data],f.name,{type:f.type}))}"
++    )
++    assert result == {
++        "type": "browser",
++        "data": {"address": "https://example.org/article"},
++    }
++    result = page.evaluate(
++        "async()=>{const c={type:'chat',title:'Chat',data:{conversationId:'saved-conversation'},state:{}};const f=await p.exportContent(c);return await p.resolveFile(new File([f.data],f.name,{type:f.type}))}"
++    )
++    assert result == {"type": "chat", "data": {"conversationId": "saved-conversation"}}
++
++
++def test_native_text_undo_and_clipboard_paste(page):
++    page.evaluate("openFile('code.py','start')")
++    text = editor(page)
++    text.wait_for()
++    page.wait_for_function(
++        "document.querySelector('#host iframe')?.contentWindow.document.querySelector('[role=status]')?.textContent.includes('ready')"
++    )
++    text.click()
++    text.press("End")
++    page.keyboard.insert_text(" typed")
++    text.press("Control+z")
++    assert text.input_value() == "start"
++    page.context.grant_permissions(["clipboard-read", "clipboard-write"])
++    page.evaluate("navigator.clipboard.writeText(' pasted')")
++    text.press("End")
++    text.press("Control+v")
++    page.wait_for_function(
++        "document.querySelector('#host iframe')?.contentWindow.document.querySelector('#soloTextarea')?.value==='start pasted'"
++    )
++    page.evaluate("p.save(c)")
++    assert (
++        page.evaluate(
++            "async()=>{const f=await p.exportContent(c);return f.data.text()}"
++        )
++        == "start pasted"
++    )
++
++
++def test_saved_working_copy_rejects_stale_writer(page):
++    result = page.evaluate(
++        "async()=>{await ForesightFiles.record('conflict',{id:'conflict',draft:'first'});await ForesightFiles.record('conflict',{id:'conflict',draft:'new'},0);let error;try{await ForesightFiles.record('conflict',{id:'conflict',draft:'stale'},0)}catch(e){error=e.message}return {draft:(await ForesightFiles.record('conflict')).draft,error}}"
++    )
++    assert result["draft"] == "new"
++    assert "another window" in result["error"]
++
++
++def test_cancelled_crop_does_not_create_an_edited_copy(page):
++    out = io.BytesIO()
++    Image.new("RGB", (20, 10), "blue").save(out, format="JPEG")
++    page.evaluate(
++        "b=>openFile('original.jpg',Uint8Array.from(atob(b),c=>c.charCodeAt(0)),'image/jpeg')",
++        base64.b64encode(out.getvalue()).decode(),
++    )
++    frame = page.frame_locator("#host iframe")
++    frame.locator('canvas[aria-label="Image editor"]').wait_for()
++    page.once("dialog", lambda d: d.dismiss())
++    frame.get_by_role("button", name="Crop…", exact=True).click()
++    page.evaluate("p.save(c)")
++    result = page.evaluate(
++        "async()=>{const f=await p.exportContent(c);return {name:f.name,size:f.data.size}}"
++    )
++    assert result == {"name": "original.jpg", "size": len(out.getvalue())}
++
++
++def test_portable_save_as_and_reopen_uses_real_disk_without_vendor_picker(page):
++    page.evaluate("openFile('offline.md','# Original')")
++    text = editor(page)
++    text.wait_for()
++    page.wait_for_function(
++        "document.querySelector('#host iframe')?.contentWindow.document.querySelector('[role=status]')?.textContent.includes('ready')"
++    )
++    text.fill("# Offline saved file\nSecond line")
++    page.once("dialog", lambda d: d.accept("Documents/offline.md"))
++    page.frame_locator("#host iframe").get_by_role(
++        "button", name="Save As…", exact=True
++    ).click()
++    page.wait_for_function(
++        "document.querySelector('#host iframe')?.contentWindow.document.querySelector('[role=status]')?.textContent.includes('Saved local file')"
++    )
++    disk = list(page.workspace_root.rglob("offline.md"))[0]
++    assert disk.read_text() == "# Offline saved file\nSecond line"
++    text.fill("# Second edit")
++    page.evaluate("p.save(c)")
++    assert disk.read_text() == "# Second edit"
++    page.reload()
++    page.evaluate("restore()")
++    page.wait_for_function(
++        "document.querySelector('#host iframe')?.contentWindow.document.querySelector('#soloTextarea')?.value==='# Second edit'"
++    )
++    assert disk.read_text() == "# Second edit"
++
++
++def test_python_syntax_check_in_native_editor_without_external_services(page):
++    page.evaluate("openFile('test.py','if broken\\n pass')")
++    text = editor(page)
++    text.wait_for()
++    page.wait_for_function(
++        "document.querySelector('#host iframe')?.contentWindow.document.querySelector('[role=status]')?.textContent.includes('ready')"
++    )
++    frame = page.frame_locator("#host iframe")
++    frame.get_by_role("button", name="Check Python", exact=True).click()
++    page.wait_for_function(
++        "document.querySelector('#host iframe')?.contentWindow.document.querySelector('[role=status]')?.textContent.includes('line 1')"
++    )
++    text.fill("print(42)")
++    frame.get_by_role("button", name="Check Python", exact=True).click()
++    page.wait_for_function(
++        "document.querySelector('#host iframe')?.contentWindow.document.querySelector('[role=status]')?.textContent.includes('not executed')"
++    )
++
++
++def test_normal_2i_manuscript_saves_to_local_folder_and_updates(page):
++    page.goto("http://localhost/writers-room")
++    text = page.locator("#soloTextarea")
++    text.wait_for()
++    page.wait_for_function("document.querySelector('#saveBtn').disabled===false")
++    text.fill("Local manuscript\nSecond paragraph")
++    page.once("dialog", lambda d: d.accept("Manuscripts/offline.2i"))
++    page.locator("#saveBtn").click()
++    page.wait_for_function(
++        "document.querySelector('#saveIndicator').textContent.includes('Saved local file')"
++    )
++    import json
++
++    disk = list(page.workspace_root.rglob("offline.2i"))[0]
++    assert json.loads(disk.read_text())["state"]["committed"] == [
++        "Local manuscript",
++        "Second paragraph",
++    ]
++    text.fill("Updated manuscript")
++    page.locator("#saveBtn").click()
++    page.wait_for_function(
++        "document.querySelector('#saveIndicator').textContent.includes('Saved local file')"
++    )
++    assert json.loads(disk.read_text())["state"]["committed"] == ["Updated manuscript"]
++
++
++def test_local_audio_decodes_plays_and_reopens_offline(page):
++    import wave
++
++    out = io.BytesIO()
++    with wave.open(out, "wb") as wav:
++        wav.setnchannels(1)
++        wav.setsampwidth(2)
++        wav.setframerate(8000)
++        wav.writeframes(b"\0\0" * 8000)
++    raw = out.getvalue()
++    page.evaluate(
++        "b=>openFile('local.wav',Uint8Array.from(atob(b),c=>c.charCodeAt(0)),'audio/wav')",
++        base64.b64encode(raw).decode(),
++    )
++    page.wait_for_function("document.querySelector('#host video')?.readyState>=1")
++    page.evaluate(
++        "()=>{const v=document.querySelector('#host video');v.muted=true;return v.play()}"
++    )
++    page.wait_for_function("document.querySelector('#host video')?.currentTime>0")
++    page.evaluate("document.querySelector('#host video').pause()")
++    page.reload()
++    page.evaluate("restore()")
++    page.wait_for_function("document.querySelector('#host video')?.readyState>=1")
++    assert page.evaluate(
++        "async()=>{const file=await ForesightFiles.record(c.data.fileId);return file.original.size}"
++    ) == len(raw)
++
++
++def test_2i_open_edit_export_preserves_title_and_unknown_metadata(page):
++    import json
++
++    original = {
++        "format": "2i-document",
++        "version": 4,
++        "title": "Author title",
++        "state": {
++            "committed": ["Original text"],
++            "buffer": [],
++            "pool": [],
++            "pointer": 0,
++            "chapters": [],
++            "lockedLines": [],
++            "coWriting": False,
++            "references": [],
++            "extensionMetadata": {"keep": "verbatim"},
++        },
++    }
++    page.evaluate(
++        "text=>openFile('different-filename.2i',text,'application/json')",
++        json.dumps(original),
++    )
++    text = editor(page)
++    text.wait_for()
++    page.wait_for_function(
++        "document.querySelector('#host iframe')?.contentWindow.document.querySelector('[role=status]')?.textContent.includes('ready')"
++    )
++    text.fill("Edited text")
++    page.evaluate("p.save(c)")
++    result = page.evaluate(
++        "async()=>{const f=await p.exportContent(c);return JSON.parse(await f.data.text())}"
++    )
++    assert result["title"] == "Author title"
++    assert result["state"]["committed"] == ["Edited text"]
++    assert result["state"]["extensionMetadata"] == {"keep": "verbatim"}
+diff --git a/tests/test_foresight_host_tools.py b/tests/test_foresight_host_tools.py
+new file mode 100644
+index 0000000..3e21ec8
+--- /dev/null
++++ b/tests/test_foresight_host_tools.py
+@@ -0,0 +1,120 @@
++"""Real owned shell process, authorization, lifecycle and supervised Quit."""
++
++import time
++from pathlib import Path
++
++from fastapi import FastAPI
++from fastapi.testclient import TestClient
++from starlette.websockets import WebSocketDisconnect
++import pytest
++from modules.auth import create_access_token
++from modules.foresight_host_tools import create_host_tools_router
++
++
++def token(role="owner"):
++    return create_access_token({"sub": "host-test", "role": role})
++
++
++def test_quit_requires_actual_owner_and_supervisor(tmp_path, monkeypatch):
++    monkeypatch.setenv("PUBCAST_ENFORCE_AUTH", "0")
++    app = FastAPI()
++    app.include_router(create_host_tools_router(tmp_path))
++    client = TestClient(app)
++    assert (
++        client.post(
++            "/api/foresight/host/quit", headers={"X-Dev-Role": "owner"}
++        ).status_code
++        == 403
++    )
++    headers = {"Authorization": "Bearer " + token()}
++    assert client.post("/api/foresight/host/quit", headers=headers).status_code == 409
++    called = []
++    app.state.foresight_request_exit = lambda: called.append(True)
++    assert (
++        client.post("/api/foresight/host/quit", headers=headers).json()["status"]
++        == "quitting"
++    )
++    assert called == [True]
++
++
++def test_shell_executes_and_disconnect_cleans_up(tmp_path, monkeypatch):
++    monkeypatch.setenv("PUBCAST_ALLOWED_ORIGINS", "http://testserver")
++    app = FastAPI()
++    app.include_router(create_host_tools_router(tmp_path))
++    with TestClient(app) as client:
++        with client.websocket_connect(
++            "/api/foresight/host/shell", headers={"origin": "http://testserver"}
++        ) as ws:
++            ws.send_json({"token": token()})
++            started = ws.receive_json()
++            assert started["type"] == "started"
++            ws.send_json({"type": "input", "text": 'printf "CURTSEY_SHELL_OK\\n"\n'})
++            output = ""
++            while "CURTSEY_SHELL_OK" not in output:
++                data = ws.receive_json()
++                assert data["type"] == "output"
++                output += data["text"]
++            assert Path(started["cwd"]) == tmp_path / "workspace"
++        deadline = time.monotonic() + 5
++        while (
++            client.get(
++                "/api/foresight/host/status",
++                headers={"Authorization": "Bearer " + token()},
++            ).json()["shell_sessions"]
++            and time.monotonic() < deadline
++        ):
++            time.sleep(0.02)
++        assert (
++            client.get(
++                "/api/foresight/host/status",
++                headers={"Authorization": "Bearer " + token()},
++            ).json()["shell_sessions"]
++            == 0
++        )
++        import os
++
++        if os.name != "nt":
++            with pytest.raises(ProcessLookupError):
++                os.kill(started["pid"], 0)
++
++
++def test_shell_refuses_non_owner(tmp_path, monkeypatch):
++    monkeypatch.setenv("PUBCAST_ALLOWED_ORIGINS", "http://testserver")
++    app = FastAPI()
++    app.include_router(create_host_tools_router(tmp_path))
++    with TestClient(app) as client:
++        with client.websocket_connect(
++            "/api/foresight/host/shell", headers={"origin": "http://testserver"}
++        ) as ws:
++            ws.send_json({"token": token("guest")})
++            with pytest.raises(WebSocketDisconnect):
++                ws.receive_json()
++
++
++def test_python_working_copy_runs_locally_and_reports_traceback(tmp_path, monkeypatch):
++    monkeypatch.setenv("PUBCAST_ALLOWED_ORIGINS", "http://testserver")
++    app = FastAPI()
++    app.include_router(create_host_tools_router(tmp_path))
++    with TestClient(app) as client:
++        with client.websocket_connect(
++            "/api/foresight/host/shell", headers={"origin": "http://testserver"}
++        ) as ws:
++            ws.send_json(
++                {
++                    "token": token(),
++                    "mode": "python",
++                    "name": "example.py",
++                    "source": 'print("LOCAL_PYTHON_OK",flush=True)\nraise ValueError("visible traceback")\n',
++                }
++            )
++            started = ws.receive_json()
++            assert started["mode"] == "python"
++            text = ""
++            while True:
++                message = ws.receive_json()
++                if message["type"] == "exited":
++                    assert message["code"] != 0
++                    break
++                text += message.get("text", "")
++            assert "LOCAL_PYTHON_OK" in text and "ValueError: visible traceback" in text
++            assert (Path(started["cwd"]) / "example.py").is_file()
+diff --git a/tests/test_foresight_workspace.py b/tests/test_foresight_workspace.py
+new file mode 100644
+index 0000000..df1d030
+--- /dev/null
++++ b/tests/test_foresight_workspace.py
+@@ -0,0 +1,116 @@
++"""Portable disk saving, conflicts and identity boundaries without browser APIs."""
++
++import base64
++from fastapi import FastAPI
++from fastapi.testclient import TestClient
++from modules.auth import create_access_token
++from modules.foresight_workspace import create_workspace_router
++
++
++def test_disk_files_reopen_after_router_restart_and_reject_conflicts(
++    tmp_path, monkeypatch
++):
++    monkeypatch.setenv("PUBCAST_ENFORCE_AUTH", "1")
++
++    def client():
++        app = FastAPI()
++        app.include_router(create_workspace_router(tmp_path))
++        return TestClient(app)
++
++    headers = {
++        "Authorization": "Bearer "
++        + create_access_token({"sub": "writer", "role": "owner"})
++    }
++    data = {
++        "path": "Scripts/example.py",
++        "data": base64.b64encode(b'print("offline")\n').decode(),
++    }
++    c = client()
++    assert c.post("/api/foresight/workspace/file", json=data).status_code == 401
++    r = c.post("/api/foresight/workspace/file", headers=headers, json=data)
++    assert r.status_code == 200, r.text
++    saved = r.json()
++    c.close()
++    c = client()
++    r = c.get(
++        "/api/foresight/workspace/file", params={"path": data["path"]}, headers=headers
++    )
++    assert base64.b64decode(r.json()["data"]) == b'print("offline")\n'
++    assert list(tmp_path.rglob("example.py"))[0].read_bytes() == b'print("offline")\n'
++    assert (
++        c.post("/api/foresight/workspace/file", headers=headers, json=data).status_code
++        == 409
++    )
++    data["expected_revision"] = saved["revision"]
++    data["data"] = base64.b64encode(b"edited").decode()
++    assert (
++        c.post("/api/foresight/workspace/file", headers=headers, json=data).status_code
++        == 200
++    )
++    assert (
++        c.post("/api/foresight/workspace/file", headers=headers, json=data).status_code
++        == 409
++    )
++    for path in [
++        "../outside.py",
++        "/outside.py",
++        "C:/outside.py",
++        ".hidden/file",
++        "CON",
++        "Scripts/NUL.txt",
++        "trailing. ",
++    ]:
++        assert (
++            c.get(
++                "/api/foresight/workspace/file", params={"path": path}, headers=headers
++            ).status_code
++            == 422
++        )
++    other = {
++        "Authorization": "Bearer "
++        + create_access_token({"sub": "different-writer", "role": "owner"})
++    }
++    assert c.get("/api/foresight/workspace/files", headers=other).json()["files"] == []
++    assert (
++        c.get(
++            "/api/foresight/workspace/file",
++            headers=other,
++            params={"path": "Scripts/example.py"},
++        ).status_code
++        == 404
++    )
++
++
++def test_python_syntax_check_does_not_execute_source(tmp_path, monkeypatch):
++    monkeypatch.setenv("PUBCAST_ENFORCE_AUTH", "0")
++    app = FastAPI()
++    app.include_router(create_workspace_router(tmp_path))
++    c = TestClient(app)
++    sentinel = tmp_path / "should-not-exist"
++    assert c.post(
++        "/api/foresight/workspace/check-python",
++        json={"text": f'open({str(sentinel)!r},"w").write("wrong")'},
++    ).json()["ok"]
++    assert not sentinel.exists()
++    result = c.post(
++        "/api/foresight/workspace/check-python", json={"text": "if broken\n  pass"}
++    ).json()
++    assert not result["ok"] and result["line"] == 1
++
++
++def test_optional_sidecar_does_not_install_on_normal_startup(tmp_path, monkeypatch):
++    from modules.foresight_sidecar import Legacy2iService
++
++    (tmp_path / "2i-backend").mkdir()
++    (tmp_path / "2i-backend" / "server.js").write_text("")
++    monkeypatch.setattr(
++        "modules.foresight_sidecar.shutil.which", lambda _: "/installed/tool"
++    )
++
++    def forbidden(*a, **k):
++        raise AssertionError("Normal startup attempted an installer")
++
++    monkeypatch.setattr("modules.foresight_sidecar.subprocess.run", forbidden)
++    service = Legacy2iService(tmp_path, tmp_path / "data", 8000)
++    service.start()
++    assert service.process is None
+diff --git a/tools/foresight_checks/audit_launcher.py b/tools/foresight_checks/audit_launcher.py
+index 356a5b9..5d84b59 100644
+--- a/tools/foresight_checks/audit_launcher.py
++++ b/tools/foresight_checks/audit_launcher.py
+@@ -8,6 +8,8 @@ from pathlib import Path
+ import json
+ import os
+ import socket
++import secrets
++import base64
+ import subprocess
+ import sys
+ import tempfile
+@@ -35,7 +37,6 @@ def main():
+                     "--data-dir",
+                     str(scratch / "user-data"),
+                     "--no-browser",
+-                    "--no-legacy-2i",
+                     "--start-page",
+                     "foresight-counter",
+                 ],
+@@ -79,6 +80,52 @@ def main():
+                     bridge = client.get("/api/foresight/bridge/health")
+                     assert bridge.status_code == 200 and bridge.json()["ok"]
+                     assert f"Reach: {base}/foresight-counter" in log_path.read_text()
++                    password = secrets.token_urlsafe(32)
++                    setup = client.post(
++                        "/api/auth/setup",
++                        json={
++                            "username": "audit-owner",
++                            "password": password,
++                            "confirm_password": password,
++                        },
++                        timeout=10,
++                    )
++                    assert setup.status_code in (200, 201), setup.text
++                    token = setup.json()["access_token"]
++                    headers = {"Authorization": "Bearer " + token}
++                    raw = b"Offline workspace proof\n"
++                    saved = client.post(
++                        "/api/foresight/workspace/file",
++                        headers=headers,
++                        json={
++                            "path": "Checks/offline.txt",
++                            "data": base64.b64encode(raw).decode(),
++                        },
++                    )
++                    assert saved.status_code == 200, saved.text
++                    reopened = client.get(
++                        "/api/foresight/workspace/file",
++                        headers=headers,
++                        params={"path": "Checks/offline.txt"},
++                    )
++                    assert (
++                        reopened.status_code == 200
++                        and base64.b64decode(reopened.json()["data"]) == raw
++                    )
++                    syntax = client.post(
++                        "/api/foresight/workspace/check-python",
++                        headers=headers,
++                        json={"text": "print(42)"},
++                    )
++                    assert syntax.status_code == 200 and syntax.json()["ok"]
++                    host = client.get("/api/foresight/host/status", headers=headers)
++                    assert host.status_code == 200 and host.json()["quit_available"]
++                    quit_result = client.post(
++                        "/api/foresight/host/quit", headers=headers
++                    )
++                    assert quit_result.status_code == 200, quit_result.text
++                    process.wait(timeout=15)
++                    assert process.returncode == 0, log_path.read_text()[-3000:]
+                     print(
+                         json.dumps(
+                             {
+@@ -87,11 +134,15 @@ def main():
+                                 "served_updated_script": True,
+                                 "anonymous_pubpartner": protected.status_code,
+                                 "bridge": bridge.status_code,
++                                "supervised_quit": True,
++                                "local_disk_save_and_reopen": True,
++                                "python_syntax_check": True,
+                             }
+                         )
+                     )
+             finally:
+-                process.terminate()
++                if process.poll() is None:
++                    process.terminate()
+                 try:
+                     process.wait(timeout=10)
+                 except subprocess.TimeoutExpired:

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PubCast — 2.5D Television Studio & Control Room</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1018;--pane:#182232;--edge:#364458;--ink:#edf1f7;--sub:#b2c4da;--gold:#efd18b;--red:#ff7070;--green:#79e9b0}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,sans-serif}
+header{padding:12px 18px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:#121b29;border-bottom:1px solid var(--edge)}
+header strong{font-size:19px;color:var(--gold)}header a{color:var(--sub)}
+main{max-width:1640px;margin:auto;padding:16px;display:grid;grid-template-columns:minmax(0,2fr) minmax(290px,1fr);gap:16px}
+section{background:var(--pane);border:1px solid var(--edge);border-radius:10px;padding:12px;min-width:0}
+h2{font-size:16px;margin:0 0 9px;color:var(--gold)}h3{font-size:14px;margin:12px 0 8px}
+small,.muted{color:var(--sub)}.screen{background:#05080c;aspect-ratio:16/9;width:100%;display:block;object-fit:contain;border-radius:5px}
+.screen-frame{border:2px solid #556175;padding:4px;border-radius:7px} .screen-frame.program{border-color:#e85959}
+.screen-frame.preview{border-color:#48b48e}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}.field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px}
+button,select,input{font:inherit;min-height:37px;border-radius:6px;background:#23334b;color:var(--ink);border:1px solid #4c637d;padding:6px 10px}
+button{cursor:pointer}button:hover{background:#354d70}button:disabled{opacity:.45;cursor:not-allowed}button.live{background:#7c313b;border-color:#f66}button.selected{outline:2px solid var(--gold)}label{color:var(--sub)}
+legend{color:var(--gold)}fieldset{border:1px solid var(--edge);border-radius:8px;margin:8px 0}
+canvas{touch-action:manipulation}#state{font-weight:700;color:var(--green)}#state.error{color:var(--red)}
+#events{height:155px;overflow-y:auto;white-space:pre-wrap;background:#0a1420;padding:8px;font:12px/1.55 ui-monospace,monospace;color:var(--sub);border-radius:5px}
+#sessionList{max-height:210px;overflow:auto}#sessionList button{width:100%;text-align:left;margin:3px 0}
+#alert{color:var(--red);min-height:24px}.camera-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:7px;margin:8px 0}
+.pill{padding:4px 9px;border:1px solid var(--edge);border-radius:100px}
+#timecode{font:16px ui-monospace,monospace;font-variant-numeric:tabular-nums}
+#playback{width:100%;max-height:300px;background:#000}#assetInfo{word-break:break-word}
+aside{min-width:0}#avatarStatus,#description{overflow-wrap:anywhere}
+.field select,.field input[type=file]{max-width:100%;min-width:0;width:100%}
+@media(max-width:950px){main{grid-template-columns:1fr}}@media(max-width:500px){main{padding:8px;gap:8px}section{padding:9px}header{padding:9px}}
+</style></head>
+<body>
+<header><strong>PubCast / 2.5D Television Studio</strong>
+<span class="pill" id="mode">LOCAL PRODUCTION</span><span class="pill" id="switcherLink" aria-live="polite">VIDEO: LOCAL ONLY</span><span class="pill" id="liveMedia" aria-live="polite">REMOTE FRAMES: OFF</span><span id="state" role="status" aria-live="polite">Initializing</span>
+<span id="timecode">00:00:00</span><a href="./world_walk.html">Walkable studio</a>
+<a href="./control_room.html">Existing Control Room</a><a href="/control">Shared audio / video mixer</a>
+</header>
+<main>
+<div>
+<section>
+<h2>PROGRAM — recorded output</h2>
+<div class="screen-frame program"><canvas class="screen" id="program" width="1280" height="720" aria-label="Live program output"></canvas></div>
+<div class="row"><span id="programShot" class="pill">PGM: —</span><span id="recBadge" class="pill">REC OFF</span><span id="audioBadge" class="pill">MIC OFF</span></div>
+<p class="muted">This is the actual composited 2.5D camera output. The recorder captures this canvas, not an unrelated screen or sample video.</p>
+</section>
+<section style="margin-top:12px">
+<h2>PREVIEW — next camera</h2>
+<div class="screen-frame preview"><canvas class="screen" id="preview" width="1280" height="720" aria-label="Preview camera output"></canvas></div>
+<div class="row"><span id="previewShot" class="pill">PVW: —</span><button id="cut">CUT / TAKE</button><button id="fade">DISSOLVE (0.6s)</button></div>
+</section>
+<section style="margin-top:12px"><h2>SESSION RECORDINGS</h2>
+<div id="sessionList" aria-label="Saved sessions">No sessions loaded.</div>
+<video id="playback" controls playsinline></video>
+<div class="row"><button id="download" disabled>Download selected media</button><button id="manifest" disabled>Download session manifest</button></div>
+<small>Video and event manifests are stored locally in this browser using IndexedDB. Export copies for long-term safekeeping.</small>
+</section>
+</div>
+<aside>
+<section>
+<h2>PRODUCTION SETUP</h2>
+<div class="field"><label for="genre">Studio package</label><select id="genre"></select></div>
+<p id="description" class="muted"></p>
+<div class="row"><button id="start">START PRODUCTION</button><button id="stop" disabled>END PRODUCTION</button></div>
+<div class="row"><button id="record" disabled>START RECORDING</button><button id="recordStop" disabled>STOP RECORDING</button></div>
+<label><input type="checkbox" id="mic"> Capture microphone (permission required; recording refuses if microphone cannot be acquired)</label>
+<div class="row"><label class="field">MIC LEVEL <input type="range" id="micLevel" min="0" max="100" value="100" disabled></label>
+<button id="micMute" disabled>MUTE MIC</button><label class="field">REAL MIC METER <meter id="micMeter" min="0" max="1" value="0"></meter></label></div>
+<p id="alert" role="alert"></p>
+<div id="recoveryPanel" hidden role="alert"><p>The take is still in memory. Save it or download a recovery copy before closing this page.</p>
+<div class="row"><button id="recoveryDownload">DOWNLOAD UNSAVED TAKE</button><button id="recoverySave">RETRY SAVING</button></div></div>
+</section>
+<section style="margin-top:12px"><h2>VISION MIXER</h2>
+<div id="cameras" class="camera-grid" aria-label="Camera shot selection"></div>
+<small>Choose a camera for preview, then CUT or DISSOLVE to program. Program and preview use separate genuine camera framing.</small>
+</section>
+<section style="margin-top:12px"><h2>PERFORMERS & CUES</h2>
+<div class="field"><label for="performer">Selected performer</label><select id="performer"></select></div>
+<div class="row"><button id="moveLeft">← MOVE</button><button id="moveRight">MOVE →</button><button id="gesture">PLAY REAL GESTURE</button><button id="reset">RESET BLOCKING</button></div>
+<div class="row"><button id="scoreLeft">SCORE +1 PLAYER 1</button><button id="scoreRight">SCORE +1 PLAYER 2</button></div>
+<div class="row"><button id="lower">TOGGLE LOWER THIRD</button><button id="black">BLACK / RETURN</button></div>
+<small>Moving changes stage coordinates. A loaded GLB uses actual rig animation; if a model is unavailable the output reports that failure instead of pretending a substitute is 3D.</small>
+<p id="avatarStatus" class="muted">Checking avatar renderer…</p>
+</section>
+<section style="margin-top:12px"><h2>REPLACEABLE SET ASSETS</h2>
+<div class="field"><label for="backFile">Background layer image</label><input type="file" id="backFile" accept="image/*"></div>
+<div class="field"><label for="midFile">Mid-ground layer image</label><input type="file" id="midFile" accept="image/*"></div>
+<div class="field"><label for="frontFile">Foreground transparent image</label><input type="file" id="frontFile" accept="image/*"></div>
+<div class="row"><button id="clearAssets">RESTORE PLACEHOLDERS</button></div>
+<p id="assetInfo" class="muted">Default sets are generated procedurally. Optional images are loaded locally into separate layers.</p>
+</section>
+<section style="margin-top:12px"><h2>PRODUCTION EVENT LOG</h2><div id="events" aria-live="polite"></div></section>
+</aside>
+</main>
+<script src="./reach_auth.js"></script>
+<script src="./production25d_core.js"></script>
+<script src="./production25d_renderer.js"></script>
+<script src="./production25d_storage.js"></script>
+<script src="./production25d_switcher_bridge.js"></script>
+<script src="./production25d_frame_publisher.js"></script>
+<script src="./program_audio_runtime.js"></script>
+<script type="importmap">{"imports":{"three":"./vendor/three-0.160.0/build/three.module.js","three/addons/":"./vendor/three-0.160.0/examples/jsm/"}}</script>
+<script type="module" src="./world_walk_glb.js"></script>
+<script src="./production25d_app.js"></script>
+</body></html>

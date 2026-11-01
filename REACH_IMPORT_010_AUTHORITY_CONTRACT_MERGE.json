@@ -1,0 +1,9 @@
+{
+  "operation":"contract_merge",
+  "bridge":"Horizon authority/audit superset + Reach continuity/affect persistence + zero-loss default signal cooldown",
+  "governance_router":"Horizon strict function-set superset enabling server-loaded authority bridge/store",
+  "backups":[
+    "/mnt/data/reach_builds/backups/import_009_alex_jeremy_bridge/alex_jeremy_bridge.py",
+    "/mnt/data/reach_builds/backups/import_010_governance_router/governance_routes.py"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "provider": "gemini",
+  "model": "",
+  "fixes": [
+    "trim_boilerplate",
+    "anti_syc",
+    "preserve_alex_voice"
+  ],
+  "created_at": 1792024059.022049,
+  "updated_at": 1792024059.022049
+}

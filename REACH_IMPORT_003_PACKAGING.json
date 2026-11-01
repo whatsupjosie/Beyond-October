@@ -1,0 +1,14 @@
+{
+  "operation": "production_packaging_repairs",
+  "requirements": {
+    "path": "requirements.txt",
+    "source_base": "BreakingDawn-Live requirements from FULL_SESSION_HANDOFF",
+    "new_dependency": "structlog>=24.1.0,<26.0 required by modules/pubcast_vision_routes.py",
+    "sha256": "bbda27b5da19107e4fb1c66ffbee88b06ccf7b0b7bfe36343544c80c9876fe8e"
+  },
+  "renderer": {
+    "path": "bin/ws_renderer",
+    "mode": "0o755",
+    "sha256": "073be6aeebd72066a1a9debf6213e82405be321eb1be63a64665633781d9a5ca"
+  }
+}

@@ -1,0 +1,46 @@
+...........F..                                                           [100%]
+=================================== FAILURES ===================================
+_________ test_normal_2i_manuscript_saves_to_local_folder_and_updates __________
+
+page = <Page url='http://localhost/writers-room'>
+
+    def test_normal_2i_manuscript_saves_to_local_folder_and_updates(page):
+        page.goto("http://localhost/writers-room")
+        text = page.locator("#soloTextarea")
+        text.wait_for()
+        page.wait_for_function("document.querySelector('#saveBtn').disabled===false")
+        text.fill("Local manuscript\nSecond paragraph")
+        page.once("dialog", lambda d: d.accept("Manuscripts/offline.2i"))
+        page.locator("#saveBtn").click()
+        page.wait_for_function(
+            "document.querySelector('#saveIndicator').textContent.includes('Saved local file')"
+        )
+        import json
+    
+        disk = list(page.workspace_root.rglob("offline.2i"))[0]
+        assert json.loads(disk.read_text())["state"]["committed"] == [
+            "Local manuscript",
+            "Second paragraph",
+        ]
+        text.fill("Updated manuscript")
+        page.locator("#saveBtn").click()
+        page.wait_for_function(
+            "document.querySelector('#saveIndicator').textContent.includes('Saved local file')"
+        )
+>       assert json.loads(disk.read_text())["state"]["committed"] == ["Updated manuscript"]
+E       AssertionError: assert ['Local manus...nd paragraph'] == ['Updated manuscript']
+E         
+E         At index 0 diff: 'Local manuscript' != 'Updated manuscript'
+E         Left contains one more item: 'Second paragraph'
+E         Use -v to get more diff
+
+tests/test_foresight_file_workspace.py:395: AssertionError
+=============================== warnings summary ===============================
+../../../../root/.local/lib/python3.12/site-packages/starlette/testclient.py:40
+  /root/.local/lib/python3.12/site-packages/starlette/testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_foresight_file_workspace.py::test_normal_2i_manuscript_saves_to_local_folder_and_updates
+1 failed, 13 passed, 1 warning in 27.36s

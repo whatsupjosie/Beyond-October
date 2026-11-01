@@ -1,0 +1,43 @@
+{
+  "baseline_sha256": "9c847322844b9f0269e4022f68741b4ed2c5e5792380e18f5ebfa38bdb368951",
+  "baseline_file_count": 933,
+  "sealed_file_count": 958,
+  "modified_from_baseline": [
+    "main.py",
+    "modules/alex_core.py",
+    "modules/cameras.py",
+    "modules/hub.py",
+    "modules/pubpartner_routes.py",
+    "modules/recording.py",
+    "modules/twin_engine_service.py",
+    "rust_crate/src/ws_renderer.rs"
+  ],
+  "added_to_baseline": [
+    "DEFERRED_AND_BLOCKED_LEDGER_2026-10-01.md",
+    "FINAL_FOCUSED_TEST_REPORT.txt",
+    "FINAL_INTEGRATION_HANDOFF_2026-10-01.md",
+    "POST_BASELINE_CHANGED_SHA256.txt",
+    "handoffs/recovered_progress/CAMERA_RENDERER_CONTRACT_V1.md",
+    "handoffs/recovered_progress/PUBCAST_EQ_DEV_MONITORING_HANDOFF_2026-09-28.md",
+    "handoffs/recovered_progress/PubCast_Reach_2_5D_Stage_Engine_Spec_and_Review.md",
+    "handoffs/recovered_progress/Pubcast_Integration_Handoff_2026-10-02.md",
+    "modules/director_engine.py",
+    "modules/eq_monitoring_recorder.py",
+    "modules/performance/__init__.py",
+    "modules/performance/avatar_adapter.py",
+    "modules/performance/routes.py",
+    "modules/pubworld_stage/__init__.py",
+    "modules/pubworld_stage/manifest_store.py",
+    "modules/pubworld_stage/perspective_solver.py",
+    "modules/pubworld_stage/routes.py",
+    "modules/pubworld_stage/stage_service.py",
+    "modules/rust_camera_routes.py",
+    "modules/rust_camera_runtime.py",
+    "modules/switcher_routes.py",
+    "rust_crate/src/camera_control.rs",
+    "scripts/probe_rust_camera_control.py",
+    "scripts/test_rust_camera_control.ps1",
+    "tests/test_post_baseline_integration.py"
+  ],
+  "missing_from_baseline": []
+}

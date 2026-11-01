@@ -1,0 +1,1679 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bella Faux Pas Studio</title>
+<link rel="icon" href="data:,">
+<style>
+:root {
+  --bg: #12131a; --panel: #1b1d27; --line: #343748; --ink: #eceef6; --dim: #a3a8bd;
+  --accent: #ffd36b; --good: #6be5a0; --fair: #ffd36b; --low: #ff8a7a; --pad: #35d6ff;
+}
+:root[data-theme="light"] { --bg: #f1f2f6; --panel: #ffffff; --line: #cfd2de; --ink: #1c1e2a; --dim: #565b72; --accent: #8a5a00; --good: #0c7a44; --fair: #8a5a00; --low: #b3261e; --pad: #006e99; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { --bg: #f1f2f6; --panel: #ffffff; --line: #cfd2de; --ink: #1c1e2a; --dim: #565b72; --accent: #8a5a00; --good: #0c7a44; --fair: #8a5a00; --low: #b3261e; --pad: #006e99; }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+#app { display: flex; height: 100%; min-height: 0; }
+#stage { position: relative; flex: 1 1 auto; min-width: 0; background: #000; }
+#c { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+#banner { position: absolute; left: 12px; top: 12px; right: 12px; display: flex; gap: 8px; align-items: center; pointer-events: none; flex-wrap: wrap; }
+#banner > * { pointer-events: auto; }
+.chip { background: rgba(10,10,16,.78); color: #fff; border: 1px solid rgba(255,255,255,.22); border-radius: 999px; padding: 4px 12px; font-size: 13px; backdrop-filter: blur(4px); }
+.chip.warn { color: var(--accent); border-color: var(--accent); }
+.chip.live { color: var(--dim); }
+a.chip { text-decoration: none; pointer-events: auto; }
+.chip.live.on { color: var(--good); border-color: var(--good); }
+.chip.live.air { color: #fff; background: rgba(160,20,20,.82); border-color: #ff6b6b; }
+button, select, input { font: inherit; color: inherit; }
+button { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; min-height: 32px; }
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#back { background: rgba(10,10,16,.78); color: #fff; border-color: rgba(255,255,255,.3); }
+#bubble { position: absolute; z-index: 5; background: var(--panel); color: var(--ink); border: 1px solid var(--accent); border-radius: 14px; padding: 12px 14px; max-width: min(320px, 90%); box-shadow: 0 10px 32px rgba(0,0,0,.45); }
+#bubble h3 { margin: 0 0 6px; font-size: 15px; }
+#bubble p { margin: 0 0 8px; color: var(--dim); font-size: 13px; white-space: pre-line; }
+#bubble .choices { display: flex; flex-direction: column; gap: 6px; }
+#bubble .choices button { text-align: left; }
+#bubble[hidden] { display: none; }
+#hostBanner { position: absolute; z-index: 9; left: 50%; top: 12px; transform: translateX(-50%); max-width: min(560px, 92%); padding: 12px 16px; border-radius: 14px; background: var(--panel); color: var(--ink); border: 2px solid var(--accent); box-shadow: 0 10px 32px rgba(0,0,0,.55); text-align: center; }
+#hostBanner[hidden] { display: none; }
+#hostBanner .hb-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+#hostBanner .hb-text { white-space: pre-line; font-size: 14px; }
+#hostBanner .hb-time { margin-top: 6px; color: var(--dim); font-size: 12px; }
+#screen { position: absolute; inset: 0; z-index: 20; background: #05060a; color: #eceef6; display: flex; align-items: center; justify-content: center; padding: 24px; }
+#screen[hidden] { display: none; }
+#screen .sc-box { max-width: 640px; text-align: center; }
+#screen .sc-title { font-size: 22px; font-weight: 600; margin-bottom: 14px; }
+#screen .sc-text { white-space: pre-line; font-size: 17px; line-height: 1.5; }
+#screen .sc-time { margin-top: 18px; color: #a3a8bd; }
+#hostPanel[hidden], #hpPerson[hidden], #hpOut[hidden] { display: none; }
+.hp-ban { display: flex; align-items: center; gap: 8px; justify-content: space-between; margin: 4px 0; }
+.hp-ban > span { min-width: 0; overflow-wrap: anywhere; }
+#hostPanel { border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 6px; }
+#hpRoster { display: flex; flex-direction: column; gap: 4px; max-height: 190px; overflow: auto; }
+.hp-person { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 4px 8px; }
+.hp-person[aria-selected="true"] { border-color: var(--accent); background: rgba(255,211,107,.12); }
+.hp-ini { flex: 0 0 30px; height: 30px; border-radius: 50%; background: var(--line); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px; }
+.hp-main { flex: 1 1 auto; min-width: 0; }
+.hp-main > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hp-sub { color: var(--dim); font-size: 12px; }
+.hp-flag { color: var(--low); font-size: 12px; }
+#hpPerson fieldset { border: 1px solid var(--line); border-radius: 8px; margin: 10px 0 0; padding: 8px 10px 10px; }
+#hpPerson legend { color: var(--dim); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; padding: 0 4px; }
+#hpPerson label.col { display: block; margin: 5px 0; }
+#hpPerson label.col > input:not([type=checkbox]), #hpPerson label.col > textarea { display: block; width: 100%; margin-top: 2px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+#hpPerson .hp-head { font-weight: 600; margin-top: 10px; }
+#hpPerson button.danger { border-color: var(--low); color: var(--low); }
+#hpStatus { min-height: 1.4em; margin-top: 8px; }
+#toast { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); background: rgba(10,10,16,.85); color: #fff; padding: 6px 14px; border-radius: 999px; font-size: 13px; opacity: 0; transition: opacity .25s; pointer-events: none; max-width: 90%; text-align: center; }
+#toast.on { opacity: 1; }
+#fade { position: absolute; inset: 0; background: #000; opacity: 0; transition: opacity .22s; pointer-events: none; }
+#fade.on { opacity: 1; }
+#panel { flex: 0 0 340px; max-width: 42vw; overflow: auto; background: var(--panel); border-left: 1px solid var(--line); padding: 14px 16px 24px; }
+#panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); margin: 18px 0 8px; font-weight: 600; }
+#panel h2:first-child { margin-top: 0; }
+#panel label { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
+#panel select { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+#panel input[type=range] { width: 100%; }
+.row { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; }
+.row output { font-variant-numeric: tabular-nums; color: var(--dim); }
+.badge { display: inline-block; border-radius: 6px; padding: 1px 8px; font-weight: 700; border: 1px solid currentColor; text-transform: uppercase; font-size: 12px; letter-spacing: .04em; }
+.badge.good { color: var(--good); } .badge.fair { color: var(--fair); } .badge.low { color: var(--low); }
+.dim { color: var(--dim); }
+.small { font-size: 12.5px; }
+ul.tight { margin: 4px 0 0; padding-left: 18px; } ul.tight li { margin: 2px 0; }
+#readout { font-variant-numeric: tabular-nums; font-size: 13px; }
+details summary { cursor: pointer; color: var(--dim); }
+textarea { width: 100%; height: 90px; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px; font: 12px/1.3 ui-monospace, Consolas, monospace; }
+.btnrow { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.canrow { border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; margin: 6px 0; }
+.canrow.sel { border-color: var(--accent); }
+.canrow .btnrow { margin-top: 4px; }
+@media (max-width: 820px) {
+  #app { flex-direction: column; }
+  #stage { flex: 1 1 55%; }
+  #panel { flex: 1 1 45%; max-width: none; border-left: 0; border-top: 1px solid var(--line); }
+}
+</style>
+  <script src="/static/reach_auth.js"></script>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="c" aria-label="Room picture. Click the floor to walk."></canvas>
+    <div id="banner">
+      <button id="back" hidden>&larr; Back</button>
+      <span class="chip warn" id="chipStatus">PREVIEW &middot; proposed, nothing approved</span>
+      <span class="chip" id="chipRoom"></span>
+      <span class="chip live" id="chipLive" title="Connection to the PubCast host">&#9679; Offline</span>
+      <a class="chip" id="classicLink" href="/world" title="Open this room in the classic PubWorld page">Classic view</a>
+    </div>
+    <div id="bubble" hidden role="dialog" aria-live="polite"></div>
+    <div id="toast" role="status"></div>
+    <div id="hostBanner" hidden role="alert" aria-live="assertive"><div class="hb-title"></div><div class="hb-text"></div><div class="hb-time"></div></div>
+    <div id="screen" hidden role="alertdialog" aria-modal="true" aria-labelledby="screenTitle" aria-describedby="screenText"><div class="sc-box"><div class="sc-title" id="screenTitle"></div><div class="sc-text" id="screenText"></div><div class="sc-time" id="screenTime"></div></div></div>
+    <div id="fade"></div>
+  </div>
+  <aside id="panel">
+    <section id="hostPanel" hidden aria-label="Host controls">
+      <h2>Host</h2>
+      <div id="hpEmpty" class="small dim">Nobody is on the walker right now.</div>
+      <div id="hpRoster" role="listbox" aria-label="People on the walker"></div>
+      <div id="hpPerson" hidden>
+        <div class="hp-head"><span id="hpName"></span> <span id="hpBadges" class="hp-flag"></span></div>
+        <div id="hpStats" class="small"></div>
+        <fieldset><legend>Profile</legend>
+          <label class="col">Title <input id="hpTitle" maxlength="120"></label>
+          <label class="col">Position <input id="hpPosition" maxlength="120"></label>
+          <label class="col">Notes <textarea id="hpNotes" rows="3" maxlength="2000"></textarea></label>
+          <label><input type="checkbox" id="hpTracked"> Keep a daily log for this person</label>
+          <label><input type="checkbox" id="hpCtrlRoom"> May use the control room</label>
+          <div class="btnrow"><button id="hpSave">Save profile</button><button id="hpGiveAccess">Gift control room access</button></div>
+          <div class="btnrow"><input id="hpItem" placeholder="Accessory to gift" maxlength="120" aria-label="Accessory to gift"><button id="hpGiveItem">Gift it</button></div>
+          <div id="hpGifts" class="small dim"></div>
+        </fieldset>
+        <fieldset><legend>Control</legend>
+          <label class="col">Reason (kept in the record) <input id="hpReason" maxlength="300"></label>
+          <label class="col">Take control for (seconds) <input id="hpSecs" type="number" min="1" max="3600" value="600"></label>
+          <div class="btnrow"><button id="hpPossess">Take control</button><button id="hpRelease">Release</button><button id="hpDrive" aria-pressed="false">Walk them where I click: off</button></div>
+          <label class="col">Waiting room for (seconds) <input id="hpTSecs" type="number" min="1" max="3600" value="300"></label>
+          <div class="btnrow"><button id="hpTimeout">Send to waiting room</button><button id="hpEndTimeout">End waiting room</button></div>
+        </fieldset>
+        <fieldset><legend>Remove</legend>
+          <div class="btnrow"><button id="hpBoot" class="danger">Boot</button><button id="hpBan" class="danger">Ban for good</button></div>
+        </fieldset>
+      </div>
+      <div id="hpOut" hidden><h2>Out of the server</h2><div id="hpBanList" class="small"></div></div>
+      <div id="hpStatus" class="small" role="status" aria-live="polite"></div>
+    </section>
+    <h2>Where</h2>
+    <select id="viewSel" aria-label="Room and picture"></select>
+
+    <h2>Walk as</h2>
+    <label><input type="radio" name="char" value="pete" checked> <span>Pete 5'8"</span></label>
+    <label><input type="radio" name="char" value="repeat"> <span>RePete 5'10"</span></label>
+    <label><input type="radio" name="char" value="sir_purfluous"> <span>Purfluous 6'2"</span></label>
+
+    <h2>3D avatar</h2>
+    <div class="small dim">Load any rigged GLB for the character selected above. It is sized to the exact height this picture gives that character at that spot, and it turns, walks and idles as you click around. If a file has no animations it sways instead.</div>
+    <div class="btnrow">
+      <button id="glbMannequin">Try the test mannequin</button>
+      <button id="glbDemoFemale">MakeHuman female</button>
+      <button id="glbDemoMale">MakeHuman male</button>
+      <button id="glbDemoHusky">Husky (3 ft)</button>
+      <button id="glbPick">Load a GLB&hellip;</button>
+      <button id="glbClear">Back to flat figure</button>
+    </div>
+    <input type="file" id="glbFile" accept=".glb,model/gltf-binary" hidden>
+    <label><input type="checkbox" id="glbHolo"> Hologram look (glowing outline)</label>
+    <label class="small" id="glbLibraryRow" hidden>Your saved avatars
+      <select id="glbLibrary" aria-label="Your saved avatars"><option value="">(none for this character)</option></select></label>
+    <div class="small dim" id="glbImportRow" hidden><a href="/static/avatar_import.html" target="_blank" rel="noopener">Import a new avatar&hellip;</a>
+      It is sized to its canonical height and kept in your library. A file loaded with "Load a GLB" is only for now.</div>
+    <div id="glbInfo" class="small dim"></div>
+    <div id="progressInfo" class="small dim" role="status" aria-live="polite"></div>
+
+    <h2>Show</h2>
+    <label><input type="checkbox" id="shPads" checked> Floor pads (walkable areas)</label>
+    <label><input type="checkbox" id="shOcc"> Things in front of / behind the avatar</label>
+    <label><input type="checkbox" id="shDoors" checked> Doors and hotspots</label>
+    <label><input type="checkbox" id="shHorizon"> Camera horizon line</label>
+    <label><input type="checkbox" id="shRefs"> Reference figures (all three, on the floor)</label>
+    <label id="altRow" hidden><input type="checkbox" id="shAlt"> Alternative size reading (grey)</label>
+
+    <h2>How big the avatar is here</h2>
+    <div id="sizeInfo" class="small"></div>
+
+    <h2>Size tuner</h2>
+    <div id="tuner" class="small"></div>
+    <div class="btnrow">
+      <button id="tuneReset">Reset this picture</button>
+      <button id="tuneCopy">Copy my changes</button>
+    </div>
+    <details><summary>My changes as JSON</summary><textarea id="tuneOut" readonly aria-label="Tuned values as JSON"></textarea></details>
+
+    <h2>Reference cans</h2>
+    <div class="small dim">A 12 oz Coke can is 4.83 in tall and has not changed in 70 years. Add one, drop it on any surface (floor, table, lamp, bin), and drag its top handle until it looks like a real can there. Put one near the front, the middle and the back if you can. One can sizes the whole picture the same everywhere; three give it a slope. If the can is on a table or a lamp, press "Set floor point" and click where that thing meets the floor.</div>
+    <div class="btnrow"><button id="canAdd">Add a Coke can</button></div>
+    <div id="canList" class="small"></div>
+    <label><input type="checkbox" id="canUse"> Size the avatars from my cans</label>
+
+    <h2>Right now</h2>
+    <div id="readout" class="small"></div>
+
+    <h2>Still open for this picture</h2>
+    <div id="open" class="small"></div>
+
+    <h2>Look</h2>
+    <label><input type="checkbox" id="themeLight"> Light panel</label>
+  </aside>
+</div>
+
+<script type="importmap">{"imports":{"three":"/static/vendor/three-0.160.0/build/three.module.js","three/addons/":"/static/vendor/three-0.160.0/examples/jsm/"}}</script>
+<script type="module" src="/static/world_walk_glb.js"></script>
+<script src="/static/world_walk_live.js"></script>
+<script src="/static/keymap.js"></script>
+<script>
+"use strict";
+/* ===========================================================================
+   PubCast world walk (preview). Reads /static/world/world.json, which is
+   generated from modules/pubcast_world.py + data/world/placements.json.
+   Nothing here is approved: every picture is "proposed" until Josie says so.
+   The geometry and size maths mirror modules/pubcast_world_placement.py and are
+   checked against it by the tests.
+   =========================================================================== */
+
+const WALK_IN_PER_S = 54;          // preview walking speed, real inches per second at the avatar's own depth
+const ARRIVE_PX = 3;
+const CHAR = {
+  pete:          { label: "Pete",      color: "#3fe0b4", sex: "f" },
+  repeat:        { label: "RePete",    color: "#5aa9ff", sex: "m" },
+  sir_purfluous: { label: "Purfluous", color: "#b77cff", sex: "m" },
+};
+const CHAR_ORDER = ["sir_purfluous", "repeat", "pete"];
+
+/* ------------------------------ geometry ---------------------------------- */
+function pointOnSegment(p, a, b) {
+  const cross = (p[1] - a[1]) * (b[0] - a[0]) - (p[0] - a[0]) * (b[1] - a[1]);
+  const len = Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]);
+  if (Math.abs(cross) > 1e-9 * Math.max(1, len)) return false;
+  return Math.min(a[0], b[0]) - 1e-9 <= p[0] && p[0] <= Math.max(a[0], b[0]) + 1e-9 &&
+         Math.min(a[1], b[1]) - 1e-9 <= p[1] && p[1] <= Math.max(a[1], b[1]) + 1e-9;
+}
+function pointInPolygon(p, poly) {
+  const [x, y] = p; let inside = false; const n = poly.length;
+  for (let i = 0; i < n; i++) {
+    const a = poly[i], b = poly[(i + 1) % n];
+    if (pointOnSegment(p, a, b)) return true;
+    if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) inside = !inside;
+  }
+  return inside;
+}
+function closestOnSegment(p, a, b) {
+  const dx = b[0] - a[0], dy = b[1] - a[1], seg = dx * dx + dy * dy;
+  if (seg === 0) return [a[0], a[1]];
+  const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / seg));
+  return [a[0] + t * dx, a[1] + t * dy];
+}
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+function floorPolys(view) { return view.zones.map(z => z.points); }
+function floorContains(view, p) { return view.zones.some(z => pointInPolygon(p, z.points)); }
+function snapToFloor(view, p) {
+  if (!view.zones.length) return null;
+  if (floorContains(view, p)) return [p[0], p[1]];
+  let best = null, bd = Infinity;
+  for (const z of view.zones) {
+    const poly = z.points;
+    for (let i = 0; i < poly.length; i++) {
+      const c = closestOnSegment(p, poly[i], poly[(i + 1) % poly.length]);
+      const d = dist(c, p);
+      if (d < bd) { bd = d; best = c; }
+    }
+  }
+  return best;
+}
+function distanceToFloor(view, p) {
+  const s = snapToFloor(view, p);
+  return s ? dist(s, p) : Infinity;
+}
+function axisFraction(axis, p) {
+  const dx = axis[1][0] - axis[0][0], dy = axis[1][1] - axis[0][1], seg = dx * dx + dy * dy;
+  if (seg === 0) return 0;
+  return Math.max(0, Math.min(1, ((p[0] - axis[0][0]) * dx + (p[1] - axis[0][1]) * dy) / seg));
+}
+/* altitude in inches above the picture's base level, or null while not known */
+function altitudeAt(zone, p) {
+  const z = zone.z_in;
+  if (zone.kind === "floor" || z === null || z === undefined) return (z === undefined ? null : z);
+  if (zone.rise_in === null || zone.rise_in === undefined) return null;
+  return z + zone.rise_in * axisFraction(zone.axis, p);
+}
+function zoneAt(view, p) {
+  const inside = view.zones.filter(z => pointInPolygon(p, z.points));
+  if (!inside.length) return null;
+  inside.sort((a, b) => (a.kind !== "floor" ? 0 : 1) - (b.kind !== "floor" ? 0 : 1));
+  return inside[0];
+}
+/* The lowest row of a footprint polygon at column x (x held inside the polygon's width). */
+function footprintFrontY(fp, x) {
+  let lo = Infinity, hi = -Infinity;
+  for (const p of fp) { lo = Math.min(lo, p[0]); hi = Math.max(hi, p[0]); }
+  x = Math.min(Math.max(x, lo), hi);
+  let best = null;
+  for (let i = 0; i < fp.length; i++) {
+    const [x1, y1] = fp[i], [x2, y2] = fp[(i + 1) % fp.length];
+    if (x1 === x2) { if (x === x1) best = best === null ? Math.max(y1, y2) : Math.max(best, y1, y2); continue; }
+    if (Math.min(x1, x2) <= x && x <= Math.max(x1, x2)) {
+      const y = y1 + (x - x1) / (x2 - x1) * (y2 - y1);
+      best = best === null ? y : Math.max(best, y);
+    }
+  }
+  return best;
+}
+/* Where an object meets the floor: its real front edge when it has a footprint, else the single base row. */
+function objectBaseY(o, x) {
+  if (o.footprint && x !== undefined) { const y = footprintFrontY(o.footprint, x); if (y !== null) return y; }
+  return o.base_y;
+}
+function occluderInFront(o, feetY, x) { return o.always === true || feetY < objectBaseY(o, x); }
+function blockedAt(view, p) {
+  return view.occluders.some(o => o.footprint && pointInPolygon(p, o.footprint))
+    || (view.blockers || []).some(b => pointInPolygon(p, b.footprint));
+}
+
+/* ------------------------------ avatar size ------------------------------- */
+function fitSamples(samples) {
+  if (!samples.length) return null;
+  const ys = samples.map(s => s.y);
+  if (samples.length === 1 || Math.max(...ys) === Math.min(...ys)) {
+    return [samples.reduce((a, s) => a + s.ppi, 0) / samples.length, 0];
+  }
+  const n = samples.length, my = ys.reduce((a, b) => a + b, 0) / n, mp = samples.reduce((a, s) => a + s.ppi, 0) / n;
+  const v = ys.reduce((a, y) => a + (y - my) ** 2, 0);
+  const slope = samples.reduce((a, s) => a + (s.y - my) * (s.ppi - mp), 0) / v;
+  return [mp - slope * my, slope];
+}
+function ppiAtSamples(samples, y) {
+  const f = fitSamples(samples);
+  return f ? f[0] + f[1] * y : null;
+}
+/* Pixels per inch at row y for a floor at altitude z (null = not known: treated as the main floor).
+   `sizing` is {camera, scale}: the picture's own, or the tuned values. */
+function ppiFor(sizing, y, z, zone) {
+  let ppi;
+  if (zone && zone.scale && zone.scale.length) ppi = ppiAtSamples(zone.scale, y);
+  else if (sizing.camera) {
+    const drop = (z === null || z === undefined) ? 0 : z;
+    const den = sizing.camera.eye_in - drop;
+    if (den === 0) return null;
+    ppi = (y - sizing.camera.horizon_y) / den;     // negative over negative for a floor above the camera
+  } else ppi = ppiAtSamples(sizing.scale || [], y);
+  return (ppi === null || !(ppi > 0)) ? null : ppi;
+}
+
+/* ------------------------------ state ------------------------------------- */
+const $ = id => document.getElementById(id);
+const canvas = $("c"), ctx = canvas.getContext("2d");
+const S = {
+  world: null, rooms: {}, room: null, view: null, key: "",
+  imgs: {}, pos: [0, 0], target: null, pendingDoor: null, armed: true,
+  char: "pete", history: [], tune: {}, lastT: 0, bubbleFor: null,
+  show: { pads: true, occ: false, doors: true, horizon: false, refs: false, alt: false },
+  hover: null, fit: { s: 1, ox: 0, oy: 0, cw: 1, ch: 1 }, refs: [], lastReadout: "",
+  cans: {}, canArm: null, canSel: -1, canDrag: null,
+  vel: [0, 1], moving: false, path: [],
+  avatarIds: {},            // character -> avatar id in the library, so the choice is kept with your progress
+  demoHeights: {},           // temporary demo-only height override; never saved as character height or library identity
+  library: [],
+};
+const CAN_IN = 4.83, CAN_W_IN = 2.6;     // a 12 oz can: height and diameter in inches
+const CANS_KEY = "pubcast_world_walk_cans_v1";
+function loadCans() { try { return JSON.parse(localStorage.getItem(CANS_KEY) || "{}") || {}; } catch (e) { return {}; } }
+function saveCans() { try { localStorage.setItem(CANS_KEY, JSON.stringify(S.cans)); } catch (e) { /* private window: cans just last this session */ } }
+const TUNE_KEY = "pubcast_world_walk_tune_v1";
+function loadTune() { try { return JSON.parse(localStorage.getItem(TUNE_KEY) || "{}") || {}; } catch (e) { return {}; } }
+function saveTune() { try { localStorage.setItem(TUNE_KEY, JSON.stringify(S.tune)); } catch (e) { /* private window: tuning just lasts this session */ } }
+const keyOf = (roomId, viewId) => roomId + "/" + viewId;
+
+/* The size rule in force for a picture: the proposed one, or the user's own: sliders, cans, and an overall x multiplier.
+   `noMult` gives the rule before the multiplier (what the camera / sample sliders edit). */
+function sizingOf(view, key, noMult) {
+  const t = S.tune[key || S.key] || {};
+  let camera = view.camera, scale = view.scale;
+  if (t.fromCans && t.canScale && t.canScale.length) { camera = null; scale = t.canScale; }
+  else if (t.camera && view.camera) { camera = t.camera; scale = []; }
+  else if (t.scale && !view.camera) scale = t.scale;
+  const m = noMult ? 1 : (t.mult || 1);
+  if (m !== 1) {
+    if (camera) camera = { horizon_y: camera.horizon_y, eye_in: camera.eye_in / m };   // ppi = (row - horizon) / eye, so x m means eye / m
+    else scale = (scale || []).map(q => ({ y: q.y, ppi: q.ppi * m }));
+  }
+  return { camera, scale };
+}
+function heightIn(charId) { return S.demoHeights[charId] || S.world.character_height_in[charId]; }
+function avatarPx(charId, y, zone, p) {
+  const alt = zone ? altitudeAt(zone, p) : null;
+  const ppi = ppiFor(sizingOf(S.view), y, alt, zone);
+  return ppi === null ? null : heightIn(charId) * ppi;
+}
+
+/* ------------------------------ loading ----------------------------------- */
+async function loadWorld() {
+  const r = await fetch("/static/world/world.json", { cache: "no-cache" });
+  if (!r.ok) throw new Error("world.json: HTTP " + r.status);
+  const w = await r.json();
+  S.world = w;
+  for (const room of w.rooms) S.rooms[room.id] = room;
+  return w;
+}
+function loadImage(src) {
+  if (S.imgs[src]) return S.imgs[src];
+  S.imgs[src] = new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => res(im); im.onerror = () => rej(new Error("image failed: " + src));
+    im.src = src;
+  });
+  return S.imgs[src];
+}
+function fillViewSelect() {
+  const sel = $("viewSel"); sel.textContent = "";
+  for (const room of S.world.rooms) {
+    if (!room.views.length) continue;
+    const g = document.createElement("optgroup"); g.label = room.name + (room.locked ? " (locked)" : "");
+    for (const v of room.views) {
+      const o = document.createElement("option");
+      o.value = keyOf(room.id, v.id); o.textContent = v.label || v.id;
+      g.appendChild(o);
+    }
+    sel.appendChild(g);
+  }
+}
+
+/* ------------------------------ view switching ---------------------------- */
+function toast(msg, ms) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("on"), ms || 2600);
+}
+function doorReach(view, door) {
+  // you cannot get closer to a door than the nearest floor, so standing there counts as being at the door
+  return Math.max(door.r * 1.5, distanceToFloor(view, door.at) + 30);
+}
+function centroid(poly) {
+  let x = 0, y = 0; for (const p of poly) { x += p[0]; y += p[1]; }
+  return [x / poly.length, y / poly.length];
+}
+/* A sensible place to stand: open main-level floor in the lower part of the picture, nearest the middle. */
+function defaultStart(view) {
+  if (!view.zones.length) return null;
+  const ys = view.zones.flatMap(z => z.points.map(p => p[1]));
+  const y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const mainLevel = (p) => { const z = zoneAt(view, p); return z && z.kind === "floor" && z.z_in === 0; };
+  const anyLevel = (p) => !!zoneAt(view, p);
+  for (const ok of [mainLevel, anyLevel]) {
+    for (let d = 0; d <= (y1 - y0); d += 6) {
+      for (const row of d === 0 ? [y0 + 0.78 * (y1 - y0)] : [y0 + 0.78 * (y1 - y0) - d, y0 + 0.78 * (y1 - y0) + d]) {
+        const xs = [];
+        for (let x = 0; x <= view.w; x += 6) if (floorContains(view, [x, row]) && ok([x, row])) xs.push(x);
+        if (xs.length) {
+          xs.sort((a, b) => Math.abs(a - view.w / 2) - Math.abs(b - view.w / 2));
+          return [xs[0], row];
+        }
+      }
+    }
+  }
+  return snapToFloor(view, centroid(view.zones[0].points));
+}
+function startPosition(view, fromRoomId) {
+  if (!view.zones.length) return null;
+  const home = defaultStart(view);
+  if (fromRoomId) {
+    const d = view.doors.find(d => d.to === fromRoomId);
+    if (d) {
+      let p = snapToFloor(view, d.at);
+      const dd = dist(p, home);
+      if (dd > 1) {
+        const k = Math.min(1, 28 / dd), q = [p[0] + (home[0] - p[0]) * k, p[1] + (home[1] - p[1]) * k];
+        if (floorContains(view, q)) p = q;
+      }
+      return p;
+    }
+  }
+  return home;
+}
+async function setView(roomId, viewId, opts) {
+  opts = opts || {};
+  const room = S.rooms[roomId]; if (!room) return false;
+  const view = room.views.find(v => v.id === viewId) || room.views[0];
+  if (!view) return false;
+  const fade = $("fade"); if (!opts.instant) fade.classList.add("on");
+  let img;
+  try { img = await loadImage(view.image); }
+  catch (e) { fade.classList.remove("on"); toast("Could not load that picture"); return false; }
+  S.room = room; S.view = view; S.key = keyOf(room.id, view.id); S.img = img;
+  S.target = null; S.path = []; HELD.clear(); S.pendingDoor = null; hideBubble(); S.canArm = null; S.canSel = -1; S.canDrag = null;
+  S.pos = startPosition(view, opts.from) || [0, 0];
+  if (view.zones.length) S.pos = nearestWalkable(view, S.pos);          // never start inside a table or chair
+  S.armed = false;                                  // re-arms once you walk away from the door you arrived at
+  S.refs = buildRefs(view);
+  $("viewSel").value = S.key;
+  $("chipRoom").textContent = room.name + " · " + (view.label || view.id);
+  $("back").hidden = S.history.length === 0;
+  refreshPanel(); resize();
+  requestAnimationFrame(() => fade.classList.remove("on"));
+  const L = window.PubCastLive;
+  if (L) L.enterView({ room: room.id, view: view.id, liveId: room.live_id || "", layoutId: room.layout_id || "" });
+  return true;
+}
+function goTo(roomId, fromRoomId) {
+  const room = S.rooms[roomId];
+  if (!room) { toast("That place is not built yet"); return; }
+  if (room.locked) { toast(room.name + " is locked. It has not been built yet.", 3600); return; }
+  if (!room.views.length) { toast(room.name + " has no picture yet", 3600); return; }
+  S.history = [];
+  setView(roomId, room.views[0].id, { from: fromRoomId });
+}
+function openCloseup(viewId) {
+  S.history.push({ room: S.room.id, view: S.view.id, pos: S.pos.slice() });
+  setView(S.room.id, viewId, {});
+}
+async function goBack() {
+  const h = S.history.pop(); if (!h) return;
+  await setView(h.room, h.view, { instant: false });
+  S.pos = h.pos; $("back").hidden = S.history.length === 0;
+}
+
+/* ------------------------------ reference figures ------------------------- */
+function floorRunsAtRow(view, y) {
+  // contiguous stretches of floor on one row, so reference figures never stand in the gap between two pads
+  const runs = []; let a = null, last = null;
+  for (let x = 0; x <= view.w; x += 6) {
+    if (floorContains(view, [x, y])) { if (a === null) a = x; last = x; }
+    else if (a !== null) { runs.push([a, last]); a = null; }
+  }
+  if (a !== null) runs.push([a, last]);
+  return runs;
+}
+function buildRefs(view) {
+  if (!view.zones.length) return [];
+  const ys = view.zones.flatMap(z => z.points.map(p => p[1]));
+  const y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const out = [];
+  [0.14, 0.5, 0.86].forEach((f, i) => {
+    let y = y0 + (y1 - y0) * f, runs = floorRunsAtRow(view, y);
+    for (let k = 0; !runs.length && k < 30; k++) { y += 6; runs = floorRunsAtRow(view, y); }
+    if (!runs.length) return;
+    const run = runs[Math.min(runs.length - 1, Math.floor(i * runs.length / 3))];
+    out.push({ char: CHAR_ORDER[i], p: [run[0] + (run[1] - run[0]) * [0.2, 0.75, 0.9][i], y] });
+  });
+  return out;
+}
+
+/* ------------------------------ figures ----------------------------------- */
+function figureShapes(cx, fy, H, sex) {
+  const f = k => k * H;
+  const male = sex === "m";
+  const sw = f(male ? 0.255 : 0.225), ww = f(male ? 0.19 : 0.165), hw = f(male ? 0.2 : 0.225);
+  const yTop = fy - H, yNeck = fy - f(0.835), ySh = fy - f(0.815), yWa = fy - f(0.62), yHip = fy - f(0.52), yCr = fy - f(0.47);
+  const shapes = [];
+  shapes.push({ type: "ellipse", x: cx, y: yTop + f(0.0667), rx: f(0.051), ry: f(0.0667) });
+  shapes.push({ type: "poly", pts: [[cx - f(0.022), yTop + f(0.12)], [cx + f(0.022), yTop + f(0.12)], [cx + f(0.026), ySh], [cx - f(0.026), ySh]] });
+  shapes.push({ type: "poly", pts: [[cx - sw / 2, ySh], [cx - f(0.03), yNeck + f(0.012)], [cx + f(0.03), yNeck + f(0.012)], [cx + sw / 2, ySh],
+    [cx + ww / 2, yWa], [cx + hw / 2, yHip], [cx + hw / 2 - f(0.005), yCr + f(0.03)], [cx - hw / 2 + f(0.005), yCr + f(0.03)], [cx - hw / 2, yHip], [cx - ww / 2, yWa]] });
+  for (const s of [-1, 1]) {
+    shapes.push({ type: "poly", pts: [[cx + s * (sw / 2 - f(0.012)), ySh], [cx + s * (sw / 2 + f(0.034)), ySh + f(0.012)],
+      [cx + s * (sw / 2 + f(0.05)), fy - f(0.4)], [cx + s * (sw / 2 + f(0.0)), fy - f(0.4)]] });
+    shapes.push({ type: "poly", pts: [[cx + s * f(0.003), yCr], [cx + s * (hw / 2 - f(0.002)), yHip + f(0.02)],
+      [cx + s * (f(0.062)), fy - f(0.03)], [cx + s * f(0.025), fy - f(0.03)]] });
+    shapes.push({ type: "ellipse", x: cx + s * f(0.05), y: fy - f(0.015), rx: f(0.038), ry: f(0.017) });
+  }
+  return shapes;
+}
+function tracePath(c, s) {
+  c.beginPath();
+  if (s.type === "ellipse") c.ellipse(s.x, s.y, s.rx, s.ry, 0, 0, Math.PI * 2);
+  else { c.moveTo(s.pts[0][0], s.pts[0][1]); for (let i = 1; i < s.pts.length; i++) c.lineTo(s.pts[i][0], s.pts[i][1]); c.closePath(); }
+}
+function drawFigure(c, cx, fy, H, color, sex, opts) {
+  opts = opts || {};
+  if (!(H > 1)) return;
+  const sh = figureShapes(cx, fy, H, sex);
+  c.save();
+  c.globalAlpha = opts.alpha === undefined ? 1 : opts.alpha;
+  // contact shadow
+  c.fillStyle = "rgba(0,0,0,.38)";
+  c.beginPath(); c.ellipse(cx, fy + H * 0.004, H * 0.12, Math.max(1.2, H * 0.022), 0, 0, Math.PI * 2); c.fill();
+  // one clean outline: stroke every part first, then fill every part on top
+  c.lineJoin = "round"; c.lineCap = "round";
+  c.strokeStyle = "rgba(12,14,24,.95)"; c.lineWidth = Math.max(2, H * 0.03);
+  for (const s of sh) { tracePath(c, s); c.stroke(); }
+  const g = c.createLinearGradient(cx, fy - H, cx, fy);
+  g.addColorStop(0, opts.light || color); g.addColorStop(1, color);
+  c.fillStyle = g;
+  for (const s of sh) { tracePath(c, s); c.fill(); }
+  c.restore();
+}
+
+/* ------------------------------ drawing ----------------------------------- */
+function resize() {
+  const r = $("stage").getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, Math.round(r.width * dpr)); canvas.height = Math.max(1, Math.round(r.height * dpr));
+  S.fit.cw = r.width; S.fit.ch = r.height; S.fit.dpr = dpr;
+  if (S.view) {
+    const s = Math.min(r.width / S.view.w, r.height / S.view.h);
+    S.fit.s = s; S.fit.ox = (r.width - S.view.w * s) / 2; S.fit.oy = (r.height - S.view.h * s) / 2;
+  }
+  moveBubble();
+}
+const toScreen = p => [S.fit.ox + p[0] * S.fit.s, S.fit.oy + p[1] * S.fit.s];
+function toPicture(clientX, clientY) {
+  const r = canvas.getBoundingClientRect();
+  return [(clientX - r.left - S.fit.ox) / S.fit.s, (clientY - r.top - S.fit.oy) / S.fit.s];
+}
+function polyPath(c, pts) { c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); }
+const KIND_COLOR = { floor: [53, 214, 255], stairs: [255, 170, 60], ramp: [255, 220, 90] };
+
+function figureList() {
+  const v = S.view, list = [];
+  if (v.zones.length) {
+    const zone = zoneAt(v, S.pos);
+    const H = avatarPx(S.char, S.pos[1], zone, S.pos);
+    list.push({ char: S.char, p: S.pos, H, main: true });
+  }
+  if (S.show.refs) for (const r of S.refs) {
+    const zone = zoneAt(v, r.p);
+    list.push({ char: r.char, p: r.p, H: avatarPx(r.char, r.p[1], zone, r.p), main: false });
+  }
+  return list.filter(f => f.H).sort((a, b) => a.p[1] - b.p[1]);
+}
+/* A loaded GLB for this character, drawn at the pixel height the picture's size rule gives. False = use the flat figure. */
+function drawGlbFigure(c, fg) {
+  const G = window.PubCastGLB; if (!G || !G.has(fg.char)) return false;
+  const motion = fg.main ? { vx: S.vel[0], vy: S.vel[1], moving: S.moving, dt: S.dt || 0, pxScale: S.fit.s }
+                         : { vx: 0, vy: 1, moving: false, dt: S.dt || 0, pxScale: S.fit.s };
+  try { return G.draw(c, fg.char, fg.p[0], fg.p[1], fg.H, motion); }
+  catch (e) { G.state.lastError = String(e && e.message || e); G.clear(fg.char); setGlbInfo(); return false; }
+}
+function draw() {
+  const c = ctx, f = S.fit, dpr = f.dpr || 1;
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.fillStyle = "#000"; c.fillRect(0, 0, f.cw, f.ch);
+  if (!S.view || !S.img) return;
+  const v = S.view;
+  c.save(); c.translate(f.ox, f.oy); c.scale(f.s, f.s);
+  c.drawImage(S.img, 0, 0, v.w, v.h);
+
+  if (S.show.pads) for (const z of v.zones) {
+    const col = KIND_COLOR[z.kind] || KIND_COLOR.floor, unknown = z.z_in === null || (z.kind !== "floor" && z.rise_in === null);
+    polyPath(c, z.points);
+    c.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},.2)`; c.fill();
+    c.lineWidth = 2 / f.s; c.strokeStyle = `rgba(${col[0]},${col[1]},${col[2]},.95)`;
+    c.setLineDash(unknown ? [8 / f.s, 5 / f.s] : []); c.stroke(); c.setLineDash([]);
+    if (z.axis) {
+      c.strokeStyle = "rgba(255,255,255,.9)"; c.lineWidth = 2 / f.s;
+      c.beginPath(); c.moveTo(z.axis[0][0], z.axis[0][1]); c.lineTo(z.axis[1][0], z.axis[1][1]); c.stroke();
+      const a = z.axis[1], b = z.axis[0], ang = Math.atan2(a[1] - b[1], a[0] - b[0]), hs = 12 / f.s;
+      c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(a[0] - hs * Math.cos(ang - .45), a[1] - hs * Math.sin(ang - .45));
+      c.lineTo(a[0] - hs * Math.cos(ang + .45), a[1] - hs * Math.sin(ang + .45)); c.closePath(); c.fillStyle = "rgba(255,255,255,.9)"; c.fill();
+    }
+  }
+  if (S.show.occ) for (const o of v.occluders) {
+    const front = occluderInFront(o, S.pos[1], S.pos[0]);
+    polyPath(c, o.points);
+    c.fillStyle = front ? "rgba(255,60,200,.22)" : "rgba(80,255,120,.12)"; c.fill();
+    c.lineWidth = 1.5 / f.s; c.strokeStyle = front ? "rgba(255,60,200,.95)" : "rgba(80,255,120,.8)"; c.stroke();
+  }
+  if (S.show.occ) {                                   // solid things nobody can walk on: the floor under them, in red
+    const solids = v.occluders.filter(o => o.footprint).map(o => o.footprint).concat((v.blockers || []).map(b => b.footprint));
+    for (const fp of solids) {
+      polyPath(c, fp);
+      c.fillStyle = "rgba(255,40,40,.30)"; c.fill();
+      c.lineWidth = 2 / f.s; c.strokeStyle = "rgba(255,70,70,.95)"; c.stroke();
+    }
+  }
+  if (S.show.horizon && v.camera) {
+    const sz = sizingOf(v);
+    c.setLineDash([14 / f.s, 8 / f.s]); c.lineWidth = 2 / f.s; c.strokeStyle = "rgba(255,235,0,.95)";
+    c.beginPath(); c.moveTo(0, sz.camera.horizon_y); c.lineTo(v.w, sz.camera.horizon_y); c.stroke(); c.setLineDash([]);
+  }
+  // figures, far to near; after each one repaint the things that are in front of it
+  for (const fg of figureList()) {
+    const ch = CHAR[fg.char];
+    if (fg.main && S.show.refs) {                     // mark which one is you when the reference figures are on
+      c.save(); c.strokeStyle = "rgba(255,255,255,.95)"; c.lineWidth = 2 / f.s;
+      c.beginPath(); c.ellipse(fg.p[0], fg.p[1], fg.H * 0.19, Math.max(3, fg.H * 0.04), 0, 0, Math.PI * 2); c.stroke(); c.restore();
+    }
+    if (!drawGlbFigure(c, fg)) drawFigure(c, fg.p[0], fg.p[1], fg.H, ch.color, ch.sex, { alpha: fg.main ? 1 : 0.85 });
+    for (const o of v.occluders) if (occluderInFront(o, fg.p[1], fg.p[0])) {
+      c.save(); polyPath(c, o.points); c.clip(); c.drawImage(S.img, 0, 0, v.w, v.h); c.restore();
+    }
+  }
+  if (S.show.alt && v.scale_info && v.scale_info.alt && S.refs.length) {
+    const alt = v.scale_info.alt.samples;
+    for (const r of S.refs) {
+      const ppi = ppiAtSamples(alt, r.p[1]); if (!(ppi > 0)) continue;
+      const off = 46 * Math.max(.6, ppiAtSamples(v.scale, r.p[1]) || 1);
+      drawFigure(c, r.p[0] + (r.p[0] + off > v.w - 40 ? -off : off), r.p[1], heightIn(r.char) * ppi, "#9aa0ad", CHAR[r.char].sex, { alpha: .9 });
+    }
+  }
+  drawCans(c);
+  if (S.show.doors) drawMarkers(c);
+  if (S.target && S.view.zones.length) {
+    c.strokeStyle = "rgba(255,255,255,.9)"; c.lineWidth = 2 / f.s;
+    c.beginPath(); c.arc(S.target[0], S.target[1], 8 / f.s, 0, Math.PI * 2); c.stroke();
+  }
+  c.restore();
+  if (S.show.doors || S.show.pads) drawLabels(c);
+}
+/* ------------------------------ reference cans ---------------------------- */
+function canListNow() { return (S.cans[S.key] = S.cans[S.key] || []); }
+function canSample(c) { return { y: c.fy == null ? c.y : c.fy, ppi: c.h / CAN_IN }; }
+function applyCans() {
+  const t = S.tune[S.key] = S.tune[S.key] || {}, list = canListNow();
+  t.canScale = list.map(canSample);
+  if (!list.length) t.fromCans = false;
+  saveTune(); saveCans(); updateTuneOut();
+}
+function drawCan(c, can, sel) {
+  const h = can.h, w = h * CAN_W_IN / CAN_IN, x = can.x, y = can.y, ry = Math.max(1.2, w * 0.12), f = S.fit.s;
+  c.save();
+  c.fillStyle = "rgba(0,0,0,.28)"; c.beginPath(); c.ellipse(x, y, w * 0.55, ry * 1.1, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.moveTo(x - w / 2, y - h + ry); c.lineTo(x - w / 2, y);
+  c.ellipse(x, y, w / 2, ry, 0, Math.PI, 0, true); c.lineTo(x + w / 2, y - h + ry);
+  c.ellipse(x, y - h + ry, w / 2, ry, 0, 0, Math.PI, true); c.closePath();
+  const g = c.createLinearGradient(x - w / 2, 0, x + w / 2, 0);
+  g.addColorStop(0, "#8f1010"); g.addColorStop(.3, "#e02020"); g.addColorStop(.55, "#ff5a4d"); g.addColorStop(1, "#7a0c0c");
+  c.fillStyle = g; c.fill();
+  c.lineWidth = 1 / f; c.strokeStyle = "rgba(0,0,0,.6)"; c.stroke();
+  c.save(); c.clip();
+  c.strokeStyle = "rgba(255,255,255,.9)"; c.lineWidth = Math.max(1, h * 0.08);
+  c.beginPath(); c.moveTo(x - w / 2, y - h * 0.32); c.bezierCurveTo(x - w * 0.2, y - h * 0.5, x + w * 0.2, y - h * 0.2, x + w / 2, y - h * 0.42); c.stroke();
+  c.restore();
+  c.fillStyle = "#cfd3da"; c.beginPath(); c.ellipse(x, y - h + ry, w / 2, ry, 0, 0, Math.PI * 2); c.fill(); c.stroke();
+  if (sel) {
+    c.strokeStyle = "#ffd36b"; c.lineWidth = 2 / f; c.setLineDash([5 / f, 4 / f]);
+    c.strokeRect(x - w / 2 - 4 / f, y - h - ry - 4 / f, w + 8 / f, h + ry * 2 + 8 / f); c.setLineDash([]);
+  }
+  c.fillStyle = "#ffd36b"; c.strokeStyle = "#000"; c.lineWidth = 1.5 / f;
+  c.beginPath(); c.arc(x, y - h - ry - 10 / f, 6 / f, 0, Math.PI * 2); c.fill(); c.stroke();      // resize handle
+  if (can.fy != null && Math.abs(can.fy - can.y) > 1) {
+    c.strokeStyle = "#ffd36b"; c.lineWidth = 1.5 / f; c.setLineDash([4 / f, 4 / f]);
+    c.beginPath(); c.moveTo(x, y); c.lineTo(x, can.fy); c.stroke(); c.setLineDash([]);
+    c.beginPath(); c.moveTo(x - 7 / f, can.fy); c.lineTo(x + 7 / f, can.fy); c.stroke();
+  }
+  c.restore();
+}
+function drawCans(c) { canListNow().forEach((can, i) => drawCan(c, can, i === S.canSel)); }
+function canHit(p) {
+  const list = canListNow(), s = S.fit.s;
+  for (let i = list.length - 1; i >= 0; i--) {
+    const k = list[i], w = k.h * CAN_W_IN / CAN_IN, ry = Math.max(1.2, w * 0.12);
+    if (dist(p, [k.x, k.y - k.h - ry - 10 / s]) <= 14 / s) return { i, mode: "resize" };
+    if (Math.abs(p[0] - k.x) <= Math.max(w / 2, 10 / s) && p[1] <= k.y + 8 / s && p[1] >= k.y - k.h - ry - 8 / s) return { i, mode: "move" };
+  }
+  return null;
+}
+function buildCans() {
+  const box = $("canList"); box.textContent = ""; const list = canListNow(), t = S.tune[S.key] || {};
+  $("canUse").checked = !!t.fromCans; $("canUse").disabled = !list.length;
+  list.forEach((can, i) => {
+    const row = el("div", undefined, "canrow" + (i === S.canSel ? " sel" : ""));
+    row.appendChild(slider("Can " + (i + 1) + " height on the picture (px)", 4, 120, 0.5, can.h, val => { can.h = val; applyCans(); refreshCanText(row, can); }));
+    const info = el("div", "", "dim"); info.dataset.info = "1"; row.appendChild(info);
+    const br = el("div", undefined, "btnrow");
+    const sel = el("button", i === S.canSel ? "Selected" : "Select"); sel.addEventListener("click", () => { S.canSel = i; buildCans(); });
+    const fl = el("button", "Set floor point"); fl.title = "For a can on a table, lamp or bin: click where that thing meets the floor";
+    fl.addEventListener("click", () => { S.canArm = { floor: i }; toast("Click the picture where this can's table (or lamp, bin) meets the floor"); });
+    const cl = el("button", can.fy == null ? "" : "On the floor"); if (can.fy == null) { cl.hidden = true; } else cl.addEventListener("click", () => { can.fy = null; applyCans(); buildCans(); });
+    const rm = el("button", "Remove"); rm.addEventListener("click", () => { list.splice(i, 1); S.canSel = -1; applyCans(); buildCans(); buildTuner(); });
+    br.appendChild(sel); br.appendChild(fl); br.appendChild(cl); br.appendChild(rm); row.appendChild(br);
+    box.appendChild(row); refreshCanText(row, can);
+  });
+}
+function refreshCanText(row, can) {
+  const s = canSample(can), n = row.querySelector("[data-info]");
+  if (n) n.textContent = "= " + s.ppi.toFixed(2) + " px per inch at row " + Math.round(s.y) + (can.fy == null ? " (sits on the floor)" : " (floor point set below it)");
+}
+$("canAdd").addEventListener("click", () => { S.canArm = "place"; toast("Click the picture where the can stands"); });
+$("canUse").addEventListener("change", e => {
+  const t = S.tune[S.key] = S.tune[S.key] || {}; t.fromCans = e.target.checked; applyCans(); buildTuner(); buildCans();
+  toast(e.target.checked ? "Avatars are now sized from your cans" : "Back to the picture's own size rule");
+});
+function groupDoors(view) {
+  const groups = [];
+  for (const d of view.doors) {
+    let g = d.group ? groups.find(x => x.group === d.group && x.at[0] === d.at[0] && x.at[1] === d.at[1]) : null;
+    if (!g) { g = { group: d.group || null, at: d.at, r: d.r, doors: [] }; groups.push(g); }
+    g.doors.push(d);
+  }
+  return groups;
+}
+function doorName(d) {
+  const ex = S.room.exits.find(e => e.to === d.to);
+  const r = S.rooms[d.to];
+  return d.label || (ex && ex.label) || (r && r.name) || d.to;
+}
+function drawMarkers(c) {
+  const f = S.fit, v = S.view;
+  for (const g of groupDoors(v)) {
+    c.beginPath(); c.arc(g.at[0], g.at[1], Math.max(10, 10 / f.s), 0, Math.PI * 2);
+    const confirmed = g.doors.every(d => d.status === "confirmed");
+    c.fillStyle = confirmed ? "rgba(255,211,107,.9)" : "rgba(255,138,122,.85)"; c.fill();
+    c.lineWidth = 2 / f.s; c.strokeStyle = "#12131a"; c.stroke();
+  }
+  for (const h of v.hotspots) {
+    c.beginPath(); c.rect(h.at[0] - 8 / f.s, h.at[1] - 8 / f.s, 16 / f.s, 16 / f.s);
+    c.fillStyle = "rgba(120,200,255,.9)"; c.fill(); c.lineWidth = 2 / f.s; c.strokeStyle = "#12131a"; c.stroke();
+  }
+}
+function pillText(c, text, x, y, fg, bg) {
+  c.font = "600 12px system-ui, sans-serif";
+  const w = c.measureText(text).width + 12;
+  c.fillStyle = bg; c.beginPath(); c.roundRect ? c.roundRect(x - w / 2, y - 10, w, 20, 10) : c.rect(x - w / 2, y - 10, w, 20); c.fill();
+  c.fillStyle = fg; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(text, x, y);
+}
+function drawLabels(c) {
+  const v = S.view;
+  if (S.show.doors) {
+    for (const g of groupDoors(v)) {
+      const [sx, sy] = toScreen(g.at);
+      const text = g.doors.length > 1 ? g.doors.map(doorName).join(" / ") : doorName(g.doors[0]);
+      pillText(c, text, Math.min(Math.max(sx, 60), S.fit.cw - 60), Math.max(sy - 22, 16), "#fff", "rgba(18,19,26,.85)");
+    }
+    for (const h of v.hotspots) {
+      const [sx, sy] = toScreen(h.at);
+      pillText(c, h.label, Math.min(Math.max(sx, 50), S.fit.cw - 50), Math.min(sy + 22, S.fit.ch - 12), "#06202e", "rgba(150,215,255,.92)");
+    }
+  }
+  if (S.show.refs) for (const fg of figureList()) {
+    const [sx, sy] = toScreen(fg.p), inch = heightIn(fg.char);
+    const text = (fg.main ? "You: " : "") + CHAR[fg.char].label + " " + Math.floor(inch / 12) + "'" + (inch % 12) + "\" \u00b7 " + Math.round(fg.H) + " px";
+    pillText(c, text, Math.min(Math.max(sx, 80), S.fit.cw - 80), Math.min(sy + 22 * 1, S.fit.ch - 12), "#fff", "rgba(18,19,26,.85)");
+  }
+  if (S.show.pads) for (const z of v.zones) {
+    const cc = centroid(z.points), [sx, sy] = toScreen(cc);
+    const alt = z.z_in === null ? "altitude ?" : (z.kind === "floor" ? z.z_in + " in" : (z.rise_in === null ? "climb ?" : (z.rise_in > 0 ? "up " : "down ") + Math.abs(z.rise_in) + " in"));
+    pillText(c, z.id + " · " + z.level + " · " + alt, sx, sy, "#00222c", "rgba(150,235,255,.88)");
+  }
+}
+
+/* ------------------------------ movement ---------------------------------- */
+/* Walk speed at a spot: the same real inches per second everywhere, so it looks slower far away and quicker up close. */
+function walkSpeedPx(p, dirx, diry) {
+  const v = S.view, zone = zoneAt(v, p);
+  const ppi = ppiFor(sizingOf(v), p[1], zone ? altitudeAt(zone, p) : null, zone) || 1;
+  const dl = Math.hypot(dirx, diry) || 1;
+  return WALK_IN_PER_S * ppi * (0.62 + 0.38 * Math.abs(dirx) / dl);          // depth moves look slower than sideways ones
+}
+const walkable = (v, q) => floorContains(v, q) && !blockedAt(v, q);
+/* One step of `len` picture pixels towards direction (dx, dy). If something is in the way it creeps round it: tries
+   the straight line, then turns 35, 70 and 110 degrees either way (the side nearer the goal first). Awkward on purpose. */
+function creepStep(v, p, dx, dy, len) {
+  const d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
+  for (const deg of [0, 35, -35, 70, -70, 110, -110]) {
+    const a = deg * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
+    const vx = ux * c - uy * sn, vy = ux * sn + uy * c, q = [p[0] + vx * len, p[1] + vy * len];
+    if (walkable(v, q)) return { pos: q, dir: [vx, vy] };
+  }
+  return null;
+}
+/* A* over a coarse grid of walkable spots, then straightened. Returns waypoints from `a` (excluded) to `b`, or null. */
+function findPath(v, a, b) {
+  const CELL = 6, xs = [], ys = [];
+  for (const z of v.zones) for (const q of z.points) { xs.push(q[0]); ys.push(q[1]); }
+  if (!xs.length) return null;
+  const x0 = Math.min(...xs) - CELL, y0 = Math.min(...ys) - CELL, W = Math.ceil((Math.max(...xs) - x0) / CELL) + 2, H = Math.ceil((Math.max(...ys) - y0) / CELL) + 2;
+  const at = (cx, cy) => [x0 + cx * CELL, y0 + cy * CELL];
+  const freeC = new Int8Array(W * H).fill(-1);
+  const free = (cx, cy) => { if (cx < 0 || cy < 0 || cx >= W || cy >= H) return false; const i = cy * W + cx; if (freeC[i] < 0) freeC[i] = walkable(v, at(cx, cy)) ? 1 : 0; return freeC[i] === 1; };
+  const cellOf = q => [Math.round((q[0] - x0) / CELL), Math.round((q[1] - y0) / CELL)];
+  const nearestFree = q => { const [cx, cy] = cellOf(q); for (let r = 0; r < 14; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r && free(cx + dx, cy + dy)) return [cx + dx, cy + dy]; return null; };
+  const sC = nearestFree(a), gC = nearestFree(b); if (!sC || !gC) return null;
+  const idx = (cx, cy) => cy * W + cx, g = new Float32Array(W * H).fill(Infinity), from = new Int32Array(W * H).fill(-1), closed = new Uint8Array(W * H);
+  const heap = []; const push = (f, i) => { heap.push([f, i]); let k = heap.length - 1; while (k > 0) { const pk = (k - 1) >> 1; if (heap[pk][0] <= heap[k][0]) break; [heap[pk], heap[k]] = [heap[k], heap[pk]]; k = pk; } };
+  const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let k = 0; for (;;) { let l = 2 * k + 1, r = l + 1, m = k; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === k) break; [heap[m], heap[k]] = [heap[k], heap[m]]; k = m; } } return top; };
+  const hc = (cx, cy) => { const dx = Math.abs(cx - gC[0]), dy = Math.abs(cy - gC[1]); return (dx + dy) + (Math.SQRT2 - 2) * Math.min(dx, dy); };
+  g[idx(sC[0], sC[1])] = 0; push(hc(sC[0], sC[1]), idx(sC[0], sC[1]));
+  let found = false;
+  while (heap.length) {
+    const [, i] = pop(); if (closed[i]) continue; closed[i] = 1;
+    const cx = i % W, cy = (i / W) | 0;
+    if (cx === gC[0] && cy === gC[1]) { found = true; break; }
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      if (!dx && !dy) continue; const nx = cx + dx, ny = cy + dy;
+      if (!free(nx, ny)) continue; if (dx && dy && !(free(cx + dx, cy) && free(cx, cy + dy))) continue;
+      const j = idx(nx, ny), ng = g[i] + (dx && dy ? Math.SQRT2 : 1);
+      if (ng < g[j]) { g[j] = ng; from[j] = i; push(ng + hc(nx, ny), j); }
+    }
+  }
+  if (!found) return null;
+  const cells = []; for (let i = idx(gC[0], gC[1]); i >= 0; i = from[i]) cells.push(at(i % W, (i / W) | 0)); cells.reverse();
+  const clear = (p, q) => { const n = Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / 3); for (let k = 1; k < n; k++) { const t = k / n; if (!walkable(v, [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t])) return false; } return true; };
+  const goal = walkable(v, b) ? b : cells[cells.length - 1], out = []; let anchor = a, k = 0;
+  while (k < cells.length) {
+    let far = k; for (let m = cells.length - 1; m > k; m--) if (clear(anchor, cells[m])) { far = m; break; }
+    out.push(cells[far]); anchor = cells[far]; k = far + 1;
+  }
+  if (out.length) out[out.length - 1] = goal; else out.push(goal);
+  return out;
+}
+/* Set where to walk. Plans a way round obstacles when it can; otherwise heads straight there and creeps round whatever is in the way. */
+/* The closest spot to p that is on the floor and not inside furniture, so a click on a table walks up to the table, not into it. */
+function nearestWalkable(v, p, maxR) {
+  if (walkable(v, p)) return p;
+  for (let r = 4; r <= (maxR || 400); r += 4) {
+    let best = null, bd = Infinity;
+    for (let k = 0; k < 32; k++) {
+      const a = k / 32 * Math.PI * 2, q = [p[0] + Math.cos(a) * r, p[1] + Math.sin(a) * r];
+      if (walkable(v, q)) { const d = Math.hypot(q[0] - p[0], q[1] - p[1]); if (d < bd) { bd = d; best = q; } }
+    }
+    if (best) return best;
+  }
+  return p;
+}
+/* Sitting at a station (the video switcher, the audio mixer ...) you do not walk: its keys are the station's, not the walker's. */
+const atStation = () => !!(window.PubCastKeymap && window.PubCastKeymap.isOpen && window.PubCastKeymap.isOpen());
+/* The host can also take the avatar (possession) or put this person in the disciplinary waiting room (timeout): then their own keys and clicks do not walk either. */
+S.host = { possessed: false, until: 0, timeout: null, banned: false };
+const inputLocked = () => atStation() || S.host.possessed || !!S.host.timeout || S.host.banned;
+function setTarget(pt, byHost) {
+  if (pt && !byHost && inputLocked()) return;
+  S.stall = null;
+  if (pt && S.view.zones.length) pt = nearestWalkable(S.view, pt);
+  S.target = pt; S.path = [];
+  if (!pt || !S.view.zones.length) return;
+  const route = findPath(S.view, S.pos, pt);
+  if (route) S.path = route;
+}
+function stepTowards(dt) {
+  if (!S.target || !S.view.zones.length) return false;
+  const v = S.view, p = S.pos;
+  while (S.path && S.path.length && Math.hypot(S.path[0][0] - p[0], S.path[0][1] - p[1]) <= ARRIVE_PX) S.path.shift();
+  const wp = (S.path && S.path.length) ? S.path[0] : S.target;
+  const dx = wp[0] - p[0], dy = wp[1] - p[1], d = Math.hypot(dx, dy);
+  if (d <= ARRIVE_PX) {
+    if (wp === S.target || !(S.path && S.path.length)) { S.pos = [S.target[0], S.target[1]]; S.target = null; S.path = []; S.moving = false; return true; }
+    S.path.shift(); return true;
+  }
+  // give up when creeping gets nowhere (no closer to the next waypoint for 3 seconds): it stands still instead of shuffling forever
+  if (!S.stall || S.stall.wp !== wp || d < S.stall.best - 1) S.stall = { wp, best: d, t: 0 }; else S.stall.t += dt;
+  if (S.stall.t > 3) { S.target = null; S.path = []; S.moving = false; S.stall = null; return true; }
+  const len = Math.min(d, Math.max(1, walkSpeedPx(p, dx, dy) * dt));
+  const step = creepStep(v, p, dx, dy, len);
+  if (!step) { S.target = null; S.path = []; S.moving = false; return true; }            // boxed in: stop
+  S.pos = step.pos; S.vel = step.dir; S.moving = true;
+  return true;
+}
+/* Arrow keys / WASD: walk while held. Up is away from the viewer, down is towards it. */
+const HELD = new Set();
+function keyDir() {
+  const dx = (HELD.has("ArrowRight") || HELD.has("d") ? 1 : 0) - (HELD.has("ArrowLeft") || HELD.has("a") ? 1 : 0);
+  const dy = (HELD.has("ArrowDown") || HELD.has("s") ? 1 : 0) - (HELD.has("ArrowUp") || HELD.has("w") ? 1 : 0);
+  return [dx, dy];
+}
+function stepKeys(dt) {
+  const [dx, dy] = keyDir(); if (!dx && !dy) return false;
+  if (!S.view || !S.view.zones.length) return false;
+  S.target = null; S.path = []; S.pendingDoor = null;
+  const len = Math.max(1, walkSpeedPx(S.pos, dx, dy) * (HELD.has("Shift") ? 1.8 : 1) * dt);
+  const step = creepStep(S.view, S.pos, dx, dy, len);
+  if (!step) { S.moving = false; return true; }
+  S.pos = step.pos; S.vel = step.dir; S.moving = true; return true;
+}
+function checkDoors() {
+  const v = S.view; if (!v.zones.length) return;
+  let near = null;
+  for (const g of groupDoors(v)) {
+    const reach = Math.max(...g.doors.map(d => doorReach(v, d)));
+    if (dist(S.pos, g.at) <= reach) { near = g; break; }
+  }
+  if (!near) { S.armed = true; return; }
+  if (!S.armed) return;
+  if (S.bubbleFor === near) return;
+  S.armed = false; showDoorBubble(near);
+}
+function frame(t) {
+  const rawDt = (t - (S.lastT || t)) / 1000; if (rawDt > 0) S.fps = S.fps ? S.fps * 0.9 + (1 / rawDt) * 0.1 : 1 / rawDt; S.frameAt = t;   // smoothed frames per second, shown on the host's roster
+  const dt = Math.min(0.1, (t - (S.lastT || t)) / 1000); S.lastT = t; S.dt = dt;
+  if (S.view) {
+    const keyed = stepKeys(dt);
+    if (!S.target && !keyed) S.moving = false;
+    if (keyed || stepTowards(dt)) {
+      checkDoors();
+      if (!S.target && S.pendingDoor) { const g = S.pendingDoor; S.pendingDoor = null; if (!S.bubbleFor) showDoorBubble(g); }
+    }
+    draw(); updateReadout();
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ------------------------------ bubbles ----------------------------------- */
+function hideBubble() { const b = $("bubble"); b.hidden = true; b.textContent = ""; S.bubbleFor = null; }
+function moveBubble() {
+  const b = $("bubble"); if (b.hidden || !S.bubbleAt) return;
+  const [sx, sy] = toScreen(S.bubbleAt);
+  const w = b.offsetWidth, h = b.offsetHeight;
+  b.style.left = Math.max(8, Math.min(S.fit.cw - w - 8, sx - w / 2)) + "px";
+  b.style.top = Math.max(8, Math.min(S.fit.ch - h - 8, sy - h - 24)) + "px";
+}
+function makeButton(text, fn, disabled) {
+  const b = document.createElement("button"); b.type = "button"; b.textContent = text; b.disabled = !!disabled;
+  b.addEventListener("click", fn); return b;
+}
+function showBubble(title, body, buttons, at) {
+  const b = $("bubble"); b.textContent = "";
+  const h = document.createElement("h3"); h.textContent = title; b.appendChild(h);
+  if (body) { const p = document.createElement("p"); p.textContent = body; b.appendChild(p); }
+  const box = document.createElement("div"); box.className = "choices";
+  for (const x of buttons) box.appendChild(x);
+  b.appendChild(box); b.hidden = false; S.bubbleAt = at; moveBubble();
+  const first = box.querySelector("button:not(:disabled)"); if (first) first.focus({ preventScroll: true });
+}
+function showDoorBubble(g) {
+  S.bubbleFor = g;
+  const btns = g.doors.map(d => {
+    const room = S.rooms[d.to];
+    const unbuilt = !room || room.locked || !room.views.length;
+    const label = doorName(d) + (room && room.locked ? "  (locked: not built yet)" : (room && !room.views.length ? "  (no picture yet)" : ""));
+    return makeButton(label, () => { hideBubble(); goTo(d.to, S.room.id); }, unbuilt);
+  });
+  btns.push(makeButton("Stay here", () => { hideBubble(); }));
+  const names = g.doors.map(doorName);
+  const verbish = /^(back|into|up|down|out|to|through|onto)\b/i.test(names[0]);
+  showBubble(g.doors.length > 1 ? "Which way?" : (verbish ? names[0] : "Go to " + names[0]) + "?", g.doors.length > 1 ? "" : (g.doors[0].note || ""), btns, g.at);
+}
+function showHotspotBubble(h) {
+  S.bubbleFor = h;
+  const a = h.action || {}, L = window.PubCastLive, live = L ? L.actionFor(h) : null;
+  const btns = [];
+  if (a.type === "view") btns.push(makeButton("Open " + h.label, () => { hideBubble(); openCloseup(a.view); }));
+  if (live) btns.push(makeButton(a.type === "view" ? "Use it here" : "Use", () => runLive(h, live, null)));
+  btns.push(makeButton("Close", () => hideBubble()));
+  const text = a.type === "view" ? (a.event || "Opens a close-up view.") : (a.event || a.animation || a.program || "");
+  showBubble(h.label, (a.type === "view" || live ? "" : "Not wired yet. It would: ") + text, btns, h.at);
+}
+/* Run a hotspot's action on the PubCast host and show the answer, with any follow-up choices it offers. */
+async function runLive(h, action, data) {
+  const L = window.PubCastLive; if (!L) return;
+  const at = h.at;
+  showBubble(h.label, "Working\u2026", [], at);
+  const out = data ? await L.call(action, data) : await L.use(h);
+  if (S.bubbleFor !== h) return;                         // the walker moved on (new picture or another click)
+  const d = L.describe(action, out);
+  const btns = (d.choices || []).map(c => makeButton(c.label, () => runLive(h, c.action, c.data || {})));
+  btns.push(makeButton("Close", () => hideBubble()));
+  showBubble(d.title, d.lines.join("\n"), btns, at);
+}
+function setLiveChip(st) {
+  const c = $("chipLive"); if (!c || !st) return;
+  c.classList.toggle("on", !!st.online && st.onAir !== true);
+  c.classList.toggle("air", st.onAir === true);
+  c.textContent = "\u25CF " + (st.onAir === true ? "On air" : st.online ? "Connected" : "Offline");
+  c.title = st.online ? "Connected to the PubCast host" + (st.room ? " in " + st.room : "") : "Not connected to the PubCast host. Walking still works.";
+}
+window.addEventListener("pubcast:live-status", e => setLiveChip(e.detail));
+window.addEventListener("pubcast:room", e => {
+  const a = $("classicLink"), r = e.detail && e.detail.room;
+  // the classic page only knows the rooms it was drawn with; anywhere else it opens at its own start
+  if (a) a.href = r ? "/world?room=" + encodeURIComponent(r) : "/world";
+});
+
+/* ------------------------------ input ------------------------------------- */
+function hitTest(p) {
+  const v = S.view, tol = 14 / S.fit.s;
+  for (const h of v.hotspots) if (dist(p, h.at) <= Math.max(h.r * 0.5, tol)) return { type: "hotspot", h };
+  for (const g of groupDoors(v)) if (dist(p, g.at) <= Math.max(g.r, tol)) return { type: "door", g };
+  return null;
+}
+canvas.addEventListener("pointermove", e => {
+  if (!S.view) return;
+  if (S.canDrag) {
+    const d = S.canDrag, p = toPicture(e.clientX, e.clientY), k = canListNow()[d.i]; if (!k) return;
+    if (d.mode === "move") { k.x = p[0] - d.dx; k.y = p[1] - d.dy; if (k.fy != null) k.fy = k.y + d.fyOff; }
+    else { const top = p[1] + 10 / S.fit.s; k.h = Math.max(4, Math.min(600, k.y - top)); }
+    applyCans(); return;
+  }
+  if (canHit(toPicture(e.clientX, e.clientY))) { canvas.style.cursor = "grab"; return; }
+  const hit = S.show.doors ? hitTest(toPicture(e.clientX, e.clientY)) : null;
+  canvas.style.cursor = hit ? "pointer" : (S.view.zones.length ? "crosshair" : "default");
+});
+canvas.addEventListener("pointerdown", e => {
+  // a focused dropdown or slider would swallow the arrow keys (the dropdown would even flip rooms), so hand focus back to the picture
+  const ae = document.activeElement; if (ae && ae !== document.body && /^(SELECT|INPUT|TEXTAREA|BUTTON)$/.test(ae.tagName)) ae.blur();
+  if (!S.view || e.button > 0) return;
+  const p = toPicture(e.clientX, e.clientY);
+  if (p[0] < 0 || p[1] < 0 || p[0] > S.view.w || p[1] > S.view.h) return;
+  hideBubble();
+  if (window.PubCastHostPanel && window.PubCastHostPanel.driveTo(S.view.zones.length ? snapToFloor(S.view, p) : p)) return;   // the host is walking someone else
+  if (S.canArm === "place") {
+    const ppi = ppiFor(sizingOf(S.view), p[1], null, zoneAt(S.view, p)), h = ppi ? Math.max(8, ppi * CAN_IN) : 24;
+    canListNow().push({ x: p[0], y: p[1], h: Math.round(h), fy: null }); S.canSel = canListNow().length - 1; S.canArm = null;
+    applyCans(); buildCans(); toast("Drag the yellow dot to size the can until it looks right"); return;
+  }
+  if (S.canArm && S.canArm.floor !== undefined) {
+    const k = canListNow()[S.canArm.floor]; if (k) k.fy = Math.max(k.y, p[1]); S.canArm = null; applyCans(); buildCans(); return;
+  }
+  const ch = canHit(p);
+  if (ch) {
+    const k = canListNow()[ch.i]; S.canSel = ch.i;
+    S.canDrag = { i: ch.i, mode: ch.mode, dx: p[0] - k.x, dy: p[1] - k.y, fyOff: k.fy == null ? 0 : k.fy - k.y };
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* older browsers */ }
+    buildCans(); return;
+  }
+  const hit = hitTest(p);
+  if (hit && hit.type === "hotspot") {
+    if (S.view.zones.length && distanceToFloor(S.view, hit.h.at) > 40) { setTarget(snapToFloor(S.view, hit.h.at)); }
+    showHotspotBubble(hit.h); return;
+  }
+  if (!S.view.zones.length) return;
+  if (hit && hit.type === "door") { S.pendingDoor = hit.g; S.armed = true; setTarget(snapToFloor(S.view, hit.g.at)); return; }
+  S.pendingDoor = null;
+  setTarget(snapToFloor(S.view, p));
+});
+canvas.addEventListener("pointerup", () => { if (S.canDrag) { S.canDrag = null; buildCans(); } });
+const MOVE_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "w", "a", "s", "d", "W", "A", "S", "D"]);
+const typing = e => /^(INPUT|SELECT|TEXTAREA)$/.test((e.target && e.target.tagName) || "") && !(e.target.type === "checkbox" || e.target.type === "radio");
+document.addEventListener("pubcast:station", e => { if (e.detail && e.detail.station) { HELD.clear(); S.target = null; S.path = []; } });   // sat down: stop where you are
+window.addEventListener("keydown", e => {
+  if (inputLocked()) return;
+  if (MOVE_KEYS.has(e.key) && !typing(e) && !e.ctrlKey && !e.metaKey && !e.altKey) { HELD.add(e.key.length === 1 ? e.key.toLowerCase() : e.key); e.preventDefault(); }
+  else if (e.key === "Shift") HELD.add("Shift");
+});
+window.addEventListener("keyup", e => { HELD.delete(e.key.length === 1 ? e.key.toLowerCase() : e.key); });
+window.addEventListener("blur", () => HELD.clear());
+window.addEventListener("keydown", e => {
+  if (e.key === "Escape") { if (!$("bubble").hidden) hideBubble(); else if (S.history.length) goBack(); }
+});
+$("back").addEventListener("click", goBack);
+$("viewSel").addEventListener("change", e => {
+  const [r, v] = e.target.value.split("/"); S.history = []; setView(r, v, {});
+  e.target.blur();                                  // so the arrow keys walk instead of flipping through rooms
+});
+document.querySelectorAll("input[name=char]").forEach(r => r.addEventListener("change", e => { S.char = e.target.value; syncLibrarySelect(); }));
+const bind = (id, k) => $(id).addEventListener("change", e => { S.show[k] = e.target.checked; });
+bind("shPads", "pads"); bind("shOcc", "occ"); bind("shDoors", "doors"); bind("shHorizon", "horizon"); bind("shRefs", "refs"); bind("shAlt", "alt");
+$("themeLight").addEventListener("change", e => {
+  document.documentElement.dataset.theme = e.target.checked ? "light" : "dark";
+});
+window.addEventListener("resize", resize);
+
+/* ------------------------------ panel ------------------------------------- */
+const CONF_WORDS = {
+  good: "good: measured from several known-size things that agree",
+  fair: "fair: measured, but from few things, or with an assumption",
+  low: "low: thin or conflicting evidence. Your eye decides.",
+};
+function el(tag, text, cls) { const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (cls) e.className = cls; return e; }
+function refreshPanel() {
+  const v = S.view, info = v.scale_info, box = $("sizeInfo"); box.textContent = "";
+  if (info) {
+    const line = el("div"); const b = el("span", info.confidence, "badge " + info.confidence); line.appendChild(b);
+    line.appendChild(el("span", "  " + CONF_WORDS[info.confidence], "dim")); box.appendChild(line);
+    box.appendChild(el("p", info.basis));
+    const det = el("details"); det.appendChild(el("summary", "What was measured"));
+    const ul = el("ul", undefined, "tight"); info.refs.forEach(r => ul.appendChild(el("li", r))); det.appendChild(ul); box.appendChild(det);
+    if (v.camera) box.appendChild(el("p", "Proposed camera: horizon at row " + v.camera.horizon_y + ", eye height " + v.camera.eye_in + " in.", "dim"));
+  } else box.appendChild(el("p", "No avatar size for this picture yet: it has no floor to walk on, or it is waiting on your answer.", "dim"));
+  $("altRow").hidden = !(info && info.alt);
+  if (!(info && info.alt)) { S.show.alt = false; $("shAlt").checked = false; }
+  else $("altRow").lastChild.textContent = " Alternative reading (grey): " + info.alt.label;
+  buildTuner(); buildCans(); buildOpen(); updateTuneOut(); setGlbInfo();
+}
+function slider(label, min, max, step, value, onInput) {
+  const wrap = el("div"); wrap.className = "row";
+  const l = el("label", label); l.style.display = "block"; const o = el("output");
+  const r = document.createElement("input"); r.type = "range"; r.min = min; r.max = max; r.step = step; r.value = value;
+  r.setAttribute("aria-label", label); o.textContent = (+value).toFixed(step < 1 ? 2 : 0);
+  r.addEventListener("input", () => { o.textContent = (+r.value).toFixed(step < 1 ? 2 : 0); onInput(+r.value); });
+  wrap.appendChild(l); wrap.appendChild(o); const full = el("div"); full.style.gridColumn = "1 / -1"; full.appendChild(r); wrap.appendChild(full);
+  return wrap;
+}
+function buildTuner() {
+  const v = S.view, box = $("tuner"); box.textContent = "";
+  if (!v.zones.length) { box.appendChild(el("p", "Nothing to tune: no walkable floor in this picture.", "dim")); return; }
+  const cur = sizingOf(v, undefined, true);
+  const t0 = S.tune[S.key] || {};
+  box.appendChild(slider("Everything bigger or smaller (x)", 0.5, 2, 0.01, t0.mult || 1, val => tuneMult(val)));
+  if (t0.fromCans) { box.appendChild(el("p", "Your cans are sizing this picture, so the camera / sample sliders are off. Untick \"Size the avatars from my cans\" to use them.", "dim")); return; }
+  if (v.camera) {
+    box.appendChild(el("p", "Move the horizon and the camera's height until the figures look right against the furniture. The three reference figures show the same size rule at three depths.", "dim"));
+    box.appendChild(slider("Horizon row", -Math.round(v.h * .5), Math.round(v.h * .9), 1, cur.camera.horizon_y, val => tuneCamera("horizon_y", val)));
+    box.appendChild(slider("Camera height (inches above the floor)", 24, 400, 1, cur.camera.eye_in, val => tuneCamera("eye_in", val)));
+  } else {
+    box.appendChild(el("p", "This picture has two size samples (pixels per real inch at a screen row). Change either one.", "dim"));
+    cur.scale.forEach((s, i) => box.appendChild(slider("Pixels per inch at row " + s.y, 0.1, 12, 0.05, s.ppi, val => tuneSample(i, val))));
+  }
+}
+function tuneMult(val) {
+  const t = S.tune[S.key] = S.tune[S.key] || {};
+  t.mult = val; saveTune(); updateTuneOut();
+}
+function tuneCamera(field, val) {
+  const base = S.view.camera, t = S.tune[S.key] = S.tune[S.key] || { camera: { horizon_y: base.horizon_y, eye_in: base.eye_in } };
+  if (!t.camera) t.camera = { horizon_y: base.horizon_y, eye_in: base.eye_in };
+  t.camera[field] = val; saveTune(); updateTuneOut();
+}
+function tuneSample(i, val) {
+  const t = S.tune[S.key] = S.tune[S.key] || { scale: S.view.scale.map(s => ({ y: s.y, ppi: s.ppi })) };
+  if (!t.scale) t.scale = S.view.scale.map(s => ({ y: s.y, ppi: s.ppi }));
+  t.scale[i].ppi = val; saveTune(); updateTuneOut();
+}
+function exportObject() { return { tune: S.tune, cans: S.cans }; }
+function updateTuneOut() { $("tuneOut").value = JSON.stringify(exportObject(), null, 1); }
+$("tuneReset").addEventListener("click", () => { delete S.tune[S.key]; saveTune(); refreshPanel(); toast("Back to the proposed size for this picture"); });
+$("tuneCopy").addEventListener("click", async () => {
+  const text = JSON.stringify(exportObject(), null, 1);
+  try { await navigator.clipboard.writeText(text); toast("Copied. Paste it to Claude."); }
+  catch (e) { $("tuneOut").parentElement.open = true; $("tuneOut").select(); toast("Select and copy the text in the box"); }
+});
+function buildOpen() {
+  const v = S.view, box = $("open"); box.textContent = ""; const items = [];
+  items.push("Status: " + v.status + (v.status === "proposed" ? " (placed by Claude by eye, not approved by you)" : ""));
+  for (const z of v.zones) {
+    if (z.z_in === null) items.push("Zone " + z.id + ": how high or low its floor is");
+    if (z.kind !== "floor" && z.rise_in === null) {
+      let t = "Zone " + z.id + ": how far the " + z.kind + " climbs";
+      if (v.camera) { const top = Math.min(...z.points.map(p => p[1])); if (top <= v.camera.horizon_y) t += " (more than " + v.camera.eye_in + " in: it is drawn above the camera's eye line)"; }
+      items.push(t);
+    }
+  }
+  if (v.scale_info && v.scale_info.alt) items.push("Which size reading looks right: coloured or grey");
+  if (v.scale_info && v.scale_info.confidence === "low") items.push("Avatar size is low confidence: look at it against the furniture");
+  const d = v.doors.filter(x => x.status !== "confirmed").length;
+  if (d) items.push(d + " door spot(s) are my guess (red dots), not yours");
+  const ul = el("ul", undefined, "tight"); items.forEach(t => ul.appendChild(el("li", t))); box.appendChild(ul);
+}
+function updateReadout() {
+  const v = S.view; let text;
+  if (!v.zones.length) text = "No walkable floor in this picture.";
+  else {
+    const zone = zoneAt(v, S.pos), alt = zone ? altitudeAt(zone, S.pos) : null;
+    const sz = sizingOf(v), ppi = ppiFor(sz, S.pos[1], alt, zone), H = ppi ? heightIn(S.char) * ppi : null;
+    const lines = ["Feet at (" + Math.round(S.pos[0]) + ", " + Math.round(S.pos[1]) + ")",
+      "On: " + (zone ? zone.id + " (" + zone.level + ")" : "off the floor"),
+      "Altitude: " + (alt === null ? "not known yet (drawn as if on the main floor)" : Math.round(alt) + " in"),
+      "Size here: " + (ppi ? ppi.toFixed(2) + " px per inch, " + CHAR[S.char].label + " drawn " + Math.round(H) + " px tall" : "no size here")];
+    const behind = v.occluders.filter(o => occluderInFront(o, S.pos[1], S.pos[0]));
+    if (v.occluders.length) lines.push("In front of you: " + (behind.length ? behind.map(o => o.label || o.id).join(", ") : "nothing"));
+    text = lines.join("\n");
+  }
+  if (text !== S.lastReadout) { S.lastReadout = text; const r = $("readout"); r.textContent = ""; text.split("\n").forEach(l => r.appendChild(el("div", l))); }
+}
+
+/* ------------------------------ 3D avatars -------------------------------- */
+function setGlbInfo(msg) {
+  const G = window.PubCastGLB, box = $("glbInfo"); if (!box) return;
+  const parts = [];
+  if (G) for (const id of CHAR_ORDER) { const i = G.info(id); if (i) parts.push(CHAR[id].label + ": " + i.label + (i.clips.length ? " (" + i.clips.join(", ") + ")" : " (no animations: it sways)")); }
+  box.textContent = (msg ? msg + " " : "") + (parts.length ? "Loaded: " + parts.join("; ") + "." : (G && G.state.lastError ? "Could not draw it: " + G.state.lastError : "No 3D avatar loaded: flat figures."));
+}
+async function loadGlb(url, label) {
+  const G = window.PubCastGLB;
+  if (!G) { toast("The 3D part is still loading, try again in a moment"); return; }
+  try {
+    const r = await G.load(S.char, url, label);
+    G.state.lastError = "";
+    setGlbInfo(r.skinned ? "" : "Note: this file is not rigged, so it will glide without animating.");
+    toast(CHAR[S.char].label + " is now " + label);
+    return true;
+  } catch (e) { G.state.lastError = String(e && e.message || e); setGlbInfo(); toast("That file would not load: " + G.state.lastError); return false; }
+}
+/* Bundled CC0 demo bodies are ephemeral: switching to one never rewrites a saved avatar or character height.
+   The Husky is a quadruped with its own animations, scaled to 36 inches rather than a human's height. */
+const GLB_DEMOS = {
+  glbMannequin: { url: "/static/world/test_avatars/Xbot.glb", label: "test mannequin" },
+  glbDemoFemale: { url: "/static/world/test_avatars/MakeHuman_Female.glb", label: "MakeHuman female" },
+  glbDemoMale: { url: "/static/world/test_avatars/MakeHuman_Male.glb", label: "MakeHuman male" },
+  glbDemoHusky: { url: "/static/world/test_avatars/Husky.glb", label: "Husky (3 ft)", height: 36 },
+};
+for (const [id, demo] of Object.entries(GLB_DEMOS)) {
+  $(id).addEventListener("click", async () => {
+    const character = S.char;
+    if (await loadGlb(demo.url, demo.label)) {
+      delete S.avatarIds[character];
+      if (demo.height) S.demoHeights[character] = demo.height;
+      else delete S.demoHeights[character];
+      syncLibrarySelect();
+    }
+  });
+}
+$("glbPick").addEventListener("click", () => $("glbFile").click());
+$("glbFile").addEventListener("change", e => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  const character = S.char;
+  const url = URL.createObjectURL(f); loadGlb(url, f.name).then(ok => {
+    if (ok) { delete S.avatarIds[character]; delete S.demoHeights[character]; syncLibrarySelect(); }
+  }).finally(() => setTimeout(() => URL.revokeObjectURL(url), 5000)); e.target.value = "";
+});
+$("glbClear").addEventListener("click", () => { const G = window.PubCastGLB; if (G) G.clear(S.char); delete S.avatarIds[S.char]; delete S.demoHeights[S.char]; syncLibrarySelect(); setGlbInfo(); });
+$("glbHolo").addEventListener("change", e => { const G = window.PubCastGLB; if (G) G.setHologram(e.target.checked); });
+canvas.addEventListener("dragover", e => e.preventDefault());
+canvas.addEventListener("drop", e => {
+  e.preventDefault(); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f && /\.glb$/i.test(f.name)) { const character = S.char, url = URL.createObjectURL(f); loadGlb(url, f.name).then(ok => {
+    if (ok) { delete S.avatarIds[character]; delete S.demoHeights[character]; syncLibrarySelect(); }
+  }).finally(() => setTimeout(() => URL.revokeObjectURL(url), 5000)); }
+});
+
+/* ------------------------------ the host acting on you (possession, timeout) ---------- */
+/* Text from the host is shown exactly as sent, as plain text, never as markup. */
+const hostBanner = $("hostBanner");
+function showHostBanner(title, text, until) {
+  hostBanner.querySelector(".hb-title").textContent = title;
+  hostBanner.querySelector(".hb-text").textContent = text || "";
+  hostBanner.hidden = false; tickHostBanner(until);
+}
+function hideHostBanner() { hostBanner.hidden = true; }
+function tickHostBanner(until) {
+  hostBanner.dataset.until = until || 0;
+  const left = Math.max(0, Math.round(((until || 0) - Date.now()) / 1000));
+  hostBanner.querySelector(".hb-time").textContent = until ? "Time left " + Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0") : "";
+}
+setInterval(() => { if (!hostBanner.hidden) tickHostBanner(+hostBanner.dataset.until || 0); }, 1000);
+/* A full screen over the picture: the disciplinary waiting room, or removal from the server. The host's words are shown as plain text, exactly as sent. */
+const screenEl = $("screen");
+function showScreen(title, text, until) {
+  $("screenTitle").textContent = title; $("screenText").textContent = text || "";
+  screenEl.dataset.until = until || 0; screenEl.hidden = false; tickScreen();
+  $("panel").inert = true;                                   // no dropdown, no button behind the screen
+}
+function hideScreen() { screenEl.hidden = true; $("panel").inert = false; }
+function tickScreen() {
+  const until = +screenEl.dataset.until || 0, left = Math.max(0, Math.round((until - Date.now()) / 1000));
+  $("screenTime").textContent = until ? "Time left " + Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0") : "";
+}
+setInterval(() => { if (!screenEl.hidden) tickScreen(); }, 1000);
+function stopWhereYouStand() { HELD.clear(); S.target = null; S.path = []; }
+window.addEventListener("pubcast:host", e => {
+  const m = e.detail || {}, h = S.host;
+  if (m.type === "host_notice") {
+    h.possessed = true; stopWhereYouStand();
+    showHostBanner("The host has taken control of your avatar", String(m.text || ""), Number.isFinite(m.until) ? m.until * 1000 : 0);
+  } else if (m.type === "host_drive") {
+    if (h.possessed && Array.isArray(m.pos) && S.view.zones.length && m.pos.length === 2 && m.pos.every(Number.isFinite)) setTarget(snapToFloor(S.view, m.pos.slice()), true);
+  } else if (m.type === "host_release") {
+    h.possessed = false; if (!h.timeout) hideHostBanner(); toast("Your avatar is yours again");
+  } else if (m.type === "host_teleport") {
+    h.timeout = { room: String(m.room || ""), until: Number.isFinite(m.until) ? m.until * 1000 : 0 }; stopWhereYouStand(); hideBubble();
+    showScreen("Waiting room", String(m.text || ""), h.timeout.until);
+  } else if (m.type === "host_timeout_end") {
+    h.timeout = null; if (!h.banned) hideScreen(); if (!h.possessed) hideHostBanner(); toast("Your timeout is over");
+  } else if (m.type === "banned") {
+    h.banned = true; h.timeout = null; stopWhereYouStand(); hideBubble(); hideHostBanner();
+    showScreen("Removed from the server", String(m.reason || ""), 0);
+  }
+});
+
+/* ------------------------------ what the host's roster shows about you ---------- */
+function presenceNow() {
+  if (!S.room || !S.view) return null;
+  const G = window.PubCastGLB, gi = G && G.has(S.char) ? G.info(S.char) : null;
+  const live = typeof performance !== "undefined" && S.frameAt && performance.now() - S.frameAt < 1500;   // a hidden tab draws nothing: 0 fps
+  const t = S.host.timeout;
+  return { room: t ? t.room : S.room.id, view: t ? "" : S.view.id, pos: t ? null : [S.pos[0], S.pos[1]], char: S.char,
+           fps: live && S.fps ? Math.round(S.fps * 10) / 10 : 0,
+           meshes: gi ? gi.meshes : 0, bones: gi ? (gi.bones || 0) : 0, tris: gi ? (gi.tris || 0) : 0 };
+}
+
+/* ------------------------------ the host's own panel: who is here, their record, and what the host can do ---------- */
+/* Shown only when the host answers GET /api/host/state for this session (a moderator or above). Every action is the host's
+   own route and is checked and recorded there; this panel only asks, and prints the host's answer. */
+const HostPanel = (() => {
+  const P = { people: [], sel: null, me: "", driving: false, armed: null, timer: null, nodes: new Map(), record: null };
+  const WHY = {
+    possession_notice_not_set: "Taking control is off until the possession notice has been put in data/host_control/messages.json.",
+    target_not_connected: "That person is not connected on the walker, so they could not be told, and control was not taken.",
+    already_possessed: "This person is already under control.",
+    already_frozen: "This person was frozen another way; undo that first.",
+    audit_unavailable: "The record of host actions can't be written right now, so nothing was done.",
+    "not possessed": "This person is not under control.",
+    "not in timeout": "This person is not in the waiting room.",
+  };
+  const same = (a, b) => String(a || "").toLowerCase() === String(b || "").toLowerCase();
+  const who = () => P.people.find(p => same(p.user_id, P.sel)) || null;
+  const status = text => { $("hpStatus").textContent = text || ""; };
+
+  async function api(method, path, body) {
+    let res;
+    try {
+      res = await fetch(path, { method, cache: "no-store", headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined });
+    } catch (e) { return { ok: false, status: 0, text: "The host could not be reached." }; }
+    let data = null; try { data = await res.json(); } catch (e) { data = null; }
+    if (res.ok) return { ok: true, status: res.status, data };
+    const d = data && data.detail;
+    const text = res.status === 403 ? "Only an admin or the owner can do that."
+      : typeof d === "string" ? (Object.prototype.hasOwnProperty.call(WHY, d) ? WHY[d] : d)
+      : d ? JSON.stringify(d) : "The host answered " + res.status + ".";
+    return { ok: false, status: res.status, text };
+  }
+
+  const initials = n => String(n || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0] || "").join("").toUpperCase() || "?";
+  function flags(p) { return [p.possessed ? "under your control" : "", p.timeout ? "in the waiting room" : "", p.tracked ? "logged" : ""].filter(Boolean).join(" · "); }
+
+  function renderRoster() {
+    const box = $("hpRoster"), seen = new Set();
+    for (const p of P.people) {
+      const key = String(p.user_id).toLowerCase(); seen.add(key);
+      let n = P.nodes.get(key);
+      if (!n) {
+        const b = el("button", undefined, "hp-person"); b.type = "button"; b.setAttribute("role", "option");
+        const ini = el("span", "", "hp-ini"), main = el("span", "", "hp-main"), a = el("span", ""), c = el("span", "", "hp-sub"), f = el("span", "", "hp-flag");
+        main.append(a, c, f); b.append(ini, main);
+        b.addEventListener("click", () => select(b.dataset.id));
+        n = { b, ini, a, c, f }; P.nodes.set(key, n);
+      }
+      n.b.dataset.id = p.user_id;
+      n.ini.textContent = initials(p.name);
+      n.a.textContent = p.name + (same(p.user_id, P.me) ? " (you)" : "");
+      n.c.textContent = (p.room || "somewhere") + (p.char ? " · " + p.char : "");
+      n.f.textContent = flags(p);
+      n.b.setAttribute("aria-selected", same(p.user_id, P.sel) ? "true" : "false");
+    }
+    for (const [key, n] of P.nodes) if (!seen.has(key)) { n.b.remove(); P.nodes.delete(key); }
+    const want = P.people.map(p => P.nodes.get(String(p.user_id).toLowerCase()).b);
+    if (want.some((b, i) => box.children[i] !== b) || box.children.length !== want.length) box.replaceChildren(...want);   // reorder only when the order changed, so focus stays put
+    $("hpEmpty").hidden = P.people.length > 0;
+  }
+
+  function renderStats() {
+    const p = who(), box = $("hpStats"); box.textContent = "";
+    if (!P.sel) return;
+    $("hpName").textContent = p ? p.name : (P.record && P.record.name) || P.sel;
+    $("hpBadges").textContent = p ? flags(p) : "";
+    if (!p) { box.appendChild(el("div", "Not on the walker right now.", "dim")); return; }
+    const num = (n, unit) => n == null ? "unknown" : (typeof n === "number" ? n.toLocaleString() : n) + (unit || "");
+    const lines = [
+      "Frame rate: " + (p.fps == null ? "unknown" : p.fps ? Math.round(p.fps) + " fps" : "page not drawing (hidden tab?)"),
+      "Round trip to the host: " + (p.rtt_ms == null ? "measuring" : Math.round(p.rtt_ms) + " ms"),
+      "Avatar: " + (p.meshes ? num(p.meshes) + " meshes, " + num(p.bones) + " bones, " + num(p.tris) + " triangles" : "flat figure (no 3D avatar)"),
+      "Walking as: " + (p.char || "unknown"),
+      "Where: " + (p.room || "unknown") + (p.view ? " / " + p.view : "") + (p.pos ? " at (" + Math.round(p.pos[0]) + ", " + Math.round(p.pos[1]) + ")" : ""),
+      "Last heard from: " + num(p.age, " s ago"),
+    ];
+    for (const l of lines) box.appendChild(el("div", l));
+    const me = same(P.sel, P.me);
+    for (const id of ["hpPossess", "hpRelease", "hpDrive", "hpTimeout", "hpEndTimeout", "hpBoot", "hpBan"]) $(id).disabled = me;
+  }
+
+  function fillRecord(rec) {
+    P.record = rec || {};
+    $("hpTitle").value = rec.title || ""; $("hpPosition").value = rec.position || ""; $("hpNotes").value = rec.notes || "";
+    $("hpTracked").checked = !!rec.tracked; $("hpCtrlRoom").checked = !!(rec.privileges && rec.privileges.control_room);
+    const g = rec.gifts || [];
+    $("hpGifts").textContent = g.length ? "Gifts so far: " + g.map(x => x.kind === "accessory" ? "accessory " + x.item : "control room access").join(", ") : "No gifts yet.";
+  }
+
+  async function select(id) {
+    P.sel = id; P.armed = null; setDriving(false); status("");
+    $("hpPerson").hidden = false; renderRoster(); renderStats();
+    const r = await api("GET", "/api/host/people/" + encodeURIComponent(id));
+    if (!same(P.sel, id)) return;                              // another person was picked while this loaded
+    if (r.ok) { fillRecord(r.data.person || {}); renderStats(); } else status(r.text);
+  }
+
+  function setDriving(on) {
+    P.driving = !!on;
+    const b = $("hpDrive"); b.setAttribute("aria-pressed", String(P.driving)); b.textContent = "Walk them where I click: " + (P.driving ? "on" : "off");
+  }
+  function sameView(p) { return !!(p && S.room && S.view && p.room === S.room.id && p.view === S.view.id); }
+  function driveTo(pt) {
+    if (!P.driving) return false;
+    const p = who();
+    if (!p || !p.possessed || !sameView(p)) { setDriving(false); status("Walking them stopped: they are no longer under your control or not in the picture you are looking at."); return false; }
+    api("POST", "/api/host/drive", { user_id: p.user_id, pos: [Math.round(pt[0] * 100) / 100, Math.round(pt[1] * 100) / 100] }).then(r => { if (!r.ok) status(r.text); });
+    return true;
+  }
+
+  const secs = id => Math.max(1, Math.min(3600, Math.round(+$(id).value) || 0));
+  async function act(label, method, path, body, after) {
+    status(label + "…");
+    const r = await api(method, path, body);
+    status(r.ok ? (after ? after(r.data) : "Done.") : r.text);
+    poll();
+    return r;
+  }
+  const arm = (what, button, text) => {
+    if (P.armed && P.armed.what === what && P.armed.id === P.sel) { P.armed = null; button.textContent = button.dataset.label; return true; }
+    P.armed = { what, id: P.sel }; button.textContent = text;
+    clearTimeout(P.armTimer); P.armTimer = setTimeout(() => { P.armed = null; button.textContent = button.dataset.label; }, 6000);
+    return false;
+  };
+
+  function wire() {
+    for (const id of ["hpBoot", "hpBan"]) $(id).dataset.label = $(id).textContent;
+    $("hpSave").addEventListener("click", async () => {
+      if (!P.sel) return;
+      const was = !!(P.record && P.record.privileges && P.record.privileges.control_room);
+      let r = await api("PATCH", "/api/host/people/" + encodeURIComponent(P.sel), {
+        title: $("hpTitle").value, position: $("hpPosition").value, notes: $("hpNotes").value, tracked: $("hpTracked").checked });
+      if (r.ok && $("hpCtrlRoom").checked !== was) r = await api("PUT", "/api/host/people/" + encodeURIComponent(P.sel) + "/privileges/control_room", { value: $("hpCtrlRoom").checked });
+      if (r.ok) { fillRecord(r.data.person || {}); status("Profile saved."); } else status(r.text);
+      poll();
+    });
+    $("hpGiveAccess").addEventListener("click", async () => {
+      const r = await act("Gifting access", "POST", "/api/host/people/" + encodeURIComponent(P.sel) + "/gifts", { kind: "control_room_access" }, () => "Control room access gifted.");
+      if (r.ok) fillRecord(r.data.person || {});
+    });
+    $("hpGiveItem").addEventListener("click", async () => {
+      const item = $("hpItem").value.trim(); if (!item) { status("Type the accessory first."); return; }
+      const r = await act("Gifting", "POST", "/api/host/people/" + encodeURIComponent(P.sel) + "/gifts", { kind: "accessory", item }, () => "Gifted: " + item + ".");
+      if (r.ok) { fillRecord(r.data.person || {}); $("hpItem").value = ""; }
+    });
+    $("hpPossess").addEventListener("click", () => act("Taking control", "POST", "/api/host/possess",
+      { user_id: P.sel, reason: $("hpReason").value, duration_seconds: secs("hpSecs") }, d => "You have control. It ends on its own at " + new Date(d.until * 1000).toLocaleTimeString() + "."));
+    $("hpRelease").addEventListener("click", () => { setDriving(false); return act("Releasing", "POST", "/api/host/release", { user_id: P.sel }, () => "Released."); });
+    $("hpDrive").addEventListener("click", () => {
+      if (P.driving) { setDriving(false); return; }
+      const p = who();
+      if (!p || !p.possessed) { status("Take control first."); return; }
+      if (!sameView(p)) { status("To walk them, open the picture they are in: " + (p.room || "?") + " / " + (p.view || "?") + "."); return; }
+      setDriving(true); status("Click the floor and they walk there. Click the button again to stop.");
+    });
+    $("hpTimeout").addEventListener("click", () => act("Sending to the waiting room", "POST", "/api/host/timeout",
+      { user_id: P.sel, reason: $("hpReason").value, duration_seconds: secs("hpTSecs") }, d => d.delivered ? "They are in the waiting room." : "Recorded, but nobody on the walker received it (they are not connected). It will show when they reconnect."));
+    $("hpEndTimeout").addEventListener("click", () => act("Ending the waiting room", "POST", "/api/host/end-timeout", { user_id: P.sel }, () => "They are out."));
+    $("hpBoot").addEventListener("click", () => {
+      if (!arm("boot", $("hpBoot"), "Click again to boot")) return;
+      act("Booting", "POST", "/api/governance/kick", { user_id: P.sel, reason: $("hpReason").value }, () => "Booted.");
+    });
+    $("hpBan").addEventListener("click", () => {
+      if (!arm("ban", $("hpBan"), "Click again to ban for good")) return;
+      act("Banning", "POST", "/api/governance/ban", { user_id: P.sel, reason: $("hpReason").value, ban_type: "permanent" }, () => "Banned.");
+    });
+  }
+
+  const KIND = { permanent: "banned for good", session: "booted (until the app restarts)", temporary: "banned for a while" };
+  function renderBans(list) {
+    const sig = JSON.stringify(list);
+    if (sig === P.bansSig) return;                              // unchanged: leave the buttons alone so focus is not lost
+    P.bansSig = sig;
+    const box = $("hpBanList"); box.textContent = "";
+    for (const b of list) {
+      const row = el("div", undefined, "hp-ban"), what = el("span", b.user_id + " (" + (KIND[b.kind] || b.kind) + ")" + (b.reason ? ": " + b.reason : ""));
+      const btn = el("button", "Let back in"); btn.type = "button";
+      btn.addEventListener("click", () => act("Letting back in", "POST", "/api/governance/unban", { user_id: b.user_id }, () => "Lifted. If they are still on the removed screen they need to reload the page."));
+      row.append(what, btn); box.appendChild(row);
+    }
+    $("hpOut").hidden = list.length === 0;
+  }
+  async function poll() {
+    if (document.hidden && P.people.length) return;
+    const [r, bans] = await Promise.all([api("GET", "/api/host/roster"), api("GET", "/api/host/bans")]);
+    if (!r.ok) { if (r.status === 401 || r.status === 403 || r.status === 404) stop(); return; }
+    P.people = Array.isArray(r.data.people) ? r.data.people : [];
+    renderRoster(); renderStats();
+    if (bans.ok) renderBans(Array.isArray(bans.data.bans) ? bans.data.bans : []);
+  }
+  function stop() { clearInterval(P.timer); P.timer = null; $("hostPanel").hidden = true; }
+
+  async function init() {
+    const L = window.PubCastLive;
+    if (!L || !(await L.start())) return false;
+    const a = window.ReachAuth, u = (a && a.getUser && a.getUser()) || {};
+    P.me = String(u.user_id || u.username || "");
+    const r = await api("GET", "/api/host/state");
+    if (!r.ok) return false;                                   // not a host (or no host control here): the panel stays out of sight
+    $("hostPanel").hidden = false; wire();
+    await poll(); P.timer = setInterval(poll, 2000);
+    return true;
+  }
+  return { init, driveTo, poll, state: P };
+})();
+window.PubCastHostPanel = HostPanel;
+
+/* ------------------------------ your progress (kept on the host) ---------- */
+function libraryEntry(id) { return S.library.find(a => a.id === id) || null; }
+function syncLibrarySelect() {
+  const sel = $("glbLibrary"); if (!sel) return;
+  sel.textContent = "";
+  sel.appendChild(new Option("(none for this character)", ""));
+  for (const a of S.library) sel.appendChild(new Option(a.name + (a.canonical_height_in ? "  (" + a.canonical_height_in + " in)" : ""), a.id));
+  sel.value = S.avatarIds[S.char] && libraryEntry(S.avatarIds[S.char]) ? S.avatarIds[S.char] : "";
+}
+async function refreshLibrary() {
+  const L = window.PubCastLive; if (!L) return;
+  S.library = await L.avatarLibrary();
+  const host = L.state.host === true;
+  $("glbLibraryRow").hidden = !host; $("glbImportRow").hidden = !host;
+  syncLibrarySelect();
+}
+$("glbLibrary").addEventListener("change", async e => {
+  const a = libraryEntry(e.target.value);
+  if (!a) { const G = window.PubCastGLB; if (G) G.clear(S.char); delete S.avatarIds[S.char]; delete S.demoHeights[S.char]; setGlbInfo(); return; }
+  if (await loadGlb(a.url, a.name)) { S.avatarIds[S.char] = a.id; delete S.demoHeights[S.char]; }
+  syncLibrarySelect();
+});
+/* wait for the 3D part (a module that loads on its own) before putting saved avatars on */
+function glbReady() {
+  return window.PubCastGLB ? Promise.resolve(window.PubCastGLB)
+    : new Promise(res => document.addEventListener("pubcast-glb-ready", () => res(window.PubCastGLB), { once: true }));
+}
+async function wearSavedAvatars() {
+  const G = await glbReady();
+  for (const [ch, id] of Object.entries(S.avatarIds)) {
+    const a = libraryEntry(id); if (!a || !CHAR[ch]) { delete S.avatarIds[ch]; continue; }
+    try { await G.load(ch, a.url, a.name); } catch (e) { G.state.lastError = String(e && e.message || e); delete S.avatarIds[ch]; }
+  }
+  setGlbInfo(); syncLibrarySelect();
+}
+function progressSnapshot() {
+  if (!S.room || !S.view) return null;
+  const closeup = S.history.length > 0;               // a close-up returns you to the room you came from
+  const base = closeup ? S.history[0] : { room: S.room.id, view: S.view.id, pos: S.pos };
+  const G = window.PubCastGLB;
+  return { room: base.room, view: base.view, pos: [Math.round(base.pos[0] * 100) / 100, Math.round(base.pos[1] * 100) / 100],
+           char: S.char, avatars: Object.assign({}, S.avatarIds), hologram: !!(G && G.state.hologram), tune: S.tune, cans: S.cans };
+}
+function keepProgress(now) {
+  const L = window.PubCastLive; if (!L) return;
+  if (!now && (S.moving || S.target)) return;          // saved when you stop, not every step
+  const snap = progressSnapshot(); if (snap) L.saveProgress(snap, now);
+}
+setInterval(() => keepProgress(false), 1000);
+addEventListener("pagehide", () => keepProgress(true));
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") keepProgress(true); });
+window.addEventListener("pubcast:live-status", e => {
+  const st = e.detail || {}, box = $("progressInfo"); if (!box) return;
+  box.textContent = st.host === false ? "Progress is kept only when PubCast is running behind this page."
+    : st.progressSavedAt ? "Progress saved on this PubCast (revision " + st.progressRevision + ")." : "";
+});
+
+/* ------------------------------ boot -------------------------------------- */
+window.PubCastWalk = {
+  S, ppiFor, ppiAtSamples, floorRunsAtRow, fitSamples, pointInPolygon, snapToFloor, zoneAt, altitudeAt, axisFraction,
+  occluderInFront, objectBaseY, blockedAt, floorContains, distanceToFloor, doorReach, groupDoors, startPosition, setView, goTo,
+  avatarPx, figureList, hitTest, toScreen, toPicture, sizingOf, draw, resize, centroid, defaultStart,
+  showHotspotBubble, runLive, hideBubble,
+};
+(async function boot() {
+  S.tune = loadTune(); S.cans = loadCans();
+  try {
+    await loadWorld(); fillViewSelect();
+    const q = new URLSearchParams(location.search), k = q.get("view"), live = q.get("live");
+    // what you saved on this PubCast: your tuning, who you walk as and your avatars always come back; your room and
+    // spot come back unless this link asks for a particular place
+    const L = window.PubCastLive, saved = L ? await L.loadProgress() : null;
+    if (saved) {
+      if (saved.tune && typeof saved.tune === "object") { S.tune = saved.tune; saveTune(); }
+      if (saved.cans && typeof saved.cans === "object") { S.cans = saved.cans; saveCans(); }
+      if (saved.char && CHAR[saved.char]) { S.char = saved.char; const r = document.querySelector('input[name=char][value="' + saved.char + '"]'); if (r) r.checked = true; }
+      if (saved.avatars && typeof saved.avatars === "object") S.avatarIds = Object.assign({}, saved.avatars);
+    }
+    const resume = saved && !k && !live && saved.room && S.rooms[saved.room] && !S.rooms[saved.room].locked ? saved : null;
+    const byLive = live ? S.world.rooms.find(r => r.views.length && !r.locked && (r.live_id === live || r.layout_id === live || r.id === live)) : null;
+    // with no ?live= or ?view=, start where the world says (the dressing room), else the first room that has a picture
+    const home = S.world.rooms.find(r => r.id === S.world.start && r.views.length && !r.locked) || S.world.rooms.find(r => r.views.length);
+    const first = byLive ? [byLive.id, null] : k && k.includes("/") ? k.split("/") : resume ? [resume.room, resume.view || null] : [home.id, null];
+    await setView(first[0], first[1], { instant: true });
+    if (resume && Array.isArray(resume.pos) && S.view.id === (resume.view || S.view.id) && S.view.zones.length && walkable(S.view, resume.pos)) S.pos = resume.pos.slice();
+    // ?demo=husky is a direct launch of the real bundled GLB on the real room artwork.
+    // A demo must not replace a saved avatar or character identity in persistent progress.
+    const directHusky = q.get("demo") === "husky";
+    if (directHusky) delete S.avatarIds[S.char];
+    refreshLibrary().then(() => { if (Object.keys(S.avatarIds).length) wearSavedAvatars(); });
+    if (saved && typeof saved.hologram === "boolean") { $("glbHolo").checked = saved.hologram; glbReady().then(G => G.setHologram(saved.hologram)); }
+    if (q.get("pads") === "0") { S.show.pads = false; $("shPads").checked = false; }
+    if (q.get("refs") === "1") { S.show.refs = true; $("shRefs").checked = true; }
+    if (q.get("occ") === "1") { S.show.occ = true; $("shOcc").checked = true; }
+    if (directHusky) {
+      await glbReady();
+      if (!await loadGlb(GLB_DEMOS.glbDemoHusky.url, GLB_DEMOS.glbDemoHusky.label))
+        throw new Error("Bundled Husky GLB failed to load: " + (window.PubCastGLB.state.lastError || "unknown error"));
+      S.demoHeights[S.char] = 36;
+      syncLibrarySelect();
+    }
+    document.documentElement.dataset.ready = "1";
+    if (L) L.setPresence(presenceNow);
+    HostPanel.init().catch(() => { /* no host panel for this session */ });
+    requestAnimationFrame(frame);
+  } catch (e) {
+    toast("Could not start: " + e.message, 8000);
+    document.documentElement.dataset.error = e.message;
+  }
+})();
+</script>
+</body>
+</html>

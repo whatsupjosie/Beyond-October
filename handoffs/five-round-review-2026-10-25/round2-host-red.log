@@ -1,0 +1,48 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+__________ test_host_evo_status_contains_the_actual_semantic_snapshot __________
+
+client = <starlette.testclient.TestClient object at 0x7fb6a57cc950>
+main_module = <module 'main' from '/workspace/scratch/9771830e3533/five-round-review/PubCast/main.py'>
+
+    def test_host_evo_status_contains_the_actual_semantic_snapshot(client, main_module):
+        assert main_module.evo_orchestrator is not None
+        response = client.get("/api/evo/status")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["available"] is True
+>       assert body["semantic_revision"] == main_module.evo_orchestrator.get_semantic_state().revision
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'semantic_revision'
+
+tests/test_evo_host_activation.py:9: KeyError
+---------------------------- Captured stdout setup -----------------------------
+2026-10-25 22:25:02 [warning  ] CameraManager not available, using standalone mode
+2026-10-25 22:25:02 [info     ] vision_manager_init
+------------------------------ Captured log setup ------------------------------
+WARNING  modules.auth:auth.py:58 PUBCAST_JWT_SECRET is not set — using a secure process-local secret. Tokens will not survive restart. Launch through run_pubpartner.py for a persistent secret.
+WARNING  modules.audio_devices:audio_devices.py:67 sounddevice unavailable (ModuleNotFoundError: No module named 'sounddevice'). Server-side audio device enumeration disabled; browser-side enumeration is unaffected.
+WARNING  modules.evo.facial_performance:facial_performance.py:65 DeepFace not available — facial analysis in simulation mode
+WARNING  modules.evo.facial_performance:facial_performance.py:77 MediaPipe not available — landmark analysis disabled
+WARNING  pubcast:main.py:629 CORS: '*' origin with credentials is not allowed by browsers - allow_credentials forced False. Set PUBCAST_ALLOWED_ORIGINS to specific origin.
+WARNING  modules.userdb:userdb.py:171 PUBCAST_OWNER_PASSWORD is not set. The owner account will NOT be auto-created. Set PUBCAST_OWNER_PASSWORD before first run.
+WARNING  pubcast.bridge:bridge_bulletproof.py:587 🌉 SHM segment not found
+ERROR    pubcast.bridge:bridge_bulletproof.py:698 ❌ TCP connection failed: [Errno 111] Connection refused
+ERROR    pubcast.bridge:bridge_bulletproof.py:447 🚨 Bridge using Path C (File System) - severe performance impact
+WARNING  pubcast.pete_enhanced:pete_enhanced.py:458 e-PETE: bridge fallback path accepted command test; primary bridge not active (status=emergency)
+____________________ test_host_starts_one_real_epete_worker ____________________
+
+client = <starlette.testclient.TestClient object at 0x7fb6a57cc950>
+main_module = <module 'main' from '/workspace/scratch/9771830e3533/five-round-review/PubCast/main.py'>
+
+    def test_host_starts_one_real_epete_worker(client, main_module):
+        runtime = main_module.evo_orchestrator
+>       assert runtime._running
+E       assert False
+E        +  where False = <modules.evo.evo_integration.EVOOrchestrator object at 0x7fb688633590>._running
+
+tests/test_evo_host_activation.py:15: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_evo_host_activation.py::test_host_evo_status_contains_the_actual_semantic_snapshot
+FAILED tests/test_evo_host_activation.py::test_host_starts_one_real_epete_worker
+2 failed, 1 warning in 1.58s

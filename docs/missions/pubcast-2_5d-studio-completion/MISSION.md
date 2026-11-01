@@ -1,0 +1,5 @@
+# PubCast 2.5D Studio + Control Room — Governing mission
+
+Owner's October 30, 2026 MASTER AUTONOMOUS ENGINEERING DIRECTIVE (29 sections) is authoritative. Complete integrated 2.5D stage, genre packages, 3D avatars, Control Room stations, video/audio switching, Blackbox-aligned recording, persistence, playback, tests and owner handoff. Preserve Bella Faux Pas walkable world and existing engines. Do not declare sealed without owner approval. Re-read this file and STATE.md after each major milestone and before handoff. Stall rule: approximately two minutes without measurable progress: document in BLOCKERS.md and switch to next actionable task. Do not stop after individual milestones. Verify runtime claims with actual evidence; do not fabricate tests. Avoid harmful shortcuts, duplicative architecture, or transferring avoidable engineering to owner.
+
+Critical path: package → layered stage → GLB performer → camera → preview/program → Control Room → audio/video capture → persistence → playback.

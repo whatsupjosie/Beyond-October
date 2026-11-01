@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PubCast AI — Studio Control Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0a0b0f;
+    --surface:   #111318;
+    --surface2:  #181c24;
+    --border:    #252a36;
+    --accent:    #e8ff47;
+    --accent2:   #47c8ff;
+    --accent3:   #ff6b6b;
+    --text:      #e2e8f0;
+    --muted:     #6b7280;
+    --green:     #4ade80;
+    --orange:    #fb923c;
+    --mono:      'Space Mono', monospace;
+    --sans:      'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── GRID NOISE OVERLAY ── */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(232,255,71,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,255,71,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── SCANLINE ── */
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 56px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-badge {
+    background: var(--accent);
+    color: #000;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .topbar-status {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent3);
+    display: inline-block;
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+  .status-dot.online  { background: var(--green); }
+  .status-dot.warning { background: var(--orange); animation: pulse 1s infinite; }
+  .status-dot.live    { background: var(--accent3); animation: pulse 0.5s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── STUDIO CONTROL ROOM SPECIFIC STYLES ── */
+  
+  .control-room-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 16px;
+    padding: 20px;
+    height: 100%;
+    overflow-y: auto;
+  }
+
+  .control-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+  }
+
+  .panel-header {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .panel-header-badge {
+    background: rgba(232,255,71,0.1);
+    color: var(--accent);
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+
+  .panel-header-badge.live {
+    background: rgba(255,107,107,0.2);
+    color: var(--accent3);
+    animation: pulse 1s infinite;
+  }
+
+  /* ── AUDIO MATRIX ── */
+  .audio-channel {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    background: var(--surface2);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    border-left: 3px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .audio-channel.ok { border-left-color: var(--green); }
+  .audio-channel.warning { border-left-color: var(--orange); }
+  .audio-channel.critical { border-left-color: var(--accent3); }
+  .audio-channel.muted { opacity: 0.5; border-left-color: var(--muted); }
+  .audio-channel.ghost { border-left-color: #a855f7; }
+
+  .channel-name {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .channel-meter {
+    width: 120px;
+    height: 8px;
+    background: #1a1d24;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .meter-fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--green), var(--accent), var(--orange), var(--accent3));
+    width: 0%;
+    transition: width 0.1s linear;
+  }
+
+  .channel-db {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    min-width: 50px;
+    text-align: right;
+  }
+
+  .channel-toggle {
+    width: 32px;
+    height: 18px;
+    background: var(--border);
+    border-radius: 9px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .channel-toggle.active {
+    background: var(--accent);
+  }
+
+  .channel-toggle::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: var(--surface);
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+
+  .channel-toggle.active::after {
+    transform: translateX(14px);
+  }
+
+  /* ── COUNTDOWN DISPLAY ── */
+  .countdown-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 250px;
+    background: radial-gradient(circle, rgba(232,255,71,0.05), transparent);
+    border-radius: 8px;
+    position: relative;
+  }
+
+  .countdown-number {
+    font-family: var(--sans);
+    font-size: 96px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+    text-shadow: 0 0 40px rgba(232,255,71,0.5);
+  }
+
+  .countdown-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 16px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .countdown-status {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    padding: 4px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  /* ── CONTROL BUTTONS ── */
+  .control-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .control-btn {
+    padding: 16px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface2);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .control-btn:hover {
+    border-color: var(--accent);
+    background: rgba(232,255,71,0.05);
+  }
+
+  .control-btn.primary {
+    grid-column: span 2;
+    border-color: var(--accent);
+    background: rgba(232,255,71,0.1);
+    font-size: 18px;
+  }
+
+  .control-btn.primary:hover {
+    background: rgba(232,255,71,0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(232,255,71,0.3);
+  }
+
+  .control-btn.danger {
+    border-color: var(--accent3);
+    background: rgba(255,107,107,0.1);
+  }
+
+  .control-btn.danger:hover {
+    background: rgba(255,107,107,0.2);
+  }
+
+  .control-btn .icon {
+    font-size: 24px;
+  }
+
+  .control-btn.primary .icon {
+    font-size: 32px;
+  }
+
+  /* ── PREFLIGHT CHECKS ── */
+  .preflight-checks {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .preflight-check {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--surface2);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    border-left: 3px solid transparent;
+  }
+
+  .preflight-check.passed {
+    border-left-color: var(--green);
+  }
+
+  .preflight-check.failed {
+    border-left-color: var(--accent3);
+  }
+
+  .preflight-check.pending {
+    border-left-color: var(--muted);
+  }
+
+  .check-icon {
+    font-size: 20px;
+  }
+
+  .check-content {
+    flex: 1;
+  }
+
+  .check-name {
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .check-message {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .check-timestamp {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+  }
+
+  /* ── SYSTEM STATUS ── */
+  .system-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .metric {
+    padding: 12px;
+    background: var(--surface2);
+    border-radius: 6px;
+    border-left: 3px solid var(--accent2);
+  }
+
+  .metric-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .metric-value {
+    font-family: var(--sans);
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text);
+  }
+
+  .metric-value .unit {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  /* ── RECORDING STATUS ── */
+  .recording-status {
+    text-align: center;
+    padding: 24px;
+  }
+
+  .recording-indicator {
+    width: 24px;
+    height: 24px;
+    background: var(--accent3);
+    border-radius: 50%;
+    margin: 0 auto 12px;
+    animation: pulse 0.8s infinite;
+  }
+
+  .recording-duration {
+    font-family: var(--mono);
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+
+  .recording-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 8px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 1200px) {
+    .control-room-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .hidden { display: none !important; }
+</style>
+  <script src="/static/reach_auth.js"></script>
+</head>
+<body>
+
+<div class="app">
+  <!-- ── TOPBAR ── -->
+  <div class="topbar">
+    <div class="logo">
+      PubCast AI
+      <span class="logo-badge">STUDIO</span>
+    </div>
+    <div class="topbar-status">
+      <span><span class="status-dot" id="studioStatusDot"></span><span id="studioStatusText">IDLE</span></span>
+      <span><span class="status-dot online"></span>Pete</span>
+      <span><span class="status-dot online"></span>Voxel Engine</span>
+    </div>
+  </div>
+
+  <!-- ── STUDIO CONTROL ROOM ── -->
+  <div class="control-room-grid">
+    
+    <!-- ── AUDIO MATRIX ── -->
+    <div class="control-panel">
+      <div class="panel-header">
+        <span>Audio Matrix</span>
+        <span class="panel-header-badge">5 CHANNELS</span>
+      </div>
+      <div id="audioMatrix"></div>
+    </div>
+
+    <!-- ── COUNTDOWN / STATUS ── -->
+    <div class="control-panel">
+      <div class="panel-header">
+        <span>Production Control</span>
+        <span class="panel-header-badge" id="stateIndicator">READY</span>
+      </div>
+      <div id="countdownContainer" class="countdown-display">
+        <div class="countdown-number" id="countdownNumber">—</div>
+        <div class="countdown-label" id="countdownLabel">STANDBY</div>
+      </div>
+    </div>
+
+    <!-- ── CONTROL BUTTONS ── -->
+    <div class="control-panel">
+      <div class="panel-header">
+        <span>Operations</span>
+      </div>
+      <div class="control-buttons">
+        <button class="control-btn primary" id="btnStartPreflight">
+          <span class="icon">🎬</span>
+          <span>START COUNTDOWN</span>
+        </button>
+        <button class="control-btn" id="btnMuteAll">
+          <span class="icon">🔇</span>
+          <span>Isolation Mode</span>
+        </button>
+        <button class="control-btn" id="btnUnmuteAll">
+          <span class="icon">🔊</span>
+          <span>Unmute All</span>
+        </button>
+        <button class="control-btn" id="btnStopRecording" disabled>
+          <span class="icon">⏹️</span>
+          <span>Stop Recording</span>
+        </button>
+        <button class="control-btn danger" id="btnEmergencySave">
+          <span class="icon">🚨</span>
+          <span>EMERGENCY SAVE</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── PREFLIGHT CHECKS ── -->
+    <div class="control-panel">
+      <div class="panel-header">
+        <span>Preflight Checks</span>
+        <span class="panel-header-badge" id="preflightBadge">0/0</span>
+      </div>
+      <div class="preflight-checks" id="preflightChecks">
+        <div style="text-align:center;padding:40px;color:var(--muted);font-family:var(--mono);font-size:11px;">
+          No checks run yet
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SYSTEM METRICS ── -->
+    <div class="control-panel">
+      <div class="panel-header">
+        <span>System Status</span>
+      </div>
+      <div class="system-metrics">
+        <div class="metric">
+          <div class="metric-label">Pete Health</div>
+          <div class="metric-value">PERFECT</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Voxel FPS</div>
+          <div class="metric-value">60 <span class="unit">fps</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Pipeline Latency</div>
+          <div class="metric-value">12 <span class="unit">ms</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Ghost Mics</div>
+          <div class="metric-value" id="metricGhostMics">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RECORDING STATUS ── -->
+    <div class="control-panel hidden" id="recordingPanel">
+      <div class="panel-header">
+        <span>Live Recording</span>
+        <span class="panel-header-badge live">ON AIR</span>
+      </div>
+      <div class="recording-status">
+        <div class="recording-indicator"></div>
+        <div class="recording-duration" id="recordingDuration">00:00:00</div>
+        <div class="recording-label">Recording Duration</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="/static/studio_console_hotspots.js"></script>
+<script>
+/**
+ * STUDIO CONTROL ROOM - FRONTEND CONTROLLER
+ * The "Iron Core" JavaScript engine integrated with PubCast AI
+ * 
+ * Architecture:
+ *   - Local-first logic (works offline)
+ *   - WebSocket sync with Python backend
+ *   - Keyboard shortcuts (Space = Start, Esc = Emergency)
+ *   - Real-time audio monitoring
+ */
+
+// ─────────────────────────────────────────────
+// STATE MANAGEMENT
+// ─────────────────────────────────────────────
+
+const StudioEngine = {
+  state: 'IDLE', // IDLE, PREFLIGHT, LIVE, EMERGENCY
+  ws: null,
+  wsReconnectInterval: null,
+  studioActions: null,
+  activeRecordingSessionId: '',
+  currentProgramSource: 'wide_shot',
+  recordingStartTime: null,
+  recordingInterval: null,
+  
+  audioMatrix: {
+    mic_inputs:   { name: 'Microphone Inputs',       active: true, signal_db: null, status: 'NO_DATA' },
+    dialogue:     { name: 'Dialogue Track',          active: true, signal_db: null, status: 'NO_DATA' },
+    studio_feed:  { name: 'Studio Feed (SFX/Music)', active: true, signal_db: null, status: 'NO_DATA' },
+    system_audio: { name: 'System Audio',            active: true, signal_db: null, status: 'NO_DATA' },
+    room_noise:   { name: 'Room Noise',              active: true, signal_db: null, status: 'NO_DATA' }
+  },
+  audioBusByChannel: {
+    mic_inputs: 'dialogue',
+    dialogue: 'dialogue',
+    studio_feed: 'music',
+    system_audio: 'ui',
+    room_noise: 'room'
+  },
+  
+  preflightChecks: [],
+  
+  // Initialize
+  init: function() {
+    console.log("🎛️ Studio Control Room initializing...");
+    this.studioActions = window.PubCastStudioConsoleHotspots
+      ? new window.PubCastStudioConsoleHotspots.StudioConsoleHotspots()
+      : null;
+    this.connectWebSocket();
+    this.setupEventListeners();
+    this.renderAudioMatrix();
+    this.updateUI();
+    console.log("✅ Studio Control Room ready");
+  },
+  
+  // ─────────────────────────────────────────────
+  // WEBSOCKET CONNECTION
+  // ─────────────────────────────────────────────
+  
+  connectWebSocket: function() {
+    // Use the Reach origin (including its configured port and HTTPS scheme).
+    // The shared adapter attaches the current, verified session token.
+    const wsUrl = window.ReachAuth.websocketURL('/ws/studio');
+    console.log(`📡 Connecting to Studio Control WebSocket: ${wsUrl}`);
+    
+    try {
+      this.ws = new WebSocket(wsUrl);
+      
+      this.ws.onopen = () => {
+        console.log("✅ WebSocket connected");
+        if (this.wsReconnectInterval) {
+          clearInterval(this.wsReconnectInterval);
+          this.wsReconnectInterval = null;
+        }
+      };
+      
+      this.ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        this.handleWebSocketMessage(message);
+      };
+      
+      this.ws.onclose = () => {
+        console.warn("⚠️ WebSocket disconnected - will retry");
+        this.scheduleReconnect();
+      };
+      
+      this.ws.onerror = (error) => {
+        console.error("❌ WebSocket error:", error);
+      };
+    } catch (error) {
+      console.error("❌ Failed to create WebSocket:", error);
+      this.scheduleReconnect();
+    }
+  },
+  
+  scheduleReconnect: function() {
+    if (!this.wsReconnectInterval) {
+      this.wsReconnectInterval = setInterval(() => {
+        console.log("🔄 Attempting WebSocket reconnect...");
+        this.connectWebSocket();
+      }, 5000);
+    }
+  },
+  
+  sendCommand: function(command, data = {}) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ command, ...data }));
+    } else {
+      console.warn("⚠️ WebSocket not connected - command queued:", command);
+      // Fallback to local execution
+      this.executeCommandLocally(command, data);
+    }
+  },
+
+  runStudioAction: async function(actionId, payload = {}, options = {}) {
+    try {
+      if (!this.studioActions) throw new Error("studio action adapter unavailable");
+      const result = await this.studioActions.executeConfirmed(actionId, payload, {
+        spec: options.spec || null,
+      });
+      if (result && result.canceled) {
+        this.addPreflightCheck({ check_id: actionId, name: actionId, passed: false, message: 'Canceled by operator' });
+        return null;
+      }
+      return result;
+    } catch (error) {
+      this.addPreflightCheck({ check_id: actionId, name: actionId, passed: false, message: error.message });
+      return null;
+    }
+  },
+
+  confirmDanger: async function(title, message) {
+    if (this.studioActions && this.studioActions.confirmImpl) {
+      return this.studioActions.confirmImpl({
+        actionId: title,
+        title: title,
+        label: title,
+        message: message,
+        details: [],
+        confirmText: 'Confirm',
+        cancelText: 'Cancel',
+      });
+    }
+    return window.confirm(message);
+  },
+  
+  handleWebSocketMessage: function(message) {
+    console.log("📨 Received:", message.type);
+    
+    switch (message.type) {
+      case 'state_update':
+        this.setState(message.state);
+        break;
+      case 'audio_update':
+        this.updateAudioMatrix(message.audio_matrix);
+        break;
+      case 'countdown':
+        this.updateCountdown(message.seconds);
+        break;
+      case 'preflight_check':
+        this.addPreflightCheck(message.check);
+        break;
+    }
+  },
+  
+  // ─────────────────────────────────────────────
+  // STATE MANAGEMENT
+  // ─────────────────────────────────────────────
+  
+  setState: function(newState) {
+    this.state = newState;
+    console.log(`🎛️ State changed: ${newState}`);
+    this.updateUI();
+  },
+  
+  updateUI: function() {
+    const statusDot = document.getElementById('studioStatusDot');
+    const statusText = document.getElementById('studioStatusText');
+    const stateIndicator = document.getElementById('stateIndicator');
+    const btnStop = document.getElementById('btnStopRecording');
+    const recordingPanel = document.getElementById('recordingPanel');
+    
+    // Update status indicators
+    statusDot.className = 'status-dot';
+    
+    switch (this.state) {
+      case 'IDLE':
+        statusDot.classList.add('online');
+        statusText.textContent = 'IDLE';
+        stateIndicator.textContent = 'READY';
+        stateIndicator.className = 'panel-header-badge';
+        btnStop.disabled = true;
+        recordingPanel.classList.add('hidden');
+        this.stopRecordingTimer();
+        break;
+      
+      case 'PREFLIGHT':
+        statusDot.classList.add('warning');
+        statusText.textContent = 'PREFLIGHT';
+        stateIndicator.textContent = 'COUNTDOWN';
+        stateIndicator.className = 'panel-header-badge';
+        btnStop.disabled = true;
+        recordingPanel.classList.add('hidden');
+        break;
+      
+      case 'LIVE':
+        statusDot.classList.add('live');
+        statusText.textContent = 'LIVE';
+        stateIndicator.textContent = 'ON AIR';
+        stateIndicator.className = 'panel-header-badge live';
+        btnStop.disabled = false;
+        recordingPanel.classList.remove('hidden');
+        this.startRecordingTimer();
+        break;
+      
+      case 'EMERGENCY':
+        statusDot.classList.add('live');
+        statusText.textContent = 'EMERGENCY';
+        stateIndicator.textContent = 'EMERGENCY';
+        stateIndicator.className = 'panel-header-badge live';
+        break;
+    }
+  },
+  
+  // ─────────────────────────────────────────────
+  // AUDIO MATRIX
+  // ─────────────────────────────────────────────
+  
+  renderAudioMatrix: function() {
+    const container = document.getElementById('audioMatrix');
+    container.innerHTML = '';
+    
+    for (const [id, channel] of Object.entries(this.audioMatrix)) {
+      const statusClass = String(channel.status || 'no_data').toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+      const hasSignal = Number.isFinite(channel.signal_db);
+      const meterWidth = hasSignal ? this.dbToPercent(channel.signal_db) : 0;
+      
+      const html = `
+        <div class="audio-channel ${statusClass}" data-channel="${id}">
+          <div class="channel-name">${channel.name}</div>
+          <div class="channel-meter">
+            <div class="meter-fill" style="width:${meterWidth}%"></div>
+          </div>
+          <div class="channel-db">${hasSignal ? `${channel.signal_db.toFixed(1)} dB` : 'NO METER DATA'}</div>
+          <div class="channel-toggle ${channel.active ? 'active' : ''}" onclick="StudioEngine.toggleChannel('${id}')"></div>
+        </div>
+      `;
+      
+      container.insertAdjacentHTML('beforeend', html);
+    }
+  },
+  
+  updateAudioMatrix: function(audioData) {
+    for (const [id, data] of Object.entries(audioData)) {
+      if (this.audioMatrix[id]) {
+        this.audioMatrix[id].active = data.active;
+        this.audioMatrix[id].signal_db = Number.isFinite(data.signal_db) ? data.signal_db : null;
+        this.audioMatrix[id].status = data.status || (Number.isFinite(data.signal_db) ? 'OK' : 'NO_DATA');
+      }
+    }
+    this.renderAudioMatrix();
+  },
+  
+  toggleChannel: async function(channelId) {
+    const channel = this.audioMatrix[channelId];
+    if (!channel) return;
+    
+    channel.active = !channel.active;
+    await this.runStudioAction('audio.event', {
+      action: channel.active ? 'unmute' : 'mute',
+      bus: this.audioBusByChannel[channelId] || 'sfx',
+    });
+    this.renderAudioMatrix();
+  },
+  
+  dbToPercent: function(db) {
+    // Convert dB (-60 to 0) to percentage (0 to 100)
+    return Math.max(0, Math.min(100, ((db + 60) / 60) * 100));
+  },
+  
+  // ─────────────────────────────────────────────
+  // AUDIO TELEMETRY
+  // Meter levels are populated only by real `audio_update` WebSocket frames.
+  // No synthetic dB animation is generated when telemetry is absent.
+  // ─────────────────────────────────────────────
+  
+  // PREFLIGHT SEQUENCE
+  // ─────────────────────────────────────────────
+  
+  startPreflight: async function() {
+    console.log("🎬 Starting preflight countdown...");
+    this.preflightChecks = [];
+    this.setState('PREFLIGHT');
+
+    const readiness = await this.runStudioAction('studio.readiness');
+    const ready = Boolean(readiness && readiness.result && readiness.result.ready);
+    this.addPreflightCheck({
+      check_id: 'studio.readiness',
+      name: 'Studio readiness',
+      passed: ready,
+      message: readiness ? `ready=${ready}` : 'Studio readiness endpoint unavailable',
+    });
+
+    const readinessResult = readiness && readiness.result ? readiness.result : {};
+    this.currentProgramSource = readinessResult.program || this.currentProgramSource || 'wide_shot';
+
+    const preflight = await this.runStudioAction('recording.preflight', {
+      sources: [this.currentProgramSource],
+      profile_id: 'broadcast_mp4',
+    });
+    const preflightReady = Boolean(preflight && preflight.result && preflight.result.ready);
+    this.addPreflightCheck({
+      check_id: 'recording.preflight',
+      name: 'Recording preflight',
+      passed: preflightReady,
+      message: preflight ? `issues=${(preflight.result.issues || []).length}` : 'Recording preflight unavailable',
+    });
+
+    if (!readiness || !preflight) {
+      this.executeLocalPreflight();
+      return;
+    }
+    if (!ready || !preflightReady) {
+      this.updateCountdown('!');
+      document.getElementById('countdownLabel').textContent = 'CHECK FAILED';
+      this.setState('IDLE');
+      return;
+    }
+
+    for (let i = 5; i > 0; i--) {
+      this.updateCountdown(i);
+      await this.sleep(1000);
+    }
+
+    const sessionId = `studio_${Date.now()}`;
+    const started = await this.runStudioAction('recording.start', {
+      session_id: sessionId,
+      sources: [this.currentProgramSource],
+      profile_id: 'broadcast_mp4',
+      countdown_seconds: 0,
+    }, {
+      spec: { safety: 'confirm', label: 'Start recording' },
+    });
+
+    if (started && started.result && started.result.session_id) {
+      this.activeRecordingSessionId = started.result.session_id;
+      this.setState('LIVE');
+    } else {
+      this.setState('IDLE');
+    }
+  },
+  
+  executeLocalPreflight: async function() {
+    this.setState('PREFLIGHT');
+    this.addPreflightCheck({ check_id: 'local_fallback', name: 'Local fallback', passed: false, message: 'Backend studio action path unavailable; running local visual countdown only' });
+    
+    for (let i = 5; i > 0; i--) {
+      this.updateCountdown(i);
+      await this.sleep(1000);
+    }
+    this.addPreflightCheck({
+      check_id: 'backend_required',
+      name: 'Production preflight',
+      passed: false,
+      message: 'Backend verification is unavailable; hardware/audio checks were not fabricated and LIVE was not entered.'
+    });
+    this.setState('IDLE');
+  },
+  
+  updateCountdown: function(seconds) {
+    const numberEl = document.getElementById('countdownNumber');
+    const labelEl = document.getElementById('countdownLabel');
+    
+    numberEl.textContent = seconds;
+    labelEl.textContent = `T-MINUS ${seconds}`;
+  },
+  
+  addPreflightCheck: function(check) {
+    this.preflightChecks.push(check);
+    this.renderPreflightChecks();
+  },
+  
+  renderPreflightChecks: function() {
+    const container = document.getElementById('preflightChecks');
+    const passedCount = this.preflightChecks.filter(c => c.passed).length;
+    const totalCount = this.preflightChecks.length;
+    
+    document.getElementById('preflightBadge').textContent = `${passedCount}/${totalCount}`;
+    
+    if (this.preflightChecks.length === 0) {
+      container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--muted);font-family:var(--mono);font-size:11px;">No checks run yet</div>`;
+      return;
+    }
+    
+    container.innerHTML = this.preflightChecks.map(check => `
+      <div class="preflight-check ${check.passed ? 'passed' : 'failed'}">
+        <div class="check-icon">${check.passed ? '✅' : '⚠️'}</div>
+        <div class="check-content">
+          <div class="check-name">${check.name}</div>
+          <div class="check-message">${check.message}</div>
+        </div>
+      </div>
+    `).join('');
+  },
+  
+  // ─────────────────────────────────────────────
+  // RECORDING CONTROL
+  // ─────────────────────────────────────────────
+  
+  startRecordingTimer: function() {
+    if (this.recordingInterval) return;
+    this.recordingStartTime = Date.now();
+    this.recordingInterval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - this.recordingStartTime) / 1000);
+      const hours = Math.floor(elapsed / 3600);
+      const minutes = Math.floor((elapsed % 3600) / 60);
+      const seconds = elapsed % 60;
+      
+      const display = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      document.getElementById('recordingDuration').textContent = display;
+    }, 1000);
+  },
+  
+  stopRecordingTimer: function() {
+    if (this.recordingInterval) {
+      clearInterval(this.recordingInterval);
+      this.recordingInterval = null;
+    }
+  },
+  
+  stopRecording: async function() {
+    console.log("⏹️ Stopping recording...");
+    if (this.activeRecordingSessionId) {
+      const stopped = await this.runStudioAction('recording.stop', {
+        session_id: this.activeRecordingSessionId,
+      }, {
+        spec: { safety: 'confirm', label: 'Stop recording' },
+      });
+      if (!stopped) return;
+      this.activeRecordingSessionId = '';
+    } else {
+      this.sendCommand('stop_recording');
+    }
+    this.setState('IDLE');
+  },
+  
+  // ─────────────────────────────────────────────
+  // EMERGENCY SAVE
+  // ─────────────────────────────────────────────
+  
+  emergencySave: function() {
+    console.error("🚨 EMERGENCY SAVE TRIGGERED");
+    this.sendCommand('emergency_save', { reason: 'Manual trigger' });
+    this.setState('EMERGENCY');
+    
+    setTimeout(() => {
+      this.setState('IDLE');
+    }, 2000);
+  },
+  
+  // ─────────────────────────────────────────────
+  // AUDIO CONTROLS
+  // ─────────────────────────────────────────────
+  
+  muteAllButDialogue: async function() {
+    console.log("🔇 Isolation Mode: Dialogue only");
+    await Promise.all([
+      this.runStudioAction('audio.event', { action: 'unmute', bus: 'dialogue' }),
+      this.runStudioAction('audio.event', { action: 'mute', bus: 'music' }),
+      this.runStudioAction('audio.event', { action: 'mute', bus: 'sfx' }),
+      this.runStudioAction('audio.event', { action: 'mute', bus: 'ui' }),
+      this.runStudioAction('audio.event', { action: 'mute', bus: 'vtr' }),
+      this.runStudioAction('audio.event', { action: 'mute', bus: 'room' }),
+    ]);
+    
+    for (const [id, channel] of Object.entries(this.audioMatrix)) {
+      channel.active = (id === 'dialogue');
+    }
+    this.renderAudioMatrix();
+  },
+  
+  unmuteAll: async function() {
+    console.log("🔊 Unmuting all channels");
+    await Promise.all(['dialogue', 'music', 'sfx', 'ui', 'vtr', 'room'].map((bus) =>
+      this.runStudioAction('audio.event', { action: 'unmute', bus: bus })
+    ));
+    
+    for (const channel of Object.values(this.audioMatrix)) {
+      channel.active = true;
+    }
+    this.renderAudioMatrix();
+  },
+  
+  // ─────────────────────────────────────────────
+  // EVENT LISTENERS
+  // ─────────────────────────────────────────────
+  
+  setupEventListeners: function() {
+    // Buttons
+    document.getElementById('btnStartPreflight').onclick = () => this.startPreflight();
+    document.getElementById('btnStopRecording').onclick = () => this.stopRecording();
+    document.getElementById('btnMuteAll').onclick = () => this.muteAllButDialogue();
+    document.getElementById('btnUnmuteAll').onclick = () => this.unmuteAll();
+    document.getElementById('btnEmergencySave').onclick = async () => {
+      if (await this.confirmDanger('Emergency Save', 'Trigger emergency save and flush the studio buffers?')) {
+        this.emergencySave();
+      }
+    };
+    
+    // Keyboard shortcuts
+    window.addEventListener('keydown', async (e) => {
+      if (e.code === 'Space' && this.state === 'IDLE') {
+        e.preventDefault();
+        this.startPreflight();
+      }
+      if (e.code === 'Escape' && this.state === 'LIVE') {
+        e.preventDefault();
+        if (await this.confirmDanger('Emergency Stop', 'Emergency stop recording and enter emergency save state?')) {
+          this.emergencySave();
+        }
+      }
+    });
+  },
+  
+  executeCommandLocally: function(command, data) {
+    // Fallback for when WebSocket is offline
+    console.log(`⚠️ Executing command locally: ${command}`);
+    
+    switch (command) {
+      case 'start_preflight':
+        this.executeLocalPreflight();
+        break;
+      case 'stop_recording':
+        this.setState('IDLE');
+        break;
+      case 'mute_all_but_dialogue':
+        this.muteAllButDialogue();
+        break;
+      case 'unmute_all':
+        this.unmuteAll();
+        break;
+    }
+  },
+  
+  sleep: function(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+};
+
+// ─────────────────────────────────────────────
+// INITIALIZE ON LOAD
+// ─────────────────────────────────────────────
+
+window.addEventListener('DOMContentLoaded', () => {
+  StudioEngine.init();
+});
+
+// Keyboard shortcuts reminder
+console.log(`
+🎛️ STUDIO CONTROL ROOM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Keyboard Shortcuts:
+  SPACE - Start countdown
+  ESC   - Emergency save (during recording)
+
+The "Iron Core" is ready.
+Local-first logic: Works even offline.
+`);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PubCast Safe Console</title>
+  <style>
+    :root { color-scheme: dark; --bg:#101214; --panel:#181c20; --text:#f2f2e8; --muted:#a8b0b8; --ok:#5bd48a; --warn:#e3b65d; --bad:#e46666; --line:#303842; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, Segoe UI, sans-serif; background:var(--bg); color:var(--text); }
+    header, main { max-width: 980px; margin: 0 auto; padding: 18px; }
+    header { border-bottom:1px solid var(--line); }
+    h1 { margin:0 0 6px; font-size: 24px; }
+    p { color:var(--muted); line-height:1.45; }
+    section { border:1px solid var(--line); background:var(--panel); border-radius:8px; padding:14px; margin:14px 0; }
+    h2 { margin:0 0 10px; font-size:17px; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap:8px; }
+    button, a.button { display:block; width:100%; border:1px solid var(--line); background:#20262c; color:var(--text); padding:10px; border-radius:6px; text-decoration:none; text-align:left; cursor:pointer; }
+    button:hover, a.button:hover { border-color:#6fa8ff; }
+    pre { white-space: pre-wrap; word-break: break-word; background:#0b0d0f; border:1px solid var(--line); padding:10px; border-radius:6px; max-height:280px; overflow:auto; }
+    .ok { color:var(--ok); } .warn { color:var(--warn); } .bad { color:var(--bad); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PubCast Safe Console</h1>
+    <p>Minimal recovery surface. No images, no avatar rendering, no automatic audio, no canvas dependency.</p>
+  </header>
+  <main>
+    <section>
+      <h2>Health</h2>
+      <div class="grid">
+        <button data-action="health">Check Server Health</button>
+        <button data-action="studio">Check Studio</button>
+        <button data-action="mocap">Check Mocap</button>
+        <button data-action="assets">Check Avatar Manifest</button>
+      </div>
+    </section>
+    <section>
+      <h2>Recovery</h2>
+      <div class="grid">
+        <button data-action="stop-sounds">Stop All Sounds</button>
+        <button data-action="pub-manager">Ask Pub Manager Status</button>
+        <a class="button" href="/stage">Open Stage</a>
+        <a class="button" href="/studio-control">Open Studio Control</a>
+        <a class="button" href="/avatar-walk-test">Open Avatar Walk Test</a>
+      </div>
+    </section>
+    <section>
+      <h2>Status</h2>
+      <pre id="log">Safe Console ready.</pre>
+    </section>
+  </main>
+  <script>
+    const log = document.getElementById('log');
+    function write(label, data) { log.textContent = label + "\n" + (typeof data === 'string' ? data : JSON.stringify(data, null, 2)); }
+    async function getJSON(url) {
+      const r = await fetch(url, { cache: 'no-store' });
+      const text = await r.text();
+      try { return JSON.parse(text); } catch (_) { return text || (r.status + ' ' + r.statusText); }
+    }
+    async function run(action) {
+      try {
+        if (action === 'health') return write('Server Health', await getJSON('/health'));
+        if (action === 'studio') return write('Studio Status', await getJSON('/api/studio/status'));
+        if (action === 'mocap') return write('Mocap Status', await getJSON('/api/mocap/status'));
+        if (action === 'assets') return write('Avatar Manifest', await getJSON('/data/avatars/manifest.json'));
+        if (action === 'pub-manager') return write('Pub Manager Status', await getJSON('/api/pub-manager/status'));
+        if (action === 'stop-sounds') {
+          if (window.opener?.PubcastProgramAudio) window.opener.PubcastProgramAudio.stopAll();
+          if (window.parent?.PubcastProgramAudio) window.parent.PubcastProgramAudio.stopAll();
+          return write('Stop All Sounds', { ok: true, note: 'Local accessible program-audio runtimes were asked to stop. Server route may be added later.' });
+        }
+      } catch (err) { write('Error', String(err && err.message ? err.message : err)); }
+    }
+    document.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('[data-action]');
+      if (btn) run(btn.dataset.action);
+    });
+  </script>
+</body>
+</html>

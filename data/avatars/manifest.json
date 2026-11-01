@@ -1,0 +1,49 @@
+{
+  "generated_at": 1777618800,
+  "packs": [
+    {
+      "pack_id": "principal_performers_v1",
+      "name": "Principal 3D Performers",
+      "description": "Real GLB performer assets copied into this isolated build. These are not sprites.",
+      "refreshed_at": 1777618800,
+      "assets": [
+        {
+          "id": "manny",
+          "character_id": "manny",
+          "name": "Manny",
+          "display_name": "Manny",
+          "type": "glb",
+          "asset_type": "glb",
+          "url": "/assets/avatar/manny.glb",
+          "path": "assets/avatar/manny.glb",
+          "performer_asset": true,
+          "production_avatar": true,
+          "sprite_replacement_allowed": false,
+          "rig_version": "unknown",
+          "skeleton_version": "skin-present-pending-retarget-map",
+          "animation_status": "no embedded animations found",
+          "fallback_policy": "show visible missing/unavailable error; do not replace with sprite",
+          "status": "present"
+        },
+        {
+          "id": "sheila",
+          "character_id": "sheila",
+          "name": "Sheila",
+          "display_name": "Sheila",
+          "type": "glb",
+          "asset_type": "glb",
+          "url": "/assets/avatar/sheila.glb",
+          "path": "assets/avatar/sheila.glb",
+          "performer_asset": true,
+          "production_avatar": true,
+          "sprite_replacement_allowed": false,
+          "rig_version": "unknown",
+          "skeleton_version": "skin-present-pending-retarget-map",
+          "animation_status": "no embedded animations found",
+          "fallback_policy": "show visible missing/unavailable error; do not replace with sprite",
+          "status": "present"
+        }
+      ]
+    }
+  ]
+}

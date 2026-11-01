@@ -1,0 +1,46 @@
+{
+  "schema": "pubcast.console_hotspot_manifest.v1",
+  "console_id": "director_console",
+  "image": {
+    "clean_path": "/static/director_console.png",
+    "overlay_path": "/static/director_console_overlay_map.png",
+    "width_px": 1024,
+    "height_px": 1024,
+    "coordinate_mode": "normalized_percentages",
+    "notes": "Coordinates are normalized x/y/w/h percentages against a 1024x1024 source image. Pixel dimensions are included so the overlay map remains meaningful when rendered at any size."
+  },
+  "color_legend": {
+    "dark_hot_pink": "monitor/display region",
+    "light_blue": "push button",
+    "light_green": "rotary knob",
+    "grey_white": "slider handle/path",
+    "blue_stick": "hand-brake style lever, currently mapped to console lock",
+    "red_circle": "console dial/clock/status dial"
+  },
+  "hotspots": [
+    {"id": "director.monitor.main", "kind": "monitor", "label": "Main waveform monitor", "x": 0.293, "y": 0.181, "w": 0.410, "h": 0.245, "action_id": "studio.readiness", "payload": {}},
+    {"id": "director.monitor.left_top", "kind": "monitor", "label": "Left top status monitor", "x": 0.062, "y": 0.220, "w": 0.197, "h": 0.173, "action_id": "studio.readiness", "payload": {}},
+    {"id": "director.monitor.left_lower", "kind": "monitor", "label": "Left lower status monitor", "x": 0.088, "y": 0.419, "w": 0.128, "h": 0.102, "action_id": "audio.status", "payload": {}},
+    {"id": "director.monitor.right_top", "kind": "monitor", "label": "Right top status monitor", "x": 0.734, "y": 0.224, "w": 0.212, "h": 0.176, "action_id": "studio.readiness", "payload": {}},
+    {"id": "director.monitor.right_lower", "kind": "monitor", "label": "Right lower header monitor", "x": 0.760, "y": 0.418, "w": 0.159, "h": 0.114, "action_id": "studio.readiness", "payload": {}},
+    {"id": "director.dial.left", "kind": "dial", "label": "Left red console dial", "x": 0.302, "y": 0.479, "w": 0.035, "h": 0.033, "action_id": "camera.visibility.all", "payload": {}},
+    {"id": "director.dial.right", "kind": "dial", "label": "Right red console dial", "x": 0.672, "y": 0.480, "w": 0.039, "h": 0.035, "action_id": "studio.readiness", "payload": {}},
+    {"id": "director.slider.bank_1", "kind": "slider", "label": "Director slider 1", "x": 0.438, "y": 0.465, "w": 0.011, "h": 0.042, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "dialogue"}},
+    {"id": "director.slider.bank_2", "kind": "slider", "label": "Director slider 2", "x": 0.453, "y": 0.466, "w": 0.012, "h": 0.051, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "music"}},
+    {"id": "director.slider.bank_3", "kind": "slider", "label": "Director slider 3", "x": 0.471, "y": 0.466, "w": 0.023, "h": 0.052, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "sfx"}},
+    {"id": "director.slider.bank_4", "kind": "slider", "label": "Director slider 4", "x": 0.497, "y": 0.464, "w": 0.012, "h": 0.053, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "ui"}},
+    {"id": "director.slider.bank_5", "kind": "slider", "label": "Director slider 5", "x": 0.508, "y": 0.465, "w": 0.015, "h": 0.053, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "room"}},
+    {"id": "director.slider.bank_6", "kind": "slider", "label": "Director slider 6", "x": 0.523, "y": 0.464, "w": 0.025, "h": 0.057, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "vtr"}},
+    {"id": "director.slider.bank_7", "kind": "slider", "label": "Director slider 7", "x": 0.555, "y": 0.465, "w": 0.009, "h": 0.056, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "dialogue"}},
+    {"id": "director.lever.console_lock", "kind": "lever", "label": "Console lock lever", "x": 0.315, "y": 0.744, "w": 0.030, "h": 0.108, "action_id": "audio.stop_all", "payload": {}, "notes": "User suggested this may lock the console when away. Temporarily mapped to a safe stop-all/lock behavior until final semantics are chosen."},
+    {"id": "director.button.cut", "kind": "button", "label": "Cut", "x": 0.568, "y": 0.475, "w": 0.015, "h": 0.021, "action_id": "camera.cut", "payload": {}},
+    {"id": "director.button.preview_1", "kind": "button", "label": "Preview 1", "x": 0.405, "y": 0.496, "w": 0.014, "h": 0.017, "action_id": "camera.switch.preview", "payload": {"source_id": "wide_shot"}},
+    {"id": "director.button.program_1", "kind": "button", "label": "Program 1", "x": 0.729, "y": 0.597, "w": 0.013, "h": 0.022, "action_id": "camera.switch.program", "payload": {"source_id": "wide_shot"}},
+    {"id": "director.button.program_2", "kind": "button", "label": "Program 2", "x": 0.855, "y": 0.591, "w": 0.011, "h": 0.023, "action_id": "camera.switch.program", "payload": {"source_id": "medium_shot"}},
+    {"id": "director.button.audio_stop_all", "kind": "button", "label": "Stop all sounds", "x": 0.590, "y": 0.605, "w": 0.012, "h": 0.017, "action_id": "audio.stop_all", "payload": {}},
+    {"id": "director.knob.aux_1", "kind": "knob", "label": "Auxiliary knob 1", "x": 0.451, "y": 0.540, "w": 0.012, "h": 0.017, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "dialogue"}},
+    {"id": "director.knob.aux_2", "kind": "knob", "label": "Auxiliary knob 2", "x": 0.487, "y": 0.553, "w": 0.009, "h": 0.012, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "music"}},
+    {"id": "director.knob.aux_3", "kind": "knob", "label": "Auxiliary knob 3", "x": 0.484, "y": 0.570, "w": 0.012, "h": 0.010, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "sfx"}},
+    {"id": "director.knob.aux_4", "kind": "knob", "label": "Auxiliary knob 4", "x": 0.350, "y": 0.542, "w": 0.011, "h": 0.010, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "room"}}
+  ]
+}

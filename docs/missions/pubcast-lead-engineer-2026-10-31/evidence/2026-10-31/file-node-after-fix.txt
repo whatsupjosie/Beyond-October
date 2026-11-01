@@ -1,0 +1,17 @@
+PASS: file adapter awaits identity; close saves actual file and rejects active/new work
+✔ tests/test_foresight_file_close_node.js (84.982177ms)
+PASS: owner-scoped working copies; credential change, identity outage and missing owner refused; legacy untouched
+PASS: file trays never restore/write ordinary manuscript recovery; identity outage fails closed
+PASS: ownerless/other-account paid settings never become a new account’s defaults
+PASS: account-scoped layout restore preserves legacy; missing renderers offer the genuine 2i route
+✔ tests/test_foresight_owner_recovery_node.js (83.811791ms)
+2i rich recovery UI contract: passed (verified, recoverable, failure-safe, v4 unchanged)
+✔ tests/test_twoi_rich_browser_contract_node.js (90.767863ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 109.815796

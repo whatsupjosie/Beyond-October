@@ -1,0 +1,18 @@
+{
+  "operation": "additive_import",
+  "source": "FULL_SESSION_HANDOFF.zip -> Iteration_Wallet_Standalone_20260627_1420.zip",
+  "destination": "iteration_wallet/",
+  "selection": "normalized active MVP package only",
+  "verification_scope": [
+    "compile/import",
+    "static destructive-operation scan",
+    "reviewed static spine test only"
+  ],
+  "not_claimed": [
+    "product complete",
+    "FastAPI route proven",
+    "broad historical tests safe",
+    "newer GitHub iteration Wallet v5.zip superseded"
+  ],
+  "pending_comparison": "whatsupjosie/Iteration-Wallet: iteration Wallet v5.zip"
+}

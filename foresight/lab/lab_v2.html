@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foresight Tray Lab</title>
+<link rel="stylesheet" href="../../static/fonts/foresight-fonts.css">
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#2c1a10;font-family:var(--fs-font-body)}
+  #gl{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;display:block}
+  #ui{position:fixed;inset:0;z-index:1;pointer-events:none}
+  /* the screen: fills the whole inside of the frame, clipped by it */
+  .screen{position:absolute;pointer-events:auto;overflow:hidden;color:#f1e3c6}
+  .screen[data-ink=dark]{color:#2a2219}
+  .screen > .bg{position:absolute;inset:0}
+  .screen > .bg video{width:100%;height:100%;object-fit:cover;display:block}
+  .screen > .safe{position:absolute}          /* the invisible TV box: where text and controls live */
+  .plaque{position:absolute;z-index:2;pointer-events:auto;transform-origin:50% 50%;cursor:grab;user-select:none;white-space:nowrap;
+    font-family:var(--fs-font-display);font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-weight:700;color:#f6e7c4;text-shadow:0 1px 2px rgba(0,0,0,.7)}
+  .plaque:active{cursor:grabbing}
+  .pad{padding:16px 18px;font-size:13px;line-height:1.5}
+  .bubble{background:rgba(255,255,255,.10);border-radius:14px;padding:8px 12px;margin:0 0 10px;max-width:80%}
+  .bubble.me{margin-left:auto;background:rgba(214,169,87,.20)}
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px;height:100%;box-sizing:border-box}
+  .tile{border-radius:12px;background:linear-gradient(160deg,#6a4426,#1a0f08)}
+  .tile:nth-child(2){background:linear-gradient(160deg,#2a3f63,#0b1020)} .tile:nth-child(3){background:linear-gradient(160deg,#5a3517,#120904)}
+  .tile:nth-child(4){background:linear-gradient(160deg,#efe6d2,#b7a27c)}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:14px}
+  .tool{height:58px;border-radius:12px;background:rgba(255,255,255,.07);display:grid;place-items:center;font-size:11px}
+  .row{display:flex;justify-content:space-between;padding:8px 2px;border-bottom:1px solid rgba(255,255,255,.08);font-size:12.5px}
+  .row b{color:#9fd59a;font-weight:600}
+  .bar-ui{position:fixed;left:84px;top:13px;z-index:2;display:flex;gap:4px;align-items:center;font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+  .bar-ui .brand{font-family:var(--fs-font-display);font-weight:700;letter-spacing:.26em;font-size:17px;margin-right:24px;color:#3a2a14;text-shadow:0 1px 0 rgba(255,246,222,.75),0 -1px 0 rgba(60,40,15,.25)}
+  .bar-ui{font-family:var(--fs-font-display)}
+  #barArt{position:fixed;left:0;top:0;z-index:1;pointer-events:none}
+  .bar-ui button{background:none;border:0;padding:6px 10px;border-radius:8px;font:inherit;color:#2e2418;font-weight:700;cursor:pointer}
+  .bar-ui button:hover{background:rgba(60,40,20,.10)} .bar-ui button.on{background:rgba(60,40,20,.16)}
+  /* resize grip and close button: only on the selected tray */
+  .grip{position:absolute;z-index:3;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;cursor:nwse-resize;pointer-events:auto;display:none;
+    background:radial-gradient(circle at 35% 30%,#fff3cf,#d6a54e 45%,#6b4512 100%);box-shadow:0 1px 3px rgba(0,0,0,.6),inset 0 0 0 1px rgba(80,50,10,.6);touch-action:none}
+  .closer{position:fixed;z-index:3;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;cursor:pointer;display:none;user-select:none;
+    background:radial-gradient(circle at 35% 30%,#fff3cf,#d6a54e 45%,#6b4512 100%);box-shadow:0 1px 3px rgba(0,0,0,.6);
+    font:700 11px/18px var(--fs-font-display);text-align:center;color:#3a2410}
+  .screen,.plaque{transition:opacity .18s}
+  /* a tray's other contents: blades under its plaque */
+  .stack-tag{position:fixed;z-index:2;transform-origin:50% 50%;cursor:pointer;user-select:none;white-space:nowrap;
+    font-family:var(--fs-font-display);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:#2b2016;text-shadow:0 1px 0 rgba(255,255,255,.55)}
+  /* the tray menu */
+  .tray-menu{position:fixed;z-index:5;display:none;min-width:170px;padding:6px;border-radius:12px;background:linear-gradient(170deg,#2c2118,#140e0a);
+    box-shadow:0 8px 24px rgba(0,0,0,.55),inset 0 0 0 1px rgba(214,169,87,.45)}
+  .tray-menu button{display:block;width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:7px 10px;color:#f1e3c6;
+    font:600 12.5px var(--fs-font-body);cursor:pointer} .tray-menu button:hover{background:rgba(214,169,87,.16)}
+  /* contents: the mixer and the keyboard */
+  .content{position:absolute;inset:0}
+  .mixer{display:flex;gap:6px;height:100%;padding:10px 12px;box-sizing:border-box}
+  .strip{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0;font-size:10px;color:#e8d8b8}
+  .strip .meter{width:6px;flex:0 0 34px;border-radius:3px;background:#120c08;position:relative;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(214,169,87,.3)}
+  .strip .meter i{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(0deg,#5fbf6a,#d9c45a 70%,#d9603f)}
+  .strip .fader{flex:1;width:100%;position:relative;min-height:60px}
+  .strip .fader input{position:absolute;left:50%;top:50%;width:70px;transform:translate(-50%,-50%) rotate(-90deg);accent-color:#d6a957}
+  .strip .mute{width:24px;height:18px;border:0;border-radius:5px;background:#3a2c20;color:#e8d8b8;font:700 10px var(--fs-font-display);cursor:pointer}
+  .strip .mute.on{background:#c0503a;color:#fff}
+  .keys{position:absolute;inset:12px 14px;display:flex}
+  .keys .wk{flex:1;margin:0 1px;border-radius:0 0 6px 6px;background:linear-gradient(180deg,#f5ecd9,#d9ccb0);box-shadow:inset 0 -3px 0 rgba(0,0,0,.18);cursor:pointer}
+  .keys .bk{position:absolute;top:0;width:4.6%;height:58%;border-radius:0 0 4px 4px;background:linear-gradient(180deg,#2a2018,#0b0806);box-shadow:0 2px 3px rgba(0,0,0,.6);cursor:pointer;z-index:1}
+  .keys .down{background:linear-gradient(180deg,#e9b860,#b9822a) !important}
+  /* put-away trays: a neat stack of tags at the right edge, each showing its title */
+  .dock-label{position:fixed;z-index:3;width:150px;margin:-8px 0 0 -75px;text-align:center;cursor:pointer;user-select:none;
+    font-family:var(--fs-font-display);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#2b2016;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+  .blade-label{position:fixed;z-index:2;transform-origin:0 50%;font-family:var(--fs-font-display);font-size:11.5px;font-weight:700;letter-spacing:.06em;color:#2b2016;
+    text-shadow:0 1px 0 rgba(255,255,255,.6);pointer-events:none;white-space:nowrap}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="ui"></div>
+<svg id="barArt" aria-hidden="true"></svg>
+<div class="bar-ui"><span class="brand">FORESIGHT</span>
+  <button data-theme="tigereye" class="on">Tiger's eye</button><button data-theme="pearl">Pearl marble</button><button data-theme="indigo">Indigo stone</button>
+</div>
+<script src="../../static/foresight_shapes.js"></script>
+<script src="../../static/foresight_gl.js"></script>
+<script src="../../static/foresight_chain.js"></script>
+<script>
+'use strict';
+const S = ForesightShapes, M = ForesightGL.MAT;
+const canvas = document.getElementById('gl'), ui = document.getElementById('ui');
+const G = new ForesightGL(canvas);
+G.loadStone('../../static/foresight_stone_tigereye.jpg');
+const params = new URLSearchParams(location.search);
+let theme = params.get('theme') || 'tigereye';
+
+const GLOW = {amber:[1.0,0.62,0.25,0.6], violet:[0.65,0.35,1.0,0.6], blue:[0.30,0.55,1.0,0.55], warm:[1.0,0.85,0.6,0.45],
+              green:[0.25,0.9,0.55,0.5], red:[1.0,0.3,0.25,0.55], pearl:[0.9,0.9,1.0,0.4],
+              ruby:[0.95,0.22,0.32,0.55], teal:[0.2,0.85,0.8,0.5], sapphire:[0.28,0.45,1.0,0.55], citrine:[1.0,0.78,0.32,0.5],
+              emerald:[0.2,0.9,0.5,0.5], amethyst:[0.72,0.42,1.0,0.55]};
+// rim metal and glow per tray, per bench. The screens carry the programs' own colours.
+const LOOKS = {   // [rim material, glow colour, frame design 0..8]  designs: 0 deco chevrons, 1 gadroon, 2 flutes, 3 rope, 4 sunburst, 5 egg and dart, 6 stepped, 7 guilloche, 8 meander
+  tigereye:{preview:[M.GOLD,'amber',4], chat:[M.BRONZE,'violet',7], files:[M.STEEL,'blue',8], output:[M.NACRE,'warm',5], tools:[M.SILVER,'green',6], status:[M.OPAL,'red',2]},
+  walnut:{preview:[M.GOLD,'amber',4], chat:[M.BRONZE,'violet',7], files:[M.STEEL,'blue',8], output:[M.NACRE,'warm',5], tools:[M.SILVER,'green',6], status:[M.OPAL,'red',2]},
+  pearl:{preview:[M.SILVER,'pearl',0], chat:[M.CHAMPAGNE,'pearl',7], files:[M.STEEL,'pearl',8], output:[M.ROSE_GOLD,'warm',5], tools:[M.NACRE,'pearl',1], status:[M.GOLD,'green',4]},
+  nero:{preview:[M.ROSE_GOLD,'ruby',8], chat:[M.COPPER,'teal',1], files:[M.CHAMPAGNE,'sapphire',5], output:[M.BRASS,'citrine',6], tools:[M.GOLD,'emerald',0], status:[M.NACRE,'amethyst',3]},
+  indigo:{preview:[M.GOLD,'amber',4], chat:[M.BRONZE,'violet',7], files:[M.STEEL,'blue',8], output:[M.NACRE,'warm',5], tools:[M.SILVER,'green',6], status:[M.OPAL,'red',2]},
+};
+// ---- contents: what a tray shows. A tray is a universal container; contents are separate and interchangeable.
+// Each kind of content declares what it needs: its title, its natural size, the minimum size at which its text stays
+// readable and its controls pressable, and the general shape it reads best in. The tray decides its actual shape from
+// what is going on around it, never going below what its contents need. A content instance keeps its own state (a
+// fader stays where it was left) whether or not it is the one showing; the tray keeps its own position, shape, look
+// and lock whatever it holds.
+const CONTENT = {
+  'video.preview': {title:'Live Preview', family:'heptagon', w:600, h:338, minW:320, minH:180,
+    bg:'<video src="sample.webm" autoplay muted loop playsinline></video>', html:''},
+  'chat.main': {title:'Conversation', family:'hexagon', w:290, h:360, minW:240, minH:220, bg:'radial-gradient(120% 90% at 20% 0%,#4a2a6e,#1c1030 70%)',
+    html:'<div class="pad"><div class="bubble">Ready when you are.</div><div class="bubble me">Lay the trays out on the bench.</div><div class="bubble">Done — they make room for each other.</div></div>'},
+  'files.browser': {title:'Project Files', family:'trapezoid', w:540, h:190, minW:360, minH:150, bg:'linear-gradient(170deg,#1d3456,#0a1426)',
+    html:'<div class="tiles"><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div></div>'},
+  'output.view': {title:'Work Output', family:'pentagon', w:290, h:280, minW:230, minH:190, bg:'linear-gradient(160deg,#f7efdd,#e3d2ae)', ink:'dark',
+    html:'<div class="pad"><b>Social post</b><br>1080 × 1350 · PNG<br><br>A warm, inviting post for the evening crowd.</div>'},
+  'tools.palette': {title:'Tools', family:'rhombus', w:240, h:210, minW:220, minH:170, bg:'radial-gradient(110% 90% at 30% 10%,#1f5a43,#0a2219 75%)',
+    html:'<div class="grid"><div class="tool">Image</div><div class="tool">Design</div><div class="tool">Copy</div><div class="tool">Resize</div><div class="tool">Grade</div><div class="tool">Mock</div></div>'},
+  'status.monitor': {title:'System Status', family:'octagon', w:290, h:150, minW:240, minH:120, bg:'radial-gradient(120% 100% at 20% 0%,#6a1c24,#2a0a0e 75%)',
+    html:'<div class="pad"><div class="row"><span>AI agent</span><b>Active</b></div><div class="row"><span>Engine</span><b>Active</b></div><div class="row"><span>Backup</span><span>2 min ago</span></div></div>'},
+  'audio.mixer': {title:'Audio Mixer', family:'trapezoid', w:560, h:190, minW:470, minH:170, bg:'linear-gradient(170deg,#2a2018,#0d0907)', build: buildMixer},
+  'input.keyboard': {title:'Keyboard', family:'trapezoid', w:560, h:170, minW:480, minH:140, bg:'linear-gradient(170deg,#1c1612,#090605)', build: buildKeyboard},
+  'blank': {title:'New Tray', family:'pentagon', w:340, h:210, minW:220, minH:130, bg:'linear-gradient(165deg,#2b2620,#0f0c09)',
+    html:'<div class="pad" style="opacity:.7">A blank tray. Load any content into it from the menus.</div>'},
+};
+// A mixer: channel strips with a level meter, a fader and a mute. Its state lives in the instance.
+function buildMixer(root, state){
+  const names = ['Mic 1','Mic 2','Guest','Music','FX','Room','Bus A','Main'];
+  state.levels = state.levels || names.map((_, i) => 0.55 + 0.04*i);
+  state.mute = state.mute || names.map(() => false);
+  root.innerHTML = '<div class="mixer">' + names.map((n, i) =>
+    '<div class="strip" data-i="' + i + '"><div class="meter"><i style="height:' + Math.round(state.levels[i]*100) + '%"></i></div>' +
+    '<div class="fader"><input type="range" min="0" max="100" value="' + Math.round(state.levels[i]*100) + '"></div>' +
+    '<button class="mute' + (state.mute[i] ? ' on' : '') + '">M</button><span>' + n + '</span></div>').join('') + '</div>';
+  root.querySelectorAll('.strip').forEach(st => {
+    const i = +st.dataset.i, r = st.querySelector('input'), m = st.querySelector('.mute'), bar = st.querySelector('.meter i');
+    r.addEventListener('input', () => { state.levels[i] = r.value/100; bar.style.height = r.value + '%'; });
+    m.addEventListener('click', () => { state.mute[i] = !state.mute[i]; m.classList.toggle('on', state.mute[i]); });
+  });
+}
+// A keyboard: two octaves; pressed keys light up.
+function buildKeyboard(root, state){
+  const whites = 14, blackAfter = [0,1,3,4,5,7,8,10,11,12];
+  let h = '<div class="keys">';
+  for(let i = 0; i < whites; i++) h += '<div class="wk" data-k="w' + i + '"></div>';
+  for(const i of blackAfter) h += '<div class="bk" data-k="b' + i + '" style="left:calc(' + ((i + 1)/whites*100) + '% - 3.2%)"></div>';
+  root.innerHTML = h + '</div>';
+  state.pressed = state.pressed || {};
+  root.querySelectorAll('[data-k]').forEach(k => {
+    if(state.pressed[k.dataset.k]) k.classList.add('down');
+    k.addEventListener('pointerdown', () => { state.pressed[k.dataset.k] = !state.pressed[k.dataset.k]; k.classList.toggle('down', state.pressed[k.dataset.k]); });
+  });
+}
+function makeContent(type, over){
+  const def = Object.assign({}, CONTENT[type], over || {}), state = {};
+  const bg = document.createElement('div'); bg.className = 'bg';
+  if(def.bg.startsWith('<')) bg.innerHTML = def.bg; else bg.style.background = def.bg;
+  const body = document.createElement('div'); body.className = 'content';
+  if(def.build) def.build(body, state); else body.innerHTML = def.html;
+  return {type, def, state, bg, body};
+}
+// Trays: where each sits and what it holds. The first content sets the tray's natural shape and size; every content in
+// the stack sets a floor (the tray can never be made smaller than the largest minimum among them).
+const SPECS_A = [
+  {id:'preview', contents:['video.preview'], x:640, y:300},
+  {id:'chat', contents:['chat.main'], x:200, y:600},
+  {id:'files', contents:['audio.mixer','input.keyboard','files.browser'], x:690, y:735},
+  {id:'output', contents:['output.view'], x:1240, y:360},
+  {id:'tools', contents:['tools.palette'], x:1240, y:760},
+  {id:'status', contents:['status.monitor'], x:1230, y:120},
+];
+// Second arrangement, shown with the nero counter: the preview centred and larger, conversation down the right, the
+// mixer stack across the bottom. Shapes and screen colours are overrides for this arrangement.
+const SPECS_B = [
+  {id:'preview', contents:['video.preview'], x:800, y:360, family:'octagon', w:640, h:360},
+  {id:'chat', contents:['chat.main'], x:1350, y:560, family:'ellipse', w:270, h:360, over:{'chat.main':{bg:'radial-gradient(120% 90% at 25% 0%,#14605a,#05201e 72%)'}}},
+  {id:'files', contents:['files.browser'], x:250, y:620, family:'hexagon', w:360, h:240, over:{'files.browser':{bg:'linear-gradient(165deg,#1b2f6e,#070d29)'}}},
+  {id:'output', contents:['audio.mixer','input.keyboard','output.view'], x:800, y:830},
+  {id:'tools', contents:['tools.palette'], x:250, y:885, family:'pentagon', w:250, h:170, over:{'tools.palette':{bg:'radial-gradient(110% 90% at 30% 10%,#0f5134,#04180f 75%)'}}},
+  {id:'status', contents:['status.monitor'], x:1340, y:170, family:'heptagon', w:280, h:150, over:{'status.monitor':{bg:'radial-gradient(120% 100% at 20% 0%,#46206e,#14082a 75%)'}}},
+];
+function stackMin(t){ return {w: Math.max(...t.stack.map(c => c.def.minW)), h: Math.max(...t.stack.map(c => c.def.minH))}; }
+function activeContent(t){ return t.stack[t.active]; }
+function makeTrayFrom(spec){
+  const stack = spec.contents.map(type => makeContent(type, spec.over && spec.over[type]));
+  const first = stack[0].def, minW = Math.max(...stack.map(c => c.def.minW)), minH = Math.max(...stack.map(c => c.def.minH));
+  const w = Math.max(spec.w || first.w, minW), h = Math.max(spec.h || first.h, minH), family = spec.family || first.family;
+  const t = S.makeTray(spec.id, family, spec.x, spec.y, w, h);
+  t.stack = stack; t.active = 0; t.natural = {w, h, family}; t.locked = false;
+  return t;
+}
+const SPECS = theme === 'nero' ? SPECS_B : SPECS_A;
+let dirty = true;   // anything changed since the last frame (declared before the trays are built, which set it)
+const trays = SPECS.map(makeTrayFrom);
+let selected = null;
+
+// A tray's live parts: the screen (clipped by the frame), its name plaque, a resize grip and a close button.
+function makeTrayDOM(t){
+  const el = document.createElement('div'); el.className = 'screen';
+  const safe = document.createElement('div'); safe.className = 'safe';
+  for(const c of t.stack){ el.appendChild(c.bg); safe.appendChild(c.body); }
+  const grip = document.createElement('div'); grip.className = 'grip'; grip.title = 'Resize';
+  el.appendChild(safe); ui.appendChild(el); ui.appendChild(grip); t.el = el; t.safeEl = safe; t.grip = grip;
+  const pl = document.createElement('div'); pl.className = 'plaque';
+  document.body.appendChild(pl); t.plaque = pl;
+  const cl = document.createElement('div'); cl.className = 'closer'; cl.textContent = '\u00d7'; cl.title = 'Close';
+  document.body.appendChild(cl); t.closer = cl;
+  const pk = document.createElement('div'); pk.className = 'closer'; pk.textContent = '\u2013'; pk.title = 'Put away';
+  document.body.appendChild(pk); t.parker = pk;
+  pk.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); parkTray(t); });
+  pl.addEventListener('pointerdown', e => { if(e.button === 0) startDrag(e, t); });
+  pl.addEventListener('contextmenu', e => { e.preventDefault(); openTrayMenu(t, e.clientX, e.clientY); });
+  t.tags = [];
+  showContent(t, t.active);
+  el.addEventListener('pointerdown', () => { selected = t; dirty = true; });
+  grip.addEventListener('pointerdown', e => startResize(e, t));
+  cl.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); closeTray(t); });
+}
+trays.forEach(makeTrayDOM);
+// Show one content of the stack; the others stay alive (hidden) with their state. The plaque carries the showing
+// content's title; every other content in the stack gets a small blade tucked under the plaque, to switch to it.
+function showContent(t, i){
+  t.active = i;
+  t.stack.forEach((c, k) => { c.bg.style.display = k === i ? '' : 'none'; c.body.style.display = k === i ? '' : 'none'; });
+  const c = t.stack[i];
+  t.el.dataset.ink = c.def.ink || 'light';
+  t.plaque.textContent = c.def.title;
+  for(const g of t.tags) g.remove();
+  t.tags = t.stack.map((cc, k) => k).filter(k => k !== i).map(k => {
+    const g = document.createElement('div'); g.className = 'stack-tag'; g.textContent = t.stack[k].def.title;
+    g.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); showContent(t, k); dirty = true; });
+    document.body.appendChild(g); return g;
+  });
+  dirty = true;
+}
+// how a tray looks: its own entry for this counter, else a plain silver frame with a warm glow
+function lookFor(t){ return (LOOKS[theme] && LOOKS[theme][t.id]) || t.look || [M.SILVER, 'warm', 2]; }
+let blankCount = 0;
+// Frame physics: hinged-chain frames (Josie's bike-chain model) by default; ?chain=0 goes back to the older solver.
+const Ch = ForesightChain, CHAIN = params.get('chain') !== '0';
+function chainEnv(c){
+  return {bounds: c.bounds, obstacles: c.obstacles.map(o => o.poly), pad: S.FLOOR_PAD,
+    rigid: t => t.locked || t === selected || (drag && drag.t === t) || (sizing && sizing.t === t),   // the selected tray never dents
+    coast: t => !t.locked && !(drag && drag.t === t) && !(sizing && sizing.t === t),                   // but it can still glide after a flick; a locked one cannot
+    target: t => drag && drag.t === t ? [drag.tx, drag.ty] : null};
+}
+
+// ---- lantern, fan blades and the system bar ----
+function hull(pts){
+  pts = pts.slice().sort((a,b)=>a[0]-b[0] || a[1]-b[1]);
+  const cr = (o,a,b) => (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0]);
+  const lo = [], up = [];
+  for(const p of pts){ while(lo.length>=2 && cr(lo[lo.length-2], lo[lo.length-1], p) <= 0) lo.pop(); lo.push(p); }
+  for(const p of pts.slice().reverse()){ while(up.length>=2 && cr(up[up.length-2], up[up.length-1], p) <= 0) up.pop(); up.push(p); }
+  return S.geom.orient(lo.slice(0,-1).concat(up.slice(0,-1)));
+}
+function circlePts(c, r, n){ return Array.from({length:n}, (_,i) => [c[0]+Math.cos(i/n*Math.PI*2)*r, c[1]+Math.sin(i/n*Math.PI*2)*r]); }
+const PIVOT = [62, 112];
+const BLADES = ['New Project','Open Project','Import Media','Save Project','Export Output','Share Project','Settings'];
+function bladePoly(i, n, pop = 0){
+  const a = (2 + i*(92/(n-1))) * Math.PI/180, dir = [Math.cos(a), Math.sin(a)];
+  const c1 = [PIVOT[0]+dir[0]*(34+pop), PIVOT[1]+dir[1]*(34+pop)], c2 = [PIVOT[0]+dir[0]*(190+pop), PIVOT[1]+dir[1]*(190+pop)];
+  return {q: hull(circlePts(c1, 9, 18).concat(circlePts(c2, 25, 30))), angle:a, tip:[PIVOT[0]+dir[0]*(200+pop), PIVOT[1]+dir[1]*(200+pop)], pop};
+}
+const BLADE_NEW = 0, BLADE_OPEN = 1;   // New Project makes a blank tray; Open Project holds the trays that were closed
+function lanternPoly(){
+  const pts = [[PIVOT[0]-30, PIVOT[1]+40], [PIVOT[0]+30, PIVOT[1]+40]];
+  for(let i=0;i<=16;i++){ const a = Math.PI + i/16*Math.PI; pts.push([PIVOT[0]+Math.cos(a)*30, PIVOT[1]-6+Math.sin(a)*38]); }
+  return hull(pts);
+}
+function barPoly(W){ return S.geom.orient([[22,10],[W-22,10],[W-8,32],[W-22,54],[22,54],[8,32]]); }
+// a small hexagonal tag, set into the rim, carrying the tray's name
+function plaquePoly(x, y, ang, w, h){
+  const c = Math.cos(ang), s = Math.sin(ang), k = h/2;
+  return S.geom.orient([[-w/2,0],[-w/2+k,-k],[w/2-k,-k],[w/2,0],[w/2-k,k],[-w/2+k,k]].map(([u,v]) => [x + u*c - v*s, y + u*s + v*c]));
+}
+const bladeLabels = BLADES.map(txt => { const s = document.createElement('div'); s.className = 'blade-label'; s.textContent = txt; document.body.appendChild(s); return s; });
+
+// ---- drag ----
+let drag = null;
+// The selected tray keeps its shape: it is pinned in the solver for as long as it is selected (and while
+// dragged), so trays it bumps give way and reshape, and it does not.
+function syncPins(){ for(const t of trays) t.pinned = !t.hidden && (t === selected || (drag && drag.t === t) || (sizing && sizing.t === t)); }
+function startDrag(e, t){
+  e.preventDefault(); selected = t;
+  if(t.locked){ dirty = true; return; }   // a locked tray is selected but stays where it is
+  G.quality = 'fast';
+  drag = {t, dx: e.clientX - t.cx, dy: e.clientY - t.cy, tx: t.cx, ty: t.cy, good: [t.cx, t.cy], trail: [[e.clientX, e.clientY, performance.now()]]};
+  const move = ev => { drag.tx = ev.clientX - drag.dx; drag.ty = ev.clientY - drag.dy; dirty = true;
+    drag.trail.push([ev.clientX, ev.clientY, performance.now()]); if(drag.trail.length > 8) drag.trail.shift(); };
+  const up = () => {
+    // a flick: the speed over the last tenth of a second carries on, in px per frame
+    if(CHAIN){ const now = performance.now(), tr = drag.trail.filter(p => now - p[2] < 100);
+      if(tr.length > 1){ const a = tr[0], b = tr[tr.length - 1], dt = Math.max(8, b[2] - a[2]); Ch.fling(t, (b[0] - a[0])/dt*16.7, (b[1] - a[1])/dt*16.7); } }
+    drag = null; G.quality = 'full'; dirty = true; settle = 60; removeEventListener('pointermove', move); removeEventListener('pointerup', up); };
+  addEventListener('pointermove', move); addEventListener('pointerup', up);
+}
+// Resize: the grip sits at the lower right of the window; the upper left stays where it is. The screen
+// grows or shrinks, the frame regrows around it, and neighbours make room.
+const MAX_W = 1200, MAX_H = 760;   // the minimum comes from the tray's contents (stackMin)
+let sizing = null;
+function startResize(e, t){
+  e.preventDefault(); e.stopPropagation(); selected = t;
+  if(t.locked){ dirty = true; return; }
+  G.quality = 'fast';
+  sizing = {t, left: t.cx - t.a, top: t.cy - t.b, w: t.a*2, h: t.b*2};
+  const move = ev => {
+    const mn = stackMin(t);   // the tray can never be made smaller than its contents need
+    sizing.w = Math.max(mn.w, Math.min(MAX_W, ev.clientX - sizing.left));
+    sizing.h = Math.max(mn.h, Math.min(MAX_H, ev.clientY - sizing.top)); dirty = true;
+  };
+  const up = () => { sizing = null; G.quality = 'full'; dirty = true; removeEventListener('pointermove', move); removeEventListener('pointerup', up); };
+  addEventListener('pointermove', move); addEventListener('pointerup', up);
+}
+function sizingStep(c){
+  let r = S.solve(trays, c.bounds, c.obstacles, 4); S.breathe(trays); settle = 30;
+  // give the neighbours a few more passes to make room before deciding it does not fit
+  for(let k = 0; k < 16 && !r.valid && sizing.prev; k++){ r = S.solve(trays, c.bounds, c.obstacles, 4); S.breathe(trays); }   // a crowded counter needs about a dozen passes to settle
+  // no room for that size: the window stops growing at the last size that fitted
+  if(!r.valid && sizing.prev){
+    const pv = sizing.prev; S.resize(sizing.t, pv.w, pv.h); sizing.t.cx = pv.cx; sizing.t.cy = pv.cy;
+    trays.forEach((x, i) => { if(pv.others[i]){ x.cx = pv.others[i][0]; x.cy = pv.others[i][1]; } });
+    S.solve(trays, c.bounds, c.obstacles, 2); sizing.w = pv.w; sizing.h = pv.h; sizing.prev = null;
+  }
+}
+function chainSizing(c){
+  if(!sizing) return;
+  const t = sizing.t;
+  if(Math.abs(t.a*2 - sizing.w) < 0.5 && Math.abs(t.b*2 - sizing.h) < 0.5) return;
+  const prev = {w: t.a*2, h: t.b*2, cx: t.cx, cy: t.cy};
+  S.resize(t, sizing.w, sizing.h); t.cx = sizing.left + sizing.w/2; t.cy = sizing.top + sizing.h/2; Ch.attach(t, S);
+  const env = chainEnv(c), before = sizing.pressure || Ch.pressure(trays); for(let k = 0; k < 6; k++) Ch.step(trays, env);
+  // no room for that size: the window stops at the last size that fitted
+  if(Ch.worsened(before, Ch.pressure(trays))){ S.resize(t, prev.w, prev.h); t.cx = prev.cx; t.cy = prev.cy; Ch.attach(t, S); sizing.w = prev.w; sizing.h = prev.h; }
+}
+function applySizing(){
+  if(!sizing || CHAIN) return;
+  const t = sizing.t;
+  if(Math.abs(t.a*2 - sizing.w) > 0.5 || Math.abs(t.b*2 - sizing.h) > 0.5){
+    sizing.prev = {w: t.a*2, h: t.b*2, cx: t.cx, cy: t.cy, others: trays.map(x => [x.cx, x.cy])};
+    S.resize(t, sizing.w, sizing.h); t.cx = sizing.left + sizing.w/2; t.cy = sizing.top + sizing.h/2;
+  }
+}
+
+// ---- close into the fan, open out of it ----
+// One animation at a time. Closing: the screen fades, the frame shrinks and flies along an arc into the tip of
+// the Open Project blade, which ducks in to take it. Opening: that blade (or New Project, for a blank tray)
+// pops out, and the tray grows out of its tip to where it belongs. Time comes from clock(), so tests can step it.
+let anim = null, clock = () => performance.now();
+const closed = [];
+const ease = x => x < 0.5 ? 4*x*x*x : 1 - Math.pow(-2*x + 2, 3)/2;
+function closeTray(t){
+  if(anim || t.hidden) return;
+  if(selected === t) selected = null;
+  t.home = [t.cx, t.cy]; t.q0 = t.q.map(p => [p[0] - t.cx, p[1] - t.cy]); t.r0 = t.r; t.rim0 = t.rim;
+  t.hidden = true; t.el.style.opacity = '0'; t.plaque.style.opacity = '0';
+  anim = {kind:'close', t, blade: BLADE_OPEN, t0: clock(), dur: 650};
+  closed.push(t); dirty = true;
+}
+function openTray(t, blade){
+  if(anim) return;
+  if(!t.home){ t.home = [t.cx, t.cy]; }
+  t.cx = t.home[0]; t.cy = t.home[1];
+  t.cuts = []; S.finalize(t);   // its full, uncut shape at home; neighbours make room once it lands
+  t.q0 = t.q.map(p => [p[0] - t.cx, p[1] - t.cy]); t.r0 = t.r; t.rim0 = t.rim;
+  anim = {kind:'open', t, blade, t0: clock(), dur: 700}; dirty = true;
+}
+// ---- the tray menu (right-click the plaque or the frame) ----
+const menu = document.createElement('div'); menu.className = 'tray-menu'; document.body.appendChild(menu);
+function openTrayMenu(t, x, y){
+  const items = [['Reset tray', () => resetTray(t)], [t.locked ? 'Unlock position' : 'Lock position', () => { t.locked = !t.locked; dirty = true; settle = 30; }],
+                 [trays.every(x => x.hidden || x.locked) ? 'Unlock all trays' : 'Lock all trays', () => { const v = !trays.every(x => x.hidden || x.locked); trays.forEach(x => { x.locked = v; }); dirty = true; settle = 30; }],
+                 ['Put away', () => parkTray(t)], ['Close', () => closeTray(t)]];
+  if(t.stack.length > 1) items.unshift(...t.stack.map((c, k) => [(k === t.active ? '\u25CF ' : '\u25CB ') + c.def.title, () => showContent(t, k)]));
+  menu.innerHTML = ''; for(const [label, act] of items){ const b = document.createElement('button'); b.textContent = label;
+    b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); hideMenu(); act(); }); menu.appendChild(b); }
+  Object.assign(menu.style, {display:'block', left: Math.min(x, innerWidth - 190) + 'px', top: Math.min(y, innerHeight - 40*items.length) + 'px'});
+}
+function hideMenu(){ menu.style.display = 'none'; }
+addEventListener('pointerdown', e => { if(!menu.contains(e.target)) hideMenu(); });
+// Reset: back toward the tray's own natural shape and size. A main (selected) tray takes its full size and the others
+// make room; any other tray grows only as far as it can without pushing frames into each other, trying full size first
+// and backing off in steps.
+function resetTray(t){
+  if(t.hidden) return;
+  const main = t === selected, cur = {w: t.a*2, h: t.b*2}, nat = t.natural;
+  t.requestedFamily = nat.family;
+  const tryFrac = f => {
+    const w = cur.w + (nat.w - cur.w)*f, h = cur.h + (nat.h - cur.h)*f, c = ctx(), env = chainEnv(c), before = Ch.pressure(trays);
+    S.resize(t, w, h); if(CHAIN) Ch.attach(t, S);
+    if(main || !CHAIN) return true;
+    for(let k = 0; k < 6; k++) Ch.step(trays, env);
+    return !Ch.worsened(before, Ch.pressure(trays));
+  };
+  let ok = false;
+  for(const f of [1, 0.75, 0.5, 0.25]){ if(tryFrac(f)){ ok = true; break; } }
+  if(!ok){ S.resize(t, cur.w, cur.h); if(CHAIN) Ch.attach(t, S); }
+  dirty = true; settle = 60;
+}
+canvas.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const t = trays.find(x => !x.hidden && x.q && inPoly(x.q, e.clientX, e.clientY));
+  if(t) openTrayMenu(t, e.clientX, e.clientY);
+});
+
+// ---- put away: shrink a tray off to the side without closing it ----
+const parked = [];
+function dockSlot(i){ return [innerWidth - 112, 104 + i*36]; }
+function dockTagPoly(i){ const [x, y] = dockSlot(i); return hull(circlePts([x - 78, y], 14, 16).concat(circlePts([x + 78, y], 14, 16))); }
+function parkTray(t){
+  if(anim || t.hidden) return;
+  if(selected === t) selected = null;
+  t.home = [t.cx, t.cy]; t.q0 = t.q.map(p => [p[0] - t.cx, p[1] - t.cy]); t.r0 = t.r; t.rim0 = t.rim;
+  t.hidden = true; t.el.style.opacity = '0'; t.plaque.style.opacity = '0';
+  anim = {kind:'park', t, slot: parked.length, t0: clock(), dur: 600};
+  dirty = true;
+}
+function unparkTray(t){
+  if(anim) return;
+  const i = parked.indexOf(t); if(i < 0) return;
+  parked.splice(i, 1); t.parked = false; if(t.dockLabel){ t.dockLabel.remove(); t.dockLabel = null; }
+  t.cx = t.home[0]; t.cy = t.home[1]; t.cuts = []; S.finalize(t);
+  t.q0 = t.q.map(p => [p[0] - t.cx, p[1] - t.cy]); t.r0 = t.r; t.rim0 = t.rim;
+  anim = {kind:'unpark', t, slot: i, t0: clock(), dur: 600}; dirty = true;
+}
+function newBlankTray(){
+  blankCount++;
+  const t = makeTrayFrom({id:'blank'+blankCount, contents:['blank'], x:760, y:520, family:['pentagon','hexagon','heptagon','octagon'][blankCount % 4]});
+  t.look = [[M.GOLD, M.SILVER, M.COPPER, M.ROSE_GOLD][blankCount % 4], 'warm', [0, 2, 5, 6][blankCount % 4]];
+  t.hidden = true; trays.push(t); makeTrayDOM(t); t.el.style.opacity = '0'; t.plaque.style.opacity = '0';
+  t.home = [760, 520];
+  openTray(t, BLADE_NEW);
+}
+// where the flying frame is, and how big, at progress k (0..1 along the flight)
+function flight(a, k){
+  const c = ctx(), home = a.t.home, away = a.kind === 'close' || a.kind === 'park';
+  const spot = a.blade !== undefined ? c.blades[a.blade].tip : dockSlot(a.slot);
+  const e = ease(k), from = away ? home : spot, to = away ? spot : home;
+  const mid = [(from[0] + to[0])/2, Math.max(90, Math.min(from[1], to[1]) - 160)];   // a rising arc along the top of the counter, not a straight slide
+  const u = 1 - e, pos = [u*u*from[0] + 2*u*e*mid[0] + e*e*to[0], u*u*from[1] + 2*u*e*mid[1] + e*e*to[1]];
+  const small = a.blade !== undefined ? 0.10 : 0.16, sc = away ? 1 - (1 - small)*e : small + (1 - small)*e;
+  const ang = a.blade !== undefined ? (away ? e : 1 - e) * (c.blades[a.blade].angle - 0.2) : 0;  // turns to lie along the blade as it arrives
+  return {pos, sc, ang};
+}
+function bladePop(){
+  if(!anim || anim.blade === undefined) return {i:-1, pop:0};
+  const k = Math.min(1, (clock() - anim.t0)/anim.dur);
+  // opening: the blade swings out first, then settles; closing: it ducks in as the tray arrives
+  const pop = anim.kind === 'open' ? 26*Math.sin(Math.PI*Math.min(1, k*1.6)) : -10*Math.sin(Math.PI*k);
+  return {i: anim.blade, pop};
+}
+function stepAnim(){
+  if(!anim) return;
+  const k = (clock() - anim.t0)/anim.dur;
+  if(k < 1) return;
+  const t = anim.t;
+  if(anim.kind === 'open' || anim.kind === 'unpark'){
+    t.hidden = false; t.el.style.opacity = '1'; t.plaque.style.opacity = '1';
+    const ci = closed.indexOf(t); if(ci >= 0) closed.splice(ci, 1);
+    if(CHAIN) Ch.attach(t, S);
+    selected = t;
+  }
+  if(anim.kind === 'park'){
+    t.parked = true; parked.push(t);
+    const lab = document.createElement('div'); lab.className = 'dock-label'; lab.textContent = activeContent(t).def.title;
+    lab.addEventListener('pointerdown', e => { e.preventDefault(); unparkTray(t); });
+    document.body.appendChild(lab); t.dockLabel = lab;
+  }
+  anim = null; dirty = true; settle = 40;
+}
+// clicks on the counter itself: a fan blade, or empty bench (which lets go of the selection)
+function inPoly(P, x, y){ let inside = false; for(let i = 0, j = P.length - 1; i < P.length; j = i++){ const [xi, yi] = P[i], [xj, yj] = P[j]; if(((yi > y) !== (yj > y)) && x < (xj - xi)*(y - yi)/(yj - yi) + xi) inside = !inside; } return inside; }
+canvas.addEventListener('pointerdown', e => {
+  const c = ctx();
+  const hit = c.blades.findIndex(b => inPoly(b.q, e.clientX, e.clientY));
+  if(hit === BLADE_OPEN && closed.length){ openTray(closed[closed.length - 1], BLADE_OPEN); return; }
+  if(hit === BLADE_NEW){ newBlankTray(); return; }
+  if(hit < 0){ selected = null; dirty = true; }
+});
+function ctx(){
+  const W = innerWidth, H = innerHeight;
+  const bp = bladePop(), blades = BLADES.map((_, i) => bladePoly(i, BLADES.length, i === bp.i ? bp.pop : 0)), lantern = lanternPoly();
+  const obstacles = [{poly: hull(blades.flatMap(b => b.q).concat(lantern))}];
+  if(parked.length) obstacles.push({poly: hull(parked.flatMap((_, i) => dockTagPoly(i)))});
+  return {W, bounds:{x0:0, y0:70, x1:W, y1:H}, blades, lantern, obstacles};
+}
+let settle = 60;
+function frameChain(c){
+  syncPins(); stepAnim(); chainSizing(c);
+  if(dirty || drag || sizing || anim || settle > 0){
+    const env = chainEnv(c), before = drag ? Ch.pressure(trays) : null, moved = Ch.step(trays, env);
+    // a drag that has run out of room stops where it last fitted
+    if(drag){ if(Ch.worsened(before, Ch.pressure(trays))){ drag.tx = drag.good[0]; drag.ty = drag.good[1]; } else drag.good = [drag.tx, drag.ty]; }
+    settle = (moved > 0.05 || drag || sizing || anim) ? 30 : settle - 1;
+    layoutDOM(); render(c); dirty = false;
+  }
+}
+function frame(){
+  const c = ctx();
+  if(CHAIN){ frameChain(c); requestAnimationFrame(frame); return; }
+  syncPins(); applySizing(); stepAnim();
+  if(dirty || drag || sizing || anim || settle > 0){
+    if(drag){
+      const save = trays.map(t => [t.cx, t.cy]);
+      drag.t.cx = drag.tx; drag.t.cy = drag.ty;
+      const r = S.solve(trays, c.bounds, c.obstacles, 4), easing = S.breathe(trays);
+      if(!r.valid && !easing){ trays.forEach((t,i) => { t.cx = save[i][0]; t.cy = save[i][1]; }); S.solve(trays, c.bounds, c.obstacles, 2); }
+      settle = 30;
+    } else if(sizing){
+      sizingStep(c);
+    } else {
+      const r = S.solve(trays, c.bounds, c.obstacles, 4), easing = S.breathe(trays);
+      settle = (r.moved > 0.2 || easing) ? 30 : settle - 1;
+    }
+    layoutDOM(); render(c); dirty = false;
+  }
+  requestAnimationFrame(frame);
+}
+function layoutDOM(){
+  for(const t of trays){
+    const on = !t.hidden;
+    t.el.style.display = on || (anim && anim.t === t) ? '' : 'none';
+    t.plaque.style.display = t.el.style.display;
+    t.grip.style.display = on && t === selected && !t.locked ? 'block' : 'none';   // a locked tray cannot be reshaped until it is unlocked
+    t.closer.style.display = on && t === selected ? 'block' : 'none';
+    t.parker.style.display = t.closer.style.display;
+    if(!on) for(const g of t.tags) g.style.display = 'none';
+    if(t.dockLabel){ const [x, y] = dockSlot(parked.indexOf(t)); Object.assign(t.dockLabel.style, {left: x+'px', top: y+'px'}); }
+    if(!on) continue;
+    const sr = S.screenRect(t), sa = S.safeArea(t);
+    Object.assign(t.el.style, {left:sr[0]+'px', top:sr[1]+'px', width:(sr[2]-sr[0])+'px', height:(sr[3]-sr[1])+'px',
+      clipPath: CHAIN && t.chain ? Ch.clipPath(t, [sr[0], sr[1]]) : S.contentClipPath(t)});
+    Object.assign(t.safeEl.style, {left:sa[0]+'px', top:sa[1]+'px', width:sa[2]+'px', height:sa[3]+'px'});
+    // the plaque sits on the frame's top side at rest, and rides any dent there
+    let an;
+    if(CHAIN && t.chain){ an = S.titleAnchor(Object.assign({}, t, {poly: t.base.map(p => [p[0] + t.cx, p[1] + t.cy])})); const d = Ch.anchorOffset(t, [an.x, an.y]); an = Object.assign({}, an, {x: an.x + d[0], y: an.y + d[1]}); }
+    else an = S.titleAnchor(t);
+    t.anchor = an;
+    const w = t.plaque.offsetWidth;
+    Object.assign(t.plaque.style, {left:(an.x - w/2)+'px', top:(an.y - 7)+'px', transform:'rotate('+an.angle+'rad)'});
+    t.plaqueW = w + 34;
+    // grip at the lower right corner of the window; close button just past the end of the plaque
+    Object.assign(t.grip.style, {left:(sr[0] + sa[0] + sa[2])+'px', top:(sr[1] + sa[1] + sa[3])+'px'});
+    const off = w/2 + 26;
+    Object.assign(t.closer.style, {left:(an.x + Math.cos(an.angle)*off)+'px', top:(an.y + Math.sin(an.angle)*off)+'px'});
+    Object.assign(t.parker.style, {left:(an.x + Math.cos(an.angle)*(off + 22))+'px', top:(an.y + Math.sin(an.angle)*(off + 22))+'px'});
+    // stacked contents: blades tucked under the plaque, each stepping a little further down and along
+    const nx = -Math.sin(an.angle), ny = Math.cos(an.angle);   // into the tray from the plaque
+    t.tagAt = t.tags.map((g, k) => {
+      const tw = g.offsetWidth, along = w/2 + 10 + k*14, down = 15 + k*15;
+      const x = an.x + Math.cos(an.angle)*(along - tw/2) + nx*down, y = an.y + Math.sin(an.angle)*(along - tw/2) + ny*down;
+      Object.assign(g.style, {left:(x - tw/2)+'px', top:(y - 6)+'px', transform:'rotate('+an.angle+'rad)', display: on ? '' : 'none'});
+      return {x, y, w: tw + 22};
+    });
+  }
+}
+function render(c){
+  const items = [];
+  if(params.has('lit')){ const L = c.lantern, n = L.length; G.lightPos = [L.reduce((a,p)=>a+p[0],0)/n, L.reduce((a,p)=>a+p[1],0)/n]; }
+  const benchMetal = theme === 'pearl' || theme === 'nero' ? M.CHAMPAGNE : M.SILVER;
+  items.push({q: barPoly(c.W), ornate:true, r:12, rim:9, rimMat:benchMetal, floorMat:benchMetal, height:7, thick:7, seed:2});
+  c.blades.forEach((b, i) => {
+    items.push({q:b.q, r:5, rim:6, rimMat:M.CHAMPAGNE, floorMat:M.PEARL, height:6, thick:5, seed:30+i, glow:[1,0.9,0.75,0.2]});
+    const lab = bladeLabels[i]; const a = b.angle;
+    lab.style.left = (PIVOT[0] + Math.cos(a)*(64 + b.pop))+'px'; lab.style.top = (PIVOT[1] + Math.sin(a)*(64 + b.pop) - 7)+'px';
+    lab.style.transform = 'rotate('+a+'rad)';
+  });
+  items.push({q: c.lantern, r:7, rim:8, rimMat:M.BRASS, floorMat:M.TORTOISE, height:10, thick:8, seed:9, glow:[1,0.6,0.2,0.9], emissive:[1.0,0.52,0.16,0.7]});
+  for(const t of trays){
+    if(t.hidden) continue;
+    const look = lookFor(t);
+    const m = Math.min(t.a, t.b)*2;
+    items.push({q:t.q, r:t.r, rim:t.rim, pad:S.FLOOR_PAD, rimMat:look[0], ornStyle:look[2] || 0, floorMat:M.OBSIDIAN, glow:GLOW[look[1]],
+      ornate:true, backlight: selected === t ? 1 : 0, focus: t.pinned ? 1 : 0, screen:true,
+      content:[t.cx-t.a, t.cy-t.b, t.cx+t.a, t.cy+t.b], seed: 5 + trays.indexOf(t)*3, height:14,
+      thick: Math.max(10, Math.min(16, m*0.04)), center:[t.cx, t.cy]});
+    // the stacked contents' blades sit under the plaque, so they are drawn first
+    (t.tagAt || []).slice().reverse().forEach((g, k) => items.push({q: plaquePoly(g.x, g.y, t.anchor.angle, g.w, 18), r:4, rim:3,
+      rimMat: look[0] < 10 ? look[0] : M.CHAMPAGNE, floorMat: M.PEARL, height:2, thick:2, seed: 70 + k}));
+    if(t.anchor) items.push({q: plaquePoly(t.anchor.x, t.anchor.y, t.anchor.angle, t.plaqueW || 120, 24), r:4, rim:4, rimMat:look[0] < 10 ? look[0] : M.CHAMPAGNE,
+      floorMat: t.locked ? M.TORTOISE : M.OBSIDIAN, height:3, thick:3, seed:60 + trays.indexOf(t)});
+  }
+  // put-away trays: a tag each, in the tray's own frame metal, stacked down the right edge
+  parked.forEach((t, i) => { const look = lookFor(t);
+    items.push({q: dockTagPoly(i), r: 5, rim: 5, rimMat: look[0] < 10 ? look[0] : M.CHAMPAGNE, floorMat: M.PEARL, height: 6, thick: 5, seed: 80 + i, glow: GLOW[look[1]]}); });
+  // the flying frame goes last, over every other frame (the screens are a layer above the canvas, so it passes under those)
+  if(anim){
+    // the frame in flight: its own shape, scaled, turned and carried along the arc; the screen is not drawn
+    const t = anim.t, look = lookFor(t), k = Math.min(1, (clock() - anim.t0)/anim.dur), f = flight(anim, k);
+    const cs = Math.cos(f.ang), sn = Math.sin(f.ang);
+    const q = t.q0.map(([x, y]) => [f.pos[0] + (x*cs - y*sn)*f.sc, f.pos[1] + (x*sn + y*cs)*f.sc]);
+    items.push({q, r: Math.max(2, t.r0*f.sc), rim: Math.max(2, t.rim0*f.sc), pad: 0, rimMat: look[0], ornStyle: look[2] || 0,
+      floorMat: M.OBSIDIAN, glow: GLOW[look[1]], ornate: f.sc > 0.6, height: 4 + 18*f.sc, thick: Math.max(3, 12*f.sc), seed: 5,
+      center: f.pos, backlight: anim.kind === 'open' ? 0.6*(1 - k) : 0});
+  }
+  G.draw(items);
+}
+document.querySelectorAll('.bar-ui [data-theme]').forEach(b => b.addEventListener('click', () => setTheme(b.dataset.theme)));
+function setTheme(name){ theme = name; G.setTheme(name); document.querySelectorAll('.bar-ui [data-theme]').forEach(b => b.classList.toggle('on', b.dataset.theme === name)); dirty = true; }
+addEventListener('resize', () => { dirty = true; });
+setTheme(theme);
+// ---- the system bar's Art Deco dressing: a gilt fan at the centre, stepped inlay lines out to
+// each end, small rhombus studs. Drawn as vector art over the bar; text stays live above it.
+function drawBarArt(){
+  const W = innerWidth, svg = document.getElementById('barArt');
+  svg.setAttribute('width', W); svg.setAttribute('height', 70); svg.setAttribute('viewBox', '0 0 '+W+' 70');
+  if(W < 1000){ svg.innerHTML = ''; return; }
+  const cx = W/2, gold = 'url(#gg)';
+  let o = '<defs><linearGradient id="gg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0c0"/><stop offset=".45" stop-color="#c9973f"/><stop offset="1" stop-color="#6e4a16"/></linearGradient></defs>';
+  // fan: rays from a point below the bar's middle, with a rounded crown
+  const ox = cx, oy = 56, R1 = 15, R2 = 38;
+  for(let i = 0; i <= 10; i++){
+    const a = Math.PI*(1.08 + 0.84*i/10), c = Math.cos(a), sn = Math.sin(a);
+    o += '<line x1="'+(ox+c*R1)+'" y1="'+(oy+sn*R1)+'" x2="'+(ox+c*R2)+'" y2="'+(oy+sn*R2)+'" stroke="'+gold+'" stroke-width="'+(i%2 ? 2.0 : 3.4)+'" stroke-linecap="round"/>';
+  }
+  o += '<path d="M'+(ox-R2-2)+' '+(oy-3)+' A'+(R2+2)+' '+(R2+2)+' 0 0 1 '+(ox+R2+2)+' '+(oy-3)+'" fill="none" stroke="'+gold+'" stroke-width="3" stroke-linecap="round"/>';
+  o += '<path d="M'+(ox-R1)+' '+(oy-1)+' A'+R1+' '+R1+' 0 0 1 '+(ox+R1)+' '+(oy-1)+'" fill="none" stroke="'+gold+'" stroke-width="2" stroke-linecap="round"/>';
+  // inlay lines either side, stepping down toward the ends, with a rhombus stud where they step
+  for(const side of [-1, 1]){
+    const x0 = cx + side*62, x1 = side < 0 ? 560 : W - 36;
+    const pts = [[x0, 25], [cx + side*(62+ (Math.abs(x1-x0))*0.55), 25], [cx + side*(62+(Math.abs(x1-x0))*0.55 + 10), 32], [x1, 32]];
+    o += '<polyline points="'+pts.map(p => p.join(',')).join(' ')+'" fill="none" stroke="'+gold+'" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>';
+    const sx = pts[2][0], sy = 32;
+    o += '<path d="M'+(sx)+' '+(sy-8)+' L'+(sx+8)+' '+(sy)+' L'+(sx)+' '+(sy+8)+' L'+(sx-8)+' '+(sy)+'Z" fill="'+gold+'" stroke="#5a3a10" stroke-width=".6"/>';
+    const ex = x1 - side*8;
+    o += '<path d="M'+(ex)+' '+(32-4)+' L'+(ex+4)+' 32 L'+(ex)+' '+(32+4)+' L'+(ex-4)+' 32Z" fill="'+gold+'"/>';
+  }
+  svg.innerHTML = o;
+}
+drawBarArt(); addEventListener('resize', drawBarArt);
+G.aged = parseFloat(params.get('aged') || '0'); G.saturation = parseFloat(params.get('sat') || '1'); G.contrast = parseFloat(params.get('contrast') || '1');
+if(params.get('lamp')){ G.lamp = true; G.lampHeight = parseFloat(params.get('lamp')) > 0.05 && parseFloat(params.get('lamp')) < 2 ? parseFloat(params.get('lamp')) : 0.30; }   // lantern as the one real light (value = its height as a share of the view width)
+if(params.get('fill')) G.setLight({az:135, el:48, kelvin:4300, intensity:parseFloat(params.get('intensity') || '1'), fill:parseFloat(params.get('fill'))});   // studio side light and ambient level
+if(params.get('exp')) G.exposure = parseFloat(params.get('exp')); else if(G.lamp){ G.exposure = 1.9; G.bloomMix = 0.032; }   // lantern mode runs a little lower than the old default
+if(params.get('l2')) G.setLight2({intensity: parseFloat(params.get('l2')) || 0, az: parseFloat(params.get('l2az') || '-35'), el: parseFloat(params.get('l2el') || '24')});   // second light, from the lower right by default
+G.paint = Math.min(1, Math.max(0, parseFloat(params.get('paint') || '0') || 0));   // watercolor / colored-pencil / oil layer, canvas only
+G.ramp = Math.min(1, Math.max(0, parseFloat(params.get('ramp') || '0') || 0)); G.rampSteps = parseFloat(params.get('steps') || '6') || 6;   // limited tone ramp on the metal
+G.wear = Math.min(1, Math.max(0, parseFloat(params.get('wear') || '0') || 0));   // 0 pristine .. 1 heavily lived-in
+if(params.get('select')) selected = trays.find(t => t.id === params.get('select')) || null;
+
+// screenshot helpers: settle without drawing, then draw once
+window.__settle = () => { const c = ctx(); for(let k=0;k<400;k++){ const r = S.solve(trays, c.bounds, c.obstacles, 4); const e = S.breathe(trays); if(r.valid && !e && r.moved < 0.05) break; }
+  if(CHAIN){ trays.forEach(t => { if(!t.hidden) Ch.attach(t, S); }); Ch.settle(trays, chainEnv(c), 300); } };
+window.__draw = () => { const c = ctx(); layoutDOM(); render(c); G.gl.finish(); };
+window.__solveOnce = () => { const c = ctx(); const r = S.solve(trays, c.bounds, c.obstacles, 4); r.easing = S.breathe(trays); return r; };
+window.__lab = {trays, S, G, select:id => { selected = trays.find(t => t.id === id) || null; dirty = true; },
+  setClock: ms => { clock = () => ms; }, close: id => closeTray(trays.find(t => t.id === id)), openLast: () => closed.length && openTray(closed[closed.length - 1], BLADE_OPEN),
+  newBlank: () => newBlankTray(),
+  sizeTo: (id, w, h, n) => { const t = trays.find(x => x.id === id), mn = stackMin(t); w = Math.max(w, mn.w); h = Math.max(h, mn.h); selected = t; sizing = {t, left: t.cx - t.a, top: t.cy - t.b, w, h}; let k = 0;
+    for(; k < (n || 30); k++){ syncPins(); if(CHAIN){ chainSizing(ctx()); Ch.step(trays, chainEnv(ctx())); } else { applySizing(); sizingStep(ctx()); } }
+    const out = {w: Math.round(t.a*2), h: Math.round(t.b*2)}; sizing = null; return out; }, resize: (id, w, h) => { const t = trays.find(x => x.id === id); S.resize(t, w, h); dirty = true; },
+  step: () => { const c = ctx(); syncPins(); stepAnim();
+    if(CHAIN){ chainSizing(c); const b = Ch.pressure(trays), moved = Ch.step(trays, chainEnv(c)); return {valid: !Ch.worsened(b, Ch.pressure(trays)), moved, pressure: Ch.pressure(trays)}; }
+    applySizing(); const r = S.solve(trays, c.bounds, c.obstacles, 4); S.breathe(trays); return r; },
+  park: id => parkTray(trays.find(t => t.id === id)),
+  show: (id, k) => showContent(trays.find(t => t.id === id), k), reset: id => resetTray(trays.find(t => t.id === id)),
+  lock: (id, v) => { trays.find(t => t.id === id).locked = v; dirty = true; },
+  lockAll: v => { trays.forEach(t => { t.locked = v; }); dirty = true; },
+  info: id => { const t = trays.find(x => x.id === id); return {active: t.stack[t.active].def.title, stack: t.stack.map(c => c.def.title), w: Math.round(t.a*2), h: Math.round(t.b*2),
+    min: stackMin(t), natural: t.natural, cx: Math.round(t.cx), cy: Math.round(t.cy), locked: t.locked, family: t.family}; },
+  mixer: id => trays.find(x => x.id === id).stack.find(c => c.type === 'audio.mixer').state, unpark: id => unparkTray(trays.find(t => t.id === id)),
+  fling: (id, vx, vy) => Ch.fling(trays.find(t => t.id === id), vx, vy),
+  shove: (id, dx, dy) => { const t = trays.find(x => x.id === id); t.cx += dx; t.cy += dy; if(t.chain) t.chain.P.forEach(p => { p[0] += dx; p[1] += dy; }); },
+  dents: () => Object.fromEntries(trays.filter(t => t.chain && !t.hidden).map(t => [t.id, +t.chain.dent.toFixed(1)])),
+  draw: () => { const c = ctx(); layoutDOM(); render(c); G.gl.finish(); }, anim: () => anim};
+if(!params.has('once')){ if(CHAIN) window.__settle(); requestAnimationFrame(frame); }
+</script>
+</body>
+</html>

@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pete Director</title>
+<style>
+:root{--bg:#14161c;--panel:#1e212b;--line:#2f3445;--txt:#e8eaf2;--dim:#8d94ab;--pink:#ff4f93;--ok:#43d6a0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.4 system-ui,Segoe UI,sans-serif}
+header{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+header h1{font-size:16px;margin:0 12px 0 0;color:var(--pink)}
+button,select,input,textarea{font:inherit;color:var(--txt);background:#262a37;border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+button{cursor:pointer}button:hover{border-color:var(--pink)}
+button.pri{background:var(--pink);border-color:var(--pink);color:#fff;font-weight:600}
+main{display:grid;grid-template-columns:minmax(300px,420px) 1fr;gap:12px;padding:12px}
+@media(max-width:860px){main{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px}
+.card h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:0 0 8px}
+#stageWrap{position:relative}
+#stage{width:100%;aspect-ratio:3/4;display:block;border-radius:8px;background:linear-gradient(#303a52,#1b2030 70%,#2a2118)}
+#caption{position:absolute;left:8px;right:8px;bottom:8px;background:#000a;padding:6px 10px;border-radius:6px;min-height:34px}
+#caption b{color:var(--pink)}
+textarea#script{width:100%;min-height:130px;resize:vertical}
+#words{line-height:2;padding:6px;background:#181b24;border-radius:6px;max-height:200px;overflow:auto}
+.w{padding:1px 3px;border-radius:4px;cursor:pointer}
+.w:hover{background:#ffffff18}
+.w.has{background:#ff4f9330;border-bottom:2px solid var(--pink)}
+.w.now{background:var(--pink);color:#fff}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
+.trig{display:grid;grid-template-columns:auto 1fr;gap:8px;padding:8px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;background:#181b24}
+.trig.fired{border-color:var(--ok)}
+.thumb{width:56px;height:72px;object-fit:contain;background:#0006;border-radius:6px;cursor:pointer;border:1px solid var(--line)}
+.trig .f{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.trig label{font-size:12px;color:var(--dim)}
+.trig input[type=text]{width:120px}
+.trig input[type=number]{width:64px}
+.trig input[type=color]{padding:0;width:34px;height:28px}
+#picker{position:fixed;inset:0;background:#000c;display:none;z-index:9;padding:20px;overflow:auto}
+#picker .box{max-width:900px;margin:0 auto;background:var(--panel);border-radius:10px;padding:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
+.cell{background:#0005;border:1px solid var(--line);border-radius:8px;padding:4px;text-align:center;cursor:pointer;font-size:11px;color:var(--dim)}
+.cell:hover{border-color:var(--pink)}
+.cell img{width:100%;height:96px;object-fit:contain}
+.small{font-size:12px;color:var(--dim)}
+#status{margin-left:auto;color:var(--ok);font-size:12px}
+button,select,input,textarea{touch-action:manipulation}
+@media(max-width:860px){
+  .hideMob{display:none}
+  main>section{display:contents}
+  main{align-items:start}
+  #stage{height:30vh!important}
+  button,select,input[type=text],input[type=number]{min-height:42px;font-size:16px}
+  textarea{font-size:16px}
+  .w{padding:5px 5px;display:inline-block}
+  input[type=color]{min-height:42px;width:48px!important}
+  input[type=range]{min-height:36px}
+  main{padding:8px;gap:8px}
+  #stageCard{position:sticky;top:0;z-index:6;box-shadow:0 6px 16px #000a}
+  #stage{width:auto;max-width:100%;height:36vh;aspect-ratio:3/4;margin:0 auto}
+  #stageCard .row{margin:4px 0}
+  #caption{font-size:13px;min-height:0;padding:3px 8px}
+  .trig{grid-template-columns:1fr}
+  .trig input[type=text]{width:100%}
+  details>summary{min-height:42px;display:flex;align-items:center}
+}
+details.card>summary{cursor:pointer;list-style:none;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Pete Director</h1>
+  <button id="bSave" class="pri">Save</button>
+  <button id="bDown">Download .json</button>
+  <button id="bLoad">Load .json</button>
+  <button id="bNew">New</button>
+  <input type="file" id="fLoad" accept=".json" hidden>
+  <span id="status"></span>
+</header>
+<main>
+  <section>
+    <div class="card" id="stageCard">
+      <h2 class="hideMob">Stage</h2>
+      <div id="stageWrap"><canvas id="stage" width="600" height="800"></canvas><div id="caption"></div></div>
+      <div class="row">
+        <button id="bPlay" class="pri">&#9654; Read script</button>
+        <button id="bStop">Stop</button>
+        <label><input type="checkbox" id="silent"> Silent (timed)</label>
+      </div>
+      <details style="margin-top:6px"><summary class="small" style="cursor:pointer;padding:6px 0">Voice, speed, start image, my images</summary>
+      <div class="row">
+        <select id="voice" style="max-width:100%"></select>
+        <label class="small" style="display:flex;gap:6px;align-items:center">Speed <input type="range" id="rate" min="0.6" max="1.6" step="0.05" value="1"></label>
+      </div>
+      <div class="row">
+        <span class="small">Start image</span>
+        <img id="startThumb" class="thumb">
+        <button id="bUpload">+ Add my own image</button>
+        <input type="file" id="fUpload" accept="image/*" multiple hidden>
+      </div></details>
+    </div>
+  </section>
+  <section>
+    <div class="card">
+      <h2>Script (click any word to add a trigger on it)</h2>
+      <textarea id="script" placeholder="Type or paste what Pete says..."></textarea>
+      <div id="words"></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h2 style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">Smart reactions <label style="text-transform:none;letter-spacing:0;display:flex;gap:6px;align-items:center"><input type="checkbox" id="smart" style="min-height:0"> auto-react &middot; now: <b id="emoNow">neutral</b></label> <button id="bEmapToggle" style="margin-left:auto">Edit looks</button></h2>
+      <div class="small" style="margin-bottom:6px">Reads each sentence (words, ? ! ... CAPS) and picks the emotion before the sentence starts. Your own triggers always win. Click a face to add variants (random, never repeats); click a variant to remove it.</div>
+      <div id="emap" style="display:none"></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h2>Triggers <button id="bAdd" style="float:right;padding:2px 10px">+ Add</button></h2>
+      <div id="trigs"></div>
+      <div class="small">When the voice hits the word, the image/animation, tint and effect fire. "Stay" keeps it until the next trigger; set Revert seconds to go back to the previous look.</div>
+    </div>
+  </section>
+</main>
+
+<div id="picker"><div class="box">
+  <div class="row"><b>Pick an image or animation</b><button id="pClose" style="margin-left:auto">Close</button></div>
+  <div id="pGrid"></div>
+</div></div>
+
+<script>
+'use strict';
+const BASE='pete_sprites/';
+const IMAGES={};
+const SEQS={};
+const GROUPS=[];
+function addImg(id,label,group,file){IMAGES[id]={id,label,group,src:BASE+file};}
+['neutral','smile','serious','curious','playful','determined'].forEach(n=>addImg('expr_'+n,n,'Faces (head)','expr_'+n+'.png'));
+[['front','Front'],['three_quarter_front','3/4 front'],['side','Side'],['three_quarter_back','3/4 back'],['back','Back']]
+  .forEach(([k,l])=>addImg('turn_'+k,l,'Full body turnaround','turn_'+k+'.png'));
+for(let i=1;i<=8;i++)addImg('walk_side_'+i,'Walk side '+i,'Walk frames (side)','walk_side_'+i+'.png');
+for(let i=1;i<=5;i++)addImg('walk_34_'+i,'Walk 3/4 '+i,'Walk frames (3/4)','walk_34_'+i+'.png');
+SEQS.walk_side={id:'walk_side',label:'WALK (side) animation',group:'Animations',frames:[1,2,3,4,5,6,7,8].map(i=>'walk_side_'+i),fps:9};
+SEQS.walk_34={id:'walk_34',label:'WALK (3/4) animation',group:'Animations',frames:[1,2,3,4,5].map(i=>'walk_34_'+i),fps:8};
+
+const EFFECTS=['none','shake','smoke','bounce','flash','pulse','spin'];
+const KEY='pete_director_v1';
+const EMO_DEFAULT=()=>({
+ neutral:{imgs:['expr_neutral'],fx:'none',tint:'#ffffff',amt:0},
+ happy:{imgs:['expr_smile'],fx:'bounce',tint:'#ffffff',amt:0},
+ sad:{imgs:['expr_serious'],fx:'none',tint:'#3a5aa8',amt:0.22},
+ angry:{imgs:['expr_serious'],fx:'shake',tint:'#ff2020',amt:0.22},
+ surprised:{imgs:['expr_curious'],fx:'pulse',tint:'#ffffff',amt:0},
+ skeptical:{imgs:['expr_curious'],fx:'none',tint:'#ffffff',amt:0},
+ playful:{imgs:['expr_playful'],fx:'bounce',tint:'#ffffff',amt:0},
+ determined:{imgs:['expr_determined'],fx:'pulse',tint:'#ffffff',amt:0},
+ curious:{imgs:['expr_curious'],fx:'none',tint:'#ffffff',amt:0}});
+const LEX={
+ happy:'love loved great awesome happy yes thanks thank fun win won good amazing laugh haha beautiful wonderful best glad proud'.split(' '),
+ sad:'sad sorry miss missed lost cry crying alone hurt tired goodbye unfortunately gone empty lonely'.split(' '),
+ angry:'hate angry furious damn hell stupid shut mad liar sick enough ridiculous'.split(' '),
+ surprised:'wow whoa omg suddenly unbelievable seriously shocked'.split(' '),
+ skeptical:'sure whatever doubt supposedly yeah'.split(' '),
+ curious:'why how wonder hmm interesting maybe what who'.split(' '),
+ playful:'watch joking kidding wink tease guess bet'.split(' '),
+ determined:'will must promise fight ready never always going'.split(' ')};
+const LEXMAP={};Object.entries(LEX).forEach(([e,ws])=>ws.forEach(w=>{if(!LEXMAP[w])LEXMAP[w]=e;}));
+let project=blank();
+function blank(){return{smart:true,emap:EMO_DEFAULT(),script:'Hey, I am Alex. Do not call me Pete! Why would you? Okay, fine, maybe sometimes. I am sorry about last night... I really am. Watch this. I love it when you listen, and I will always get the last word.',
+  start:'turn_front',custom:[],triggers:[
+   {word:'Alex',nth:0,img:'expr_smile',tint:'#ff4f93',tintAmt:0,fx:'bounce',revert:0},
+   {word:'Pete',nth:0,img:'expr_serious',tint:'#ff0000',tintAmt:0.25,fx:'shake',revert:0},
+   {word:'fine',nth:0,img:'expr_playful',tint:'#ffffff',tintAmt:0,fx:'smoke',revert:0},
+   {word:'walk',nth:0,img:'walk_side',tint:'#ffffff',tintAmt:0,fx:'none',revert:0}]};}
+
+/* ---------- image loading ---------- */
+const cache={};
+function getImg(id){
+  if(cache[id])return cache[id];
+  const meta=IMAGES[id]||project.custom.find(c=>c.id===id);
+  const im=new Image(); im.src=meta?(meta.src||meta.data):''; cache[id]=im; return im;
+}
+function srcOf(id){
+  if(SEQS[id])return IMAGES[SEQS[id].frames[0]].src;
+  const m=IMAGES[id]||project.custom.find(c=>c.id===id);
+  return m?(m.src||m.data):'';
+}
+function labelOf(id){
+  if(SEQS[id])return SEQS[id].label;
+  const m=IMAGES[id]||project.custom.find(c=>c.id===id);return m?m.label:id;
+}
+Object.keys(IMAGES).forEach(getImg);
+
+/* ---------- script tokens ---------- */
+function tokenize(text){
+  const out=[];const re=/[A-Za-z0-9'’\-]+/g;let m;
+  while((m=re.exec(text)))out.push({w:m[0].toLowerCase().replace(/’/g,"'"),raw:m[0],start:m.index,end:m.index+m[0].length});
+  return out;
+}
+function norm(s){return tokenize(s).map(t=>t.w);}
+const lastPick={};
+function pickLook(emo){
+  const m=project.emap[emo]||project.emap.neutral;const imgs=m.imgs.length?m.imgs:['expr_neutral'];
+  let pick=imgs[0];
+  if(imgs.length>1){do{pick=imgs[Math.floor(Math.random()*imgs.length)];}while(pick===lastPick[emo]);}
+  lastPick[emo]=pick;
+  return{word:'(auto '+emo+')',auto:true,img:pick,tint:m.tint,tintAmt:m.amt,fx:m.fx,revert:0};
+}
+function sentenceEmotion(words,endPunct,sentText){
+  const score={};
+  words.forEach(w=>{const e=LEXMAP[w];if(e)score[e]=(score[e]||0)+1;});
+  if(/\?/.test(endPunct))score.curious=(score.curious||0)+1.5;
+  if(/!/.test(endPunct))score.surprised=(score.surprised||0)+0.7,score.happy=(score.happy||0)+0.7;
+  if(/\.\.\./.test(endPunct)||/\u2026/.test(endPunct))score.sad=(score.sad||0)+0.8;
+  if(/^[A-Z\s!]{8,}$/.test(sentText.trim()))score.angry=(score.angry||0)+2;
+  if(/\b(not|no|don't|do not|never)\b/i.test(sentText)&&score.happy)score.happy=0;
+  let best='neutral',bv=0.6;Object.entries(score).forEach(([e,v])=>{if(v>bv){bv=v;best=e;}});
+  return best;
+}
+function autoEvents(toks){
+  if(!project.smart)return[];
+  const text=project.script,out=[];let i=0;
+  while(i<toks.length){
+    let j=i;
+    while(j<toks.length-1&&!/[.!?\u2026]/.test(text.slice(toks[j].end,toks[j+1].start)))j++;
+    const endP=text.slice(toks[j].end,(toks[j+1]?toks[j+1].start:text.length));
+    const sent=text.slice(toks[i].start,toks[j].end+(endP.match(/^[.!?\u2026]*/)||[''])[0].length);
+    const emo=sentenceEmotion(toks.slice(i,j+1).map(t=>t.w),endP,sent);
+    out.push({tok:i,emo,auto:true});
+    i=j+1;
+  }
+  return out;
+}
+/* events: list of {tokIdx, trig} */
+function buildEvents(){
+  const toks=tokenize(project.script);const ev=[];
+  project.triggers.forEach((tr,ti)=>{
+    const pat=norm(tr.word);if(!pat.length)return;
+    let seen=0;
+    for(let i=0;i+pat.length<=toks.length;i++){
+      if(pat.every((p,k)=>toks[i+k].w===p)){
+        seen++;
+        if(!tr.nth||tr.nth===seen)ev.push({tok:i,trig:tr,ti});
+      }
+    }
+  });
+  autoEvents(toks).forEach(a=>ev.push({tok:a.tok,auto:true,emo:a.emo,ti:-1}));
+  ev.sort((a,b)=>a.tok-b.tok||(a.auto?-1:1));return ev;
+}
+
+/* ---------- stage state & rendering ---------- */
+const cv=document.getElementById('stage'),cx=cv.getContext('2d');
+const st={from:null,xT:0,talkT:0,emo:'neutral',img:project.start,tint:'#fff',tintAmt:0,fxT:0,fx:'none',fxDur:0,parts:[],seqT:0,prev:null,revertAt:0};
+const off=document.createElement('canvas'),ox=off.getContext('2d');
+function applyAction(tr){
+  const nowA=performance.now();
+  st.from={id:currentFrameId(nowA),tint:st.tint,tintAmt:st.tintAmt};st.xT=nowA;
+  st.prev={img:st.img,tint:st.tint,tintAmt:st.tintAmt};
+  st.img=tr.img;st.tint=tr.tint;st.tintAmt=+tr.tintAmt||0;
+  st.seqT=0;
+  startFx(tr.fx);
+  st.revertAt=(+tr.revert>0)?performance.now()+tr.revert*1000:0;
+}
+function startFx(fx){
+  st.fx=fx||'none';st.fxT=performance.now();
+  st.fxDur={shake:700,bounce:650,flash:450,pulse:700,spin:800,smoke:1800,none:0}[st.fx]||0;
+  if(st.fx==='smoke'){
+    for(let i=0;i<46;i++)st.parts.push({x:200+Math.random()*200,y:660+Math.random()*80,vx:(Math.random()-.5)*30,vy:-30-Math.random()*60,r:18+Math.random()*30,life:0,max:1.2+Math.random()*1.0});
+  }
+}
+function currentFrameId(now){
+  const s=SEQS[st.img];
+  if(!s)return st.img;
+  const i=Math.floor((now-st.seqT0||0)/1000*s.fps)%s.frames.length;
+  return s.frames[Math.max(0,i)];
+}
+function drawLayer(id,tint,amt,alpha,px,py,ssx,ssy,flashA){
+  const W=cv.width,H=cv.height,im=getImg(id);
+  if(!(im.complete&&im.naturalWidth))return;
+  const isHead=id.startsWith('expr_')||(id.startsWith('my_')&&false);
+  const maxH=isHead?H*0.5:H*0.84,maxW=W*0.86;
+  const sc=Math.min(maxH/im.naturalHeight,maxW/im.naturalWidth);
+  off.width=Math.ceil(im.naturalWidth*sc);off.height=Math.ceil(im.naturalHeight*sc);
+  ox.clearRect(0,0,off.width,off.height);ox.drawImage(im,0,0,off.width,off.height);
+  ox.globalCompositeOperation='source-atop';
+  if(amt>0){ox.globalAlpha=amt;ox.fillStyle=tint;ox.fillRect(0,0,off.width,off.height);}
+  if(flashA>0){ox.globalAlpha=flashA;ox.fillStyle='#fff';ox.fillRect(0,0,off.width,off.height);}
+  ox.globalAlpha=1;ox.globalCompositeOperation='source-over';
+  cx.save();cx.globalAlpha=alpha;cx.translate(px,py);cx.scale(ssx,ssy);
+  cx.drawImage(off,-off.width/2,-off.height);cx.restore();
+}
+let lastNow=performance.now();
+function render(now){
+  const dt=Math.min(0.05,(now-lastNow)/1000);lastNow=now;
+  if(st.revertAt&&now>=st.revertAt&&st.prev){st.img=st.prev.img;st.tint=st.prev.tint;st.tintAmt=st.prev.tintAmt;st.revertAt=0;st.seqT0=now;}
+  if(st.seqT===0){st.seqT0=now;st.seqT=1;}
+  const W=cv.width,H=cv.height;
+  cx.clearRect(0,0,W,H);
+  // floor shadow
+  cx.fillStyle='#0006';cx.beginPath();cx.ellipse(W/2,H-70,130,16,0,0,7);cx.fill();
+  const id=currentFrameId(now);
+  const e=now-st.fxT,p=st.fxDur?Math.min(1,e/st.fxDur):1;
+  let px=W/2,py=H-70,ssx=1,ssy=1;
+  if(st.fxDur&&e<st.fxDur){
+    const k=1-p;
+    if(st.fx==='shake'){px+=Math.sin(e*0.09)*22*k;py+=Math.cos(e*0.13)*6*k;}
+    if(st.fx==='bounce'){py-=Math.abs(Math.sin(p*Math.PI*2))*60*k;ssy=1+Math.sin(p*Math.PI*4)*0.04*k;}
+    if(st.fx==='pulse'){const q=1+Math.sin(p*Math.PI)*0.12;ssx=ssy=q;}
+    if(st.fx==='spin'){ssx=Math.cos(p*Math.PI*2);}
+  }
+  const talk=playing?Math.max(0,1-(now-st.talkT)/180):0;
+  py-=talk*5;ssy*=1+talk*0.012;
+  ssy*=1+Math.sin(now/700)*0.004;px+=Math.sin(now/1300)*2;
+  const flashA=(st.fx==='flash'&&e<st.fxDur)?(1-p)*0.9:0;
+  const xf=st.from?Math.min(1,(now-st.xT)/220):1,ease=xf*xf*(3-2*xf);
+  if(st.from&&xf<1)drawLayer(st.from.id,st.from.tint,st.from.tintAmt,1,px,py,ssx,ssy,0);
+  drawLayer(id,st.tint,st.tintAmt,(st.from&&xf<1)?ease:1,px,py,ssx,ssy,flashA);
+  // smoke
+  st.parts=st.parts.filter(q=>q.life<q.max);
+  st.parts.forEach(q=>{
+    q.life+=dt;q.x+=q.vx*dt;q.y+=q.vy*dt;q.r+=14*dt;
+    const a=Math.max(0,1-q.life/q.max)*0.35;
+    const g=cx.createRadialGradient(q.x,q.y,0,q.x,q.y,q.r);
+    g.addColorStop(0,'rgba(220,220,230,'+a+')');g.addColorStop(1,'rgba(220,220,230,0)');
+    cx.fillStyle=g;cx.beginPath();cx.arc(q.x,q.y,q.r,0,7);cx.fill();
+  });
+  requestAnimationFrame(render);
+}
+
+/* ---------- script UI ---------- */
+const $=id=>document.getElementById(id);
+function renderWords(){
+  const el=$('words');el.innerHTML='';
+  const text=project.script,toks=tokenize(text);
+  const hasSet=new Set();
+  buildEvents().forEach(e=>{if(e.auto)return;const n=norm(e.trig.word).length;for(let k=0;k<n;k++)hasSet.add(e.tok+k);});
+  toks.forEach((t,i)=>{
+    const s=document.createElement('span');s.className='w'+(hasSet.has(i)?' has':'');s.textContent=t.raw;s.dataset.i=i;
+    s.onclick=()=>{project.triggers.push({word:t.raw,nth:0,img:st.img,tint:'#ffffff',tintAmt:0,fx:'none',revert:0});renderTrigs();renderWords();flash('Trigger added on "'+t.raw+'" — pick its image');};
+    el.appendChild(s);el.appendChild(document.createTextNode(' '));
+  });
+}
+function renderTrigs(){
+  const el=$('trigs');el.innerHTML='';
+  project.triggers.forEach((tr,i)=>{
+    const d=document.createElement('div');d.className='trig';d.id='trig'+i;
+    const img=document.createElement('img');img.className='thumb';img.src=srcOf(tr.img);img.title='Change image';
+    img.onclick=()=>openPicker(id=>{tr.img=id;renderTrigs();});
+    const f=document.createElement('div');f.className='f';
+    f.innerHTML=
+     '<label>When Pete says</label><input type="text" data-k="word" value="'+esc(tr.word)+'">'+
+     '<label>Occurrence</label><input type="number" min="0" data-k="nth" value="'+(tr.nth||0)+'" title="0 = every time, 1 = first time only, 2 = second...">'+
+     '<label>Effect</label><select data-k="fx">'+EFFECTS.map(x=>'<option'+(x===tr.fx?' selected':'')+'>'+x+'</option>').join('')+'</select>'+
+     '<label>Tint</label><input type="color" data-k="tint" value="'+tr.tint+'">'+
+     '<label>Amount</label><input type="range" min="0" max="0.7" step="0.05" data-k="tintAmt" value="'+tr.tintAmt+'">'+
+     '<label>Revert after (s, 0=stay)</label><input type="number" min="0" step="0.5" data-k="revert" value="'+(tr.revert||0)+'">'+
+     '<span class="small">'+esc(labelOf(tr.img))+'</span>'+
+     '<button data-a="test">Test</button><button data-a="del">Delete</button>';
+    f.querySelectorAll('[data-k]').forEach(inp=>{
+      const upd=()=>{const k=inp.dataset.k;let v=inp.value;if(['nth','tintAmt','revert'].includes(k))v=+v;tr[k]=v;if(k==='word')renderWords();};
+      inp.oninput=upd;inp.onchange=upd;
+    });
+    f.querySelector('[data-a=test]').onclick=()=>applyAction(tr);
+    f.querySelector('[data-a=del]').onclick=()=>{project.triggers.splice(i,1);renderTrigs();renderWords();};
+    d.appendChild(img);d.appendChild(f);el.appendChild(d);
+  });
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function renderEmap(){
+  const el=$('emap');el.innerHTML='';
+  Object.entries(project.emap).forEach(([emo,m])=>{
+    const row=document.createElement('div');row.className='row';row.style.cssText='border-bottom:1px solid var(--line);padding-bottom:6px';
+    const nm=document.createElement('b');nm.textContent=emo;nm.style.cssText='width:84px';row.appendChild(nm);
+    m.imgs.forEach((id,k)=>{const im=document.createElement('img');im.className='thumb';im.style.cssText='width:38px;height:48px';im.src=srcOf(id);im.title='Remove variant';
+      im.onclick=()=>{if(m.imgs.length>1){m.imgs.splice(k,1);renderEmap();}else openPicker(x=>{m.imgs[0]=x;renderEmap();});};row.appendChild(im);});
+    const add=document.createElement('button');add.textContent='+';add.title='Add variant / swap';add.onclick=()=>openPicker(x=>{m.imgs.push(x);renderEmap();});row.appendChild(add);
+    const fx=document.createElement('select');fx.innerHTML=EFFECTS.map(x=>'<option'+(x===m.fx?' selected':'')+'>'+x+'</option>').join('');fx.onchange=()=>m.fx=fx.value;row.appendChild(fx);
+    const tc=document.createElement('input');tc.type='color';tc.value=m.tint;tc.style.cssText='padding:0;width:34px;height:28px';tc.oninput=()=>m.tint=tc.value;row.appendChild(tc);
+    const ta=document.createElement('input');ta.type='range';ta.min=0;ta.max=0.7;ta.step=0.05;ta.value=m.amt;ta.style.width='80px';ta.oninput=()=>m.amt=+ta.value;row.appendChild(ta);
+    const tb=document.createElement('button');tb.textContent='Test';tb.onclick=()=>{st.emo=emo;applyAction(pickLook(emo));showEmo(emo);};row.appendChild(tb);
+    el.appendChild(row);
+  });
+  $('smart').checked=!!project.smart;$('smart').onchange=e=>{project.smart=e.target.checked;renderWords();};
+}
+/* ---------- picker ---------- */
+let pickCb=null;
+function openPicker(cb){
+  pickCb=cb;const g=$('pGrid');g.innerHTML='';
+  const groups={};
+  const add=(grp,id,label,src)=>{(groups[grp]=groups[grp]||[]).push({id,label,src});};
+  Object.values(SEQS).forEach(s=>add('Animations',s.id,s.label,IMAGES[s.frames[0]].src));
+  Object.values(IMAGES).forEach(m=>add(m.group,m.id,m.label,m.src));
+  project.custom.forEach(c=>add('My images',c.id,c.label,c.data));
+  Object.entries(groups).forEach(([name,items])=>{
+    const h=document.createElement('h3');h.textContent=name;h.style.cssText='margin:12px 0 6px;font-size:13px;color:#8d94ab';g.appendChild(h);
+    const gr=document.createElement('div');gr.className='grid';
+    items.forEach(it=>{const c=document.createElement('div');c.className='cell';c.innerHTML='<img src="'+it.src+'"><div>'+esc(it.label)+'</div>';
+      c.onclick=()=>{$('picker').style.display='none';cb(it.id);};gr.appendChild(c);});
+    g.appendChild(gr);
+  });
+  $('picker').style.display='block';
+}
+$('pClose').onclick=()=>$('picker').style.display='none';
+$('startThumb').onclick=()=>openPicker(id=>{project.start=id;st.img=id;st.seqT=0;$('startThumb').src=srcOf(id);});
+
+/* ---------- uploads ---------- */
+$('bUpload').onclick=()=>$('fUpload').click();
+$('fUpload').onchange=e=>{
+  [...e.target.files].forEach(f=>{
+    const r=new FileReader();r.onload=()=>{
+      const id='my_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+      project.custom.push({id,label:f.name.replace(/\.[^.]+$/,''),data:r.result});
+      flash('Added '+f.name);
+    };r.readAsDataURL(f);
+  });
+  e.target.value='';
+};
+
+/* ---------- save/load ---------- */
+function flash(m){const s=$('status');s.textContent=m;clearTimeout(flash.t);flash.t=setTimeout(()=>s.textContent='',3500);}
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(project));flash('Saved');}
+  catch(e){flash('Browser save failed (too big?) — use Download .json');}
+}
+$('bSave').onclick=save;
+$('bDown').onclick=()=>{
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(project,null,1)],{type:'application/json'}));
+  a.download='pete_director_project.json';a.click();
+};
+$('bLoad').onclick=()=>$('fLoad').click();
+$('fLoad').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{setProject(JSON.parse(r.result));flash('Loaded');}catch(x){flash('Not a valid project file');}};r.readAsText(f);e.target.value='';};
+$('bNew').onclick=()=>{if(confirm('Start a new project? Unsaved changes are lost.'))setProject(blank());};
+function setProject(p){
+  project=p;project.custom=project.custom||[];project.triggers=project.triggers||[];project.start=project.start||'turn_front';if(project.smart===undefined)project.smart=true;project.emap=Object.assign(EMO_DEFAULT(),project.emap||{});
+  Object.keys(cache).forEach(k=>{if(k.startsWith('my_'))delete cache[k];});
+  $('script').value=project.script;st.img=project.start;st.seqT=0;st.parts=[];st.tintAmt=0;st.fxDur=0;
+  $('startThumb').src=srcOf(project.start);renderTrigs();renderWords();renderEmap();
+}
+$('script').oninput=e=>{project.script=e.target.value;renderWords();};
+
+/* ---------- playback ---------- */
+let playing=false,runId=0,timers=[];
+function stopPlay(){playing=false;runId++;timers.forEach(clearTimeout);timers=[];try{speechSynthesis.cancel();}catch(e){}
+  document.querySelectorAll('.w.now').forEach(n=>n.classList.remove('now'));$('bPlay').textContent='▶ Read script';$('caption').innerHTML='';}
+function showEmo(e){$('emoNow').textContent=e;}
+function setNow(i){
+  document.querySelectorAll('.w.now').forEach(n=>n.classList.remove('now'));
+  const n=document.querySelector('.w[data-i="'+i+'"]');if(n){n.classList.add('now');}
+  const toks=tokenize(project.script);
+  $('caption').innerHTML=toks.slice(Math.max(0,i-6),i).map(t=>t.raw).join(' ')+' <b>'+(toks[i]?toks[i].raw:'')+'</b> '+toks.slice(i+1,i+6).map(t=>t.raw).join(' ');
+}
+function play(){
+  stopPlay();playing=true;const my=++runId;$('bPlay').textContent='■ Playing…';
+  st.img=project.start;st.tintAmt=0;st.seqT=0;st.fxDur=0;st.revertAt=0;st.emo='';
+  const toks=tokenize(project.script),events=buildEvents();
+  if(!toks.length){stopPlay();return;}
+  let fired=0,lastTok=-1;
+  const advance=idx=>{
+    if(my!==runId)return;
+    if(idx>lastTok){lastTok=idx;setNow(idx);st.talkT=performance.now();}
+    while(fired<events.length&&events[fired].tok<=idx){
+      const ev=events[fired];
+      if(ev.auto){if(ev.emo!==st.emo||ev.emo==='neutral'&&false){st.emo=ev.emo;applyAction(pickLook(ev.emo));showEmo(ev.emo);}}
+      else applyAction(ev.trig);
+      const t=ev.ti>=0?$('trig'+ev.ti):null;if(t){t.classList.add('fired');setTimeout(()=>t.classList.remove('fired'),900);}
+      fired++;
+    }
+  };
+  const rate=+$('rate').value;
+  const timedRun=ownStop=>{ // silent / fallback: ~2.6 words per second scaled by rate
+    let startIdx=Math.max(0,lastTok+1);
+    let acc=120;
+    toks.forEach((t,i)=>{if(i<startIdx)return;
+      timers.push(setTimeout(()=>advance(i),acc));
+      const nx=project.script.slice(t.end,t.end+3);
+      acc+=1000/(2.6*rate)+(/^[.!?\u2026]/.test(nx)?380:/^[,;:]/.test(nx)?180:0)+Math.max(0,t.raw.length-5)*18;});
+    if(ownStop)timers.push(setTimeout(()=>{if(my===runId)stopPlay();},acc+1200));
+  };
+  const canSpeak=('speechSynthesis' in window)&&!$('silent').checked;
+  if(!canSpeak){timedRun(true);return;}
+  const u=new SpeechSynthesisUtterance(project.script);
+  const vs=speechSynthesis.getVoices();const vi=$('voice').value;if(vs[vi])u.voice=vs[vi];
+  u.rate=rate;
+  let gotBoundary=false,timedOn=false;
+  const startTimed=()=>{if(timedOn||gotBoundary||my!==runId)return;timedOn=true;timedRun(false);};
+  u.onstart=()=>{ // run the estimator alongside; real word boundaries take over if they arrive
+    timers.push(setTimeout(startTimed,350));};
+  u.onboundary=e=>{
+    if(e.name&&e.name!=='word')return;
+    if(!gotBoundary){gotBoundary=true;timers.forEach(clearTimeout);timers=[];}
+    let idx=0;for(let i=0;i<toks.length;i++){if(toks[i].start<=e.charIndex)idx=i;else break;}
+    advance(idx);
+  };
+  u.onend=()=>{if(my===runId){advance(toks.length-1);setTimeout(()=>{if(my===runId)stopPlay();},1200);}};
+  u.onerror=()=>{if(my===runId){if(!timedOn&&!gotBoundary)timedRun(true);}};
+  speechSynthesis.cancel();speechSynthesis.speak(u);
+  // no start event at all (some phones): estimate anyway after 1.2s
+  timers.push(setTimeout(()=>{if(my===runId&&!gotBoundary&&!timedOn){timedOn=true;timedRun(false);}},1200));
+}
+$('bEmapToggle').onclick=()=>{const e=$('emap');e.style.display=e.style.display==='none'?'block':'none';};
+$('bPlay').onclick=play;$('bStop').onclick=stopPlay;
+$('bAdd').onclick=()=>{project.triggers.push({word:'',nth:0,img:st.img,tint:'#ffffff',tintAmt:0,fx:'none',revert:0});renderTrigs();};
+function loadVoices(){
+  try{const vs=speechSynthesis.getVoices();const sel=$('voice');sel.innerHTML=vs.map((v,i)=>'<option value="'+i+'">'+esc(v.name+' ('+v.lang+')')+'</option>').join('')||'<option>(default voice)</option>';
+  const pref=vs.findIndex(v=>/en/i.test(v.lang)&&/female|zira|samantha|aria|jenny/i.test(v.name));if(pref>=0)sel.value=pref;}catch(e){}
+}
+try{speechSynthesis.onvoiceschanged=loadVoices;loadVoices();}catch(e){}
+
+/* ---------- boot ---------- */
+try{const s=localStorage.getItem(KEY);if(s)project=JSON.parse(s);}catch(e){}
+setProject(project);
+window.__director={project:()=>project,play,stopPlay,st,applyAction};
+requestAnimationFrame(render);
+</script>
+</body>
+</html>

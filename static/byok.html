@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PubCast — Model Configuration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Courier+Prime:wght@400;700&family=Josefin+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  /* ── Design system ── */
+  :root {
+    --amber-deep:   #b8730a;
+    --amber-bright: #e8a020;
+    --amber-pale:   #f5c842;
+    --amber-glow:   rgba(232,160,32,0.12);
+    --amber-border: rgba(232,160,32,0.28);
+    --noir-black:   #0d0b08;
+    --noir-dark:    #141109;
+    --noir-mid:     #1e1a10;
+    --noir-panel:   #231f12;
+    --noir-lift:    #2e2815;
+    --cream:        #f0e8d0;
+    --cream-dim:    #c8b888;
+    --red-err:      #c0392b;
+    --green-ok:     #2e7d47;
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font-mono:    'Courier Prime', 'Courier New', monospace;
+    --font-ui:      'Josefin Sans', sans-serif;
+    --transition:   200ms cubic-bezier(0.4,0,0.2,1);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--noir-black);
+    color: var(--cream);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Film grain overlay ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 999; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.35;
+  }
+
+  /* ── Deco border lines ── */
+  .deco-top {
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--amber-deep), var(--amber-bright), var(--amber-pale), var(--amber-bright), var(--amber-deep), transparent);
+    position: sticky; top: 0; z-index: 100;
+  }
+
+  /* ── Header ── */
+  header {
+    padding: 2.5rem 3rem 2rem;
+    border-bottom: 1px solid var(--amber-border);
+    display: flex; align-items: flex-end; gap: 2rem;
+    background: linear-gradient(180deg, rgba(24,18,6,0.95) 0%, transparent 100%);
+  }
+  .header-title {
+    flex: 1;
+  }
+  .studio-name {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 300;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--amber-deep);
+    margin-bottom: 0.4rem;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-size: 2.4rem;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--cream);
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+  h1 em { color: var(--amber-bright); font-style: normal; }
+
+  .hw-badge {
+    background: var(--noir-panel);
+    border: 1px solid var(--amber-border);
+    border-radius: 2px;
+    padding: 0.7rem 1.2rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--cream-dim);
+    line-height: 1.7;
+    min-width: 220px;
+  }
+  .hw-badge .hw-label {
+    color: var(--amber-bright);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.4rem;
+  }
+
+  /* ── Main layout ── */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2.5rem 2rem 4rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  @media (max-width: 760px) {
+    main { grid-template-columns: 1fr; }
+    header { flex-direction: column; align-items: flex-start; }
+  }
+
+  /* ── Section headers ── */
+  .section-header {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; gap: 1rem;
+    margin-bottom: -0.5rem;
+  }
+  .section-header h2 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--amber-bright);
+  }
+  .section-divider {
+    flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--amber-border), transparent);
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--noir-panel);
+    border: 1px solid var(--amber-border);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+    transition: border-color var(--transition);
+  }
+  .card:hover { border-color: rgba(232,160,32,0.5); }
+  .card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--amber-deep), var(--amber-bright), var(--amber-deep));
+    opacity: 0;
+    transition: opacity var(--transition);
+  }
+  .card:hover::before { opacity: 1; }
+
+  .card-header {
+    padding: 1.2rem 1.5rem 1rem;
+    border-bottom: 1px solid rgba(232,160,32,0.12);
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .card-icon {
+    width: 32px; height: 32px;
+    background: var(--amber-glow);
+    border: 1px solid var(--amber-border);
+    border-radius: 1px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 400;
+    color: var(--cream);
+  }
+  .card-subtitle {
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber-deep);
+    margin-top: 0.1rem;
+  }
+  .card-body { padding: 1.5rem; }
+
+  /* ── Form elements ── */
+  .form-group { margin-bottom: 1.1rem; }
+  label {
+    display: block;
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--amber-deep);
+    margin-bottom: 0.4rem;
+  }
+  input[type="text"],
+  input[type="password"],
+  select {
+    width: 100%;
+    background: var(--noir-dark);
+    border: 1px solid var(--amber-border);
+    border-radius: 1px;
+    color: var(--cream);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    padding: 0.6rem 0.8rem;
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    -webkit-appearance: none;
+  }
+  input:focus, select:focus {
+    border-color: var(--amber-bright);
+    box-shadow: 0 0 0 2px rgba(232,160,32,0.12);
+  }
+  select option { background: var(--noir-dark); }
+
+  .input-row { display: flex; gap: 0.75rem; }
+  .input-row .form-group { flex: 1; margin-bottom: 0; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.65rem 1.4rem;
+    font-family: var(--font-ui);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border: none; border-radius: 1px;
+    cursor: pointer;
+    transition: all var(--transition);
+    text-decoration: none;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--amber-deep), var(--amber-bright));
+    color: var(--noir-black);
+  }
+  .btn-primary:hover { filter: brightness(1.15); transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--amber-bright);
+    border: 1px solid var(--amber-border);
+  }
+  .btn-ghost:hover { background: var(--amber-glow); border-color: var(--amber-bright); }
+
+  .btn-danger {
+    background: transparent;
+    color: #e05555;
+    border: 1px solid rgba(192,57,43,0.4);
+    padding: 0.45rem 0.9rem;
+    font-size: 0.67rem;
+  }
+  .btn-danger:hover { background: rgba(192,57,43,0.12); }
+
+  .btn-sm { padding: 0.4rem 0.9rem; font-size: 0.67rem; }
+
+  /* ── Toggle ── */
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.4rem 0;
+  }
+  .toggle-label { font-size: 0.78rem; color: var(--cream-dim); }
+  .toggle {
+    position: relative; width: 38px; height: 20px;
+    flex-shrink: 0;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute; inset: 0;
+    background: var(--noir-dark);
+    border: 1px solid var(--amber-border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background var(--transition);
+  }
+  .toggle-track::after {
+    content: '';
+    position: absolute; left: 2px; top: 2px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--cream-dim);
+    transition: transform var(--transition), background var(--transition);
+  }
+  .toggle input:checked + .toggle-track { background: var(--amber-glow); border-color: var(--amber-bright); }
+  .toggle input:checked + .toggle-track::after { transform: translateX(18px); background: var(--amber-bright); }
+
+  /* ── Fidelity indicator ── */
+  .fidelity-bar {
+    height: 4px;
+    background: var(--noir-dark);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+  }
+  .fidelity-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 600ms cubic-bezier(0.4,0,0.2,1);
+  }
+  .fidelity-fill.strong  { background: linear-gradient(90deg, #2e7d47, #4caf76); }
+  .fidelity-fill.adequate { background: linear-gradient(90deg, var(--amber-deep), var(--amber-bright)); }
+  .fidelity-fill.thin    { background: linear-gradient(90deg, #7d5a2e, #c89040); }
+  .fidelity-fill.broken  { background: linear-gradient(90deg, #7d2e2e, var(--red-err)); }
+
+  .fidelity-label {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.72rem;
+    margin-top: 0.4rem;
+  }
+  .fidelity-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  }
+  .fidelity-dot.strong   { background: #4caf76; box-shadow: 0 0 6px #4caf76; }
+  .fidelity-dot.adequate { background: var(--amber-bright); box-shadow: 0 0 6px var(--amber-bright); }
+  .fidelity-dot.thin     { background: #c89040; }
+  .fidelity-dot.broken   { background: var(--red-err); }
+  .fidelity-dot.untested { background: #555; }
+
+  /* ── Model list items ── */
+  .model-list { display: flex; flex-direction: column; gap: 0.7rem; }
+  .model-item {
+    background: var(--noir-dark);
+    border: 1px solid rgba(232,160,32,0.15);
+    border-radius: 1px;
+    padding: 0.9rem 1rem;
+    position: relative;
+    transition: border-color var(--transition);
+  }
+  .model-item:hover { border-color: var(--amber-border); }
+  .model-item-header {
+    display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.3rem;
+  }
+  .provider-chip {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.5rem;
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+  .provider-chip.groq      { background: rgba(100,180,100,0.15); color: #7ecc8e; border: 1px solid rgba(100,180,100,0.3); }
+  .provider-chip.openai    { background: rgba(100,200,180,0.12); color: #7ecfc0; border: 1px solid rgba(100,200,180,0.25); }
+  .provider-chip.anthropic { background: rgba(200,160,80,0.12);  color: var(--amber-bright); border: 1px solid var(--amber-border); }
+  .provider-chip.mistral   { background: rgba(150,100,200,0.12); color: #c89ae0; border: 1px solid rgba(150,100,200,0.3); }
+  .provider-chip.gemini    { background: rgba(80,140,220,0.12);  color: #80aaee; border: 1px solid rgba(80,140,220,0.25); }
+  .provider-chip.ollama    { background: rgba(200,200,200,0.08); color: var(--cream-dim); border: 1px solid rgba(200,200,200,0.15); }
+
+  .model-name { font-size: 0.85rem; color: var(--cream); flex: 1; }
+  .model-actions { display: flex; gap: 0.4rem; }
+
+  .status-dot {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px;
+  }
+  .status-dot.ready    { background: #4caf76; box-shadow: 0 0 6px #4caf76; }
+  .status-dot.pending  { background: var(--amber-bright); animation: pulse 1.5s infinite; }
+  .status-dot.error    { background: var(--red-err); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── Catalog browser ── */
+  .catalog-section { grid-column: 1 / -1; }
+  .catalog-tabs {
+    display: flex; gap: 0; margin-bottom: 1.2rem;
+    border-bottom: 1px solid var(--amber-border);
+  }
+  .catalog-tab {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--cream-dim);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all var(--transition);
+  }
+  .catalog-tab:hover { color: var(--amber-bright); }
+  .catalog-tab.active { color: var(--amber-bright); border-bottom-color: var(--amber-bright); }
+
+  .catalog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 0.8rem;
+  }
+  .catalog-item {
+    background: var(--noir-dark);
+    border: 1px solid rgba(232,160,32,0.12);
+    border-radius: 2px;
+    padding: 1rem 1.1rem;
+    transition: all var(--transition);
+    position: relative;
+  }
+  .catalog-item:hover { border-color: var(--amber-border); background: var(--noir-lift); }
+  .catalog-item.not-viable { opacity: 0.45; }
+  .catalog-item.bundled { border-color: rgba(232,160,32,0.35); }
+  .catalog-item.bundled::after {
+    content: 'BUNDLED';
+    position: absolute; top: 0.5rem; right: 0.5rem;
+    font-size: 0.58rem; letter-spacing: 0.15em;
+    color: var(--amber-bright);
+    background: rgba(232,160,32,0.1);
+    border: 1px solid var(--amber-border);
+    padding: 0.1rem 0.35rem;
+    border-radius: 1px;
+  }
+
+  .catalog-item-label {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    color: var(--cream);
+    margin-bottom: 0.35rem;
+    line-height: 1.3;
+    padding-right: 4rem;
+  }
+  .catalog-meta {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--cream-dim);
+    line-height: 1.6;
+  }
+  .catalog-meta span { color: var(--amber-deep); margin-right: 0.3rem; }
+  .quality-pip {
+    display: inline-flex; gap: 2px; margin-left: 0.4rem; vertical-align: middle;
+  }
+  .quality-pip i {
+    display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+    background: var(--amber-border);
+  }
+  .quality-pip.good i:nth-child(-n+2)    { background: var(--amber-bright); }
+  .quality-pip.excellent i               { background: var(--amber-bright); }
+  .quality-pip.minimal i:nth-child(-n+1) { background: var(--amber-deep); }
+
+  .catalog-actions { margin-top: 0.9rem; display: flex; gap: 0.5rem; }
+
+  .ollama-cmd {
+    background: var(--noir-black);
+    border: 1px solid rgba(232,160,32,0.2);
+    border-radius: 1px;
+    padding: 0.35rem 0.7rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: #8eb8e0;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: all var(--transition);
+    position: relative;
+  }
+  .ollama-cmd:hover { border-color: var(--amber-border); color: var(--cream); }
+  .ollama-cmd::before { content: '$ '; color: var(--amber-deep); }
+  .ollama-cmd .copied {
+    position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);
+    font-size: 0.6rem; color: #4caf76;
+    opacity: 0; transition: opacity var(--transition);
+  }
+  .ollama-cmd.just-copied .copied { opacity: 1; }
+
+  /* ── Response preview ── */
+  .response-preview {
+    background: var(--noir-black);
+    border: 1px solid rgba(232,160,32,0.15);
+    border-left: 2px solid var(--amber-deep);
+    padding: 0.7rem 0.9rem;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 0.85rem;
+    color: var(--cream-dim);
+    line-height: 1.6;
+    margin-top: 0.75rem;
+    border-radius: 0 1px 1px 0;
+  }
+  .response-preview .preview-label {
+    font-family: var(--font-ui);
+    font-style: normal;
+    font-size: 0.62rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--amber-deep);
+    margin-bottom: 0.3rem;
+  }
+
+  /* ── Toast ── */
+  .toast-container {
+    position: fixed; bottom: 2rem; right: 2rem; z-index: 500;
+    display: flex; flex-direction: column; gap: 0.6rem;
+  }
+  .toast {
+    background: var(--noir-panel);
+    border: 1px solid var(--amber-border);
+    border-radius: 2px;
+    padding: 0.8rem 1.2rem;
+    font-size: 0.78rem;
+    color: var(--cream);
+    max-width: 320px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    animation: slideIn 250ms ease forwards;
+    position: relative;
+  }
+  .toast.success { border-color: rgba(78,175,118,0.6); }
+  .toast.error   { border-color: rgba(192,57,43,0.6); color: #e08080; }
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+  }
+
+  /* ── Spinner ── */
+  .spinner {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid rgba(232,160,32,0.2);
+    border-top-color: var(--amber-bright);
+    border-radius: 50%;
+    animation: spin 700ms linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Empty state ── */
+  .empty-state {
+    text-align: center; padding: 2.5rem 1rem;
+    color: var(--cream-dim); font-size: 0.82rem; line-height: 1.7;
+  }
+  .empty-state .empty-icon { font-size: 2rem; margin-bottom: 0.75rem; opacity: 0.4; }
+
+  /* ── Ollama install banner ── */
+  .install-banner {
+    grid-column: 1 / -1;
+    background: rgba(14,10,2,0.8);
+    border: 1px solid var(--amber-border);
+    border-radius: 2px;
+    padding: 1rem 1.4rem;
+    display: flex; align-items: center; gap: 1rem;
+    font-size: 0.8rem; color: var(--cream-dim);
+  }
+  .install-banner .banner-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .install-banner strong { color: var(--amber-bright); }
+  .install-banner a { color: var(--amber-pale); text-decoration: none; }
+  .install-banner a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="deco-top"></div>
+
+<header>
+  <div class="header-title">
+    <div class="studio-name">Belle Époque Studios — PubCast AI</div>
+    <h1>Engine Room — <em>Model Configuration</em></h1>
+  </div>
+  <div class="hw-badge" id="hw-badge">
+    <span class="hw-label">This Machine</span>
+    <span id="hw-text">Probing hardware…</span>
+  </div>
+</header>
+
+<main id="app">
+
+  <!-- Ollama status banner -->
+  <div id="ollama-banner" class="install-banner" style="display:none">
+    <span class="banner-icon">⚙️</span>
+    <div>
+      <strong>Ollama not detected.</strong>
+      Local models require Ollama running on your machine. 
+      <a href="https://ollama.com" target="_blank">Install Ollama</a> — then run 
+      <code style="color:var(--amber-pale)">ollama run ministral-pubcast:3b</code> for the PubCast default.
+    </div>
+  </div>
+
+  <!-- ── Left column: register new model ── -->
+  <div>
+    <!-- Cloud API key -->
+    <div class="card" style="margin-bottom:1.5rem">
+      <div class="card-header">
+        <div class="card-icon">🔑</div>
+        <div>
+          <div class="card-title">Connect a Cloud API</div>
+          <div class="card-subtitle">Bring your own key</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label>Provider</label>
+          <select id="reg-provider" onchange="onProviderChange()">
+            <option value="groq">Groq — fast, cheap, free tier</option>
+            <option value="mistral">Mistral La Plateforme</option>
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic Claude</option>
+            <option value="gemini">Google Gemini</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Model</label>
+          <select id="reg-model-select"></select>
+        </div>
+        <div class="form-group">
+          <label>API Key <span style="color:var(--cream-dim);font-size:0.65rem;letter-spacing:0;text-transform:none">— stored encrypted, never transmitted to frontend</span></label>
+          <input type="password" id="reg-api-key" placeholder="Paste your key here…" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Label (optional)</label>
+          <input type="text" id="reg-display-name" placeholder="e.g. My Groq Key">
+        </div>
+        <div class="toggle-row" style="margin-bottom:1rem">
+          <span class="toggle-label">Run character fidelity test on save</span>
+          <label class="toggle">
+            <input type="checkbox" id="reg-fidelity" checked>
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <button class="btn btn-primary" id="reg-btn" onclick="registerKey()">
+          <span id="reg-btn-text">Save &amp; Test</span>
+        </button>
+        <div id="reg-provider-link" style="margin-top:0.75rem;font-size:0.72rem;color:var(--cream-dim)"></div>
+      </div>
+    </div>
+
+    <!-- Local Ollama model -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🖥️</div>
+        <div>
+          <div class="card-title">Connect a Local Model</div>
+          <div class="card-subtitle">Via Ollama — free &amp; private</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label>Model Tag</label>
+          <input type="text" id="ollama-model-input" placeholder="e.g. ministral:3b">
+        </div>
+        <div class="form-group">
+          <label>Label (optional)</label>
+          <input type="text" id="ollama-display-name" placeholder="e.g. My Local Ministral">
+        </div>
+        <div class="toggle-row" style="margin-bottom:1rem">
+          <span class="toggle-label">Run fidelity test</span>
+          <label class="toggle">
+            <input type="checkbox" id="ollama-fidelity" checked>
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <button class="btn btn-primary" id="ollama-btn" onclick="registerOllama()">
+          <span id="ollama-btn-text">Save &amp; Test</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Right column: registered models ── -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📡</div>
+      <div>
+        <div class="card-title">Registered Models</div>
+        <div class="card-subtitle">Your connected engines</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="model-list" id="model-list">
+        <div class="empty-state">
+          <div class="empty-icon">🎬</div>
+          <div>No models connected yet.<br>The show runs on the bundled default<br>until you add one.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Catalog browser ── -->
+  <div class="section-header">
+    <h2>Available Models</h2>
+    <div class="section-divider"></div>
+  </div>
+
+  <div class="card catalog-section">
+    <div class="card-body">
+      <div class="catalog-tabs">
+        <button class="catalog-tab active" onclick="switchTab('local', this)">Local / Free</button>
+        <button class="catalog-tab" onclick="switchTab('groq', this)">Groq</button>
+        <button class="catalog-tab" onclick="switchTab('mistral', this)">Mistral</button>
+        <button class="catalog-tab" onclick="switchTab('cloud', this)">OpenAI / Anthropic / Gemini</button>
+      </div>
+      <div class="catalog-grid" id="catalog-grid"></div>
+    </div>
+  </div>
+
+</main>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let catalog = [];
+let userModels = [];
+let hardware = null;
+let currentTab = 'local';
+let ollamaRunning = false;
+
+const PROVIDER_MODELS = {
+  groq:      ['llama-3.1-8b-instant','llama-3.3-70b-versatile','mistral-saba-24b','gemma2-9b-it'],
+  mistral:   ['ministral-3b-latest','ministral-8b-latest','mistral-large-latest'],
+  openai:    ['gpt-4o-mini','gpt-4o'],
+  anthropic: ['claude-haiku-4-5-20251001','claude-sonnet-4-6'],
+  gemini:    ['gemini-2.0-flash','gemini-1.5-pro'],
+};
+
+const PROVIDER_LINKS = {
+  groq:      'Get a free API key at <a href="https://console.groq.com" target="_blank">console.groq.com</a>',
+  mistral:   'Get a key at <a href="https://console.mistral.ai" target="_blank">console.mistral.ai</a>',
+  openai:    'Get a key at <a href="https://platform.openai.com" target="_blank">platform.openai.com</a>',
+  anthropic: 'Get a key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>',
+  gemini:    'Get a key at <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a>',
+};
+
+// ── Init ───────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  await Promise.all([loadHardware(), loadCatalog(), loadModels(), checkOllama()]);
+  onProviderChange();
+});
+
+// ── API helpers ────────────────────────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = { method, headers: {'Content-Type':'application/json'} };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch('/api/byok' + path, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.detail || `HTTP ${r.status}`);
+  return data;
+}
+
+// ── Data loaders ───────────────────────────────────────────────────────────
+async function loadHardware() {
+  try {
+    hardware = await api('GET', '/hardware');
+    const el = document.getElementById('hw-text');
+    el.innerHTML = [
+      `RAM&nbsp; <b style="color:var(--amber-bright)">${hardware.ram_gb}GB</b>`,
+      `VRAM <b style="color:var(--amber-bright)">${hardware.vram_gb > 0 ? hardware.vram_gb+'GB' : 'none'}</b>`,
+      `GPU&nbsp; <b style="color:var(--amber-bright)">${hardware.gpu_name !== 'unknown' ? hardware.gpu_name.split(' ').slice(-1)[0] : 'CPU only'}</b>`,
+      `Rec. <b style="color:var(--amber-bright)">${hardware.recommended_model_id}</b>`,
+    ].join('<br>');
+  } catch(e) {
+    document.getElementById('hw-text').textContent = 'Hardware probe unavailable';
+  }
+}
+
+async function loadCatalog() {
+  try {
+    catalog = await api('GET', '/catalog');
+    renderCatalog();
+  } catch(e) {
+    console.warn('Catalog load failed:', e);
+  }
+}
+
+async function loadModels() {
+  try {
+    userModels = await api('GET', '/models');
+    renderModels();
+  } catch(e) {
+    // Not logged in yet — silent
+  }
+}
+
+async function checkOllama() {
+  try {
+    const status = await api('GET', '/ollama/status');
+    ollamaRunning = status.running;
+    if (!status.running) {
+      document.getElementById('ollama-banner').style.display = 'flex';
+    }
+  } catch(e) {}
+}
+
+// ── Provider change ────────────────────────────────────────────────────────
+function onProviderChange() {
+  const provider = document.getElementById('reg-provider').value;
+  const models = PROVIDER_MODELS[provider] || [];
+  const sel = document.getElementById('reg-model-select');
+  sel.innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
+  document.getElementById('reg-provider-link').innerHTML = PROVIDER_LINKS[provider] || '';
+}
+
+// ── Register cloud key ────────────────────────────────────────────────────
+async function registerKey() {
+  const btn = document.getElementById('reg-btn');
+  const btnText = document.getElementById('reg-btn-text');
+  const provider  = document.getElementById('reg-provider').value;
+  const modelName = document.getElementById('reg-model-select').value;
+  const apiKey    = document.getElementById('reg-api-key').value.trim();
+  const displayName = document.getElementById('reg-display-name').value.trim();
+  const runFidelity = document.getElementById('reg-fidelity').checked;
+
+  if (!apiKey) { toast('Paste your API key first.', 'error'); return; }
+
+  btn.disabled = true;
+  btnText.innerHTML = '<span class="spinner"></span> Testing…';
+
+  try {
+    const result = await api('POST', '/models', {
+      provider, model_name: modelName, api_key: apiKey,
+      display_name: displayName, run_fidelity: runFidelity,
+    });
+    document.getElementById('reg-api-key').value = '';
+    toast(`Connected! Fidelity: ${result.fidelity_rating}`, 'success');
+    await loadModels();
+  } catch(e) {
+    toast('Failed to register: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = 'Save & Test';
+  }
+}
+
+// ── Register Ollama model ─────────────────────────────────────────────────
+async function registerOllama() {
+  const btn = document.getElementById('ollama-btn');
+  const btnText = document.getElementById('ollama-btn-text');
+  const modelName   = document.getElementById('ollama-model-input').value.trim();
+  const displayName = document.getElementById('ollama-display-name').value.trim();
+  const runFidelity = document.getElementById('ollama-fidelity').checked;
+
+  if (!modelName) { toast('Enter a model tag first.', 'error'); return; }
+
+  btn.disabled = true;
+  btnText.innerHTML = '<span class="spinner"></span> Testing…';
+
+  try {
+    const result = await api('POST', '/models/ollama', {
+      model_name: modelName, display_name: displayName, run_fidelity: runFidelity,
+    });
+    document.getElementById('ollama-model-input').value = '';
+    toast(`Local model connected! Fidelity: ${result.fidelity_rating}`, 'success');
+    await loadModels();
+  } catch(e) {
+    toast('Failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = 'Save & Test';
+  }
+}
+
+// ── Remove model ──────────────────────────────────────────────────────────
+async function removeModel(modelId) {
+  if (!confirm('Remove this model? The key will be deleted.')) return;
+  try {
+    await api('DELETE', `/models/${modelId}`);
+    toast('Model removed.', 'success');
+    await loadModels();
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+// ── Re-run fidelity ───────────────────────────────────────────────────────
+async function retestFidelity(modelId) {
+  const el = document.getElementById(`fidelity-${modelId}`);
+  if (el) el.innerHTML = '<span class="spinner"></span>';
+  try {
+    const r = await api('POST', `/models/${modelId}/test`);
+    toast(`Fidelity: ${r.rating} — ${r.verdict}`, r.rating === 'broken' ? 'error' : 'success');
+    await loadModels();
+  } catch(e) {
+    toast('Test failed: ' + e.message, 'error');
+  }
+}
+
+// ── Render models ─────────────────────────────────────────────────────────
+function renderModels() {
+  const el = document.getElementById('model-list');
+  if (!userModels.length) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">🎬</div>
+      <div>No models connected yet.<br>The show runs on the bundled default<br>until you add one.</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML = userModels.map(m => {
+    const pct = m.fidelity_rating === 'strong' ? 92
+              : m.fidelity_rating === 'adequate' ? 62
+              : m.fidelity_rating === 'thin' ? 35
+              : m.fidelity_rating === 'broken' ? 12 : 0;
+    return `
+    <div class="model-item">
+      <div class="model-item-header">
+        <span class="provider-chip ${m.provider}">${m.provider}</span>
+        <span class="model-name">${m.display_name || m.model_name}</span>
+        <div class="model-actions">
+          <button class="btn btn-ghost btn-sm" onclick="retestFidelity('${m.model_id}')" title="Re-run fidelity test">
+            <span id="fidelity-${m.model_id}">↺ Test</span>
+          </button>
+          <button class="btn btn-danger" onclick="removeModel('${m.model_id}')">✕</button>
+        </div>
+      </div>
+      <div style="font-family:var(--font-mono);font-size:0.7rem;color:var(--cream-dim);margin-bottom:0.5rem">
+        <span class="status-dot ${m.status}"></span>${m.model_name}
+        ${m.last_verified ? '· verified ' + timeAgo(m.last_verified) : ''}
+      </div>
+      ${pct > 0 ? `
+      <div class="fidelity-bar">
+        <div class="fidelity-fill ${m.fidelity_rating}" style="width:${pct}%"></div>
+      </div>
+      <div class="fidelity-label">
+        <span class="fidelity-dot ${m.fidelity_rating || 'untested'}"></span>
+        <span style="color:var(--cream-dim)">${m.fidelity_verdict || m.fidelity_rating}</span>
+      </div>` : `
+      <div class="fidelity-label">
+        <span class="fidelity-dot untested"></span>
+        <span style="color:var(--cream-dim)">Not yet tested</span>
+      </div>`}
+    </div>`;
+  }).join('');
+}
+
+// ── Catalog ────────────────────────────────────────────────────────────────
+function switchTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.catalog-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCatalog();
+}
+
+function renderCatalog() {
+  const grid = document.getElementById('catalog-grid');
+  let filtered = catalog;
+  if (currentTab === 'local') {
+    filtered = catalog.filter(m => m.provider === 'ollama');
+  } else if (currentTab === 'groq') {
+    filtered = catalog.filter(m => m.provider === 'groq');
+  } else if (currentTab === 'mistral') {
+    filtered = catalog.filter(m => m.provider === 'mistral');
+  } else {
+    filtered = catalog.filter(m => ['openai','anthropic','gemini'].includes(m.provider));
+  }
+
+  if (!filtered.length) {
+    grid.innerHTML = '<div style="color:var(--cream-dim);font-size:0.8rem;padding:1rem">No models in this category.</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(m => {
+    const viable = m.provider !== 'ollama' || m.viable;
+    const qualPips = `<span class="quality-pip ${m.quality}"><i></i><i></i><i></i></span>`;
+    return `
+    <div class="catalog-item ${!viable ? 'not-viable' : ''} ${m.bundled ? 'bundled' : ''}">
+      <div class="catalog-item-label">${m.label}${qualPips}</div>
+      <div class="catalog-meta">
+        ${m.size_gb > 0 ? `<span>Size</span>${m.size_gb}GB &nbsp;` : ''}
+        ${m.min_ram_gb > 0 && m.provider === 'ollama' ? `<span>RAM</span>${m.min_ram_gb}GB &nbsp;` : ''}
+        ${m.min_vram_gb > 0 ? `<span>VRAM</span>${m.min_vram_gb}GB` : m.provider === 'ollama' ? '<span style="color:var(--green-ok)">CPU-OK</span>' : ''}
+        ${m.notes ? `<br><span style="color:var(--amber-deep);margin-right:0">↳</span> ${m.notes}` : ''}
+        ${!viable && m.provider === 'ollama' ? '<br><span style="color:#e08080">⚠ Needs more VRAM than available</span>' : ''}
+      </div>
+      <div class="catalog-actions">
+        ${m.ollama_pull ? `
+          <button class="ollama-cmd" onclick="copyPull(this, '${m.ollama_pull}')" title="Click to copy install command">
+            ${m.ollama_pull.replace('ollama pull ','')}
+            <span class="copied">Copied!</span>
+          </button>` : `
+          <a class="btn btn-ghost btn-sm" href="${m.download_url}" target="_blank">Get API Key ↗</a>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function copyPull(btn, cmd) {
+  navigator.clipboard.writeText(cmd).then(() => {
+    btn.classList.add('just-copied');
+    setTimeout(() => btn.classList.remove('just-copied'), 1800);
+  });
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function toast(msg, type = 'success') {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────
+function timeAgo(ts) {
+  const diff = Date.now() / 1000 - ts;
+  if (diff < 120) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return Math.floor(diff/86400) + 'd ago';
+}
+</script>
+</body>
+</html>

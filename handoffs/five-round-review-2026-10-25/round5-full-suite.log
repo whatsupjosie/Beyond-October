@@ -1,0 +1,590 @@
+...............F........................................................ [  5%]
+........................................................................ [ 10%]
+........................................................................ [ 15%]
+........................................................................ [ 20%]
+........................................................................ [ 25%]
+........................................................................ [ 30%]
+.......................F...............F................................ [ 35%]
+..F................................................................FF... [ 40%]
+..........................................................FFFFF......... [ 46%]
+........................................................................ [ 51%]
+........................................................................ [ 56%]
+................................................F
+=================================== FAILURES ===================================
+__________________ test_malformed_fts_query_is_a_client_error __________________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-16/test_malformed_fts_query_is_a_0')
+
+    def test_malformed_fts_query_is_a_client_error(tmp_path):
+        client = client_for(tmp_path)
+        response = client.get("/api/conversations/search", params={"q": '"unclosed'}, headers=headers())
+>       assert response.status_code == 400
+E       assert 200 == 400
+E        +  where 200 = <Response [200 OK]>.status_code
+
+tests/conversation_ownership/test_conversation_routes.py:233: AssertionError
+__________ test_reg003_internal_nudge_does_not_trigger_room_wide_echo __________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-16/test_reg003_internal_nudge_doe0')
+
+    def test_reg003_internal_nudge_does_not_trigger_room_wide_echo(tmp_path):
+        """REG-003: internal nudges stay private and cannot recursively trigger bots."""
+        import asyncio
+        from modules.bots import BotManager
+        from modules.hub import Hub
+        from modules.models import BotConfig, BotProvider
+    
+        async def exercise():
+            hub = Hub(tmp_path)
+            manager = BotManager(tmp_path, hub)
+            manager.upsert_config(BotConfig(
+                bot_id="cast-test", name="Cast Test", provider=BotProvider.OLLAMA,
+                model="no-model-called", api_key_env="UNUSED_TEST_KEY", rooms=["world"],
+            ))
+            scheduled = []
+    
+            async def record_target(session, payload):
+                scheduled.append((session.config.bot_id, payload["text"]))
+                assert payload["user_id"] == "__internal_nudge__"
+                assert payload["nudge"] is True
+    
+            manager._schedule_reply = record_target
+            hub.on_chat_callback = manager.on_chat_message
+    
+            assert await manager.nudge("world", "One quiet private direction")
+            assert scheduled == [("cast-test", "One quiet private direction")]
+            assert await hub.get_recent_history("world") == [], "Private stage direction leaked into chat log"
+    
+            await hub.post_chat_message("world", "__internal_nudge__", "Current private direction")
+            await manager.on_chat_message({
+                "room": "world", "user_id": "conductor",
+                "text": "Private stage direction", "nudge": True,
+            })
+            assert scheduled == [("cast-test", "One quiet private direction")]
+    
+            await hub.post_chat_message("world", "visitor", "Hello, cast")
+            assert scheduled[-1] == ("cast-test", "Hello, cast")
+    
+>       asyncio.run(exercise())
+
+tests/test_06_regression.py:158: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/asyncio/base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    async def exercise():
+        hub = Hub(tmp_path)
+        manager = BotManager(tmp_path, hub)
+        manager.upsert_config(BotConfig(
+            bot_id="cast-test", name="Cast Test", provider=BotProvider.OLLAMA,
+            model="no-model-called", api_key_env="UNUSED_TEST_KEY", rooms=["world"],
+        ))
+        scheduled = []
+    
+        async def record_target(session, payload):
+            scheduled.append((session.config.bot_id, payload["text"]))
+            assert payload["user_id"] == "__internal_nudge__"
+            assert payload["nudge"] is True
+    
+        manager._schedule_reply = record_target
+        hub.on_chat_callback = manager.on_chat_message
+    
+        assert await manager.nudge("world", "One quiet private direction")
+>       assert scheduled == [("cast-test", "One quiet private direction")]
+E       AssertionError: assert [] == [('cast-test'...e direction')]
+E         
+E         Right contains one more item: ('cast-test', 'One quiet private direction')
+E         Use -v to get more diff
+
+tests/test_06_regression.py:145: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  pubcast.orchestrator:llm_orchestrator.py:546 Orchestrator: Studio error: All connection attempts failed
+WARNING  modules.bots:bots.py:569 Orchestrator path failed for bot cast-test (role=studio). Falling back to direct Ollama.
+WARNING  modules.bots:bots.py:601 Ollama call failed for cast-test: All connection attempts failed
+_______ test_alex_little_one_public_routes_are_not_exposed_when_disabled _______
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-16/test_alex_little_one_public_ro0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f9314cb3e90>
+
+    def test_alex_little_one_public_routes_are_not_exposed_when_disabled(tmp_path, monkeypatch):
+        monkeypatch.setattr(main, "DATA_DIR", tmp_path)
+>       with TestClient(main.app) as client:
+             ^^^^^^^^^^^^^^^^^^^^
+
+tests/test_alex_little_one_disabled.py:37: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../five-round-venv/lib/python3.12/site-packages/starlette/testclient.py:750: in __exit__
+    self.exit_stack.close()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:618: in close
+    self.__exit__(None, None, None)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:610: in __exit__
+    raise exc_details[1]
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:595: in __exit__
+    if cb(*exc_details):
+       ^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:478: in _exit_wrapper
+    callback(*args, **kwds)
+../../five-round-venv/lib/python3.12/site-packages/starlette/testclient.py:743: in wait_shutdown
+    portal.call(self.wait_shutdown)
+../../five-round-venv/lib/python3.12/site-packages/anyio/from_thread.py:340: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+../../five-round-venv/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+../../five-round-venv/lib/python3.12/site-packages/starlette/testclient.py:791: in wait_shutdown
+    await receive()
+../../five-round-venv/lib/python3.12/site-packages/starlette/testclient.py:780: in receive
+    self.task.result()
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:449: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+../../five-round-venv/lib/python3.12/site-packages/anyio/from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+../../five-round-venv/lib/python3.12/site-packages/starlette/testclient.py:755: in lifespan
+    await self.app(scope, self.stream_receive.receive, self.stream_send.send)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+../../five-round-venv/lib/python3.12/site-packages/starlette/applications.py:113: in __call__
+    await self.middleware_stack(scope, receive, send)
+../../five-round-venv/lib/python3.12/site-packages/starlette/middleware/errors.py:152: in __call__
+    await self.app(scope, receive, send)
+../../five-round-venv/lib/python3.12/site-packages/starlette/middleware/base.py:101: in __call__
+    await self.app(scope, receive, send)
+../../five-round-venv/lib/python3.12/site-packages/starlette/middleware/gzip.py:22: in __call__
+    await self.app(scope, receive, send)
+../../five-round-venv/lib/python3.12/site-packages/starlette/middleware/cors.py:77: in __call__
+    await self.app(scope, receive, send)
+../../five-round-venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py:48: in __call__
+    await self.app(scope, receive, send)
+../../five-round-venv/lib/python3.12/site-packages/starlette/routing.py:715: in __call__
+    await self.middleware_stack(scope, receive, send)
+../../five-round-venv/lib/python3.12/site-packages/starlette/routing.py:724: in app
+    await self.lifespan(scope, receive, send)
+../../five-round-venv/lib/python3.12/site-packages/starlette/routing.py:693: in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+thinking_context/mount.py:236: in _lifespan
+    async with _existing_lifespan(application):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+../../five-round-venv/lib/python3.12/site-packages/fastapi/routing.py:133: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:217: in __aexit__
+    await anext(self.gen)
+main.py:855: in lifespan
+    await evo_orchestrator.stop()
+modules/evo/evo_integration.py:259: in stop
+    await self.epete.stop()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <modules.evo.epete.EPete object at 0x7f9314cf6450>
+
+    async def stop(self) -> None:
+        """Stop E-Pete."""
+        self._running = False
+        if self._worker_task:
+            self._worker_task.cancel()
+            try:
+>               await self._worker_task
+E               RuntimeError: Task <Task pending name='anyio.from_thread.BlockingPortal._call_func' coro=<TaskHandle._run_coro() running at /workspace/scratch/9771830e3533/five-round-venv/lib/python3.12/site-packages/anyio/_core/_tasks.py:327> cb=[TaskGroup._spawn.<locals>.task_done() at /workspace/scratch/9771830e3533/five-round-venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:870]> got Future <Task cancelling name='Task-486' coro=<EPete._queue_worker() running at /workspace/scratch/9771830e3533/five-round-review/PubCast/modules/evo/epete.py:826> wait_for=<Future cancelled>> attached to a different loop
+
+modules/evo/epete.py:351: RuntimeError
+------------------------------ Captured log call -------------------------------
+WARNING  pubcast.bridge:bridge_bulletproof.py:587 🌉 SHM segment not found
+ERROR    pubcast.bridge:bridge_bulletproof.py:698 ❌ TCP connection failed: [Errno 111] Connection refused
+ERROR    pubcast.bridge:bridge_bulletproof.py:447 🚨 Bridge using Path C (File System) - severe performance impact
+WARNING  pubcast.pete_enhanced:pete_enhanced.py:458 e-PETE: bridge fallback path accepted command test; primary bridge not active (status=emergency)
+____ test_principal_avatar_manifest_marks_manny_and_sheila_as_3d_performers ____
+
+    def test_principal_avatar_manifest_marks_manny_and_sheila_as_3d_performers():
+>       manifest = json.loads(Path("data/avatars/manifest.json").read_text(encoding="utf-8"))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_avatar_manifest_contract.py:6: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py:1027: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('data/avatars/manifest.json'), mode = 'r', buffering = -1
+encoding = 'utf-8', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'data/avatars/manifest.json'
+
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py:1013: FileNotFoundError
+__________________ test_speech_routes_reach_lifespan_engines ___________________
+
+client = <starlette.testclient.TestClient object at 0x7f9316abe690>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f9314296840>
+
+    def test_speech_routes_reach_lifespan_engines(client, monkeypatch):
+        import main
+>       assert main.stt_engine is main.app.state.stt_engine
+E       AssertionError: assert None is <modules.stt_engine.STTEngine object at 0x7f9314bec830>
+E        +  where None = <module 'main' from '/workspace/scratch/9771830e3533/five-round-review/PubCast/main.py'>.stt_engine
+E        +  and   <modules.stt_engine.STTEngine object at 0x7f9314bec830> = <starlette.datastructures.State object at 0x7f9318ae5880>.stt_engine
+E        +    where <starlette.datastructures.State object at 0x7f9318ae5880> = <fastapi.applications.FastAPI object at 0x7f9318ae54f0>.state
+E        +      where <fastapi.applications.FastAPI object at 0x7f9318ae54f0> = <module 'main' from '/workspace/scratch/9771830e3533/five-round-review/PubCast/main.py'>.app
+
+tests/test_communications_host_contracts.py:16: AssertionError
+___________________ test_host_required_turn_auth_and_receipt ___________________
+
+client = <starlette.testclient.TestClient object at 0x7f9316abe690>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f92ffa0cb30>
+
+    def test_host_required_turn_auth_and_receipt(client, monkeypatch):
+        import main
+        request_turn=AsyncMock(return_value={'state':'completed','request_id':'abc'})
+        monkeypatch.setattr(main.bot_manager,'request_turn',request_turn)
+>       assert client.post('/api/bots/pete/request-turn',json={}).status_code==403
+E       AssertionError: assert 404 == 403
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E        +    where <Response [404 Not Found]> = post('/api/bots/pete/request-turn', json={})
+E        +      where post = <starlette.testclient.TestClient object at 0x7f9316abe690>.post
+
+tests/test_communications_host_contracts.py:37: AssertionError
+_______ TestDoctorPathResolution.test_project_root_no_required_failures ________
+
+self = <tests.test_doctor_paths.TestDoctorPathResolution object at 0x7f931898c8f0>
+
+    def test_project_root_no_required_failures(self):
+        report = run_doctor(PROJECT_ROOT)
+        required_fails = [
+            c for c in report["checks"]
+            if c["status"] == "fail" and c.get("required")
+        ]
+>       assert required_fails == [], (
+            f"run_doctor(project_root) has unexpected required failures: "
+            f"{[f['name'] for f in required_fails]}"
+        )
+E       AssertionError: run_doctor(project_root) has unexpected required failures: ['Required data directories']
+E       assert [{'check_id':...': True, ...}] == []
+E         
+E         Left contains one more item: {'check_id': 'data_dirs', 'name': 'Required data directories', 'status': 'fail', 'required': True, ...}
+E         Use -v to get more diff
+
+tests/test_doctor_paths.py:39: AssertionError
+_________ TestDoctorPathResolution.test_data_dir_no_required_failures __________
+
+self = <tests.test_doctor_paths.TestDoctorPathResolution object at 0x7f931898d970>
+
+    def test_data_dir_no_required_failures(self):
+        report = run_doctor(DATA_DIR)
+        required_fails = [
+            c for c in report["checks"]
+            if c["status"] == "fail" and c.get("required")
+        ]
+>       assert required_fails == [], (
+            f"run_doctor(DATA_DIR) has unexpected required failures: "
+            f"{[f['name'] for f in required_fails]}"
+        )
+E       AssertionError: run_doctor(DATA_DIR) has unexpected required failures: ['Required data directories']
+E       assert [{'check_id':...': True, ...}] == []
+E         
+E         Left contains one more item: {'check_id': 'data_dirs', 'name': 'Required data directories', 'status': 'fail', 'required': True, ...}
+E         Use -v to get more diff
+
+tests/test_doctor_paths.py:50: AssertionError
+________ TestDoctorPathResolution.test_project_root_launch_gate_allowed ________
+
+self = <tests.test_doctor_paths.TestDoctorPathResolution object at 0x7f931898dcd0>
+
+    def test_project_root_launch_gate_allowed(self):
+        gate = run_launch_gate(PROJECT_ROOT)
+>       assert gate["allowed"] is True, (
+            f"launch_gate(project_root) is blocking: {gate['blocking_checks']}"
+        )
+E       AssertionError: launch_gate(project_root) is blocking: [{'check_id': 'data_dirs', 'name': 'Required data directories', 'message': 'Missing: data/byok, data/secure', 'fix_instructions': ['Create the missing folders under /workspace/scratch/9771830e3533/five-round-review/PubCast/data.', 'If your app usually bootstraps these folders, run that init step before going live.']}]
+E       assert False is True
+
+tests/test_doctor_paths.py:57: AssertionError
+__________ TestDoctorPathResolution.test_data_dir_launch_gate_allowed __________
+
+self = <tests.test_doctor_paths.TestDoctorPathResolution object at 0x7f931898e030>
+
+    def test_data_dir_launch_gate_allowed(self):
+        gate = run_launch_gate(DATA_DIR)
+>       assert gate["allowed"] is True, (
+            f"launch_gate(DATA_DIR) is blocking: {gate['blocking_checks']}"
+        )
+E       AssertionError: launch_gate(DATA_DIR) is blocking: [{'check_id': 'data_dirs', 'name': 'Required data directories', 'message': 'Missing: data/byok, data/secure', 'fix_instructions': ['Create the missing folders under /workspace/scratch/9771830e3533/five-round-review/PubCast/data.', 'If your app usually bootstraps these folders, run that init step before going live.']}]
+E       assert False is True
+
+tests/test_doctor_paths.py:63: AssertionError
+______ TestDoctorPathResolution.test_both_modes_agree_on_data_dirs_check _______
+
+self = <tests.test_doctor_paths.TestDoctorPathResolution object at 0x7f931898e390>
+
+    def test_both_modes_agree_on_data_dirs_check(self):
+        """The data_dirs check must pass in both call modes."""
+        root_report = run_doctor(PROJECT_ROOT)
+        data_report = run_doctor(DATA_DIR)
+    
+        root_check = next(c for c in root_report["checks"] if c["check_id"] == "data_dirs")
+        data_check = next(c for c in data_report["checks"] if c["check_id"] == "data_dirs")
+    
+>       assert root_check["status"] == "pass", (
+            f"data_dirs check failed via project root: {root_check['message']}"
+        )
+E       AssertionError: data_dirs check failed via project root: Missing: data/byok, data/secure
+E       assert 'fail' == 'pass'
+E         
+E         - pass
+E         + fail
+
+tests/test_doctor_paths.py:75: AssertionError
+____________ test_counter_and_character_services_with_real_startup _____________
+
+request = <FixtureRequest for <Function test_counter_and_character_services_with_real_startup>>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f92ffc97d70>
+
+    def test_counter_and_character_services_with_real_startup(request, monkeypatch):
+        monkeypatch.setenv("PUBCAST_ENFORCE_AUTH", "1")
+        client = request.getfixturevalue("client")
+        headers = {
+            "Authorization": "Bearer "
+            + create_access_token({"sub": "audit-owner", "role": "owner"})
+        }
+        page = client.get("/foresight-counter")
+>       assert page.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests/test_foresight_reach_runtime.py:20: AssertionError
+=========================== short test summary info ============================
+SKIPPED [1] tests/alex_little_one/test_public_baby_role.py:8: Alex Little One research protocol tests require ENABLE_ALEX_LITTLE_ONE=true.
+SKIPPED [1] tests/test_foresight_airgapped_ui.py:16: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] tests/test_foresight_counter_workspaces.py:18: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] tests/test_foresight_file_workspace.py:15: Optional browser verification requires Playwright
+SKIPPED [1] tests/test_public_baby_role.py:5: Moved to tests/alex_little_one/test_public_baby_role.py. Set ENABLE_ALEX_LITTLE_ONE=true to run the research protocol tests.
+FAILED tests/conversation_ownership/test_conversation_routes.py::test_malformed_fts_query_is_a_client_error
+FAILED tests/test_06_regression.py::test_reg003_internal_nudge_does_not_trigger_room_wide_echo
+FAILED tests/test_alex_little_one_disabled.py::test_alex_little_one_public_routes_are_not_exposed_when_disabled
+FAILED tests/test_avatar_manifest_contract.py::test_principal_avatar_manifest_marks_manny_and_sheila_as_3d_performers
+FAILED tests/test_communications_host_contracts.py::test_speech_routes_reach_lifespan_engines
+FAILED tests/test_communications_host_contracts.py::test_host_required_turn_auth_and_receipt
+FAILED tests/test_doctor_paths.py::TestDoctorPathResolution::test_project_root_no_required_failures
+FAILED tests/test_doctor_paths.py::TestDoctorPathResolution::test_data_dir_no_required_failures
+FAILED tests/test_doctor_paths.py::TestDoctorPathResolution::test_project_root_launch_gate_allowed
+FAILED tests/test_doctor_paths.py::TestDoctorPathResolution::test_data_dir_launch_gate_allowed
+FAILED tests/test_doctor_paths.py::TestDoctorPathResolution::test_both_modes_agree_on_data_dirs_check
+FAILED tests/test_foresight_reach_runtime.py::test_counter_and_character_services_with_real_startup
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 12 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+12 failed, 829 passed, 5 skipped, 202 warnings in 83.22s (0:01:23)

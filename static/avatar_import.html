@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Import Avatar · PubCast</title>
+<style>
+  :root { --gold:#c9a45c; --gold-dim:#8a7040; --ink:#0b0a09; --panel:#14120f; --line:#2a251d; --text:#e8dfcf; --muted:#9a8f7c; --bad:#e07a6a; --good:#8fc49a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--ink); color:var(--text); font:14px/1.45 "DM Sans", system-ui, sans-serif; height:100vh; display:flex; flex-direction:column; }
+  header { padding:12px 18px; border-bottom:1px solid var(--line); display:flex; align-items:baseline; gap:14px; }
+  header h1 { margin:0; font:600 17px "DM Mono", ui-monospace, monospace; letter-spacing:.12em; color:var(--gold); text-transform:uppercase; }
+  header span { color:var(--muted); }
+  main { flex:1; display:grid; grid-template-columns:340px 1fr; min-height:0; }
+  aside { border-right:1px solid var(--line); padding:16px; overflow:auto; display:flex; flex-direction:column; gap:14px; }
+  #drop { border:1px dashed var(--gold-dim); border-radius:8px; padding:22px 14px; text-align:center; color:var(--muted); cursor:pointer; }
+  #drop.over { background:#1d1912; color:var(--text); }
+  #drop strong { color:var(--text); display:block; margin-bottom:4px; }
+  label { display:block; color:var(--muted); font-size:12px; letter-spacing:.06em; text-transform:uppercase; margin-bottom:4px; }
+  input, select, button { font:inherit; color:var(--text); background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:7px 9px; }
+  input, select { width:100%; }
+  .row { display:flex; gap:8px; }
+  .row > * { flex:1; }
+  button { cursor:pointer; }
+  button.primary { background:var(--gold); color:#16120a; border-color:var(--gold); font-weight:600; }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  #report { font:12px/1.5 "DM Mono", ui-monospace, monospace; background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:10px; white-space:pre-wrap; min-height:60px; }
+  .bad { color:var(--bad); } .good { color:var(--good); }
+  #stage { position:relative; min-height:0; }
+  #stage canvas { display:block; width:100%; height:100%; }
+  #legend { position:absolute; left:12px; bottom:12px; font:12px "DM Mono", ui-monospace, monospace; color:var(--muted); background:#0b0a09cc; padding:8px 10px; border-radius:6px; }
+  #library { list-style:none; margin:0; padding:0; }
+  #library li { display:flex; justify-content:space-between; gap:8px; padding:5px 0; border-bottom:1px solid var(--line); font-size:13px; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "/static/vendor/three-0.160.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+<header><h1>Import Avatar</h1><span>GLB · glTF · OBJ · FBX · or a .zip of one, any art style</span></header>
+<main>
+  <aside>
+    <div id="drop" tabindex="0" role="button" aria-label="Choose avatar files">
+      <strong>Drop an avatar here</strong>
+      or click to choose. Include its textures (and .bin or .mtl), or drop one .zip.
+      <input id="file" type="file" multiple hidden accept=".glb,.gltf,.bin,.obj,.mtl,.fbx,.zip,.png,.jpg,.jpeg,.webp,.tga,.bmp">
+    </div>
+    <div>
+      <label for="name">Name</label>
+      <input id="name" placeholder="Avatar name" maxlength="80">
+    </div>
+    <div>
+      <label for="heightPreset">Canonical height (required)</label>
+      <select id="heightPreset"></select>
+      <div class="row" style="margin-top:6px">
+        <input id="feet" type="number" min="0" max="20" step="1" aria-label="Feet" placeholder="ft">
+        <input id="inches" type="number" min="0" max="11.9" step="0.5" aria-label="Inches" placeholder="in">
+      </div>
+    </div>
+    <div>
+      <label>Orientation fix (only if it looks wrong)</label>
+      <div class="row">
+        <button id="tilt" title="Tip 90° forward">Tip 90°</button>
+        <button id="turn" title="Turn 90°">Turn 90°</button>
+        <button id="resetRot">Reset</button>
+      </div>
+    </div>
+    <div>
+      <label for="clip">Animation</label>
+      <select id="clip"><option value="">(none)</option></select>
+    </div>
+    <div id="report">No avatar loaded.</div>
+    <button id="save" class="primary" disabled>Save to PubCast</button>
+    <div>
+      <label>Imported avatars</label>
+      <ul id="library"></ul>
+    </div>
+  </aside>
+  <section id="stage"><div id="legend"></div></section>
+</main>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from '/static/vendor/three-0.160.0/examples/jsm/controls/OrbitControls.js';
+import * as AI from '/static/js/avatar/avatar_import.js';
+
+const $ = (id) => document.getElementById(id);
+const token = () => sessionStorage.getItem('pubcast_token') || localStorage.getItem('pubpartner.auth.token.v1') || '';
+const authHeaders = () => (token() ? { Authorization: 'Bearer ' + token() } : {});
+const state = { files: null, loaded: null, result: null, rotX: 0, rotY: 0, mixer: null, heights: null };
+window.__avatarImport = state;   // read by the browser acceptance tests
+
+// ── scene ───────────────────────────────────────────────────────────────
+const stage = $('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+stage.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b0a09);
+scene.add(new THREE.HemisphereLight(0xfff3dd, 0x2a2318, 1.6));
+const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(2, 4, 3); scene.add(key);
+const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 200);
+camera.position.set(0, 1.1, 4.4);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0.9, 0);
+const grid = new THREE.GridHelper(6, 24, 0x6b5a36, 0x2a251d); scene.add(grid);
+const clock = new THREE.Clock();
+let shown = null;
+
+// Height lines for the cast, so every import is judged against Pete, RePete and Sir Purfluous.
+const markers = new THREE.Group(); scene.add(markers);
+function drawMarkers(heights) {
+  markers.clear();
+  const colours = [0xc9a45c, 0x7fb3d5, 0xb48ad6, 0x8fc49a];
+  const lines = [];
+  Object.values(heights.cast).forEach((c, i) => {
+    const h = c.height_in * AI.INCH_M;
+    const mat = new THREE.LineBasicMaterial({ color: colours[i % colours.length] });
+    const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-1.4, h, 0), new THREE.Vector3(1.4, h, 0)]);
+    markers.add(new THREE.Line(g, mat));
+    lines.push(`<span style="color:#${colours[i % colours.length].toString(16)}">━</span> ${c.name} ${fmt(c.height_in)}`);
+  });
+  $('legend').innerHTML = lines.join('<br>');
+}
+const fmt = (inches) => `${Math.floor(inches / 12)}′${(inches % 12).toFixed(inches % 1 ? 1 : 0)}″`;
+
+function resize() {
+  const r = stage.getBoundingClientRect();
+  renderer.setSize(r.width, r.height, false);
+  camera.aspect = r.width / Math.max(1, r.height); camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage); resize();
+renderer.setAnimationLoop(() => { const dt = clock.getDelta(); if (state.mixer) state.mixer.update(dt); controls.update(); renderer.render(scene, camera); });
+
+// ── heights ─────────────────────────────────────────────────────────────
+async function loadHeights() {
+  const r = await fetch('/api/avatars/canonical-heights');
+  state.heights = await r.json();
+  const sel = $('heightPreset');
+  sel.innerHTML = '<option value="">— choose a height —</option>' +
+    Object.entries(state.heights.cast).map(([id, c]) => `<option value="${c.height_in}" data-id="${id}">Same as ${c.name} (${fmt(c.height_in)})</option>`).join('') +
+    '<option value="custom">Custom height…</option>';
+  drawMarkers(state.heights);
+}
+function heightIn() {
+  const preset = $('heightPreset').value;
+  if (preset && preset !== 'custom') return Number(preset);
+  const ft = Number($('feet').value || 0), inch = Number($('inches').value || 0);
+  return ft * 12 + inch;
+}
+$('heightPreset').addEventListener('change', () => {
+  const v = $('heightPreset').value;
+  if (v && v !== 'custom') { const n = Number(v); $('feet').value = Math.floor(n / 12); $('inches').value = n % 12; }
+  rebuild();
+});
+['feet', 'inches'].forEach((id) => $(id).addEventListener('input', () => { $('heightPreset').value = 'custom'; rebuild(); }));
+
+// ── load, normalise, preview ────────────────────────────────────────────
+const report = (html) => { $('report').innerHTML = html; };
+async function takeFiles(list) {
+  try {
+    report('Reading…');
+    state.files = await AI.collectFiles(list);
+    state.rotX = state.rotY = 0;
+    const modelName = AI.pickModel(state.files);
+    if (!$('name').value) $('name').value = modelName.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ');
+    await reload();
+  } catch (err) { fail(err); }
+}
+async function reload() {
+  // Reload from the source files so each normalisation starts clean.
+  state.loaded = await AI.loadModel(state.files);
+  const clips = state.loaded.clips;
+  $('clip').innerHTML = '<option value="">(none)</option>' + clips.map((c, i) => `<option value="${i}">${c.name || 'clip ' + i}</option>`).join('');
+  const walk = clips.findIndex((c) => /walk/i.test(c.name)); if (walk >= 0) $('clip').value = String(walk);
+  rebuild();
+}
+function rebuild() {
+  if (!state.files) return;
+  if (shown) { scene.remove(shown); shown = null; state.mixer = null; }
+  const h = heightIn();
+  if (!(h > 0)) { $('save').disabled = true; report('Choose a canonical height. Every avatar needs one so it stays in scale with the cast.'); return; }
+  try {
+    // normalise() re-parents the object, so re-run loadModel when rotating; height changes are cheap.
+    state.result = AI.normalise(state.loaded, h, { extraRotationX: state.rotX, extraRotationY: state.rotY });
+    shown = state.result.root; scene.add(shown);
+    state.mixer = new THREE.AnimationMixer(shown);
+    playClip();
+    const s = state.result.stats, sz = state.result.size;
+    const lines = [
+      `<span class="good">Ready</span> · ${state.loaded.format.toUpperCase()} · ${state.loaded.modelName}`,
+      `Height ${fmt(state.result.heightM / AI.INCH_M)} (${state.result.heightM.toFixed(3)} m) — canonical ${fmt(h)}`,
+      `Footprint ${sz.x.toFixed(2)} × ${sz.z.toFixed(2)} m · scaled ×${state.result.scale.toPrecision(3)}`,
+      `${s.meshes} mesh(es), ${s.triangles.toLocaleString()} triangles`,
+      s.skinned ? `Rigged: ${s.bones} bones, ${s.clips.length} animation(s)` : `<span class="bad">No skeleton</span> — imports as a standing figure`,
+      ...state.loaded.warnings.map((w) => `<span class="bad">${w}</span>`),
+    ];
+    if (s.triangles > 300000) lines.push('<span class="bad">Very dense model; may run slowly on a laptop or phone.</span>');
+    report(lines.join('\n'));
+    $('save').disabled = false;
+  } catch (err) { fail(err); }
+}
+function playClip() {
+  if (!state.mixer) return;
+  state.mixer.stopAllAction();
+  const i = $('clip').value;
+  if (i !== '') state.mixer.clipAction(state.loaded.clips[Number(i)]).play();
+}
+$('clip').addEventListener('change', playClip);
+$('tilt').addEventListener('click', async () => { state.rotX += Math.PI / 2; await reload(); });
+$('turn').addEventListener('click', async () => { state.rotY += Math.PI / 2; await reload(); });
+$('resetRot').addEventListener('click', async () => { state.rotX = state.rotY = 0; await reload(); });
+function fail(err) { console.error(err); $('save').disabled = true; report(`<span class="bad">${err.message || err}</span>`); }
+
+// ── save and library ────────────────────────────────────────────────────
+$('save').addEventListener('click', async () => {
+  $('save').disabled = true;
+  try {
+    report('Saving…');
+    const loaded = await AI.loadModel(state.files);                 // fresh copy, nothing shared with the preview
+    const result = AI.normalise(loaded, heightIn(), { extraRotationX: state.rotX, extraRotationY: state.rotY });
+    const glb = await AI.exportGLB(result.root, loaded.clips);
+    const avatar = await AI.uploadGLB(glb, { name: $('name').value.trim() || 'Avatar', heightIn: heightIn(),
+      sourceFormat: loaded.format, sourceName: loaded.modelName, token: token() });
+    state.saved = avatar;
+    report(`<span class="good">Saved</span> “${avatar.name}” · server measured ${avatar.measured.height_m.toFixed(3)} m`);
+    await refreshLibrary();
+  } catch (err) { fail(err); }
+  $('save').disabled = false;
+});
+async function refreshLibrary() {
+  const r = await fetch('/api/avatars/imports');
+  const { avatars } = await r.json();
+  $('library').innerHTML = avatars.length ? avatars.map((a) =>
+    `<li><span>${a.name}</span><span>${fmt(a.canonical_height_in)} · ${a.measured.skinned ? a.measured.joints + ' bones' : 'static'}</span></li>`).join('')
+    : '<li><span style="color:var(--muted)">None yet</span></li>';
+}
+
+// ── file input ──────────────────────────────────────────────────────────
+const drop = $('drop');
+drop.addEventListener('click', () => $('file').click());
+drop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') $('file').click(); });
+$('file').addEventListener('change', (e) => e.target.files.length && takeFiles([...e.target.files]));
+['dragenter', 'dragover'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', (e) => e.dataTransfer.files.length && takeFiles([...e.dataTransfer.files]));
+
+state.takeFiles = takeFiles;
+loadHeights().then(refreshLibrary).catch(fail);
+</script>
+</body>
+</html>

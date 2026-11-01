@@ -1,0 +1,349 @@
+{
+  "schema": "reach.hotspots.v1",
+  "image": {
+    "file": "writers-room-art.webp",
+    "width": 1344,
+    "height": 896,
+    "sha256": "495970f71a5615c947e73e1f32c0e56906037d4099a19152a19abba1e9134de7"
+  },
+  "coordinate_system": "Pixels on the original artwork. Scale the entire stage, including these controls, together.",
+  "controls": [
+    {
+      "id": "photoManuscript",
+      "label": "Manuscript",
+      "action": "manuscript",
+      "bounds": [
+        397,
+        19,
+        125,
+        44
+      ]
+    },
+    {
+      "id": "photoOutline",
+      "label": "Outline",
+      "action": "outline",
+      "bounds": [
+        522,
+        19,
+        90,
+        44
+      ]
+    },
+    {
+      "id": "photoCharacters",
+      "label": "Characters",
+      "action": "characters",
+      "bounds": [
+        612,
+        19,
+        117,
+        44
+      ]
+    },
+    {
+      "id": "photoWorldbuilding",
+      "label": "Worldbuilding",
+      "action": "worldbuilding",
+      "bounds": [
+        729,
+        19,
+        141,
+        44
+      ]
+    },
+    {
+      "id": "photoNotes",
+      "label": "Notes",
+      "action": "notes",
+      "bounds": [
+        870,
+        19,
+        77,
+        44
+      ]
+    },
+    {
+      "id": "modeBadge",
+      "label": "Switch writing mode",
+      "bounds": [
+        1076,
+        34,
+        107,
+        28
+      ]
+    },
+    {
+      "id": "menuToggle",
+      "label": "Open manuscript menu",
+      "bounds": [
+        1198,
+        13,
+        51,
+        53
+      ]
+    },
+    {
+      "id": "sidebarToggle",
+      "label": "Model and connection settings",
+      "bounds": [
+        1262,
+        13,
+        54,
+        53
+      ]
+    },
+    {
+      "id": "lockSceneBtn",
+      "label": "Lock or unlock scene",
+      "bounds": [
+        32,
+        258,
+        263,
+        40
+      ]
+    },
+    {
+      "id": "newChapterBtn",
+      "label": "New scene",
+      "bounds": [
+        32,
+        312,
+        133,
+        39
+      ]
+    },
+    {
+      "id": "exportBtn",
+      "label": "Export manuscript",
+      "bounds": [
+        175,
+        312,
+        121,
+        39
+      ]
+    },
+    {
+      "id": "addRefBtn",
+      "label": "Add reference",
+      "bounds": [
+        31,
+        791,
+        266,
+        32
+      ]
+    },
+    {
+      "id": "chatSendBtn",
+      "label": "Send message to your partner",
+      "bounds": [
+        1277,
+        574,
+        43,
+        34
+      ]
+    },
+    {
+      "id": "photoInsert",
+      "label": "Insert suggestion into draft",
+      "action": "insert",
+      "bounds": [
+        1071,
+        530,
+        101,
+        28
+      ]
+    },
+    {
+      "id": "photoDismiss",
+      "label": "Dismiss suggestion",
+      "action": "dismiss",
+      "bounds": [
+        1203,
+        529,
+        105,
+        29
+      ]
+    },
+    {
+      "id": "photoAddIdea",
+      "label": "Add scene idea",
+      "action": "add_idea",
+      "bounds": [
+        1285,
+        629,
+        30,
+        32
+      ]
+    },
+    {
+      "id": "photoAllIdeas",
+      "label": "View all scene ideas",
+      "action": "ideas",
+      "bounds": [
+        1105,
+        801,
+        197,
+        27
+      ]
+    },
+    {
+      "id": "photoPrevious",
+      "label": "Previous scene",
+      "action": "previous",
+      "bounds": [
+        1003,
+        848,
+        40,
+        37
+      ]
+    },
+    {
+      "id": "photoNext",
+      "label": "Next scene",
+      "action": "next",
+      "bounds": [
+        1049,
+        848,
+        40,
+        37
+      ]
+    },
+    {
+      "id": "saveBtn",
+      "label": "Save manuscript",
+      "bounds": [
+        1119,
+        850,
+        153,
+        36
+      ]
+    },
+    {
+      "id": "photoSearch",
+      "label": "Search references",
+      "bounds": [
+        262,
+        451,
+        36,
+        32
+      ]
+    },
+    {
+      "id": "photoLockMode",
+      "label": "Writing and lock options",
+      "action": "lock_mode",
+      "bounds": [
+        201,
+        217,
+        94,
+        31
+      ]
+    },
+    {
+      "id": "photoRefAll",
+      "label": "All references",
+      "bounds": [
+        28,
+        496,
+        57,
+        30
+      ]
+    },
+    {
+      "id": "photoRefChapter",
+      "label": "Chapter references",
+      "bounds": [
+        85,
+        496,
+        83,
+        30
+      ]
+    },
+    {
+      "id": "photoRefResearch",
+      "label": "Research references",
+      "bounds": [
+        168,
+        496,
+        77,
+        30
+      ]
+    },
+    {
+      "id": "photoRefNotes",
+      "label": "Note references",
+      "bounds": [
+        245,
+        496,
+        52,
+        30
+      ]
+    }
+  ],
+  "live_regions": [
+    {
+      "id": "manuscriptZone",
+      "bounds": [
+        488,
+        246,
+        433,
+        367
+      ]
+    },
+    {
+      "id": "chatLog",
+      "bounds": [
+        1060,
+        133,
+        259,
+        241
+      ]
+    },
+    {
+      "id": "chatInput",
+      "bounds": [
+        1060,
+        575,
+        211,
+        28
+      ]
+    },
+    {
+      "id": "refListContainer",
+      "bounds": [
+        29,
+        540,
+        266,
+        239
+      ]
+    },
+    {
+      "id": "refSearchInput",
+      "bounds": [
+        30,
+        454,
+        232,
+        25
+      ]
+    },
+    {
+      "id": "photoSuggestionText",
+      "bounds": [
+        1077,
+        410,
+        224,
+        112
+      ]
+    },
+    {
+      "id": "photoIdeas",
+      "bounds": [
+        1062,
+        666,
+        251,
+        128
+      ]
+    }
+  ]
+}

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PubCast AI — Doctor</title>
+<style>
+  :root {
+    --bg: #1E140D;
+    --surface: #2a1f16;
+    --brass: #C7A144;
+    --brass-dim: #B08C4F;
+    --teal: #014E49;
+    --amber: #E6B25C;
+    --text: #D6B97A;
+    --text-dim: #8a7a60;
+    --ok: #4a9;
+    --warn: #da4;
+    --fail: #d55;
+    --font: 'Segoe UI', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    padding: 1.5rem;
+    min-height: 100vh;
+  }
+  h1 {
+    color: var(--brass);
+    font-size: 1.4rem;
+    font-weight: 400;
+    letter-spacing: .08em;
+    border-bottom: 1px solid var(--teal);
+    padding-bottom: .5rem;
+    margin-bottom: 1rem;
+  }
+  h2 {
+    color: var(--brass-dim);
+    font-size: 1rem;
+    font-weight: 400;
+    margin: 1.2rem 0 .5rem;
+    letter-spacing: .05em;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: .8rem;
+    margin-bottom: 1rem;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--teal);
+    border-radius: 6px;
+    padding: .8rem 1rem;
+  }
+  .card-title {
+    color: var(--brass);
+    font-size: .85rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: .4rem;
+  }
+  .status { font-size: .8rem; line-height: 1.6; }
+  .status .row { display: flex; justify-content: space-between; }
+  .status .label { color: var(--text-dim); }
+  .ok { color: var(--ok); }
+  .warn { color: var(--warn); }
+  .fail { color: var(--fail); }
+  .pill {
+    display: inline-block;
+    padding: .1rem .5rem;
+    border-radius: 3px;
+    font-size: .75rem;
+    font-weight: 600;
+  }
+  .pill-ok { background: rgba(68,170,153,.15); color: var(--ok); }
+  .pill-warn { background: rgba(221,170,68,.15); color: var(--warn); }
+  .pill-fail { background: rgba(221,85,85,.15); color: var(--fail); }
+  #error-box {
+    background: rgba(221,85,85,.1);
+    border: 1px solid var(--fail);
+    border-radius: 6px;
+    padding: .8rem;
+    margin-bottom: 1rem;
+    display: none;
+    font-size: .85rem;
+  }
+  .refresh-btn {
+    background: var(--teal);
+    color: var(--text);
+    border: 1px solid var(--brass-dim);
+    border-radius: 4px;
+    padding: .4rem 1rem;
+    cursor: pointer;
+    font-size: .8rem;
+    float: right;
+    margin-top: -2.2rem;
+  }
+  .refresh-btn:hover { background: var(--brass-dim); color: var(--bg); }
+  .ts { color: var(--text-dim); font-size: .7rem; margin-top: .8rem; }
+  pre {
+    background: var(--bg);
+    border: 1px solid var(--teal);
+    border-radius: 4px;
+    padding: .6rem;
+    font-size: .75rem;
+    overflow-x: auto;
+    color: var(--text-dim);
+    max-height: 300px;
+    overflow-y: auto;
+    margin-top: .5rem;
+  }
+</style>
+  <script src="/static/reach_auth.js"></script>
+</head>
+<body>
+
+<h1>PubCast AI — Doctor</h1>
+<button class="refresh-btn" onclick="load()">Refresh</button>
+<div id="error-box"></div>
+<div id="gate-section"></div>
+<h2>System Report</h2>
+<div id="report-section"><div class="card"><div class="status">Loading...</div></div></div>
+<div class="ts" id="timestamp"></div>
+
+<script>
+async function load() {
+  const errBox = document.getElementById('error-box');
+  errBox.style.display = 'none';
+
+  try {
+    const [gateRes, reportRes] = await Promise.allSettled([
+      fetch('/api/doctor/launch-gate').then(r => r.ok ? r.json() : null),
+      fetch('/api/doctor').then(r => r.ok ? r.json() : null),
+    ]);
+
+    const gate = gateRes.status === 'fulfilled' ? gateRes.value : null;
+    const report = reportRes.status === 'fulfilled' ? reportRes.value : null;
+
+    if (gate) renderGate(gate);
+    if (report) renderReport(report);
+    if (!gate && !report) {
+      errBox.textContent = 'Doctor module not available (503). The system is running but the doctor module may not be loaded.';
+      errBox.style.display = 'block';
+    }
+
+    document.getElementById('timestamp').textContent =
+      'Last checked: ' + new Date().toLocaleTimeString();
+  } catch (e) {
+    errBox.textContent = 'Connection error: ' + e.message;
+    errBox.style.display = 'block';
+  }
+}
+
+function renderGate(data) {
+  const el = document.getElementById('gate-section');
+  if (!data || typeof data !== 'object') { el.innerHTML = ''; return; }
+
+  const ok = data.go === true || data.ok === true || data.passed === true;
+  const pillClass = ok ? 'pill-ok' : 'pill-warn';
+  const pillText = ok ? 'READY' : 'WARNINGS';
+
+  let checksHtml = '';
+  const checks = data.checks || data.results || data.gates || [];
+  if (Array.isArray(checks)) {
+    checks.forEach(c => {
+      const name = c.name || c.check || c.label || '?';
+      const passed = c.ok === true || c.passed === true || c.status === 'ok';
+      const cls = passed ? 'ok' : 'warn';
+      const msg = c.message || c.detail || '';
+      checksHtml += '<div class="row"><span class="label">' + name +
+        '</span><span class="' + cls + '">' + (passed ? '✓' : '⚠') +
+        (msg ? ' ' + msg : '') + '</span></div>';
+    });
+  }
+
+  el.innerHTML =
+    '<h2>Launch Gate <span class="pill ' + pillClass + '">' + pillText + '</span></h2>' +
+    '<div class="card"><div class="status">' +
+    (checksHtml || '<div class="row"><span class="label">Status</span><span class="ok">' +
+      JSON.stringify(data).substring(0, 200) + '</span></div>') +
+    '</div></div>';
+}
+
+function renderReport(data) {
+  const el = document.getElementById('report-section');
+  if (!data || typeof data !== 'object') {
+    el.innerHTML = '<div class="card"><div class="status">No data</div></div>';
+    return;
+  }
+
+  let html = '<div class="grid">';
+
+  // Walk top-level keys and render each as a card
+  for (const [key, val] of Object.entries(data)) {
+    html += '<div class="card"><div class="card-title">' + key + '</div><div class="status">';
+    if (typeof val === 'object' && val !== null) {
+      for (const [k2, v2] of Object.entries(val)) {
+        const display = typeof v2 === 'object' ? JSON.stringify(v2) : String(v2);
+        const cls = v2 === true ? 'ok' : v2 === false ? 'fail' : '';
+        html += '<div class="row"><span class="label">' + k2 +
+          '</span><span class="' + cls + '">' + display + '</span></div>';
+      }
+    } else {
+      html += String(val);
+    }
+    html += '</div></div>';
+  }
+  html += '</div>';
+
+  // Raw JSON
+  html += '<h2>Raw Response</h2><pre>' +
+    JSON.stringify(data, null, 2).replace(/</g, '&lt;') + '</pre>';
+
+  el.innerHTML = html;
+}
+
+load();
+setInterval(load, 30000);
+</script>
+</body>
+</html>

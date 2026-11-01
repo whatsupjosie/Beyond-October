@@ -1,0 +1,6 @@
+{
+  "operation":"surgical_plus_additive",
+  "byok_manager":"added Horizon server-side resolve_model_credentials only; existing Reach BYOK behavior preserved",
+  "static_added":["static/pubpartner.html","static/pubpartner.css","static/pubpartner.js"],
+  "backup":"/mnt/data/reach_builds/backups/import_012_byok/byok_manager.py"
+}

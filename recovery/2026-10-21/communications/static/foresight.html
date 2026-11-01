@@ -1,0 +1,1553 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Foresight — The Counter</title>
+<style>
+:root{
+  --bg:#090b0c; --panel:#14181a; --panel2:#0e1112;
+  --line:#8e6336; --line2:#c28a4c; --gold:#d9a35b; --cream:#efe0c6;
+  --text:#eadcc7; --muted:#918678; --green:#75a968; --red:#a96557;
+  --shadow:0 24px 70px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.035);
+  --silver:#c9ccd1; --silver-dim:#8d9198;
+  --fan-top:62px; --counter-top:124px;
+  /* One light source for the whole Counter: every shape shadow reads these. */
+  --light-x:-6px; --light-y:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:
+  radial-gradient(ellipse at 50% 0%,rgba(177,119,57,.14),transparent 38%),
+  radial-gradient(ellipse at 10% 70%,rgba(94,61,36,.10),transparent 36%),
+  #060809;
+  color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input{font:inherit;color:inherit}
+
+/* ---- top bar ---- */
+.topbar{height:52px;display:flex;align-items:center;gap:16px;padding:0 18px;
+  border-bottom:1px solid #3d2c1c;background:linear-gradient(180deg,#14181a,#0b0d0e)}
+.topbar .brand{display:flex;align-items:center;gap:10px;font-family:Georgia,serif;
+  letter-spacing:.1em;font-size:15px;color:#ecd8b8}
+.topbar .brand .mark{width:18px;height:24px;border:1px solid var(--gold);border-radius:50% 50% 40% 40%;
+  display:grid;place-items:center;color:var(--gold);font-size:10px;box-shadow:0 0 14px #b7793744}
+.topbar .status{margin-left:auto;display:flex;gap:14px;font-size:11px;color:var(--muted)}
+.topbar .status b{color:var(--gold)}
+.dotstat{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px}
+.dotstat.up{background:var(--green);box-shadow:0 0 6px var(--green)}
+.dotstat.down{background:var(--red);box-shadow:0 0 6px var(--red)}
+.dotstat.checking{background:#7a6a4c}
+
+/* ---- upper-left control anchor ---- */
+.anchor{position:fixed;left:16px;top:var(--fan-top);z-index:500;display:flex;flex-direction:row;align-items:flex-start;gap:10px;
+  right:16px;pointer-events:none}
+.anchor > *{pointer-events:auto}
+.lantern{width:44px;height:56px;border:1px solid var(--line2);border-radius:50% 50% 42% 42%;
+  background:radial-gradient(circle at 50% 40%,#4d321e,#161313 68%);
+  display:grid;place-items:center;color:var(--gold);cursor:pointer;
+  box-shadow:0 0 24px rgba(216,153,68,.28), inset 0 0 14px rgba(216,153,68,.18);
+  transition:box-shadow .25s}
+.lantern:hover{box-shadow:0 0 34px rgba(216,153,68,.42), inset 0 0 16px rgba(216,153,68,.24)}
+.lantern .spark{font-size:15px;filter:drop-shadow(0 0 4px #f3cf8f)}
+/* The fan extends rightward from the lantern along the top axis. One blade per
+   open tray, then the single blank blade. Overflow scrolls sideways. */
+.arm{width:22px;height:4px;margin-top:26px;border-radius:3px;background:linear-gradient(90deg,#7a5530,#c28a4c);
+  box-shadow:0 0 8px #b7793744}
+.blades{display:flex;flex-direction:row;align-items:flex-start;gap:6px;overflow-x:auto;overflow-y:hidden;
+  padding:12px 4px 6px;max-width:calc(100vw - 120px);scrollbar-width:thin;transition:opacity .2s, transform .2s;
+  transform-origin:left center}
+.blades.retracted{opacity:0;transform:scaleX(.08);pointer-events:none}
+.blade{flex:0 0 auto;max-width:210px;min-height:34px;border:1px solid #6d4b2d;border-radius:14px 14px 6px 6px;
+  background:linear-gradient(180deg,#1c1712,#121617);text-align:left;padding:7px 10px;
+  color:#cbb99f;font-size:11px;cursor:pointer;transition:transform .15s,border-color .15s;display:flex;align-items:center;gap:7px;
+  transform:skewX(-6deg);filter:drop-shadow(var(--light-x) var(--light-y) 6px rgba(0,0,0,.55))}
+.blade .b-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px}
+.blade:hover{border-color:#c48b4e;transform:translateY(2px) skewX(-6deg)}
+.blade.active{border-color:var(--gold);color:var(--cream)}
+.blade.stowed{opacity:.68}
+.blade .b-ico{opacity:.75}
+.blade.blank{color:var(--gold);justify-content:center;min-width:44px;font-size:15px;border-style:dashed}
+.blade .b-close{margin-left:2px;opacity:.5;font-size:11px;padding:1px 4px}
+.blade .b-close:hover{opacity:1;color:#e08a6f}
+/* closed blade: unlatch, then fall away like a played card with sway */
+.blade-falling{position:fixed;z-index:990;pointer-events:none;animation:cardfall 1.2s cubic-bezier(.45,.05,.85,.35) forwards}
+@keyframes cardfall{
+  0%{transform:skewX(-6deg) translateY(0) rotate(0)}
+  8%{transform:skewX(-6deg) translateY(6px) rotate(-3deg)}
+  30%{transform:translate(-26px,24vh) rotate(14deg)}
+  55%{transform:translate(22px,52vh) rotate(-10deg)}
+  80%{transform:translate(-14px,82vh) rotate(18deg)}
+  100%{transform:translate(8px,118vh) rotate(-6deg);opacity:.85}}
+/* glow-to-locate a tray from its blade */
+.tray.locate{animation:locate 1.4s ease-out}
+@keyframes locate{0%,100%{box-shadow:var(--shadow)}25%,65%{box-shadow:0 0 0 2px var(--gold),0 0 34px 6px rgba(217,163,91,.55),var(--shadow)}}
+
+/* ---- counter workspace ---- */
+.counter{position:absolute;left:0;right:0;top:var(--counter-top);bottom:0;overflow:hidden}
+.counter-surface{position:relative;width:100%;height:100%}
+.counter-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:#4a4136;font-size:13px;letter-spacing:.08em;pointer-events:none;text-align:center;padding:40px}
+
+/* ---- trays ---- */
+.tray{position:absolute;background:linear-gradient(145deg,rgba(24,29,30,.97),rgba(11,14,15,.97));
+  border:1px solid #5d4229;border-radius:16px;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;overflow:hidden;min-width:280px;min-height:180px}
+.tray.dragging,.tray.resizing{opacity:.92;box-shadow:0 30px 90px rgba(0,0,0,.7)}
+.tray.focused{border-color:var(--gold)}
+.tray-head{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:grab;
+  background:linear-gradient(180deg,#1d2223,#14181a);border-bottom:1px solid #3d2c1c;user-select:none}
+.tray-head:active{cursor:grabbing}
+.tray-head .t-title{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#cbb99f;flex:1;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tray-head .t-dot{width:6px;height:6px;border-radius:50%}
+.tray-head button{background:none;border:1px solid #4b3a2b;border-radius:6px;color:#b3a68f;
+  width:22px;height:22px;cursor:pointer;font-size:11px;line-height:1;display:grid;place-items:center}
+.tray-head button:hover{border-color:var(--gold);color:var(--gold)}
+.tray-body{flex:1;position:relative;background:#08090a;min-height:0}
+.tray-body iframe{width:100%;height:100%;border:0;background:#0b0d0e}
+.resize-grip{position:absolute;right:2px;bottom:2px;width:16px;height:16px;cursor:nwse-resize;
+  border-right:2px solid #6d4b2d;border-bottom:2px solid #6d4b2d;border-radius:0 0 6px 0;opacity:.6}
+.resize-grip:hover{opacity:1;border-color:var(--gold)}
+.tray.falling{transition:transform .55s cubic-bezier(.55,-0.1,.9,.35), opacity .55s linear;
+  transform:translateY(140vh) rotate(14deg);opacity:0}
+
+body.portal-entered .counter{position:fixed;inset:0;z-index:800}
+.tray.entered{position:absolute!important;inset:0!important;width:auto!important;height:auto!important;
+  min-width:0;min-height:0;border-radius:0;z-index:850!important;box-shadow:none}
+.tray.entered .tray-head{cursor:default}
+.tray.entered .resize-grip{display:none}
+.tray .t-enter.active{border-color:var(--gold);color:var(--gold)}
+.tray[data-portal-kind=chat] .tray-head{border-bottom-color:#51422f}
+.tray[data-persistent=true] .t-close{color:#d7c9ae}
+.pitem .where{display:block;margin-top:4px;color:#665d52;font-size:9px;letter-spacing:.05em}
+
+/* status widget (for PubPartner / 2i, which have no page of their own — real live data, no page chrome) */
+.statuswrap{padding:16px;height:100%;overflow:auto}
+.statuswrap h3{margin:0 0 4px;font:500 15px Georgia,serif;color:#e3cfa9}
+.statuswrap .sub{color:var(--muted);font-size:11px;margin-bottom:14px}
+.srow{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #241f19;font-size:12px}
+.srow span:last-child{color:#c9b79c}
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;letter-spacing:.05em}
+.pill.ok{background:#1c2b19;color:#8fbd80;border:1px solid #375a2e}
+.pill.bad{background:#2b1c19;color:#d19080;border:1px solid #5a3129}
+.pill.wait{background:#241f19;color:#c9b79c;border:1px solid #4b3a2b}
+.serr{color:#c78267;font-size:11px;margin-top:10px}
+
+/* ---- picker modal ---- */
+.modal-veil{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:900}
+.modal-veil.open{display:flex}
+.modal{width:560px;max-width:92vw;max-height:80vh;overflow:auto;background:linear-gradient(145deg,#181d1e,#0c0f10);
+  border:1px solid #6d4b2d;border-radius:18px;box-shadow:var(--shadow);padding:20px}
+.modal h2{margin:0 0 3px;font:500 17px Georgia,serif;color:#ecd8b8}
+.modal .sub{color:var(--muted);font-size:11px;margin-bottom:16px}
+.pgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.psection{grid-column:1/-1;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--silver-dim);margin-top:6px}
+.pitem{border:1px solid #4b3a2b;border-radius:12px;padding:12px;background:#111516;cursor:pointer;text-align:left}
+.pitem:hover{border-color:var(--gold);background:#151a1b}
+.pitem b{display:block;font-size:12px;color:#e3cfa9;margin-bottom:3px}
+.pitem span{font-size:10px;color:var(--muted)}
+.modal-close{margin-top:16px;border:1px solid #4b3a2b;background:#111516;color:#b3a68f;border-radius:10px;
+  padding:8px 14px;cursor:pointer;font-size:11px}
+
+.toast{position:fixed;right:24px;bottom:24px;background:#161b1c;border:1px solid #876038;border-radius:12px;
+  padding:11px 14px;color:#d6c5aa;font-size:11px;box-shadow:0 10px 35px #0008;opacity:0;
+  transform:translateY(8px);pointer-events:none;transition:.2s;z-index:950}
+.toast.show{opacity:1;transform:none}
+
+/* ---- menu bar ---- */
+.menubar{display:flex;align-items:center;gap:2px;margin-left:18px;height:100%}
+.menu{position:relative;height:100%;display:flex;align-items:center}
+.menu-btn{background:none;border:0;color:var(--silver);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  padding:6px 10px;border-radius:7px;cursor:pointer}
+.menu-btn:hover,.menu.open .menu-btn,.menu-btn:focus-visible{color:var(--cream);background:#1f1a14;outline:none}
+.menu-list{position:absolute;top:44px;left:0;min-width:240px;display:none;flex-direction:column;padding:6px;
+  background:linear-gradient(160deg,#1a1f20,#0d1011);border:1px solid #6d4b2d;border-radius:12px;
+  box-shadow:var(--shadow);z-index:960}
+.menu.open .menu-list{display:flex}
+.menu-item{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;border-radius:8px;
+  padding:7px 10px;text-align:left;color:#d8c8ad;font-size:12px;cursor:pointer}
+.menu-item:hover:not([disabled]),.menu-item:focus-visible{background:#2a2219;color:var(--cream);outline:none}
+.menu-item[disabled]{color:#5f574d;cursor:default}
+.menu-item .mi-key{margin-left:auto;color:#7d7264;font-size:10px;letter-spacing:.05em}
+.menu-sep{height:1px;background:#3a2c1f;margin:5px 4px}
+.menu-label{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#7d7264;padding:6px 10px 3px}
+
+/* ---- ask / info modal ---- */
+.ask-input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #6d4b2d;background:#0b0e0f;color:var(--cream);font-size:13px}
+.ask-input:focus{outline:none;border-color:var(--gold)}
+.ask-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.ask-actions button{border:1px solid #4b3a2b;background:#111516;color:#d8c8ad;border-radius:10px;padding:8px 14px;cursor:pointer;font-size:11px}
+.ask-actions button.primary{border-color:var(--gold);color:var(--cream);background:#2a2219}
+.ask-error{color:#d19080;font-size:11px;min-height:15px;margin-top:6px}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:12px;color:#d8c8ad}
+.keys kbd{font:11px ui-monospace,monospace;border:1px solid #4b3a2b;border-radius:5px;padding:1px 6px;color:var(--gold);white-space:nowrap}
+
+/* ---- browser / video / external program trays ---- */
+.webbar{display:flex;gap:6px;align-items:center;padding:6px 8px;border-bottom:1px solid #2b2219;background:#101415}
+.webbar input{flex:1;min-width:0;padding:6px 10px;border-radius:8px;border:1px solid #3d2c1c;background:#090b0c;color:var(--cream);font-size:12px}
+.webbar input:focus{outline:none;border-color:var(--gold)}
+.webbar button{border:1px solid #4b3a2b;background:#14181a;color:#cbb99f;border-radius:7px;height:28px;min-width:28px;padding:0 8px;cursor:pointer;font-size:12px}
+.webbar button:hover{border-color:var(--gold);color:var(--gold)}
+.tray-body.web{display:flex;flex-direction:column}
+.tray-body.web iframe{flex:1;height:auto}
+.webnote{font-size:10px;color:#7d7264;padding:4px 10px;border-top:1px solid #1d1914;background:#0c0f10}
+.tray-body.video{display:flex;flex-direction:column;background:#000}
+.tray-body.video video{flex:1;width:100%;min-height:0;background:#000}
+.panel-msg{padding:22px;height:100%;overflow:auto;color:#d8c8ad;font-size:12px;line-height:1.6}
+.panel-msg h3{margin:0 0 6px;font:500 15px Georgia,serif;color:#e3cfa9}
+.panel-msg code{font:11px ui-monospace,monospace;color:var(--gold);background:#0b0e0f;border:1px solid #2b2219;border-radius:6px;padding:2px 6px}
+.panel-msg .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.panel-msg .acts button{border:1px solid #4b3a2b;background:#111516;color:#d8c8ad;border-radius:9px;padding:7px 12px;cursor:pointer;font-size:11px}
+.panel-msg .acts button:hover{border-color:var(--gold);color:var(--cream)}
+.reclist{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.recitem{display:flex;justify-content:space-between;gap:10px;border:1px solid #3a2c1f;border-radius:9px;padding:8px 10px;background:#101415;cursor:pointer;text-align:left;color:#d8c8ad;font-size:12px}
+.recitem:hover{border-color:var(--gold)}
+.recitem span:last-child{color:#7d7264;font-size:10px;white-space:nowrap}
+
+/* ====================================================================
+   MATTER SKIN — frames, blades, lantern, bar and bench are rendered in C++
+   (foresight_matter.wasm). These rules only place those pictures and set
+   the type that sits on them. If the renderer is unavailable the plain
+   look above remains.
+   ==================================================================== */
+#bench{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;opacity:0;transition:opacity .6s;pointer-events:none}
+#bench.ready{opacity:1}
+html,body{background:#2c1a10}
+.topbar,.counter,.anchor{position:relative;z-index:1}
+.anchor{position:fixed;z-index:500}
+.counter{position:absolute}
+
+/* system bar: brushed silver */
+.topbar.matter{background:none;border-bottom:0;position:relative}
+.topbar .bar-art{position:absolute;z-index:-1;pointer-events:none}
+.topbar.matter .brand{color:#2b2622;text-shadow:0 1px 0 rgba(255,255,255,.55)}
+.topbar.matter .brand .mark{border-color:#6c5530;color:#6c5530;box-shadow:none}
+.topbar.matter .menu-btn{color:#2e2a26;font-weight:600;text-shadow:0 1px 0 rgba(255,255,255,.5)}
+.topbar.matter .menu-btn:hover,.topbar.matter .menu.open .menu-btn,.topbar.matter .menu-btn:focus-visible{background:rgba(40,30,20,.12);color:#120e0a}
+.topbar.matter .status{color:#3a342e}
+.topbar.matter .status b{color:#5c4520}
+
+/* lantern: brass and amber, a warm light that breathes */
+.lantern.matter{width:60px;height:76px;border:0;border-radius:0;background:none;box-shadow:none;position:relative;z-index:3;
+  filter:drop-shadow(0 0 14px rgba(255,170,70,.45))}
+.lantern .l-art{position:absolute;left:-16px;top:-16px;pointer-events:none}
+.lantern.matter .spark{position:relative;z-index:1;font-size:18px;color:#fff1c8;
+  filter:drop-shadow(0 0 6px #ffb347) drop-shadow(0 0 14px #ff9a2e);animation:lanternBreath 3.2s ease-in-out infinite}
+@keyframes lanternBreath{0%,100%{opacity:.82;transform:scale(1)}45%{opacity:1;transform:scale(1.08)}70%{opacity:.9;transform:scale(1.02)}}
+.lantern.matter:hover{filter:drop-shadow(0 0 22px rgba(255,170,70,.7))}
+
+/* the fan: a deck of cards fanned around the lantern */
+.anchor .arm{display:none}
+.blades.radial{position:absolute;left:52px;top:38px;width:0;height:0;overflow:visible;padding:0;max-width:none;display:block;transform:none!important;opacity:1!important}
+.blades.radial .blade{position:absolute;left:0;top:-29px;width:236px;height:58px;max-width:none;min-height:0;padding:9px 16px 0 92px;align-items:flex-start!important;
+  border:0;border-radius:0;background:none;transform-origin:0 50%;
+  transform:rotate(var(--ang)) translateX(var(--push,0px));
+  transition:transform .55s cubic-bezier(.2,.8,.25,1.15), opacity .35s; transition-delay:var(--delay,0s);
+  filter:none;display:flex;align-items:center;gap:6px;color:#2a241e;font-size:11px;letter-spacing:.04em}
+.blades.radial .blade .b-art{position:absolute;pointer-events:none;z-index:-1}
+.blades.radial .blade[data-ink=light]{color:#f4e6c8;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.blades.radial .blade[data-ink=dark]{color:#2a241e;text-shadow:0 1px 0 rgba(255,255,255,.45)}
+.blades.radial .blade .b-label{max-width:150px;font-weight:600}
+.blades.radial .blade:hover{--push:10px}
+.blades.radial .blade.active .b-label{text-decoration:underline;text-decoration-color:rgba(214,169,87,.9);text-underline-offset:3px}
+.blades.radial .blade.stowed{opacity:.72}
+.blades.radial .blade.blank{justify-content:flex-start;font-size:20px;color:#6b5126}
+.blades.radial .blade .b-close{margin-left:auto}
+.blades.radial.retracted .blade{transform:rotate(4deg) translateX(-30px) scaleX(.18);opacity:0;pointer-events:none}
+.blade-falling.radial-ghost{position:fixed;width:236px;height:58px;transform-origin:0 50%;margin-top:-29px;padding:0 18px 0 46px;
+  display:flex;align-items:center;border:0;background:none;filter:none;animation:cardfallRadial 1.25s cubic-bezier(.45,.05,.85,.35) forwards}
+.blade-falling.radial-ghost .b-art{position:absolute;z-index:-1}
+@keyframes cardfallRadial{
+  0%{transform:rotate(var(--ang))}
+  10%{transform:translate(4px,8px) rotate(calc(var(--ang) + 6deg))}
+  32%{transform:translate(-30px,26vh) rotate(calc(var(--ang) + 28deg))}
+  58%{transform:translate(26px,54vh) rotate(calc(var(--ang) - 6deg))}
+  82%{transform:translate(-16px,84vh) rotate(calc(var(--ang) + 34deg))}
+  100%{transform:translate(10px,120vh) rotate(calc(var(--ang) + 12deg));opacity:.85}}
+
+/* trays: the element is the safe content rectangle; the frame is drawn around it */
+.tray.matter{background:none;border:0;border-radius:6px;box-shadow:none;overflow:visible}
+.tray > .t-frame{position:absolute;z-index:-1;pointer-events:none;transition:filter .25s}
+.tray.matter.focused > .t-frame{filter:brightness(1.06) saturate(1.05)}
+.tray.matter.dragging > .t-frame{filter:brightness(1.08) drop-shadow(0 18px 22px rgba(0,0,0,.45))}
+.tray.matter > .tray-head{border-radius:6px 6px 0 0;border-bottom:1px solid rgba(0,0,0,.25)}
+.tray.matter[data-ink=dark] > .tray-head{background:linear-gradient(180deg,rgba(255,255,255,.45),rgba(255,255,255,.12))}
+.tray.matter[data-ink=dark] > .tray-head .t-title{color:#2e2720}
+.tray.matter[data-ink=dark] > .tray-head button{border-color:rgba(70,52,30,.45);color:#4a3a26}
+.tray.matter[data-ink=light] > .tray-head{background:linear-gradient(180deg,rgba(0,0,0,.30),rgba(0,0,0,.10))}
+.tray.matter[data-ink=light] > .tray-head .t-title{color:#f1dfb9}
+.tray.matter[data-ink=light] > .tray-head button{border-color:rgba(230,200,140,.45);color:#ead6ae}
+.tray.matter > .tray-head button:hover{border-color:#d6a957;color:#d6a957}
+.tray.matter > .tray-body{border-radius:0 0 6px 6px;background:#0b0d0e;box-shadow:inset 0 2px 10px rgba(0,0,0,.55)}
+.tray.matter[data-ink=dark] > .tray-body{background:#f7f4ee;color:#2a241e}
+.tray.matter[data-ink=dark] > .tray-body .statuswrap h3,.tray.matter[data-ink=dark] > .tray-body .panel-msg h3{color:#3b2c18}
+.tray.matter[data-ink=dark] > .tray-body .panel-msg,.tray.matter[data-ink=dark] > .tray-body .srow span:last-child{color:#3a3128}
+.tray.matter .resize-grip{border-color:#d6a957}
+.tray.matter.entered > .t-frame{display:none}
+.tray.matter.entered{background:#08090a}
+.tray.matter.locate{animation:none}
+.tray.matter.locate > .t-frame{animation:locateFrame 1.4s ease-out}
+@keyframes locateFrame{0%,100%{filter:none}25%,65%{filter:drop-shadow(0 0 10px rgba(255,205,120,.95)) drop-shadow(0 0 26px rgba(217,163,91,.7)) brightness(1.12)}}
+.counter-hint{color:#e8d6b4;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+</style>
+  <script src="/static/reach_auth.js"></script>
+<script src="/static/blackbox_client.js" data-capture="false"></script>
+</head>
+<body>
+<canvas id="bench" aria-hidden="true"></canvas>
+
+<div class="topbar">
+  <div class="brand"><span class="mark">✦</span> FORESIGHT</div>
+  <nav class="menubar" id="menubar" role="menubar" aria-label="Foresight menus"></nav>
+  <div class="status">
+    <span><span id="dot-pubcast" class="dotstat checking"></span>PubCast</span>
+    <span><span id="dot-pubpartner" class="dotstat checking"></span>PubPartner</span>
+    <span><span id="dot-2i" class="dotstat checking"></span>2i / Chat</span>
+  </div>
+</div>
+
+<div class="anchor">
+  <div class="lantern" id="lanternBtn" role="button" tabindex="0" aria-label="Extend or retract the fan" title="Extend / retract the fan"><span class="spark">✦</span></div>
+  <div class="arm" aria-hidden="true"></div>
+  <div class="blades radial" id="blades" role="toolbar" aria-label="Open trays"></div>
+</div>
+
+<div class="counter">
+  <div class="counter-surface" id="surface">
+    <div class="counter-hint" id="hint">The Counter is empty.<br>Click the blank blade ＋ on the fan, or File › Open, to put something in a tray.</div>
+  </div>
+</div>
+
+<div class="modal-veil" id="pickerVeil">
+  <div class="modal">
+    <h2>Open a Program</h2>
+    <div class="sub">Each tray is a real portal into a live, running service.</div>
+    <div class="pgrid" id="pgrid"></div>
+    <button class="modal-close" id="pickerClose">Close</button>
+  </div>
+</div>
+
+<div class="modal-veil" id="askVeil">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="askTitle">
+    <h2 id="askTitle"></h2>
+    <div class="sub" id="askSub"></div>
+    <div id="askBody"></div>
+    <div class="ask-error" id="askError"></div>
+    <div class="ask-actions">
+      <button id="askCancel">Cancel</button>
+      <button id="askOk" class="primary">OK</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="importFile" accept="image/*,video/*,audio/*,application/pdf,text/plain,.txt,.md,.csv,.json,.log" hidden>
+
+<div class="toast" id="toast"></div>
+
+<script src="/static/foresight.config.js"></script>
+<script src="/static/foresight_matter.js"></script>
+<script src="/static/foresight_skin.js"></script>
+<script>
+/* ============================================================
+   CONFIG — verified federation defaults; optional foresight.config.js wins
+   ============================================================ */
+const CONFIG = Object.assign({
+  // PubPartner's canonical full-host spine now lives inside Reach.
+  // pubpartnerBase may still be overridden for a deliberate remote host.
+  pubpartnerBase: '',
+  pubpartnerStatusPath: '/api/pubpartner/status',
+  // Same-origin gateway delegates to the existing BotManager and optional 2i utilities.
+  // Clients never connect directly to server-local port 8787.
+  twoIBase: '/api/foresight/bridge',
+  twoIUi: '/writers-room',
+  // Iteration Wallet is a separate local product with its own server
+  // (`iw serve` / START_ITERATION_WALLET.ps1, default port 7432).
+  iterationWalletUrl: 'http://127.0.0.1:7432/',
+}, window.FORESIGHT_CONFIG || {});
+
+/*
+  FORESIGHT WINDOW LAW
+  --------------------
+  A tray is a portal, not a page switch. Multiple portals stay alive at once.
+  Every portal has a designed default, but the user may move/resize it freely.
+  Entering a portal makes that same DOM/iframe fill the viewport; returning does
+  not reload it. The room list remains a permanent direct-work navigation path
+  even when immersive map/walk navigation exists.
+*/
+const PROGRAMS = [
+  // Primary/global conversation surface. It is always represented by a blade;
+  // closing the window hides it instead of destroying the conversation surface.
+  {id:'world_chat', label:'World Chat', group:'Chat & Collaboration', kind:'iframe',
+    url:'/static/world_chat.html', w:560, h:560, placement:'right', singleton:true,
+    persistent:true, autostart:true, portalKind:'chat'},
+  {id:'pubpartner_workspace', label:'PubPartner · Alex & Cartridges', group:'Chat & Collaboration', kind:'iframe',
+    url:'/pubpartner', w:1180, h:730, placement:'wide', singleton:true, portalKind:'room'},
+  {id:'pubpartner_chat', label:'Character Chat', group:'Chat & Collaboration', kind:'iframe',
+    url:'/pub-partner-chat', w:650, h:600, placement:'right', singleton:true, portalKind:'chat'},
+  {id:'twoi', label:"2i Writer's Room", group:'Chat & Collaboration', kind:'iframe',
+    url:()=>CONFIG.twoIUi, w:1120, h:720, placement:'wide', singleton:true, portalKind:'room'},
+  {id:'care_eq', label:'CARE / EQ & Little Mode', group:'Chat & Collaboration', kind:'iframe',
+    url:'/static/foresight_care.html', w:730, h:590, placement:'right', singleton:true, portalKind:'tool'},
+  {id:'twoi_bridge_status', label:'2i Bridge Status', group:'Federation', kind:'status',
+    service:'twoi', w:420, h:340, placement:'right', singleton:true, portalKind:'status'},
+
+  // Direct studio/work navigation. This remains available even after walking the
+  // complete studio/world map becomes possible.
+  {id:'stage',         label:'Stage',             group:'Studio Rooms', kind:'iframe', url:'/static/stage.html',               w:900, h:620, placement:'center', singleton:true, portalKind:'room'},
+  {id:'panoramic',     label:'360° Panoramic',    group:'Studio Rooms', kind:'iframe', url:'/static/stage_panoramic.html',     w:900, h:620, placement:'center', singleton:true, portalKind:'room'},
+  {id:'control_room',  label:'Control Room',      group:'Studio Rooms', kind:'iframe', url:'/static/control_room.html',        w:900, h:640, placement:'center', singleton:true, portalKind:'room'},
+  {id:'studio_control',label:'Studio Control Room',group:'Studio Rooms',kind:'iframe', url:'/static/studio_control_room.html', w:900, h:640, placement:'center', singleton:true, portalKind:'room'},
+  {id:'director',      label:'Director Switcher', group:'Studio Rooms', kind:'iframe', url:'/static/director_switcher.html',   w:900, h:640, placement:'center', singleton:true, portalKind:'room'},
+  {id:'world',         label:'World',             group:'Studio Rooms', kind:'iframe', url:'/static/world.html',               w:920, h:640, placement:'center', singleton:true, portalKind:'room'},
+  {id:'pubworld_set',  label:'PubWorld Set',      group:'Studio Rooms', kind:'iframe', url:'/static/pubworld_stage.html',      w:920, h:640, placement:'center', singleton:true, portalKind:'room'},
+  {id:'bar',           label:'Bar',               group:'Studio Rooms', kind:'iframe', url:'/static/bar.html',                 w:820, h:600, placement:'center', singleton:true, portalKind:'room'},
+  {id:'dressing',      label:'Dressing Room',     group:'Studio Rooms', kind:'iframe', url:'/static/dressing.html',            w:820, h:600, placement:'center', singleton:true, portalKind:'room'},
+  {id:'waiting_room',  label:'Waiting Room',      group:'Studio Rooms', kind:'iframe', url:'/static/waiting_room.html',        w:760, h:560, placement:'center', singleton:true, portalKind:'room'},
+  {id:'map',           label:'Map / Walk',        group:'Studio Rooms', kind:'iframe', url:'/static/map.html',                 w:820, h:600, placement:'center', singleton:true, portalKind:'room'},
+
+  {id:'teleprompter',  label:'Teleprompter',      group:'Production Tools', kind:'iframe', url:'/static/pubcast_teleprompter.html', w:720, h:540, placement:'right', singleton:true, portalKind:'tool'},
+  {id:'gallery',       label:'Gallery',           group:'Production Tools', kind:'iframe', url:'/static/gallery.html',             w:720, h:540, placement:'center', singleton:true, portalKind:'tool'},
+  {id:'analytics',     label:'Analytics',         group:'Production Tools', kind:'iframe', url:'/static/analytics.html',           w:720, h:500, placement:'right', singleton:true, portalKind:'tool'},
+  {id:'doctor',        label:'Doctor',            group:'Production Tools', kind:'iframe', url:'/static/doctor.html',              w:660, h:500, placement:'right', singleton:true, portalKind:'tool'},
+
+  {id:'pubpartner',    label:'PubPartner Status', group:'Federation', kind:'status', service:'pubpartner', w:440, h:380, placement:'right', singleton:true, portalKind:'status'},
+
+  // Separate local program, opened in a tray when its own server is running.
+  {id:'iteration_wallet', label:'Iteration Wallet', group:'Programs', kind:'external',
+    url:()=>CONFIG.iterationWalletUrl, w:1120, h:720, placement:'wide', singleton:true, portalKind:'room'},
+
+  // Media & web. These open new instances through their actions.
+  {id:'browser_new', label:'Web Browser', group:'Trays', kind:'action', hint:'A browser in a tray',
+    action:()=>openBrowserTray()},
+  {id:'blank_new',   label:'Blank Tray', group:'Trays', kind:'action', hint:'Import a file, open a web address or a room',
+    action:()=>openBlankTray()},
+  {id:'import_file', label:'Import a File…', group:'Trays', kind:'action', hint:'Image, video, audio, PDF or text from this computer',
+    action:()=>pickImportFile()},
+  {id:'video_url',   label:'Video from a Link…', group:'Trays', kind:'action', hint:'A direct link to a video file',
+    action:()=>askVideoUrl()},
+  {id:'recordings',  label:'Recordings', group:'Trays', kind:'recordings', hint:'Playable studio recordings',
+    w:520, h:520, placement:'right', singleton:true, portalKind:'tool'},
+  {id:'new_chat',    label:'New Chat', group:'Trays', kind:'action', hint:'A new conversation in a tray',
+    action:()=>openNewChat()},
+];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let trays = [];          // live portals; many may remain open simultaneously
+let topZ = 10;
+let uid = 1;
+const surface = document.getElementById('surface');
+const hint = document.getElementById('hint');
+const STORE_KEY = 'foresight.counter.v2';
+const LEGACY_STORE_KEY = 'foresight.counter.v1';
+
+function toast(text){
+  const el = document.getElementById('toast');
+  el.textContent = text; el.classList.add('show');
+  clearTimeout(window.__t); window.__t = setTimeout(()=>el.classList.remove('show'), 1900);
+}
+function safeLabel(value, fallback='Chat'){
+  const s = String(value || '').replace(/[<>]/g,'').trim();
+  return (s || fallback).slice(0,80);
+}
+function saveState(){
+  try{
+    const data = trays.map(t=>({
+      id:t.id, programId:t.program.id, instanceKey:t.program.instanceKey || null,
+      label:t.runtimeLabel || t.program.label, x:t.x, y:t.y, w:t.w, h:t.h,
+      hidden:t.hidden, look:t.look || undefined,
+      // Instance data for browser and video trays. A local video file cannot be
+      // reopened after a reload (browsers do not keep file access), so only its
+      // name is kept and the tray asks for the file again.
+      address:t.program.kind==='browser' ? (t.program.address || '') : undefined,
+      media:(t.program.kind==='video' || t.program.kind==='file') ? {type:t.program.media.type, url:t.program.media.url || '',
+        name:t.program.media.name || '', mime:t.program.media.mime || ''} : undefined
+    }));
+    localStorage.setItem(STORE_KEY, JSON.stringify(data));
+  }catch(e){}
+}
+function loadState(){
+  try{
+    const modern = localStorage.getItem(STORE_KEY);
+    if(modern) return JSON.parse(modern);
+    return JSON.parse(localStorage.getItem(LEGACY_STORE_KEY) || '[]');
+  }catch(e){ return []; }
+}
+
+/* ============================================================
+   DEFAULT GEOMETRY — authored starting point, never a prison
+   ============================================================ */
+function clamp(v,min,max){ return Math.max(min, Math.min(v,max)); }
+function defaultRect(program){
+  const r = surface.getBoundingClientRect();
+  const margin = 18;
+  let w = Math.min(program.w || 700, Math.max(280, r.width - margin*2));
+  let h = Math.min(program.h || 500, Math.max(180, r.height - margin*2));
+  let x = margin, y = margin;
+  const place = program.placement || 'cascade';
+  if(place === 'right') x = Math.max(margin, r.width - w - margin);
+  else if(place === 'center' || place === 'wide'){
+    if(place === 'wide'){
+      w = Math.min(program.w || 1120, Math.max(320, r.width - margin*2));
+      h = Math.min(program.h || 720, Math.max(220, r.height - margin*2));
+    }
+    x = Math.max(margin, (r.width - w)/2);
+    y = Math.max(margin, (r.height - h)/2);
+  } else {
+    const openCount = trays.filter(t=>!t.hidden).length;
+    x = clamp(40 + (openCount*34), margin, Math.max(margin, r.width-w-margin));
+    y = clamp(30 + (openCount*28), margin, Math.max(margin, r.height-h-margin));
+  }
+  return {x:Math.round(x), y:Math.round(y), w:Math.round(w), h:Math.round(h)};
+}
+function applyNormalRect(tray){
+  const r = surface.getBoundingClientRect();
+  tray.w = Math.min(tray.w, Math.max(280, r.width-8));
+  tray.h = Math.min(tray.h, Math.max(180, r.height-8));
+  tray.x = clamp(tray.x, 4, Math.max(4, r.width-tray.w-4));
+  tray.y = clamp(tray.y, 4, Math.max(4, r.height-tray.h-4));
+  Object.assign(tray.el.style,{left:tray.x+'px',top:tray.y+'px',width:tray.w+'px',height:tray.h+'px'});
+}
+function resetTray(tray){
+  if(tray.entered) exitPortal(tray);
+  const d = defaultRect(tray.program);
+  Object.assign(tray,d);
+  applyNormalRect(tray);
+  bringToFront(tray); saveState();
+  toast(tray.runtimeLabel+' returned to its designed position');
+}
+
+/* ============================================================
+   PROGRAM / CHAT INSTANCE RESOLUTION
+   ============================================================ */
+function makeChatProgram(conversationId, label){
+  return {
+    id:'chat_instance', instanceKey:String(conversationId),
+    label:safeLabel(label,'Chat'), group:'Chat & Collaboration', kind:'iframe',
+    url:'/general-chat?conversation='+encodeURIComponent(conversationId),
+    w:560,h:560,placement:'right',singleton:true,portalKind:'chat'
+  };
+}
+function programFromSaved(s){
+  if(s.programId === 'chat_instance' && s.instanceKey) return makeChatProgram(s.instanceKey, s.label || 'Chat');
+  if(s.programId === 'browser_instance') return makeBrowserProgram(s.address || '', s.instanceKey);
+  if(s.programId === 'blank_instance') return makeBlankProgram(s.instanceKey);
+  if(s.programId === 'file_instance' && s.media) return makeFileProgram({type:'file', name:s.media.name, mime:s.media.mime}, s.instanceKey);
+  if(s.programId === 'video_instance' && s.media && ['file','url','vod'].includes(s.media.type)){
+    return makeVideoProgram({type:s.media.type, url:s.media.url, name:s.media.name}, s.instanceKey);
+  }
+  return PROGRAMS.find(p=>p.id===s.programId && p.kind!=='action') || null;
+}
+
+/* ---- browser and video instances ---- */
+function newInstanceKey(){ return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8); }
+
+// Only http(s) pages may be opened. A bare host gets https://. Anything else
+// (javascript:, data:, file:, blob:) is refused.
+function normalizeAddress(raw){
+  let s = String(raw || '').trim();
+  if(!s) throw new Error('Type a web address');
+  if(s.startsWith('/')) return new URL(s, location.origin).href;
+  if(!/^[a-z][a-z0-9+.-]*:/i.test(s)) s = 'https://' + s;
+  let u;
+  try{ u = new URL(s); }catch(e){ throw new Error('That is not a valid web address'); }
+  if(u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('Only http and https addresses can be opened');
+  if(!u.hostname) throw new Error('That address has no site name');
+  return u.href;
+}
+function addressLabel(address){
+  if(!address) return 'Browser';
+  try{
+    const u = new URL(address);
+    return u.origin === location.origin ? 'PubCast · '+u.pathname : u.hostname.replace(/^www\./,'');
+  }catch(e){ return 'Browser'; }
+}
+function makeBrowserProgram(address, key){
+  return {id:'browser_instance', instanceKey:key || newInstanceKey(), label:'Browser · '+addressLabel(address),
+    group:'Media & Web', kind:'browser', address:address || '', w:1000, h:680, placement:'cascade',
+    singleton:true, portalKind:'tool'};
+}
+function makeVideoProgram(media, key){
+  const name = safeLabel(media.name || (media.url ? media.url.split('/').pop() : '') || 'Video', 'Video');
+  return {id:'video_instance', instanceKey:key || newInstanceKey(), label:'Video · '+name,
+    group:'Media & Web', kind:'video', media:Object.assign({}, media, {name}), w:860, h:540,
+    placement:'cascade', singleton:true, portalKind:'tool'};
+}
+function sameProgram(a,b){
+  return a.id===b.id && (a.instanceKey || '') === (b.instanceKey || '');
+}
+function findExisting(program){ return trays.find(t=>sameProgram(t.program, program)); }
+function resolveUrl(program){ return typeof program.url === 'function' ? program.url() : program.url; }
+
+async function openNewChat(){
+  const clientId = localStorage.getItem('pubcast.clientId') || 'josie';
+  const title = 'Chat · ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  try{
+    const res = await fetch('/api/conversations',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Client-Id':clientId,'X-Dev-Role':'guest'},
+      body:JSON.stringify({title})
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    const program = makeChatProgram(data.conversation_id, title);
+    createTray(program);
+    toast('New chat blade detached');
+  }catch(err){
+    // Conversation UI still opens and can create/save its own conversation.
+    const program = {id:'chat_instance',instanceKey:'pending-'+Date.now(),label:'New Chat',
+      group:'Chat & Collaboration',kind:'iframe',url:'/general-chat?role=new',w:560,h:560,
+      placement:'right',portalKind:'chat'};
+    createTray(program);
+    toast('Chat opened; conversation will be created inside the portal');
+  }
+}
+function openProgram(program){
+  const existing = program.singleton ? findExisting(program) : null;
+  if(existing){ showTray(existing); return existing; }
+  return createTray(program);
+}
+
+/* ============================================================
+   TRAY / PORTAL CREATION
+   ============================================================ */
+function createTray(program, saved){
+  if(program.singleton){
+    const existing = findExisting(program);
+    if(existing){ showTray(existing); return existing; }
+  }
+  const d = defaultRect(program);
+  const x = saved?.x ?? d.x, y = saved?.y ?? d.y;
+  const w = saved?.w ?? d.w, h = saved?.h ?? d.h;
+
+  const el = document.createElement('div');
+  el.className = 'tray';
+  el.dataset.portalKind = program.portalKind || 'tool';
+  el.dataset.persistent = program.persistent ? 'true' : 'false';
+  el.style.left=x+'px'; el.style.top=y+'px'; el.style.width=w+'px'; el.style.height=h+'px';
+  const title = safeLabel(saved?.label || program.label, program.label);
+  el.innerHTML = `
+    <div class="tray-head">
+      <span class="t-dot" style="background:${program.portalKind==='chat' ? '#78a7ce' : (program.group==='Studio Rooms' ? 'var(--gold)' : '#7d9fc8')}"></span>
+      <span class="t-title"></span>
+      <button class="t-reset" title="Reset to room default">↺</button>
+      <button class="t-enter" title="Enter / fullscreen portal">□</button>
+      <button class="t-min" title="Hide">–</button>
+      <button class="t-close" title="${program.persistent?'Close window (conversation stays on)':'Close portal'}">×</button>
+    </div>
+    <div class="tray-body"></div>
+    <div class="resize-grip"></div>`;
+  el.querySelector('.t-title').textContent = title;
+  surface.appendChild(el);
+
+  const tray = {id:saved?.id || ('t'+(uid++)), program, el, x, y, w, h,
+    hidden:!!saved?.hidden, entered:false, runtimeLabel:title, frame:null};
+  trays.push(tray);
+  applyNormalRect(tray);
+  if(window.ForesightSkin) window.ForesightSkin.attach(tray, saved);
+
+  const body = el.querySelector('.tray-body');
+  if(program.kind === 'iframe'){
+    const frame = document.createElement('iframe');
+    frame.src = resolveUrl(program);
+    frame.setAttribute('loading','lazy');
+    frame.setAttribute('allow','microphone; camera; autoplay; clipboard-read; clipboard-write');
+    body.appendChild(frame); tray.frame = frame;
+  } else if(program.kind === 'status'){
+    body.innerHTML = `<div class="statuswrap"><h3></h3>
+      <div class="sub">Live status — polled every 4s from the real service.</div>
+      <div class="sbody">Connecting…</div></div>`;
+    body.querySelector('h3').textContent = title;
+    pollStatus(program.service, body.querySelector('.sbody'));
+  } else if(program.kind === 'external'){
+    mountExternal(tray, body);
+  } else if(program.kind === 'browser'){
+    mountBrowser(tray, body);
+  } else if(program.kind === 'video'){
+    mountVideo(tray, body);
+  } else if(program.kind === 'blank'){
+    mountBlank(tray, body);
+  } else if(program.kind === 'file'){
+    mountFile(tray, body);
+  } else if(program.kind === 'recordings'){
+    mountRecordings(tray, body);
+  }
+
+  el.addEventListener('pointerdown', ()=>bringToFront(tray));
+  el.querySelector('.tray-head').addEventListener('pointerdown', e=>startDrag(e,tray));
+  el.querySelector('.tray-head').addEventListener('dblclick', e=>{ if(!e.target.closest('button')) togglePortal(tray); });
+  el.querySelector('.resize-grip').addEventListener('pointerdown', e=>startResize(e,tray));
+  el.querySelector('.t-reset').addEventListener('click', e=>{e.stopPropagation();resetTray(tray)});
+  el.querySelector('.t-enter').addEventListener('click', e=>{e.stopPropagation();togglePortal(tray)});
+  el.querySelector('.t-close').addEventListener('click', e=>{e.stopPropagation();closeTray(tray)});
+  el.querySelector('.t-min').addEventListener('click', e=>{e.stopPropagation();hideTray(tray)});
+
+  bringToFront(tray);
+  if(tray.hidden) el.style.display='none';
+  hint.style.display='none'; renderBlades(); saveState();
+  return tray;
+}
+function bringToFront(tray){
+  topZ += 1; tray.el.style.zIndex=topZ;
+  trays.forEach(t=>t.el.classList.remove('focused'));
+  tray.el.classList.add('focused'); renderBlades();
+}
+function showTray(tray){
+  tray.hidden=false; tray.el.style.display='flex'; bringToFront(tray); saveState();
+}
+function hideTray(tray){
+  if(tray.entered) exitPortal(tray);
+  tray.hidden=true; tray.el.style.display='none'; renderBlades(); saveState();
+}
+function closeTray(tray){
+  if(tray.program.persistent){ hideTray(tray); toast(tray.runtimeLabel+' window closed; conversation remains available'); return; }
+  if(tray.closing) return;
+  tray.closing=true;
+  if(tray.entered) exitPortal(tray);
+  // Blade: detach from the arm and fall off the bottom of the screen with a card-like sway.
+  const blade=document.querySelector('.blade[data-tray="'+tray.id+'"]');
+  if(blade){
+    const ghost=blade.cloneNode(true); ghost.classList.add('blade-falling'); ghost.removeAttribute('data-tray');
+    const art=blade.querySelector('canvas.b-art'), ghostArt=ghost.querySelector('canvas.b-art');
+    if(art && ghostArt){ ghostArt.width=art.width; ghostArt.height=art.height; ghostArt.getContext('2d').drawImage(art,0,0); }
+    if(blade.parentElement && blade.parentElement.classList.contains('radial')){
+      // fall from the lantern's pivot, starting at the blade's own angle
+      const pivot=blade.parentElement.getBoundingClientRect();
+      ghost.classList.add('radial-ghost');
+      Object.assign(ghost.style,{left:pivot.left+'px',top:pivot.top+'px',transform:''});
+      ghost.style.setProperty('--ang', blade.style.getPropertyValue('--ang') || '0deg');
+    }else{
+      const r=blade.getBoundingClientRect();
+      Object.assign(ghost.style,{left:r.left+'px',top:r.top+'px',width:r.width+'px'});
+    }
+    document.body.appendChild(ghost); setTimeout(()=>ghost.remove(), 1300);
+  }
+  tray.el.classList.add('falling');
+  releaseTray(tray);
+  trays=trays.filter(t=>t!==tray);
+  renderBlades();          // remaining blades snap inward immediately
+  setTimeout(()=>{
+    tray.el.remove();
+    if(!trays.some(t=>!t.hidden)) hint.style.display='flex';
+    saveState();
+  },560);
+}
+
+/* ============================================================
+   ENTER / RETURN — fullscreen is the same live portal, not navigation
+   ============================================================ */
+function enterPortal(tray){
+  if(tray.entered) return;
+  trays.filter(t=>t.entered && t!==tray).forEach(exitPortal);
+  tray.entered=true; tray.hidden=false;
+  document.body.classList.add('portal-entered');
+  tray.el.classList.add('entered');
+  tray.el.querySelector('.t-enter').classList.add('active');
+  tray.el.querySelector('.t-enter').textContent='▣';
+  tray.el.querySelector('.t-enter').title='Return to Counter';
+  bringToFront(tray); renderBlades();
+}
+function exitPortal(tray){
+  if(!tray.entered) return;
+  tray.entered=false; tray.el.classList.remove('entered');
+  document.body.classList.remove('portal-entered');
+  tray.el.querySelector('.t-enter').classList.remove('active');
+  tray.el.querySelector('.t-enter').textContent='□';
+  tray.el.querySelector('.t-enter').title='Enter / fullscreen portal';
+  applyNormalRect(tray); bringToFront(tray);
+}
+function togglePortal(tray){ tray.entered ? exitPortal(tray) : enterPortal(tray); }
+
+/* ============================================================
+   DRAG / RESIZE — always allowed in Counter mode
+   ============================================================ */
+function startDrag(e,tray){
+  if(e.target.closest('button') || tray.entered) return;
+  e.preventDefault(); bringToFront(tray); tray.el.classList.add('dragging');
+  const rect=surface.getBoundingClientRect(), startX=tray.x,startY=tray.y,sx=e.clientX,sy=e.clientY;
+  function move(ev){
+    tray.x=clamp(startX+(ev.clientX-sx),4,Math.max(4,rect.width-tray.w-4));
+    tray.y=clamp(startY+(ev.clientY-sy),4,Math.max(4,rect.height-tray.h-4));
+    tray.el.style.left=tray.x+'px'; tray.el.style.top=tray.y+'px';
+  }
+  function up(){tray.el.classList.remove('dragging');window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);saveState()}
+  window.addEventListener('pointermove',move);window.addEventListener('pointerup',up,{once:true});
+}
+function startResize(e,tray){
+  if(tray.entered) return;
+  e.preventDefault();e.stopPropagation();bringToFront(tray);tray.el.classList.add('resizing');
+  const rect=surface.getBoundingClientRect(),startW=tray.w,startH=tray.h,sx=e.clientX,sy=e.clientY;
+  function move(ev){
+    tray.w=clamp(startW+(ev.clientX-sx),280,Math.max(280,rect.width-tray.x-8));
+    tray.h=clamp(startH+(ev.clientY-sy),180,Math.max(180,rect.height-tray.y-8));
+    tray.el.style.width=tray.w+'px';tray.el.style.height=tray.h+'px';
+  }
+  function up(){tray.el.classList.remove('resizing');window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);saveState()}
+  window.addEventListener('pointermove',move);window.addEventListener('pointerup',up,{once:true});
+}
+
+/* ============================================================
+   FAN — the open-tray manager. One blade per open tray, plus exactly one
+   blank blade (the top card of the deck). The blank blade opens the picker;
+   the chosen item becomes a labeled blade and a fresh blank blade appears.
+   ============================================================ */
+function locateTray(tray){
+  tray.el.classList.remove('locate'); void tray.el.offsetWidth; tray.el.classList.add('locate');
+  setTimeout(()=>tray.el.classList.remove('locate'), 1500);
+}
+function isOnTop(tray){
+  const z=Number(tray.el.style.zIndex||0);
+  return !trays.some(t=>t!==tray && !t.hidden && Number(t.el.style.zIndex||0)>z);
+}
+function selectBlade(tray){
+  if(tray.hidden){ showTray(tray); return; }              // stowed -> open / bring to prominence
+  if(tray.entered){ bringToFront(tray); return; }
+  if(!isOnTop(tray)){ bringToFront(tray); locateTray(tray); return; }  // buried -> pop to top
+  locateTray(tray);                                        // already on top -> glow to show where it is
+}
+function renderBlades(){
+  const wrap=document.getElementById('blades'); if(!wrap) return;
+  const skin=window.ForesightSkin;
+  const before=new Set([...wrap.querySelectorAll('.blade[data-tray]')].map(b=>b.dataset.tray));
+  wrap.innerHTML='';
+  // The blank blade is the top card of the deck; the open trays fan out beneath it.
+  const angles=skin ? skin.fanAngles(trays.length+1) : [];
+  const blank=document.createElement('button'); blank.className='blade blank';
+  blank.title='Open a program, a web browser, a blank tray, a file or a room';
+  blank.textContent='＋'; blank.setAttribute('aria-label','Open something new in a tray');
+  blank.addEventListener('click',openPicker);
+  if(skin){ blank.style.setProperty('--ang', angles[0]+'deg'); skin.paintBlade(blank, null); }
+  wrap.appendChild(blank);
+  trays.forEach((tray,i)=>{
+    const b=document.createElement('button');
+    b.className='blade'+(tray.el.classList.contains('focused')&&!tray.hidden?' active':'')+(tray.hidden?' stowed':'');
+    b.dataset.tray=tray.id;
+    b.title=tray.hidden ? 'Open '+tray.runtimeLabel : tray.runtimeLabel+' — click to bring forward / locate';
+    const state=document.createElement('span'); state.className='b-ico'; state.textContent=tray.entered?'◆':(tray.hidden?'○':'●');
+    const label=document.createElement('span'); label.className='b-label'; label.textContent=tray.runtimeLabel;
+    const close=document.createElement('span'); close.className='b-close'; close.textContent='×';
+    close.title=tray.program.persistent?'Close window (conversation stays on)':'Close tray';
+    b.append(state,label,close);
+    if(skin){
+      b.style.setProperty('--ang', angles[i+1]+'deg');
+      b.style.setProperty('--delay', (i*0.045)+'s');            // cards deal (and gather) one after another
+      // a newly dealt card swings out from the top of the deck
+      if(!before.has(tray.id)){ b.style.setProperty('--delay','0s'); b.style.transform='rotate('+angles[0]+'deg)';
+        requestAnimationFrame(()=>requestAnimationFrame(()=>{ b.style.transform=''; })); }
+      skin.paintBlade(b, tray);
+    }
+    b.addEventListener('click',e=>{
+      if(e.target.classList.contains('b-close')){ closeTray(tray); return; }
+      selectBlade(tray);
+    });
+    wrap.appendChild(b);
+  });
+}
+
+/* ============================================================
+   PICKER — what the blank blade and File > Open both use
+   ============================================================ */
+const PICKER_SECTIONS=[
+  {title:'Programs', ids:['pubpartner_workspace','twoi','iteration_wallet','pubpartner_chat','care_eq']},
+  {title:'Trays', ids:['browser_new','blank_new','import_file','video_url','recordings','new_chat']},
+  {title:'Studio Rooms', group:'Studio Rooms'},
+  {title:'Production Tools', group:'Production Tools'},
+  {title:'Status', ids:['pubpartner','twoi_bridge_status']},
+];
+function pickerPrograms(section){
+  if(section.ids) return section.ids.map(id=>PROGRAMS.find(p=>p.id===id)).filter(Boolean);
+  return PROGRAMS.filter(p=>p.group===section.group);
+}
+function openPicker(){
+  closeMenus();
+  const grid=document.getElementById('pgrid'); grid.innerHTML='';
+  PICKER_SECTIONS.forEach(section=>{
+    const items=pickerPrograms(section); if(!items.length) return;
+    const h=document.createElement('div'); h.className='psection'; h.textContent=section.title; grid.appendChild(h);
+    items.forEach(p=>{
+      const item=document.createElement('button'); item.className='pitem';
+      item.innerHTML='<b></b><span class="where"></span>';
+      item.querySelector('b').textContent=p.label;
+      const open=p.singleton && p.kind!=='action' ? findExisting(p) : null;
+      item.querySelector('.where').textContent=p.hint || (open ? 'Already open — brings it forward' :
+        p.kind==='action' ? 'Opens a new tray' : 'Opens in a tray');
+      item.addEventListener('click',()=>{
+        document.getElementById('pickerVeil').classList.remove('open');
+        if(p.kind==='action'){ p.action(); return; }
+        openProgram(p);
+      });
+      grid.appendChild(item);
+    });
+  });
+  document.getElementById('pickerVeil').classList.add('open');
+  setTimeout(()=>grid.querySelector('.pitem')?.focus(), 30);
+}
+let bladesOpen=true;
+document.getElementById('lanternBtn').addEventListener('click',()=>toggleBlades());
+document.getElementById('pickerClose').addEventListener('click',()=>document.getElementById('pickerVeil').classList.remove('open'));
+document.getElementById('pickerVeil').addEventListener('click',e=>{if(e.target.id==='pickerVeil')e.currentTarget.classList.remove('open')});
+
+/* Child portals can ask Foresight for a sibling chat blade or update their blade title. */
+window.addEventListener('message',e=>{
+  const tray=trays.find(t=>t.frame && t.frame.contentWindow===e.source);
+  if(!tray || !e.data || typeof e.data!=='object') return;
+  if(e.data.type==='foresight:new-chat'){openNewChat();return}
+  if(e.data.type==='foresight:open-conversation' && e.data.conversationId){
+    openProgram(makeChatProgram(e.data.conversationId,e.data.title||'Chat'));return
+  }
+  if(e.data.type==='foresight:portal-conversation'){
+    // World Chat keeps its permanent identity; ordinary chat blades follow the
+    // actual archived conversation they display.
+    if(tray.program.id==='chat_instance' && e.data.conversationId){
+      tray.program.instanceKey=String(e.data.conversationId);
+      tray.program.url='/general-chat?conversation='+encodeURIComponent(e.data.conversationId);
+      tray.runtimeLabel=safeLabel(e.data.title,tray.runtimeLabel);
+      tray.el.querySelector('.t-title').textContent=tray.runtimeLabel;
+      renderBlades();saveState();
+    }
+  }
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if(closeMenus()){e.preventDefault();return}
+    if(document.getElementById('askVeil').classList.contains('open')){e.preventDefault();askResolve(null);return}
+    const entered=trays.find(t=>t.entered);
+    if(entered){e.preventDefault();exitPortal(entered);return}
+    document.getElementById('pickerVeil').classList.remove('open');
+    return;
+  }
+  // Shortcuts only when typing is not in progress in this page. Keys pressed
+  // inside a tray belong to that program and never reach here.
+  const typing=e.target && (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName));
+  if(typing || !e.altKey || e.ctrlKey || e.metaKey) return;
+  const k=e.key.toLowerCase();
+  const map={b:openBrowserTray, k:openBlankTray, i:()=>pickImportFile(), o:openPicker, t:tileTrays, w:closeFocusedTray, n:openNewChat};
+  if(map[k]){e.preventDefault();map[k]();}
+});
+
+/* ============================================================
+   TRAY CONTENT — external programs, browser windows, video, recordings
+   ============================================================ */
+function releaseTray(tray){
+  if(tray.objectUrl){ URL.revokeObjectURL(tray.objectUrl); tray.objectUrl=null; }
+  if(tray.frame){ try{ tray.frame.src='about:blank'; }catch(e){} }
+  const v=tray.el.querySelector('video'); if(v){ v.pause(); v.removeAttribute('src'); v.load(); }
+  if(tray.abort){ tray.abort.abort(); tray.abort=null; }
+}
+function setTrayTitle(tray, text){
+  tray.runtimeLabel=safeLabel(text, tray.program.label);
+  tray.el.querySelector('.t-title').textContent=tray.runtimeLabel;
+  renderBlades(); saveState();
+}
+function panel(body, title, html, actions){
+  body.className='tray-body';
+  body.innerHTML=`<div class="panel-msg"><h3></h3><div class="pm-text"></div><div class="acts"></div></div>`;
+  body.querySelector('h3').textContent=title;
+  body.querySelector('.pm-text').innerHTML=html;
+  const acts=body.querySelector('.acts');
+  (actions||[]).forEach(([label,fn])=>{const b=document.createElement('button');b.textContent=label;b.addEventListener('click',fn);acts.appendChild(b)});
+}
+
+// A cross-origin server cannot be inspected from here, but a no-cors request
+// resolves when the server answers and rejects when nothing is listening.
+async function reachable(url, ms=2500){
+  const ctl=new AbortController(); const timer=setTimeout(()=>ctl.abort(), ms);
+  try{ await fetch(url,{mode:'no-cors',cache:'no-store',signal:ctl.signal}); return true; }
+  catch(e){ return false; }
+  finally{ clearTimeout(timer); }
+}
+async function mountExternal(tray, body){
+  const url=resolveUrl(tray.program);
+  panel(body, tray.program.label, 'Checking whether '+tray.program.label+' is running…', []);
+  const up=await reachable(url);
+  if(!document.body.contains(body) || !trays.includes(tray)) return;   // tray closed while checking
+  if(!up){
+    panel(body, tray.program.label+' is not running',
+      `It is a separate program with its own server. Start it on this computer, then press Retry.<br><br>
+       In PowerShell, from the Iteration Wallet folder:<br><code>.\\START_ITERATION_WALLET.ps1</code><br><br>
+       Expected address: <code></code>`,
+      [['Retry',()=>mountExternal(tray, body)],
+       ['Open in a new window',()=>window.open(url,'_blank','noopener')]]);
+    body.querySelectorAll('code')[1].textContent=url;
+    return;
+  }
+  body.className='tray-body'; body.innerHTML='';
+  const frame=document.createElement('iframe');
+  frame.src=url; frame.setAttribute('allow','clipboard-read; clipboard-write');
+  body.appendChild(frame); tray.frame=frame;
+}
+
+function mountBrowser(tray, body){
+  body.className='tray-body web';
+  body.innerHTML=`<div class="webbar">
+      <button class="wb-reload" title="Reload">↻</button>
+      <input class="wb-addr" type="text" spellcheck="false" autocomplete="off" placeholder="Type a web address and press Enter" aria-label="Web address">
+      <button class="wb-go" title="Go">Go</button>
+      <button class="wb-out" title="Open in a new browser window">↗</button>
+    </div>
+    <iframe sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+    <div class="webnote">Some sites refuse to be shown inside another page and will stay blank here. Use ↗ to open those in a normal browser window.</div>`;
+  const addr=body.querySelector('.wb-addr'), frame=body.querySelector('iframe');
+  tray.frame=frame;
+  function go(raw){
+    let href;
+    try{ href=normalizeAddress(raw); }catch(err){ toast(err.message); addr.focus(); return; }
+    tray.program.address=href; addr.value=href; frame.src=href;
+    setTrayTitle(tray, 'Browser · '+addressLabel(href));
+  }
+  addr.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); go(addr.value); } });
+  body.querySelector('.wb-go').addEventListener('click',()=>go(addr.value));
+  body.querySelector('.wb-reload').addEventListener('click',()=>{ if(tray.program.address) frame.src=tray.program.address; });
+  body.querySelector('.wb-out').addEventListener('click',()=>{
+    const target=tray.program.address || addr.value;
+    try{ window.open(normalizeAddress(target),'_blank','noopener'); }catch(err){ toast(err.message); }
+  });
+  if(tray.program.address){ addr.value=tray.program.address; frame.src=tray.program.address; }
+  else setTimeout(()=>addr.focus(), 50);
+}
+
+function mountVideo(tray, body){
+  const media=tray.program.media;
+  if(media.type==='file' && !media.file){
+    panel(body, 'Choose the video again',
+      'Browsers do not keep access to files from your computer after the page reloads. Choose <b></b> again to keep watching.',
+      [['Choose file…',()=>pickImportFile(tray)]]);
+    body.querySelector('b').textContent=media.name || 'the file';
+    return;
+  }
+  body.className='tray-body video'; body.innerHTML='';
+  const video=document.createElement('video');
+  video.controls=true; video.playsInline=true; video.preload='metadata';
+  video.addEventListener('error',()=>{
+    const code=video.error ? video.error.code : 0;
+    const why = code===4 ? 'This browser cannot play this file or format.' :
+                code===2 ? 'The video stopped loading because of a network error.' :
+                'The video could not be played.';
+    panel(body, 'Video unavailable', why, [['Import another file…',()=>pickImportFile(tray)]]);
+  });
+  body.appendChild(video);
+  if(media.type==='file'){
+    if(tray.objectUrl) URL.revokeObjectURL(tray.objectUrl);
+    tray.objectUrl=URL.createObjectURL(media.file); video.src=tray.objectUrl;
+  } else if(media.type==='url'){
+    video.src=media.url;
+  } else if(media.type==='vod'){
+    loadRecording(tray, body, video);
+  }
+}
+// Recordings are protected; a <video src> cannot send the Reach bearer token,
+// so the file is fetched with authentication and played from memory.
+async function loadRecording(tray, body, video){
+  const ctl=new AbortController(); tray.abort=ctl;
+  try{
+    const res=await fetch(tray.program.media.url,{signal:ctl.signal});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const blob=await res.blob();
+    if(tray.objectUrl) URL.revokeObjectURL(tray.objectUrl);
+    tray.objectUrl=URL.createObjectURL(blob); video.src=tray.objectUrl;
+  }catch(err){
+    if(err.name==='AbortError') return;
+    panel(body, 'Recording unavailable', 'Could not load this recording: <code></code>', [['Retry',()=>mountVideo(tray, body)]]);
+    body.querySelector('code').textContent=String(err.message||err);
+  }finally{ tray.abort=null; }
+}
+
+async function mountRecordings(tray, body){
+  panel(body, 'Recordings', 'Loading recordings…', []);
+  try{
+    const res=await fetch('/api/vod');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    const files=(data.files||[]).filter(f=>/\.(mp4|webm|mov|m4v|ogg|ogv|mp3|wav|m4a)$/i.test(f.name||''));
+    if(!files.length){
+      panel(body, 'Recordings', 'No playable recordings yet. Recordings made in the studio appear here.',
+        [['Refresh',()=>mountRecordings(tray, body)],['Import a file…',()=>pickImportFile()]]);
+      return;
+    }
+    panel(body, 'Recordings', files.length+' playable recording'+(files.length===1?'':'s')+'. Click one to open it in its own tray.',
+      [['Refresh',()=>mountRecordings(tray, body)]]);
+    const list=document.createElement('div'); list.className='reclist';
+    files.forEach(f=>{
+      const b=document.createElement('button'); b.className='recitem';
+      const n=document.createElement('span'); n.textContent=f.name;
+      const meta=document.createElement('span');
+      const mb=f.size_bytes ? (f.size_bytes/1048576).toFixed(1)+' MB' : '';
+      meta.textContent=[mb, f.ended_at ? String(f.ended_at).slice(0,16).replace('T',' ') : ''].filter(Boolean).join(' · ');
+      b.append(n, meta);
+      b.addEventListener('click',()=>openProgram(makeVideoProgram({type:'vod', url:f.url, name:f.name})));
+      list.appendChild(b);
+    });
+    body.querySelector('.panel-msg').appendChild(list);
+  }catch(err){
+    panel(body, 'Recordings unavailable', 'Could not list recordings: <code></code>', [['Retry',()=>mountRecordings(tray, body)]]);
+    body.querySelector('code').textContent=String(err.message||err);
+  }
+}
+
+/* ---- opening media and browser trays ---- */
+/* Import: one file picker feeds every kind of file tray. A target tray (a
+   blank tray, or a tray asking for its file again) is filled in place;
+   otherwise a new tray opens. */
+let importTarget=null;
+function pickImportFile(targetTray){
+  importTarget=targetTray && trays.includes(targetTray) ? targetTray : null;
+  const input=document.getElementById('importFile'); input.value=''; input.click();
+}
+function fileProgramFor(file, key){
+  const t=file.type || '';
+  if(t.startsWith('video/') || t.startsWith('audio/') || /\.(mp4|webm|mov|m4v|ogv|mp3|wav|m4a|ogg|flac)$/i.test(file.name))
+    return makeVideoProgram({type:'file', file, name:file.name, mime:t}, key);
+  const kind=fileKind(file.name, t);
+  if(!kind) return null;
+  return makeFileProgram({type:'file', file, name:file.name, mime:t}, key);
+}
+function fileKind(name, mime){
+  if((mime||'').startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp|svg|avif)$/i.test(name)) return 'image';
+  if(mime==='application/pdf' || /\.pdf$/i.test(name)) return 'pdf';
+  if((mime||'').startsWith('text/') || /\.(txt|md|csv|json|log)$/i.test(name)) return 'text';
+  return null;
+}
+document.getElementById('importFile').addEventListener('change',e=>{
+  const file=e.target.files && e.target.files[0]; if(!file) return;
+  const target=importTarget; importTarget=null;
+  const program=fileProgramFor(file, target ? target.program.instanceKey : null);
+  if(!program){ toast('This file type cannot be shown in a tray: '+file.name); return; }
+  if(target){ replaceTrayProgram(target, program); showTray(target); }
+  else createTray(program);
+});
+// Turn an existing tray (a blank tray, or one waiting for its file) into another program in place.
+function replaceTrayProgram(tray, program){
+  releaseTray(tray);
+  tray.program=program; tray.frame=null;
+  tray.el.dataset.portalKind=program.portalKind || 'tool';
+  const body=tray.el.querySelector('.tray-body');
+  body.className='tray-body'; body.innerHTML='';
+  mountTrayBody(tray, body);
+  setTrayTitle(tray, program.label);
+}
+function mountTrayBody(tray, body){
+  const program=tray.program;
+  if(program.kind==='iframe'){
+    const frame=document.createElement('iframe');
+    frame.src=resolveUrl(program); frame.setAttribute('loading','lazy');
+    frame.setAttribute('allow','microphone; camera; autoplay; clipboard-read; clipboard-write');
+    body.appendChild(frame); tray.frame=frame;
+  } else if(program.kind==='external') mountExternal(tray, body);
+  else if(program.kind==='browser') mountBrowser(tray, body);
+  else if(program.kind==='video') mountVideo(tray, body);
+  else if(program.kind==='file') mountFile(tray, body);
+  else if(program.kind==='blank') mountBlank(tray, body);
+  else if(program.kind==='recordings') mountRecordings(tray, body);
+}
+
+/* ---- blank trays ---- */
+function makeBlankProgram(key){
+  return {id:'blank_instance', instanceKey:key || newInstanceKey(), label:'Blank Tray', group:'Trays',
+    kind:'blank', w:720, h:500, placement:'cascade', singleton:true, portalKind:'tool'};
+}
+function openBlankTray(){ return createTray(makeBlankProgram()); }
+function mountBlank(tray, body){
+  panel(body, 'Blank Tray', 'Put something in this tray.', [
+    ['Import a file…',()=>pickImportFile(tray)],
+    ['Open a web address',()=>replaceTrayProgram(tray, makeBrowserProgram('', tray.program.instanceKey))],
+    ['Open a program…',()=>showRoomList(tray, body, ['Programs'])],
+    ['Open a studio room…',()=>showRoomList(tray, body, ['Studio Rooms','Production Tools'])],
+  ]);
+}
+function showRoomList(tray, body, groups){
+  const host=body.querySelector('.panel-msg'); host.querySelector('.reclist')?.remove();
+  const list=document.createElement('div'); list.className='reclist';
+  const programs = groups.includes('Programs')
+    ? ['pubpartner_workspace','twoi','iteration_wallet','pubpartner_chat','care_eq'].map(id=>PROGRAMS.find(p=>p.id===id))
+    : PROGRAMS.filter(p=>groups.includes(p.group));
+  programs.forEach(p=>{
+    const b=document.createElement('button'); b.className='recitem';
+    const n=document.createElement('span'); n.textContent=p.label;
+    const where=document.createElement('span'); const open=findExisting(p);
+    where.textContent=open ? 'already open' : p.group;
+    b.append(n, where);
+    b.addEventListener('click',()=>{
+      const existing=findExisting(p);
+      if(existing){ selectBlade(existing); toast(p.label+' is already open in its own tray'); return; }
+      replaceTrayProgram(tray, p);
+    });
+    list.appendChild(b);
+  });
+  host.appendChild(list);
+}
+
+/* ---- file trays: image, PDF, text ---- */
+function makeFileProgram(media, key){
+  const name=safeLabel(media.name || 'File','File');
+  return {id:'file_instance', instanceKey:key || newInstanceKey(), label:name, group:'Trays', kind:'file',
+    media:Object.assign({}, media, {name}), w:760, h:560, placement:'cascade', singleton:true, portalKind:'tool'};
+}
+async function mountFile(tray, body){
+  const media=tray.program.media;
+  if(!media.file){
+    panel(body, 'Choose the file again',
+      'Browsers do not keep access to files from your computer after the page reloads. Choose <b></b> again to keep working with it.',
+      [['Choose file…',()=>pickImportFile(tray)]]);
+    body.querySelector('b').textContent=media.name || 'the file';
+    return;
+  }
+  const kind=fileKind(media.name, media.mime);
+  body.className='tray-body'; body.innerHTML='';
+  if(tray.objectUrl){ URL.revokeObjectURL(tray.objectUrl); tray.objectUrl=null; }
+  if(kind==='image'){
+    tray.objectUrl=URL.createObjectURL(media.file);
+    const img=document.createElement('img'); img.alt=media.name; img.src=tray.objectUrl;
+    img.style.cssText='width:100%;height:100%;object-fit:contain;display:block;background:#050607';
+    img.addEventListener('error',()=>panel(body,'Image unavailable','This browser cannot display this image file.',[['Import another file…',()=>pickImportFile(tray)]]));
+    body.appendChild(img);
+  } else if(kind==='pdf'){
+    tray.objectUrl=URL.createObjectURL(media.file);
+    const frame=document.createElement('iframe'); frame.src=tray.objectUrl; frame.title=media.name;
+    body.appendChild(frame); tray.frame=frame;
+  } else if(kind==='text'){
+    const MAX=5*1024*1024;
+    if(media.file.size>MAX){ panel(body,'File too large to show','Text files over 5 MB are not shown in a tray.',[]); return; }
+    const pre=document.createElement('pre');
+    pre.style.cssText='margin:0;padding:16px;height:100%;overflow:auto;white-space:pre-wrap;word-break:break-word;font:12px/1.55 ui-monospace,monospace;color:#e6d8c0;background:#0a0c0d';
+    pre.textContent=await media.file.text();
+    body.appendChild(pre);
+  } else {
+    panel(body,'Cannot show this file','This file type cannot be shown in a tray.',[]);
+  }
+}
+
+async function askVideoUrl(){
+  const raw=await ask({title:'Open a video from a link', sub:'A direct link to a video file (for example .mp4 or .webm). Pages like YouTube are web pages, not video files; open those in a Browser Window.',
+    placeholder:'https://…/video.mp4', validate:v=>normalizeAddress(v)});
+  if(raw==null) return;
+  const href=normalizeAddress(raw);
+  createTray(makeVideoProgram({type:'url', url:href, name:decodeURIComponent(new URL(href).pathname.split('/').pop()||'Video')}));
+}
+function openBrowserTray(address){ return createTray(makeBrowserProgram(address || '')); }
+
+/* ---- small dialog: ask for text, or show information ---- */
+let askResolver=null;
+function askResolve(value){
+  document.getElementById('askVeil').classList.remove('open');
+  const r=askResolver; askResolver=null; if(r) r(value);
+}
+function ask({title, sub='', placeholder='', value='', validate=null, info=null, okLabel='Open', cancel=false}){
+  if(askResolver) askResolve(null);
+  document.getElementById('askTitle').textContent=title;
+  document.getElementById('askSub').textContent=sub;
+  const body=document.getElementById('askBody'), err=document.getElementById('askError'), ok=document.getElementById('askOk');
+  body.innerHTML=''; err.textContent='';
+  let input=null;
+  if(info){
+    body.appendChild(info); ok.textContent=okLabel==='Open' ? 'Close' : okLabel;
+    document.getElementById('askCancel').style.display=cancel ? '' : 'none';
+  }
+  else{
+    input=document.createElement('input'); input.className='ask-input'; input.placeholder=placeholder; input.value=value;
+    input.spellcheck=false; input.autocomplete='off'; body.appendChild(input);
+    ok.textContent=okLabel; document.getElementById('askCancel').style.display='';
+  }
+  document.getElementById('askVeil').classList.add('open');
+  setTimeout(()=>(input||ok).focus(), 30);
+  return new Promise(resolve=>{
+    askResolver=resolve;
+    const submit=()=>{
+      if(!input){ askResolve(true); return; }
+      if(validate){ try{ validate(input.value); }catch(e){ err.textContent=e.message; input.focus(); return; } }
+      askResolve(input.value);
+    };
+    ok.onclick=submit;
+    if(input) input.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); submit(); } };
+  });
+}
+document.getElementById('askCancel').addEventListener('click',()=>askResolve(null));
+document.getElementById('askVeil').addEventListener('click',e=>{ if(e.target.id==='askVeil') askResolve(null); });
+
+/* ============================================================
+   TRAY ARRANGEMENT
+   ============================================================ */
+function visibleTrays(){ return trays.filter(t=>!t.hidden); }
+function focusedTray(){ return trays.find(t=>!t.hidden && t.el.classList.contains('focused')) || null; }
+function tileTrays(){
+  const list=visibleTrays(); if(!list.length){ toast('No open trays to arrange'); return; }
+  trays.filter(t=>t.entered).forEach(exitPortal);
+  const r=surface.getBoundingClientRect(), gap=window.ForesightSkin ? window.ForesightSkin.FRAME_GAP : 10;
+  const cols=Math.ceil(Math.sqrt(list.length)), rows=Math.ceil(list.length/cols);
+  const w=Math.max(280, Math.floor((r.width-gap*(cols+1))/cols));
+  const h=Math.max(180, Math.floor((r.height-gap*(rows+1))/rows));
+  list.forEach((t,i)=>{
+    t.w=w; t.h=h; t.x=gap+(i%cols)*(w+gap); t.y=gap+Math.floor(i/cols)*(h+gap);
+    applyNormalRect(t);
+  });
+  saveState(); toast('Trays tiled');
+}
+function cascadeTrays(){
+  const list=visibleTrays(); if(!list.length){ toast('No open trays to arrange'); return; }
+  trays.filter(t=>t.entered).forEach(exitPortal);
+  const r=surface.getBoundingClientRect();
+  const w=Math.min(900, Math.max(280, r.width*0.62)), h=Math.min(640, Math.max(180, r.height*0.7));
+  list.forEach((t,i)=>{
+    t.w=w; t.h=h;
+    t.x=clamp(24+i*32, 4, Math.max(4, r.width-w-4)); t.y=clamp(18+i*28, 4, Math.max(4, r.height-h-4));
+    applyNormalRect(t); bringToFront(t);
+  });
+  saveState(); toast('Trays cascaded');
+}
+function showAllTrays(){ trays.forEach(t=>{ if(t.hidden) showTray(t); }); }
+function hideAllTrays(){ visibleTrays().forEach(hideTray); }
+function resetAllTrays(){
+  trays.forEach(t=>{ if(t.entered) exitPortal(t); Object.assign(t, defaultRect(t.program)); applyNormalRect(t); });
+  saveState(); toast('Trays returned to their designed positions');
+}
+// Closing a whole countertop is destructive, so it is only offered from the
+// system bar and always lists every open item before it happens.
+async function closeCountertop(){
+  const closable=trays.filter(t=>!t.program.persistent);
+  if(!closable.length){ toast('The countertop has nothing to close'); return; }
+  const info=document.createElement('div');
+  const p=document.createElement('p'); p.style.margin='0 0 8px';
+  p.textContent='These '+closable.length+' tray'+(closable.length===1?'':'s')+' will close. Anything unsaved inside them may be lost.';
+  const ul=document.createElement('ul'); ul.style.cssText='margin:0;padding-left:18px;color:#e3cfa9;font-size:12px;line-height:1.7';
+  closable.forEach(t=>{ const li=document.createElement('li'); li.textContent=t.runtimeLabel; ul.appendChild(li); });
+  info.append(p, ul);
+  if(trays.some(t=>t.program.persistent)){
+    const keep=document.createElement('p'); keep.style.cssText='margin:10px 0 0;color:#918678;font-size:11px';
+    keep.textContent='World Chat stays available.'; info.appendChild(keep);
+  }
+  const ok=await ask({title:'Close countertop', info, okLabel:'Close all', cancel:true});
+  if(ok) closable.forEach(closeTray);
+}
+function saveCountertop(){ saveState(); toast('Countertop saved'); }
+function closeFocusedTray(){ const t=focusedTray(); if(t) closeTray(t); else toast('No tray is focused'); }
+function reloadFocusedTray(){
+  const t=focusedTray(); if(!t){ toast('No tray is focused'); return; }
+  const body=t.el.querySelector('.tray-body');
+  if(t.program.kind==='iframe' && t.frame){ t.frame.src=resolveUrl(t.program); }
+  else if(t.program.kind==='browser'){ if(t.program.address) t.frame.src=t.program.address; }
+  else if(t.program.kind==='external'){ mountExternal(t, body); }
+  else if(t.program.kind==='recordings'){ mountRecordings(t, body); }
+  else if(t.program.kind==='video'){ mountVideo(t, body); }
+  else { toast('This tray refreshes itself'); return; }
+  toast('Reloaded '+t.runtimeLabel);
+}
+function showShortcuts(){
+  const info=document.createElement('div'); info.className='keys';
+  [['Alt + B','Open a web browser tray'],['Alt + K','Open a blank tray'],['Alt + I','Import a file into a tray'],
+   ['Alt + O','Open room / program'],['Alt + N','New chat'],['Alt + T','Tile trays'],['Alt + W','Close the focused tray'],
+   ['Double-click a tray title','Enter / leave fullscreen'],['Esc','Close a menu or dialog, or leave fullscreen']]
+   .forEach(([k,d])=>{const a=document.createElement('kbd');a.textContent=k;const b=document.createElement('span');b.textContent=d;info.append(a,b)});
+  ask({title:'Keyboard shortcuts', sub:'Shortcuts work when the Counter itself has focus. Keys pressed inside a tray go to that program.', info});
+}
+
+/* ============================================================
+   MENU BAR — every item performs a real action
+   ============================================================ */
+function programItem(id){
+  const p=PROGRAMS.find(x=>x.id===id);
+  return {label:p.label, run:()=>openProgram(p)};
+}
+function menuModel(){
+  const focused=focusedTray();
+  const openItems=trays.map(t=>({label:(t.hidden?'○ ':t.entered?'◆ ':'● ')+t.runtimeLabel, run:()=>selectBlade(t)}));
+  return [
+    {name:'File', items:[
+      {label:'Open…', key:'Alt+O', run:openPicker},
+      {sep:true},
+      {label:'New web browser', key:'Alt+B', run:()=>openBrowserTray()},
+      {label:'New blank tray', key:'Alt+K', run:()=>openBlankTray()},
+      {label:'New chat', key:'Alt+N', run:openNewChat},
+      {label:'Import a file…', key:'Alt+I', run:()=>pickImportFile()},
+      {label:'Video from a link…', run:askVideoUrl},
+      {sep:true},
+      {label:'Save countertop', run:saveCountertop},
+      {label:'Close tray', key:'Alt+W', run:closeFocusedTray, disabled:!focused || focused.program.persistent && focused.hidden},
+      {label:'Close countertop…', run:closeCountertop, disabled:!trays.some(t=>!t.program.persistent)},
+    ]},
+    {name:'View', items:[
+      {label:focused&&focused.entered?'Leave fullscreen':'Enter fullscreen', run:()=>focused&&togglePortal(focused), disabled:!focused},
+      {label:'Reload tray', run:reloadFocusedTray, disabled:!focused},
+      {label:'Change tray material'+(focused && window.ForesightSkin ? ' ('+(window.ForesightSkin.LOOKS[focused.look]||{}).name+')' : ''),
+        run:()=>{ const name=window.ForesightSkin.cycleLook(focused); renderBlades(); saveState(); toast('Tray is now '+name); },
+        disabled:!focused || !window.ForesightSkin},
+      {sep:true},
+      {label:'Tile trays', key:'Alt+T', run:tileTrays, disabled:!visibleTrays().length},
+      {label:'Cascade trays', run:cascadeTrays, disabled:!visibleTrays().length},
+      {label:'Return trays to designed positions', run:resetAllTrays, disabled:!trays.length},
+      {sep:true},
+      {label:'Show all trays', run:showAllTrays, disabled:!trays.some(t=>t.hidden)},
+      {label:'Stow all trays', run:hideAllTrays, disabled:!visibleTrays().length},
+      {label:(bladesOpen?'Retract':'Extend')+' fan', run:toggleBlades},
+    ]},
+    {name:'Window', items: openItems.length ? [{heading:'Open trays'}, ...openItems] : [{label:'No trays open', disabled:true, run:()=>{}}]},
+    {name:'Help', items:[
+      {label:'Keyboard shortcuts', run:showShortcuts},
+      {sep:true},
+      programItem('pubpartner'), programItem('twoi_bridge_status'), programItem('doctor'),
+    ]},
+  ];
+}
+function closeMenus(){
+  const open=document.querySelectorAll('.menu.open');
+  open.forEach(m=>{ m.classList.remove('open'); m.querySelector('.menu-btn').setAttribute('aria-expanded','false'); });
+  return open.length>0;
+}
+function openMenu(menuEl, focusFirst){
+  closeMenus();
+  const idx=Number(menuEl.dataset.index), model=menuModel()[idx], list=menuEl.querySelector('.menu-list');
+  list.innerHTML='';
+  model.items.forEach(it=>{
+    if(it.sep){ const s=document.createElement('div'); s.className='menu-sep'; s.setAttribute('role','separator'); list.appendChild(s); return; }
+    if(it.heading){ const h=document.createElement('div'); h.className='menu-label'; h.textContent=it.heading; list.appendChild(h); return; }
+    const b=document.createElement('button'); b.className='menu-item'; b.setAttribute('role','menuitem');
+    const l=document.createElement('span'); l.textContent=it.label; b.appendChild(l);
+    if(it.key){ const k=document.createElement('span'); k.className='mi-key'; k.textContent=it.key; b.appendChild(k); }
+    if(it.disabled){ b.disabled=true; b.setAttribute('aria-disabled','true'); }
+    b.addEventListener('click',()=>{ closeMenus(); it.run(); });
+    list.appendChild(b);
+  });
+  menuEl.classList.add('open'); menuEl.querySelector('.menu-btn').setAttribute('aria-expanded','true');
+  if(focusFirst){ const first=list.querySelector('.menu-item:not([disabled])'); if(first) first.focus(); }
+}
+function buildMenubar(){
+  const bar=document.getElementById('menubar'); bar.innerHTML='';
+  menuModel().forEach((m,i)=>{
+    const wrap=document.createElement('div'); wrap.className='menu'; wrap.dataset.index=i;
+    const btn=document.createElement('button'); btn.className='menu-btn'; btn.textContent=m.name;
+    btn.setAttribute('role','menuitem'); btn.setAttribute('aria-haspopup','true'); btn.setAttribute('aria-expanded','false');
+    const list=document.createElement('div'); list.className='menu-list'; list.setAttribute('role','menu');
+    wrap.append(btn, list); bar.appendChild(wrap);
+    btn.addEventListener('click',e=>{ e.stopPropagation(); wrap.classList.contains('open') ? closeMenus() : openMenu(wrap, false); });
+    btn.addEventListener('mouseenter',()=>{ if(document.querySelector('.menu.open') && !wrap.classList.contains('open')) openMenu(wrap, false); });
+    btn.addEventListener('keydown',e=>{
+      if(e.key==='ArrowDown'||e.key==='Enter'||e.key===' '){ e.preventDefault(); openMenu(wrap, true); }
+      if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
+        e.preventDefault(); const menus=[...bar.children]; const next=menus[(i+(e.key==='ArrowRight'?1:-1)+menus.length)%menus.length];
+        next.querySelector('.menu-btn').focus();
+      }
+    });
+    list.addEventListener('keydown',e=>{
+      const items=[...list.querySelectorAll('.menu-item:not([disabled])')]; const at=items.indexOf(document.activeElement);
+      if(e.key==='ArrowDown'){ e.preventDefault(); items[(at+1)%items.length]?.focus(); }
+      if(e.key==='ArrowUp'){ e.preventDefault(); items[(at-1+items.length)%items.length]?.focus(); }
+      if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
+        e.preventDefault(); const menus=[...bar.children]; const next=menus[(i+(e.key==='ArrowRight'?1:-1)+menus.length)%menus.length];
+        openMenu(next, true);
+      }
+      if(e.key==='Tab') closeMenus();
+    });
+  });
+}
+document.addEventListener('pointerdown',e=>{ if(!e.target.closest('.menu')) closeMenus(); });
+window.addEventListener('blur',()=>closeMenus());
+function toggleBlades(){
+  bladesOpen=!bladesOpen;
+  document.getElementById('blades').classList.toggle('retracted', !bladesOpen);
+  document.getElementById('lanternBtn').setAttribute('aria-expanded', String(bladesOpen));
+}
+document.getElementById('lanternBtn').addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleBlades(); } });
+window.addEventListener('resize',()=>trays.filter(t=>!t.entered).forEach(applyNormalRect));
+
+/* ============================================================
+   LIVE STATUS — real fetches against the real services, no mock data
+   ============================================================ */
+async function pollOnce(service){
+  const url = service==='pubpartner'
+    ? CONFIG.pubpartnerBase + CONFIG.pubpartnerStatusPath
+    : CONFIG.twoIBase + '/health';
+  const res = await fetch(url, {mode:'cors'});
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  return res.json();
+}
+
+function renderPubPartnerStatus(container, data){
+  const providers=Array.isArray(data.providers)?data.providers.join(', '):(data.providers || '—');
+  const protocols=Array.isArray(data.protocols)?data.protocols.join(', '):(data.protocol || '—');
+  const vessel=data.vessel && typeof data.vessel==='object'
+    ? (data.vessel.status || data.vessel.state || 'mounted')
+    : (data.vessel ? 'mounted' : '—');
+  container.innerHTML = `
+    <div class="srow"><span>Status</span><span class="pill ok">${data.ok===false?'degraded':(data.spine || data.status || 'ready')}</span></div>
+    <div class="srow"><span>Spine</span><span>${data.spine || data.service || '—'}</span></div>
+    <div class="srow"><span>Protocols</span><span>${protocols}</span></div>
+    <div class="srow"><span>Providers</span><span>${providers}</span></div>
+    <div class="srow"><span>Vessel</span><span>${vessel}</span></div>
+  `;
+}
+function renderTwoIStatus(container, data){
+  const env = data.environment || {};
+  const svc = data.services || {};
+  container.innerHTML = `
+    <div class="srow"><span>Status</span><span class="pill ok">${data.status}</span></div>
+    <div class="srow"><span>Service</span><span>${data.service || '—'}</span></div>
+    <div class="srow"><span>Uptime</span><span>${data.uptime!=null ? data.uptime+'s' : '—'}</span></div>
+    <div class="srow"><span>Node</span><span>${env.node_version || '—'}</span></div>
+    <div class="srow"><span>Characters</span><span>${svc.character_count ?? '—'}</span></div>
+    <div class="srow"><span>Optional 2i utilities</span><span>${svc.legacy_2i_utilities ?? '—'}</span></div>
+  `;
+}
+
+function pollStatus(service, container){
+  let stopped = false;
+  container.closest('.tray')?.addEventListener?.('DOMNodeRemoved', ()=>{ stopped = true; });
+  async function tick(){
+    if(stopped || !document.body.contains(container)) return;
+    try{
+      const data = await pollOnce(service);
+      if(service==='pubpartner') renderPubPartnerStatus(container, data);
+      else renderTwoIStatus(container, data);
+    }catch(err){
+      container.innerHTML = `<div class="srow"><span>Status</span><span class="pill bad">unreachable</span></div>
+        <div class="serr">${(''+err).replace(/</g,'&lt;')}<br>Is the ${service==='pubpartner'?'Reach PubPartner spine':'Foresight character bridge'} available?</div>`;
+    }
+    if(!stopped) setTimeout(tick, 4000);
+  }
+  tick();
+}
+
+/* ============================================================
+   TOP-BAR SERVICE DOTS
+   ============================================================ */
+async function checkDot(id, url){
+  const dot = document.getElementById(id);
+  try{
+    const res = await fetch(url, {mode:'cors'});
+    dot.className = 'dotstat ' + (res.ok ? 'up' : 'down');
+  }catch(e){
+    dot.className = 'dotstat down';
+  }
+}
+function refreshDots(){
+  checkDot('dot-pubcast', '/health');
+  checkDot('dot-pubpartner', CONFIG.pubpartnerBase + CONFIG.pubpartnerStatusPath);
+  checkDot('dot-2i', CONFIG.twoIBase + '/health');
+}
+/* ============================================================
+   AUTHENTICATED BOOT — don't mount working portals until Reach has a session
+   ============================================================ */
+async function boot(){
+  try{
+    if(window.ReachAuth){
+      const session=await window.ReachAuth.requireSession('/foresight');
+      if(session===null) return;
+    }
+  }catch(err){
+    toast('Reach authentication unavailable: '+err.message);
+    hint.textContent='Reach authentication is unavailable. Check the Reach server and reload.';
+    hint.style.display='flex';
+    return;
+  }
+  buildMenubar();
+  if(window.ForesightSkin) window.ForesightSkin.start();
+  refreshDots();
+  setInterval(refreshDots, 6000);
+  const saved=loadState();
+  saved.forEach(s=>{const program=programFromSaved(s);if(program)createTray(program,s)});
+  PROGRAMS.filter(p=>p.autostart).forEach(p=>{if(!findExisting(p))createTray(p)});
+  if(!trays.length)renderBlades();
+  hint.style.display=trays.some(t=>!t.hidden)?'none':'flex';
+}
+boot();
+</script>
+</body>
+</html>

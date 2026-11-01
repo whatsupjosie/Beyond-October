@@ -1,0 +1,822 @@
+......EEEEEEEEEEEEEE............................                         [100%]
+==================================== ERRORS ====================================
+_________ ERROR at setup of test_native_2i_edit_save_export_and_reopen _________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-1/test_native_2i_edit_save_expor0')
+
+    @pytest.fixture
+    def page(tmp_path):
+        with sync_playwright() as p:
+            engine = os.environ.get("FORESIGHT_TEST_BROWSER", "chromium")
+            browser = (
+                p.firefox.launch(timeout=20000)
+                if engine == "firefox"
+>               else p.chromium.launch(
+                    args=["--single-process", "--no-zygote", "--use-angle=swiftshader"]
+                )
+            )
+
+tests/test_foresight_file_workspace.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:14532: in launch
+    self._sync(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_browser_type.py:98: in launch
+    await self._channel.send(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f8d8ce01ac0>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f8d8cdfc5e0>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        st: List[inspect.FrameInfo] = getattr(
+            task, "__pw_stack__", None
+        ) or inspect.stack(0)
+    
+        parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /root/.cache/ms-playwright/chromium_headless_shell-1194/chrome-linux/headless_shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:559: Error
+_____ ERROR at setup of test_docx_opens_in_native_2i_as_explicit_text_copy _____
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-1/test_docx_opens_in_native_2i_a0')
+
+    @pytest.fixture
+    def page(tmp_path):
+        with sync_playwright() as p:
+            engine = os.environ.get("FORESIGHT_TEST_BROWSER", "chromium")
+            browser = (
+                p.firefox.launch(timeout=20000)
+                if engine == "firefox"
+>               else p.chromium.launch(
+                    args=["--single-process", "--no-zygote", "--use-angle=swiftshader"]
+                )
+            )
+
+tests/test_foresight_file_workspace.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:14532: in launch
+    self._sync(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_browser_type.py:98: in launch
+    await self._channel.send(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f8d8cde4560>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f8d8cdd79c0>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        st: List[inspect.FrameInfo] = getattr(
+            task, "__pw_stack__", None
+        ) or inspect.stack(0)
+    
+        parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /root/.cache/ms-playwright/chromium_headless_shell-1194/chrome-linux/headless_shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:559: Error
+________ ERROR at setup of test_image_rotate_crop_download_and_restore _________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-1/test_image_rotate_crop_downloa0')
+
+    @pytest.fixture
+    def page(tmp_path):
+        with sync_playwright() as p:
+            engine = os.environ.get("FORESIGHT_TEST_BROWSER", "chromium")
+            browser = (
+                p.firefox.launch(timeout=20000)
+                if engine == "firefox"
+>               else p.chromium.launch(
+                    args=["--single-process", "--no-zygote", "--use-angle=swiftshader"]
+                )
+            )
+
+tests/test_foresight_file_workspace.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:14532: in launch
+    self._sync(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_browser_type.py:98: in launch
+    await self._channel.send(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f8d8cb19130>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f8d8cc3a7a0>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        st: List[inspect.FrameInfo] = getattr(
+            task, "__pw_stack__", None
+        ) or inspect.stack(0)
+    
+        parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /root/.cache/ms-playwright/chromium_headless_shell-1194/chrome-linux/headless_shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:559: Error
+_ ERROR at setup of test_unknown_binary_preserves_original_without_false_text __
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-1/test_unknown_binary_preserves_0')
+
+    @pytest.fixture
+    def page(tmp_path):
+        with sync_playwright() as p:
+            engine = os.environ.get("FORESIGHT_TEST_BROWSER", "chromium")
+            browser = (
+                p.firefox.launch(timeout=20000)
+                if engine == "firefox"
+>               else p.chromium.launch(
+                    args=["--single-process", "--no-zygote", "--use-angle=swiftshader"]
+                )
+            )
+
+tests/test_foresight_file_workspace.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:14532: in launch
+    self._sync(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_browser_type.py:98: in launch
+    await self._channel.send(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f8d8cb44260>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f8d8cc3bec0>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        st: List[inspect.FrameInfo] = getattr(
+            task, "__pw_stack__", None
+        ) or inspect.stack(0)
+    
+        parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /root/.cache/ms-playwright/chromium_headless_shell-1194/chrome-linux/headless_shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:559: Error
+_ ERROR at setup of test_save_as_download_is_edited_file_and_2i_export_keeps_state _
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-1/test_save_as_download_is_edite0')
+
+    @pytest.fixture
+    def page(tmp_path):
+        with sync_playwright() as p:
+            engine = os.environ.get("FORESIGHT_TEST_BROWSER", "chromium")
+            browser = (
+                p.firefox.launch(timeout=20000)
+                if engine == "firefox"
+>               else p.chromium.launch(
+                    args=["--single-process", "--no-zygote", "--use-angle=swiftshader"]
+                )
+            )
+
+tests/test_foresight_file_workspace.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:14532: in launch
+    self._sync(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_browser_type.py:98: in launch
+    await self._channel.send(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f8d8cb1ade0>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f8d8cc3a2a0>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        st: List[inspect.FrameInfo] = getattr(
+            task, "__pw_stack__", None
+        ) or inspect.stack(0)
+    
+        parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /root/.cache/ms-playwright/chromium_headless_shell-1194/chrome-linux/headless_shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:559: Error
+__ ERROR at setup of test_tray_metadata_and_browser_shortcut_import_roundtrip __
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-1/test_tray_metadata_and_browser0')
+
+    @pytest.fixture
+    def page(tmp_path):
+        with sync_playwright() as p:
+            engine = os.environ.get("FORESIGHT_TEST_BROWSER", "chromium")
+            browser = (
+                p.firefox.launch(timeout=20000)
+                if engine == "firefox"
+>               else p.chromium.launch(
+                    args=["--single-process", "--no-zygote", "--use-angle=swiftshader"]
+                )
+            )
+
+tests/test_foresight_file_workspace.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:14532: in launch
+    self._sync(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_browser_type.py:98: in launch
+    await self._channel.send(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f8d8cdb32c0>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f8d8cdd6700>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        st: List[inspect.FrameInfo] = getattr(
+            task, "__pw_stack__", None
+        ) or inspect.stack(0)
+    
+        parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /root/.cache/ms-playwright/chromium_headless_shell-1194/chrome-linux/headless_shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:559: Error
+_________ ERROR at setup of test_native_text_undo_and_clipboard_paste __________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-1/test_native_text_undo_and_clip0')
+
+    @pytest.fixture
+    def page(tmp_path):
+        with sync_playwright() as p:
+            engine = os.environ.get("FORESIGHT_TEST_BROWSER", "chromium")
+            browser = (
+                p.firefox.launch(timeout=20000)
+                if engine == "firefox"
+>               else p.chromium.launch(
+                    args=["--single-process", "--no-zygote", "--use-angle=swiftshader"]
+                )
+            )
+
+tests/test_foresight_file_workspace.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:14532: in launch
+    self._sync(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_browser_type.py:98: in launch
+    await self._channel.send(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f8d8cb1afc0>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f8d87ca5bc0>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        st: List[inspect.FrameInfo] = getattr(
+            task, "__pw_stack__", None
+        ) or inspect.stack(0)
+    
+        parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /root/.cache/ms-playwright/chromium_headless_shell-1194/chrome-linux/headless_shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:559: Error
+________ ERROR at setup of test_saved_working_copy_rejects_stale_writer ________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-1/test_saved_working_copy_reject0')
+
+    @pytest.fixture
+    def page(tmp_path):
+        with sync_playwright() as p:
+            engine = os.environ.get("FORESIGHT_TEST_BROWSER", "chromium")
+            browser = (
+                p.firefox.launch(timeout=20000)
+                if engine == "firefox"
+>               else p.chromium.launch(
+                    args=["--single-process", "--no-zygote", "--use-angle=swiftshader"]
+                )
+            )
+
+tests/test_foresight_file_workspace.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:14532: in launch
+    self._sync(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_browser_type.py:98: in launch
+    await self._channel.send(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f8d8cb477d0>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f8d87ca6de0>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        st: List[inspect.FrameInfo] = getattr(
+            task, "__pw_stack__", None
+        ) or inspect.stack(0)
+    
+        parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /root/.cache/ms-playwright/chromium_headless_shell-1194/chrome-linux/headless_shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:559: Error
+_____ ERROR at setup of test_cancelled_crop_does_not_create_an_edited_copy _____
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-1/test_cancelled_crop_does_not_c0')
+
+    @pytest.fixture
+    def page(tmp_path):
+        with sync_playwright() as p:
+            engine = os.environ.get("FORESIGHT_TEST_BROWSER", "chromium")
+            browser = (
+                p.firefox.launch(timeout=20000)
+                if engine == "firefox"
+>               else p.chromium.launch(
+                    args=["--single-process", "--no-zygote", "--use-angle=swiftshader"]
+                )
+            )
+
+tests/test_foresight_file_workspace.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:14532: in launch
+    self._sync(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_browser_type.py:98: in launch
+    await self._channel.send(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f8d8cb19700>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f8d87ca6fc0>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        st: List[inspect.FrameInfo] = getattr(
+            task, "__pw_stack__", None
+        ) or inspect.stack(0)
+    
+        parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /root/.cache/ms-playwright/chromium_headless_shell-1194/chrome-linux/headless_shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:559: Error
+_ ERROR at setup of test_portable_save_as_and_reopen_uses_real_disk_without_vendor_picker _
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-1/test_portable_save_as_and_reop0')
+
+    @pytest.fixture
+    def page(tmp_path):
+        with sync_playwright() as p:
+            engine = os.environ.get("FORESIGHT_TEST_BROWSER", "chromium")
+            browser = (
+                p.firefox.launch(timeout=20000)
+                if engine == "firefox"
+>               else p.chromium.launch(
+                    args=["--single-process", "--no-zygote", "--use-angle=swiftshader"]
+                )
+            )
+
+tests/test_foresight_file_workspace.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:14532: in launch
+    self._sync(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_browser_type.py:98: in launch
+    await self._channel.send(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f8d8cb3ab40>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f8d87ca5620>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        st: List[inspect.FrameInfo] = getattr(
+            task, "__pw_stack__", None
+        ) or inspect.stack(0)
+    
+        parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /root/.cache/ms-playwright/chromium_headless_shell-1194/chrome-linux/headless_shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:559: Error
+_ ERROR at setup of test_python_syntax_check_in_native_editor_without_external_services _
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-1/test_python_syntax_check_in_na0')
+
+    @pytest.fixture
+    def page(tmp_path):
+        with sync_playwright() as p:
+            engine = os.environ.get("FORESIGHT_TEST_BROWSER", "chromium")
+            browser = (
+                p.firefox.launch(timeout=20000)
+                if engine == "firefox"
+>               else p.chromium.launch(
+                    args=["--single-process", "--no-zygote", "--use-angle=swiftshader"]
+                )
+            )
+
+tests/test_foresight_file_workspace.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:14532: in launch
+    self._sync(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_browser_type.py:98: in launch
+    await self._channel.send(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f8d8c8de030>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f8d8cc3aca0>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        st: List[inspect.FrameInfo] = getattr(
+            task, "__pw_stack__", None
+        ) or inspect.stack(0)
+    
+        parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /root/.cache/ms-playwright/chromium_headless_shell-1194/chrome-linux/headless_shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:559: Error
+_ ERROR at setup of test_normal_2i_manuscript_saves_to_local_folder_and_updates _
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-1/test_normal_2i_manuscript_save0')
+
+    @pytest.fixture
+    def page(tmp_path):
+        with sync_playwright() as p:
+            engine = os.environ.get("FORESIGHT_TEST_BROWSER", "chromium")
+            browser = (
+                p.firefox.launch(timeout=20000)
+                if engine == "firefox"
+>               else p.chromium.launch(
+                    args=["--single-process", "--no-zygote", "--use-angle=swiftshader"]
+                )
+            )
+
+tests/test_foresight_file_workspace.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:14532: in launch
+    self._sync(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_browser_type.py:98: in launch
+    await self._channel.send(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f8d8c8dce00>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f8d8caeb600>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        st: List[inspect.FrameInfo] = getattr(
+            task, "__pw_stack__", None
+        ) or inspect.stack(0)
+    
+        parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /root/.cache/ms-playwright/chromium_headless_shell-1194/chrome-linux/headless_shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:559: Error
+_____ ERROR at setup of test_local_audio_decodes_plays_and_reopens_offline _____
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-1/test_local_audio_decodes_plays0')
+
+    @pytest.fixture
+    def page(tmp_path):
+        with sync_playwright() as p:
+            engine = os.environ.get("FORESIGHT_TEST_BROWSER", "chromium")
+            browser = (
+                p.firefox.launch(timeout=20000)
+                if engine == "firefox"
+>               else p.chromium.launch(
+                    args=["--single-process", "--no-zygote", "--use-angle=swiftshader"]
+                )
+            )
+
+tests/test_foresight_file_workspace.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:14532: in launch
+    self._sync(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_browser_type.py:98: in launch
+    await self._channel.send(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f8d8cb18350>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f8d8cc3b600>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        st: List[inspect.FrameInfo] = getattr(
+            task, "__pw_stack__", None
+        ) or inspect.stack(0)
+    
+        parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /root/.cache/ms-playwright/chromium_headless_shell-1194/chrome-linux/headless_shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:559: Error
+_ ERROR at setup of test_2i_open_edit_export_preserves_title_and_unknown_metadata _
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-1/test_2i_open_edit_export_prese0')
+
+    @pytest.fixture
+    def page(tmp_path):
+        with sync_playwright() as p:
+            engine = os.environ.get("FORESIGHT_TEST_BROWSER", "chromium")
+            browser = (
+                p.firefox.launch(timeout=20000)
+                if engine == "firefox"
+>               else p.chromium.launch(
+                    args=["--single-process", "--no-zygote", "--use-angle=swiftshader"]
+                )
+            )
+
+tests/test_foresight_file_workspace.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/lib/python3.12/site-packages/playwright/sync_api/_generated.py:14532: in launch
+    self._sync(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_browser_type.py:98: in launch
+    await self._channel.send(
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f8d8cb3be90>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f8d8caeb560>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        st: List[inspect.FrameInfo] = getattr(
+            task, "__pw_stack__", None
+        ) or inspect.stack(0)
+    
+        parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /root/.cache/ms-playwright/chromium_headless_shell-1194/chrome-linux/headless_shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+/root/.local/lib/python3.12/site-packages/playwright/_impl/_connection.py:559: Error
+=============================== warnings summary ===============================
+../../../../root/.local/lib/python3.12/site-packages/starlette/testclient.py:40
+  /root/.local/lib/python3.12/site-packages/starlette/testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR tests/test_foresight_file_workspace.py::test_native_2i_edit_save_export_and_reopen
+ERROR tests/test_foresight_file_workspace.py::test_docx_opens_in_native_2i_as_explicit_text_copy
+ERROR tests/test_foresight_file_workspace.py::test_image_rotate_crop_download_and_restore
+ERROR tests/test_foresight_file_workspace.py::test_unknown_binary_preserves_original_without_false_text
+ERROR tests/test_foresight_file_workspace.py::test_save_as_download_is_edited_file_and_2i_export_keeps_state
+ERROR tests/test_foresight_file_workspace.py::test_tray_metadata_and_browser_shortcut_import_roundtrip
+ERROR tests/test_foresight_file_workspace.py::test_native_text_undo_and_clipboard_paste
+ERROR tests/test_foresight_file_workspace.py::test_saved_working_copy_rejects_stale_writer
+ERROR tests/test_foresight_file_workspace.py::test_cancelled_crop_does_not_create_an_edited_copy
+ERROR tests/test_foresight_file_workspace.py::test_portable_save_as_and_reopen_uses_real_disk_without_vendor_picker
+ERROR tests/test_foresight_file_workspace.py::test_python_syntax_check_in_native_editor_without_external_services
+ERROR tests/test_foresight_file_workspace.py::test_normal_2i_manuscript_saves_to_local_folder_and_updates
+ERROR tests/test_foresight_file_workspace.py::test_local_audio_decodes_plays_and_reopens_offline
+ERROR tests/test_foresight_file_workspace.py::test_2i_open_edit_export_preserves_title_and_unknown_metadata
+34 passed, 1 warning, 14 errors in 12.80s

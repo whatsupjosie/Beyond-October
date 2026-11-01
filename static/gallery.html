@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>PubCast — Gallery</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0a0b0f;--s:#111318;--s2:#181b24;--border:rgba(255,255,255,0.06);--accent:#00e0ff;--text:#b8bdd0;--bright:#eef0f6;--muted:#4a5068;--r:6px}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh}
+    header{display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;border-bottom:1px solid var(--border);background:rgba(17,19,24,0.95);position:sticky;top:0;z-index:100}
+    .logo{color:var(--accent);font-size:1rem;letter-spacing:0.05em}
+    .back{color:var(--muted);font-size:0.72rem;text-decoration:none}
+    .back:hover{color:var(--accent)}
+    main{max-width:1200px;margin:0 auto;padding:2rem 1.5rem}
+    h2{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--accent);margin-bottom:1rem}
+
+    .toolbar{display:flex;gap:0.8rem;margin-bottom:1.5rem;flex-wrap:wrap;align-items:center}
+    .filter-btn{background:var(--s);border:1px solid var(--border);color:var(--muted);padding:0.35rem 0.8rem;border-radius:100px;cursor:pointer;font-size:0.7rem;font-family:inherit;transition:all 0.15s}
+    .filter-btn:hover,.filter-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(0,224,255,0.06)}
+    .search-box{flex:1;min-width:200px;background:var(--s);border:1px solid var(--border);color:var(--bright);font-family:inherit;font-size:0.78rem;padding:0.4rem 0.8rem;border-radius:var(--r)}
+    .search-box:focus{outline:none;border-color:var(--accent)}
+
+    .upload-bar{background:var(--s);border:1px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:1.5rem;display:flex;gap:0.8rem;align-items:flex-end;flex-wrap:wrap}
+    .upload-bar label{display:flex;flex-direction:column;gap:0.25rem;font-size:0.68rem;color:var(--muted);flex:1;min-width:150px}
+    .upload-bar input,.upload-bar select{background:var(--s2);border:1px solid var(--border);color:var(--bright);font-family:inherit;font-size:0.75rem;padding:0.35rem 0.6rem;border-radius:var(--r);width:100%}
+    .btn{background:transparent;border:1px solid var(--accent);color:var(--accent);padding:0.4rem 1rem;border-radius:var(--r);cursor:pointer;font-family:inherit;font-size:0.75rem;white-space:nowrap}
+    .btn:hover{background:rgba(0,224,255,0.1)}
+    .upload-status{font-size:0.7rem;color:var(--muted);min-height:1em;align-self:center}
+    .upload-status.ok{color:var(--accent)}
+    .upload-status.err{color:#e05555}
+
+    .gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem}
+    .asset-card{background:var(--s);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:border-color 0.15s,transform 0.15s;cursor:pointer}
+    .asset-card:hover{border-color:var(--border);transform:translateY(-2px);border-color:rgba(0,224,255,0.3)}
+    .asset-thumb{width:100%;aspect-ratio:16/9;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:2rem;color:var(--muted)}
+    .asset-thumb img{width:100%;height:100%;object-fit:cover}
+    .asset-thumb video{width:100%;height:100%;object-fit:cover}
+    .asset-info{padding:0.6rem 0.7rem}
+    .asset-name{font-size:0.72rem;color:var(--bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:0.2rem}
+    .asset-meta{font-size:0.62rem;color:var(--muted)}
+    .asset-type-badge{display:inline-block;font-size:0.58rem;text-transform:uppercase;padding:0.1rem 0.4rem;border-radius:100px;border:1px solid var(--border);color:var(--muted);margin-bottom:0.3rem}
+
+    .empty-state{text-align:center;padding:4rem 2rem;color:var(--muted)}
+    .empty-state .icon{font-size:2.5rem;margin-bottom:0.8rem}
+    .empty-state p{font-size:0.78rem}
+
+    /* Preview modal */
+    .modal{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.85);align-items:center;justify-content:center}
+    .modal.open{display:flex}
+    .modal-inner{background:var(--s);border:1px solid var(--border);border-radius:var(--r);max-width:680px;width:90%;padding:1.5rem;position:relative}
+    .modal-close{position:absolute;top:0.8rem;right:0.8rem;background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer}
+    .modal-close:hover{color:var(--bright)}
+    .modal-preview{width:100%;max-height:360px;object-fit:contain;border-radius:var(--r);background:#000;margin-bottom:0.8rem}
+    .modal-name{font-size:0.9rem;color:var(--bright);margin-bottom:0.3rem}
+    .modal-detail{font-size:0.72rem;color:var(--muted)}
+    .modal-actions{display:flex;gap:0.6rem;margin-top:1rem}
+    .copy-btn{background:var(--s2);border:1px solid var(--border);color:var(--text);padding:0.35rem 0.8rem;border-radius:var(--r);cursor:pointer;font-size:0.7rem;font-family:inherit}
+    .copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+  </style>
+  <script src="/static/reach_auth.js"></script>
+</head>
+<body>
+<header>
+  <span class="logo">PubCast / Gallery</span>
+  <a class="back" href="/">← Hub</a>
+</header>
+<main>
+  <h2>Asset Library</h2>
+
+  <!-- Upload bar -->
+  <div class="upload-bar">
+    <label>File
+      <input type="file" id="uploadFile" accept=".png,.jpg,.jpeg,.gif,.webm,.mp4,.pdf,.txt,.md,.csv">
+    </label>
+    <label>Destination
+      <select id="uploadTarget">
+        <option value="">My Uploads</option>
+        <option value="vod">Replay Library (assets/vod)</option>
+      </select>
+    </label>
+    <button class="btn" onclick="uploadFile()">+ Upload</button>
+    <span class="upload-status" id="uploadStatus"></span>
+  </div>
+
+  <!-- Filters + search -->
+  <div class="toolbar">
+    <button class="filter-btn active" data-filter="all" onclick="setFilter(this,'all')">All</button>
+    <button class="filter-btn" data-filter="video" onclick="setFilter(this,'video')">Video</button>
+    <button class="filter-btn" data-filter="image" onclick="setFilter(this,'image')">Images</button>
+    <button class="filter-btn" data-filter="document" onclick="setFilter(this,'document')">Docs</button>
+    <button class="filter-btn" data-filter="vod" onclick="setFilter(this,'vod')">Replay Library</button>
+    <input class="search-box" id="searchBox" type="text" placeholder="Search assets…" oninput="renderGrid()">
+  </div>
+
+  <div class="gallery-grid" id="galleryGrid">
+    <div class="empty-state" style="grid-column:1/-1">
+      <div class="icon">⏳</div><p>Loading assets…</p>
+    </div>
+  </div>
+</main>
+
+<!-- Preview modal -->
+<div class="modal" id="previewModal" onclick="closeModal(event)">
+  <div class="modal-inner" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modalPreviewWrap"></div>
+    <div class="modal-name" id="modalName"></div>
+    <div class="modal-detail" id="modalDetail"></div>
+    <div class="modal-actions">
+      <button class="copy-btn" onclick="copyPath()">Copy Path</button>
+      <button class="copy-btn" onclick="copyVodPath()">Copy VOD Path</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ICONS = {video:'🎬',image:'🖼',document:'📄',other:'📦'};
+let _assets = [];
+let _filter = 'all';
+let _selected = null;
+
+function typeOf(name) {
+  const ext = (name.split('.').pop()||'').toLowerCase();
+  if (['mp4','webm','mov'].includes(ext)) return 'video';
+  if (['png','jpg','jpeg','gif','webp'].includes(ext)) return 'image';
+  if (['pdf','txt','md','csv'].includes(ext)) return 'document';
+  return 'other';
+}
+
+function isVod(path) { return (path||'').includes('/vod/'); }
+
+async function loadAssets() {
+  // Try to get file listing from the assets endpoint
+  try {
+    const r = await fetch('/api/vod');
+    if (r.ok) {
+      const data = await r.json();
+      _assets = (data.files || data || []).map(f => ({
+        name: f.name || f.filename || String(f),
+        path: f.path || f.url || `/assets/${f.name||f}`,
+        size: f.size || 0,
+        type: typeOf(f.name || String(f)),
+        uploaded_at: f.uploaded_at || f.created_at || null,
+      }));
+    }
+  } catch(e) { /* assets endpoint may not exist yet */ }
+
+  renderGrid();
+}
+
+function setFilter(btn, filter) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _filter = filter;
+  renderGrid();
+}
+
+function renderGrid() {
+  const q = (document.getElementById('searchBox').value || '').toLowerCase();
+  const grid = document.getElementById('galleryGrid');
+  let filtered = _assets.filter(a => {
+    if (_filter === 'vod') return a.vod || isVod(a.path);
+    if (_filter !== 'all' && a.type !== _filter) return false;
+    if (q && !a.name.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="icon">${_assets.length ? '🔍' : '📂'}</div>
+      <p>${_assets.length ? 'No assets match your filter' : 'No assets uploaded yet — use the upload bar above'}</p>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map((a, i) => `
+    <div class="asset-card" onclick="openModal(${i + (filtered === _assets ? 0 : _assets.indexOf(a))})">
+      <div class="asset-thumb">${thumbFor(a)}</div>
+      <div class="asset-info">
+        <div class="asset-type-badge">${a.type}</div>
+        <div class="asset-name">${a.name}</div>
+        <div class="asset-meta">${a.size ? fmtSize(a.size) : ''}</div>
+      </div>
+    </div>`).join('');
+  // Store filtered for modal indexing
+  grid._filtered = filtered;
+}
+
+function thumbFor(a) {
+  if (a.type === 'image') return `<img src="${a.path}" loading="lazy" onerror="this.parentElement.innerHTML='🖼'">`;
+  if (a.type === 'video') return `<video src="${a.path}" preload="metadata" muted></video>`;
+  return ICONS[a.type] || ICONS.other;
+}
+
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(1) + ' MB';
+}
+
+function openModal(idx) {
+  const grid = document.getElementById('galleryGrid');
+  const filtered = grid._filtered || _assets;
+  const a = filtered[idx];
+  if (!a) return;
+  _selected = a;
+  const wrap = document.getElementById('modalPreviewWrap');
+  if (a.type === 'image') wrap.innerHTML = `<img class="modal-preview" src="${a.path}">`;
+  else if (a.type === 'video') wrap.innerHTML = `<video class="modal-preview" src="${a.path}" controls></video>`;
+  else wrap.innerHTML = `<div style="text-align:center;font-size:3rem;padding:2rem">${ICONS[a.type]}</div>`;
+  document.getElementById('modalName').textContent = a.name;
+  document.getElementById('modalDetail').textContent = [
+    a.type, a.size ? fmtSize(a.size) : null, a.path
+  ].filter(Boolean).join(' · ');
+  document.getElementById('previewModal').classList.add('open');
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('previewModal')) {
+    document.getElementById('previewModal').classList.remove('open');
+    _selected = null;
+  }
+}
+
+function copyPath() {
+  if (!_selected) return;
+  navigator.clipboard.writeText(_selected.path).catch(() => {});
+  event.target.textContent = '✓ Copied';
+  setTimeout(() => { event.target.textContent = 'Copy Path'; }, 1500);
+}
+
+function copyVodPath() {
+  if (!_selected) return;
+  const name = _selected.name;
+  navigator.clipboard.writeText(`assets/vod/${name}`).catch(() => {});
+  event.target.textContent = '✓ Copied';
+  setTimeout(() => { event.target.textContent = 'Copy VOD Path'; }, 1500);
+}
+
+async function uploadFile() {
+  const file = document.getElementById('uploadFile').files[0];
+  const target = document.getElementById('uploadTarget').value;
+  const statusEl = document.getElementById('uploadStatus');
+  if (!file) { statusEl.textContent = 'Select a file first'; statusEl.className = 'upload-status err'; return; }
+  const fd = new FormData();
+  fd.append('file', file);
+  if (target) fd.append('target', target);
+  statusEl.textContent = 'Uploading…'; statusEl.className = 'upload-status';
+  try {
+    const r = await fetch('/api/upload', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (r.ok) {
+      const fname = (d.path || '').split('/').pop() || file.name;
+      statusEl.textContent = `✓ ${fname}`;
+      statusEl.className = 'upload-status ok';
+      // Add to local assets list and re-render
+      _assets.unshift({ name: fname, path: d.path || `/assets/uploads/${fname}`, size: file.size, type: typeOf(file.name), vod: target==='vod' });
+      renderGrid();
+    } else {
+      statusEl.textContent = `✗ ${d.error || 'failed'}`; statusEl.className = 'upload-status err';
+    }
+  } catch(e) { statusEl.textContent = '✗ Upload failed'; statusEl.className = 'upload-status err'; }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+loadAssets();
+</script>
+</body>
+</html>

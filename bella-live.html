@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bella Faux Pas Studio — live repository preview</title>
+<style>
+body{font:16px system-ui,sans-serif;background:#10131b;color:#f3f1eb;margin:0;min-height:100vh;display:grid;place-items:center}
+main{max-width:37rem;padding:2rem}p{line-height:1.5}pre{white-space:pre-wrap;overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<main id="startup">
+<h1>Bella Faux Pas Studio</h1>
+<p>Opening the real world walker, original room artwork, and bundled 3D Husky from the GitHub repository...</p>
+</main>
+<script>
+"use strict";
+// No recreated rooms, no mocked models, and no simulated movements.
+// Rebase the existing standalone walker so its root-relative /static/ assets
+// resolve inside this public GitHub mirror rather than at the mirror domain root.
+(async function () {
+  const root = location.pathname.substring(0, location.pathname.lastIndexOf("/"));
+  const page = await fetch(root + "/static/world_walk.html", { cache: "no-store" });
+  if (!page.ok) throw new Error("The actual walker could not be fetched (HTTP " + page.status + ").");
+  let html = await page.text();
+  if (!html.includes("const w = await r.json();")) {
+    throw new Error("The walker's world loader changed; refusing to silently fake a scene.");
+  }
+  html = html.replaceAll("/static/", root + "/static/");
+  const anchor = "const w = await r.json();";
+  // World.json is unchanged; its image URLs are rebased only in memory.
+  const rebase = 'for (const room of w.rooms) for (const view of room.views) { ' +
+    'if (typeof view.image === "string" && view.image.startsWith("/static/")) ' +
+    'view.image = ' + JSON.stringify(root) + ' + view.image; }';
+  html = html.replace(anchor, anchor + "\n  " + rebase);
+  document.open();
+  document.write(html);
+  document.close();
+})().catch(error => {
+  const area = document.getElementById("startup");
+  area.textContent = "The actual Bella Faux Pas application did not start: " + (error && error.message || String(error));
+});
+</script>
+</body>
+</html>

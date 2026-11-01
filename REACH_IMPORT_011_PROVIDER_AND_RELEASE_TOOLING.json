@@ -1,0 +1,6 @@
+{
+  "operation":"surgical_merge_plus_additive_tools",
+  "llm_framework":"Reach model defaults retained; Horizon OpenCode Zen adapter/registry and thread-safe instance-key BYOK resolution merged",
+  "scripts":"missing Horizon release/diagnostic scripts added without overwrite",
+  "backup":"/mnt/data/reach_builds/backups/import_011_llm_framework/llm_framework.py"
+}

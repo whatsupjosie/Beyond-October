@@ -1,0 +1,11 @@
+/* A shared World Chat surface; 2i and Foresight consume the same room API. */
+.world-chat-widget{display:flex;flex-direction:column;gap:7px;min-height:0;color:inherit;font:14px/1.4 system-ui,sans-serif}
+.world-chat-widget [data-world-status]{font-size:11px;opacity:.78;min-height:1.2em}
+.world-chat-widget [data-world-messages]{overflow:auto;min-height:105px;flex:1;display:flex;flex-direction:column;gap:7px;overscroll-behavior:contain}
+.world-chat-widget .world-entry{padding:7px 9px;background:rgba(110,120,135,.11);border:1px solid rgba(160,155,145,.23);border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere}
+.world-chat-widget .world-entry strong{display:block;font-size:11px;margin-bottom:2px;color:#d7b36c}
+.world-chat-widget form{display:flex;gap:5px;flex-shrink:0}
+.world-chat-widget textarea{font:inherit;flex:1;resize:vertical;min-width:0;min-height:45px;border-radius:6px;padding:7px;background:rgba(0,0,0,.2);color:inherit;border:1px solid rgba(180,170,145,.35)}
+.world-chat-widget button{font:inherit;cursor:pointer;border:1px solid #bfa36e;border-radius:6px;padding:5px 10px;background:#382b1c;color:#f8e8bf}
+.world-chat-widget button:disabled{opacity:.5;cursor:wait}
+.world-chat-widget .world-entry[data-self="true"]{border-color:#6c9c7f}

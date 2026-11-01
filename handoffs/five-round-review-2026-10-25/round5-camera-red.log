@@ -1,0 +1,43 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_______ test_capture_closes_owned_pipes_even_when_process_already_exited _______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff1a2266ed0>
+
+    def test_capture_closes_owned_pipes_even_when_process_already_exited(monkeypatch):
+        process = SimpleNamespace(stdout=io.BytesIO(), stderr=io.BytesIO(), stdin=None,
+            poll=Mock(return_value=0), terminate=Mock(), wait=Mock(), kill=Mock())
+        monkeypatch.setattr(subprocess, "Popen", Mock(return_value=process))
+        camera = make_camera()
+        camera._capture_frames(["-i", "unused"])
+>       assert process.stdout.closed and process.stderr.closed
+E       AssertionError: assert (False)
+E        +  where False = <_io.BytesIO object at 0x7ff1a227c770>.closed
+E        +    where <_io.BytesIO object at 0x7ff1a227c770> = namespace(stdout=<_io.BytesIO object at 0x7ff1a227c770>, stderr=<_io.BytesIO object at 0x7ff1a227c860>, stdin=None, po...202560064'>, terminate=<Mock id='140675784273328'>, wait=<Mock id='140675784273520'>, kill=<Mock id='140675784273424'>).stdout
+
+tests/test_camera_capture_cleanup.py:22: AssertionError
+------------------------------ Captured log call -------------------------------
+ERROR    modules.cameras_advanced:cameras_advanced.py:521 Capture error for camera cleanup: camera stream ended before a complete frame
+_______________ test_capture_reaps_forced_kill_and_closes_pipes ________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7ff1a2267ad0>
+
+    def test_capture_reaps_forced_kill_and_closes_pipes(monkeypatch):
+        process = SimpleNamespace(stdout=io.BytesIO(), stderr=io.BytesIO(), stdin=None,
+            poll=Mock(return_value=None), terminate=Mock(),
+            wait=Mock(side_effect=[subprocess.TimeoutExpired("ffmpeg", 2), 0]), kill=Mock())
+        monkeypatch.setattr(subprocess, "Popen", Mock(return_value=process))
+        make_camera()._capture_frames(["-i", "unused"])
+        process.kill.assert_called_once()
+>       assert process.wait.call_count == 2
+E       AssertionError: assert 1 == 2
+E        +  where 1 = <Mock id='140675784275824'>.call_count
+E        +    where <Mock id='140675784275824'> = namespace(stdout=<_io.BytesIO object at 0x7ff1a227c810>, stderr=<_io.BytesIO object at 0x7ff1a227cef0>, stdin=None, po...784274912'>, terminate=<Mock id='140675785092096'>, wait=<Mock id='140675784275824'>, kill=<Mock id='140675784276256'>).wait
+
+tests/test_camera_capture_cleanup.py:34: AssertionError
+------------------------------ Captured log call -------------------------------
+ERROR    modules.cameras_advanced:cameras_advanced.py:521 Capture error for camera cleanup: camera stream ended before a complete frame
+=========================== short test summary info ============================
+FAILED tests/test_camera_capture_cleanup.py::test_capture_closes_owned_pipes_even_when_process_already_exited
+FAILED tests/test_camera_capture_cleanup.py::test_capture_reaps_forced_kill_and_closes_pipes
+2 failed in 0.18s

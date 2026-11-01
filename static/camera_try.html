@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Camera controls: try them</title>
+<style>
+body{margin:0;background:#101420;color:#e8ecf6;font:14px system-ui,sans-serif;display:flex;gap:16px;padding:12px;height:100vh;box-sizing:border-box}
+#main{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+canvas{width:100%;background:#1c2233;border:1px solid #445;border-radius:8px;aspect-ratio:16/9}
+#side{width:300px;font-size:13px;line-height:1.45}
+button,select{background:#232a40;color:#e8ecf6;border:1px solid #556;border-radius:6px;padding:6px 10px;font:inherit}
+#hud{font:12px ui-monospace,monospace;color:#9fb3d8;white-space:pre}
+.k{display:inline-block;border:1px solid #667;border-radius:4px;padding:0 5px;margin:1px;background:#1a2036}
+</style></head><body>
+<div id="main">
+  <div><label>Mode <select id="mode">
+    <option value="keys">A. keys only</option><option value="mouse">B. mouse aim + keys</option>
+    <option value="lock">C. lock on subject</option><option value="shot">D. scripted shot (what an AI writes)</option></select></label>
+    <button id="rec">Record (R)</button> <button id="play">Play back (P)</button> <button id="reset">Reset (Home)</button></div>
+  <canvas id="c" width="960" height="540"></canvas>
+  <div id="hud"></div>
+</div>
+<div id="side">
+  <b>A. keys only</b><br><span class="k">W</span><span class="k">A</span><span class="k">S</span><span class="k">D</span> move (forward, sideways) <span class="k">Q</span><span class="k">E</span> down, up<br>
+  <span class="k">&larr;</span><span class="k">&rarr;</span><span class="k">&uarr;</span><span class="k">&darr;</span> pan and tilt <span class="k">[</span><span class="k">]</span> zoom <span class="k">;</span><span class="k">'</span> focus <span class="k">,</span><span class="k">.</span> roll (tilt the horizon)<br><br>
+  <b>B. mouse aim + keys</b><br>Click the picture to capture the mouse. Mouse turns the camera, wheel zooms, Shift+wheel pulls focus, <span class="k">W A S D Q E</span> move. Esc releases the mouse.<br><br>
+  <b>C. lock on subject</b><br>Aim and focus follow the subject by themselves. You move (<span class="k">W A S D Q E</span>) and zoom (<span class="k">[</span><span class="k">]</span>).<br><br>
+  <b>D. scripted shot</b><br>A pose every second, eased between: how an AI operator, or a saved move, drives the camera.<br><br>
+  <b>Record</b> keeps the pose that results, not the keys. <b>Play back</b> repeats the shot exactly, in any mode.<br><br>
+  The subject walks the same path every 12 seconds. The picture softens when focus is off.
+</div>
+<script src="/static/camera_rig.js"></script>
+<script>
+"use strict";
+const R = PubCastCameraRig, $ = id => document.getElementById(id), cv = $("c"), g = cv.getContext("2d");
+const START = { x: -4, y: 1.6, z: -8, pan: 0, tilt: 0, fov: 50 * R.DEG, focus: 5 }, LOOP = 12;
+const subjectAt = t => [1.2 * (t % LOOP) - 6, 1.7, 3];
+let rig = R.create(START), mode = "keys", held = new Set(), mouse = { dx: 0, dy: 0, wheel: 0, shift: false }, locked = false;
+let clock = 0, recording = null, playing = null, last = performance.now();
+const shot = [];
+for (let k = 0; k <= LOOP; k++) { const p = R.newPose({ x: -4, y: 1.6, z: -8 + 4 * Math.min(1, k / 6), fov: 50 * R.DEG }), a = R.aimAt(p, subjectAt(k)); shot.push({ t: k, pose: Object.assign(p, a, { focus: R.project(Object.assign({}, p, a), subjectAt(k)).dist }) }); }
+
+addEventListener("keydown", e => {
+  if (e.code === "KeyR" && !e.repeat) return toggleRecord();
+  if (e.code === "KeyP" && !e.repeat) return startPlay();
+  if (e.code === "Home") return reset();
+  if (R.KEYS[e.code]) { held.add(e.code); e.preventDefault(); }
+});
+addEventListener("keyup", e => held.delete(e.code));
+addEventListener("blur", () => held.clear());
+cv.addEventListener("click", () => { if (mode === "mouse" && !locked && cv.requestPointerLock) cv.requestPointerLock(); });
+document.addEventListener("pointerlockchange", () => { locked = document.pointerLockElement === cv; });
+addEventListener("mousemove", e => { if (locked || mode === "mouse" && e.buttons) { mouse.dx += e.movementX; mouse.dy += e.movementY; } });
+addEventListener("wheel", e => { if (mode === "mouse") { mouse.wheel += Math.sign(-e.deltaY); mouse.shift = e.shiftKey; e.preventDefault(); } }, { passive: false });
+$("mode").addEventListener("change", e => { mode = e.target.value; held.clear(); if (mode === "shot") { clock = 0; } e.target.blur(); });
+$("rec").addEventListener("click", toggleRecord); $("play").addEventListener("click", startPlay); $("reset").addEventListener("click", reset);
+function reset() { rig = R.create(START); clock = 0; recording = null; playing = null; }
+function toggleRecord() { if (rig.isRecording()) { recording = rig.stopRecording(); $("rec").textContent = "Record (R)"; } else { playing = null; rig.startRecording(30); clock = 0; $("rec").textContent = "Stop recording (R)"; } }
+function startPlay() { if (!recording) return; if (rig.isRecording()) toggleRecord(); playing = { t: 0 }; clock = 0; }
+
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now; clock += dt;
+  if (playing) {
+    const p = R.playback(recording, playing.t); playing.t += dt; rig.setPose(p);
+    if (playing.t > recording.samples.length / recording.rate) playing = null;
+  } else if (mode === "shot") {
+    rig.setPose(R.shotPose(shot, clock % LOOP)); if (rig.isRecording()) rig.step(dt, null);     // setPose leaves no speed, so this only advances the recording's clock
+  } else {
+    const sub = subjectAt(clock);
+    const w = mode === "keys" ? R.fromKeys(rig.pose, held) : mode === "mouse" ? R.fromMouse(rig.pose, held, mouse, dt) : R.fromLock(rig.pose, held, sub);
+    mouse.dx = mouse.dy = mouse.wheel = 0; rig.step(dt, w);
+  }
+  draw(); requestAnimationFrame(frame);
+}
+function line(a, b) { const p = R.project(rig.pose, a), q = R.project(rig.pose, b); if (!p.ok || !q.ok) return; g.beginPath(); g.moveTo(toX(p), toY(p)); g.lineTo(toX(q), toY(q)); g.stroke(); }
+const toX = p => (p.sx * 0.5 + 0.5) * cv.width, toY = p => (0.5 - p.sy * 0.5) * cv.height;
+function draw() {
+  const sub = subjectAt(clock), q = R.project(rig.pose, sub);
+  g.clearRect(0, 0, cv.width, cv.height);
+  g.strokeStyle = "rgba(120,150,210,.35)"; g.lineWidth = 1;
+  for (let i = -12; i <= 12; i += 2) { line([i, 0, -12], [i, 0, 14]); line([-12, 0, i + 2], [12, 0, i + 2]); }
+  g.strokeStyle = "rgba(200,170,90,.8)"; g.lineWidth = 3;
+  for (const [x, z] of [[-8, 6], [-3, 8], [4, 7], [9, 5], [-6, 10], [2, 11]]) line([x, 0, z], [x, 3, z]);
+  if (q.ok) {
+    const foot = R.project(rig.pose, [sub[0], 0, sub[2]]), blur = Math.min(10, R.blurPx(R.fovToFocal(rig.pose.fov), 2.8, rig.pose.focus, q.dist, cv.height) / 2);   // a real lens at f/2.8
+    g.save(); g.filter = `blur(${blur.toFixed(1)}px)`; g.strokeStyle = "#7be0b8"; g.lineWidth = 8; g.lineCap = "round";
+    g.beginPath(); g.moveTo(toX(foot), toY(foot)); g.lineTo(toX(q), toY(q)); g.stroke();
+    g.beginPath(); g.arc(toX(q), toY(q), 10 + 0, 0, 7); g.fillStyle = "#7be0b8"; g.fill(); g.restore();
+  }
+  g.strokeStyle = "rgba(255,255,255,.25)"; g.lineWidth = 1; g.strokeRect(cv.width * .3, cv.height * .3, cv.width * .4, cv.height * .4);
+  if (rig.isRecording()) { g.fillStyle = "#f55"; g.beginPath(); g.arc(24, 24, 8, 0, 7); g.fill(); }
+  const p = rig.pose, f = n => n.toFixed(2);
+  $("hud").textContent = `pos ${f(p.x)} ${f(p.y)} ${f(p.z)}   pan ${f(p.pan / R.DEG)}  tilt ${f(p.tilt / R.DEG)}  roll ${f(p.roll / R.DEG)}  lens ${f(R.fovToFocal(p.fov))} mm f/2.8  focus ${f(p.focus)} m` +
+    (q.ok ? `\nsubject ${f(q.dist)} m away, ${f(Math.hypot(q.sx, q.sy))} off centre, focus ${(100 * (p.focus - q.dist) / q.dist).toFixed(0)}% off` : "\nsubject out of frame") +
+    (playing ? "\nPLAYING BACK" : rig.isRecording() ? "\nRECORDING" : recording ? "\nmove saved: Play back (P)" : "");
+}
+window.__try = { rig: () => rig, setMode: m => { mode = m; $("mode").value = m; }, held, toggleRecord, startPlay, state: () => ({ recording, playing: !!playing, mode }) };
+requestAnimationFrame(frame);
+</script></body></html>

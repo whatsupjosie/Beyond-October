@@ -1,0 +1,7 @@
+{
+  "operation":"verified_replacement",
+  "path":"modules/alex_jeremy_bridge.py",
+  "source":"FULL_SESSION_HANDOFF Horizon",
+  "selection_evidence":"Horizon 613 lines/27 functions is a strict function-set superset of prior Reach 355 lines/20 functions; adds authority review/audit contract required by Pub Manager",
+  "backup":"/mnt/data/reach_builds/backups/import_009_alex_jeremy_bridge/alex_jeremy_bridge.py"
+}

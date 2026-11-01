@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/workspace/scratch/9771830e3533/five-round-review/PubCast/tests/portable_companion_wheel_smoke.py", line 18, in <module>
+    assert version("pubpartner") == __version__, "Wheel metadata and public API version disagree"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Wheel metadata and public API version disagree

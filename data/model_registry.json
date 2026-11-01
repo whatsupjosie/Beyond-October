@@ -1,0 +1,4 @@
+{
+  "_about": "Extra AI models for PubCast. SmolLM2 is built in. See MODEL_SWAP.md for how to add a model. Leave 'models' empty until you have a real file and its SHA-256.",
+  "models": {}
+}

@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PubCast Lighting Explorer</title>
+<style>
+  :root {
+    --bg: #0e0e0e; --bg2: #1a1a1a; --bg3: #242424;
+    --border: rgba(255,255,255,0.08);
+    --text: #e8e8e8; --text2: #999; --text3: #666;
+    --accent: #4dc8ff; --accent2: #7f77dd;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font: 13px/1.5 system-ui, sans-serif; }
+
+  header { padding: 18px 24px 12px; border-bottom: 0.5px solid var(--border); }
+  header h1 { font-size: 16px; font-weight: 500; color: var(--text); }
+  header p  { font-size: 12px; color: var(--text2); margin-top: 3px; }
+
+  .layout { display: grid; grid-template-columns: 220px 1fr 280px; height: calc(100vh - 58px); }
+
+  /* PRESET PANEL */
+  .preset-panel { border-right: 0.5px solid var(--border); overflow-y: auto; padding: 8px; }
+  .preset-group-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; padding: 10px 8px 4px; }
+  .preset-btn {
+    display: block; width: 100%; text-align: left;
+    padding: 7px 10px; border-radius: var(--radius); border: none;
+    background: transparent; color: var(--text2); font-size: 12px; cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+  }
+  .preset-btn:hover { background: var(--bg3); color: var(--text); }
+  .preset-btn.active { background: rgba(77,200,255,0.12); color: var(--accent); }
+
+  /* PREVIEW */
+  .preview-panel { position: relative; overflow: hidden; }
+  #preview-canvas { width: 100%; height: 100%; display: block; }
+
+  .preview-label {
+    position: absolute; top: 16px; left: 20px;
+    font-size: 22px; font-weight: 600; color: #fff; pointer-events: none;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+    letter-spacing: -0.02em;
+  }
+  .preview-sub {
+    position: absolute; top: 48px; left: 20px;
+    font-size: 12px; color: rgba(255,255,255,0.5); pointer-events: none;
+  }
+
+  .mix-bar {
+    position: absolute; bottom: 20px; left: 20px; right: 20px;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+    border: 0.5px solid var(--border); border-radius: var(--radius);
+    padding: 12px 14px; display: flex; align-items: center; gap: 10px;
+  }
+  .mix-bar label { font-size: 11px; color: var(--text2); white-space: nowrap; }
+  .mix-bar input[type=range] { flex: 1; accent-color: var(--accent); }
+  #mix-val { font-size: 11px; color: var(--accent); min-width: 30px; text-align: right; }
+  .mix-select { background: var(--bg3); border: 0.5px solid var(--border); color: var(--text); font-size: 11px; border-radius: 4px; padding: 3px 6px; }
+
+  /* PARAMS PANEL */
+  .params-panel { border-left: 0.5px solid var(--border); overflow-y: auto; padding: 12px; }
+  .params-panel h3 { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin: 12px 0 6px; }
+  .params-panel h3:first-child { margin-top: 0; }
+
+  .param-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .param-label { font-size: 11px; color: var(--text2); width: 80px; flex-shrink: 0; }
+  .param-val { font-size: 11px; color: var(--accent); width: 38px; text-align: right; flex-shrink: 0; }
+  .param-row input[type=range] { flex: 1; accent-color: var(--accent); height: 3px; }
+  .param-row input[type=color] { width: 28px; height: 18px; border: none; border-radius: 3px; cursor: pointer; padding: 0; }
+  .param-row input[type=checkbox] { accent-color: var(--accent); }
+
+  .color-swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: middle; margin-right: 5px; }
+
+  /* Kelvin display */
+  .kelvin-bar { height: 8px; border-radius: 4px; background: linear-gradient(to right, #ff7000, #ffaa40, #fff5e0, #ffffff, #d0e8ff, #a0c8ff); margin-top: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>PubCast Lighting Explorer</h1>
+  <p>24 cinematic presets · per-layer control · real-time preview · mix two styles</p>
+</header>
+
+<div class="layout">
+
+<!-- PRESET LIST -->
+<div class="preset-panel" id="preset-panel"></div>
+
+<!-- PREVIEW -->
+<div class="preview-panel">
+  <canvas id="preview-canvas"></canvas>
+  <div class="preview-label" id="lbl-name">Studio Neutral</div>
+  <div class="preview-sub" id="lbl-desc">Clean three-point. The zero point everyone dials from.</div>
+
+  <div class="mix-bar">
+    <label>Mix A</label>
+    <select class="mix-select" id="mix-a"></select>
+    <input type="range" id="mix-slider" min="0" max="100" value="0" step="1" oninput="onMixSlider(this.value)">
+    <label>B</label>
+    <select class="mix-select" id="mix-b"></select>
+    <span id="mix-val">0%</span>
+  </div>
+</div>
+
+<!-- PARAMS -->
+<div class="params-panel" id="params-panel">
+  <h3>Key light</h3>
+  <div class="param-row"><span class="param-label">Kelvin</span><input type="range" id="p-keyKelvin" min="1500" max="12000" step="100" oninput="paramChanged('keyKelvin',+this.value)"><span class="param-val" id="v-keyKelvin">5600</span></div>
+  <div class="kelvin-bar"></div>
+  <div class="param-row" style="margin-top:5px"><span class="param-label">Intensity</span><input type="range" id="p-keyIntensity" min="0" max="3" step="0.05" oninput="paramChanged('keyIntensity',+this.value)"><span class="param-val" id="v-keyIntensity">1.0</span></div>
+  <div class="param-row"><span class="param-label">Azimuth</span><input type="range" id="p-keyAzimuth" min="-180" max="180" step="5" oninput="paramChanged('keyAzimuth',+this.value)"><span class="param-val" id="v-keyAzimuth">-45°</span></div>
+  <div class="param-row"><span class="param-label">Elevation</span><input type="range" id="p-keyElevation" min="-40" max="90" step="5" oninput="paramChanged('keyElevation',+this.value)"><span class="param-val" id="v-keyElevation">35°</span></div>
+  <div class="param-row"><span class="param-label">Softness</span><input type="range" id="p-keySoftness" min="0" max="1" step="0.05" oninput="paramChanged('keySoftness',+this.value)"><span class="param-val" id="v-keySoftness">0.30</span></div>
+  <div class="param-row"><span class="param-label">Shadow</span><input type="range" id="p-keyShadowDen" min="0" max="1" step="0.05" oninput="paramChanged('keyShadowDen',+this.value)"><span class="param-val" id="v-keyShadowDen">0.80</span></div>
+
+  <h3>Fill &amp; Rim</h3>
+  <div class="param-row"><span class="param-label">Fill K</span><input type="range" id="p-fillKelvin" min="1500" max="12000" step="100" oninput="paramChanged('fillKelvin',+this.value)"><span class="param-val" id="v-fillKelvin">6200</span></div>
+  <div class="param-row"><span class="param-label">Fill level</span><input type="range" id="p-fillIntensity" min="0" max="2" step="0.05" oninput="paramChanged('fillIntensity',+this.value)"><span class="param-val" id="v-fillIntensity">0.35</span></div>
+  <div class="param-row"><span class="param-label">Rim level</span><input type="range" id="p-rimIntensity" min="0" max="4" step="0.1" oninput="paramChanged('rimIntensity',+this.value)"><span class="param-val" id="v-rimIntensity">0.60</span></div>
+
+  <h3>Color grade</h3>
+  <div class="param-row"><span class="param-label">Saturation</span><input type="range" id="p-saturation" min="0" max="2.5" step="0.05" oninput="paramChanged('saturation',+this.value)"><span class="param-val" id="v-saturation">1.00</span></div>
+  <div class="param-row"><span class="param-label">Contrast</span><input type="range" id="p-contrast" min="0.5" max="3" step="0.05" oninput="paramChanged('contrast',+this.value)"><span class="param-val" id="v-contrast">1.00</span></div>
+  <div class="param-row"><span class="param-label">Exposure</span><input type="range" id="p-exposure" min="-3" max="3" step="0.1" oninput="paramChanged('exposure',+this.value)"><span class="param-val" id="v-exposure">0.0</span></div>
+
+  <h3>Bloom / glow</h3>
+  <div class="param-row"><span class="param-label">Bloom</span><input type="range" id="p-bloomIntensity" min="0" max="3" step="0.1" oninput="paramChanged('bloomIntensity',+this.value)"><span class="param-val" id="v-bloomIntensity">0.20</span></div>
+  <div class="param-row"><span class="param-label">Threshold</span><input type="range" id="p-bloomThreshold" min="0" max="1" step="0.05" oninput="paramChanged('bloomThreshold',+this.value)"><span class="param-val" id="v-bloomThreshold">0.85</span></div>
+  <div class="param-row"><span class="param-label">Emissive</span><input type="range" id="p-emissiveScale" min="0" max="5" step="0.1" oninput="paramChanged('emissiveScale',+this.value)"><span class="param-val" id="v-emissiveScale">1.00</span></div>
+
+  <h3>Atmosphere</h3>
+  <div class="param-row"><span class="param-label">Fog</span><input type="range" id="p-fogDensity" min="0" max="1" step="0.05" oninput="paramChanged('fogDensity',+this.value)"><span class="param-val" id="v-fogDensity">0.00</span></div>
+  <div class="param-row"><span class="param-label">God rays</span><input type="range" id="p-godRayIntensity" min="0" max="1" step="0.05" oninput="paramChanged('godRayIntensity',+this.value)"><span class="param-val" id="v-godRayIntensity">0.00</span></div>
+  <div class="param-row"><span class="param-label">Light wrap</span><input type="range" id="p-layerLightWrap" min="0" max="1" step="0.05" oninput="paramChanged('layerLightWrap',+this.value)"><span class="param-val" id="v-layerLightWrap">0.00</span></div>
+
+  <h3>Film / lens</h3>
+  <div class="param-row"><span class="param-label">Grain</span><input type="range" id="p-grainIntensity" min="0" max="0.3" step="0.01" oninput="paramChanged('grainIntensity',+this.value)"><span class="param-val" id="v-grainIntensity">0.00</span></div>
+  <div class="param-row"><span class="param-label">Chrom.Ab</span><input type="range" id="p-chromaticAb" min="0" max="5" step="0.1" oninput="paramChanged('chromaticAb',+this.value)"><span class="param-val" id="v-chromaticAb">0.00</span></div>
+  <div class="param-row"><span class="param-label">Vignette</span><input type="range" id="p-vignette" min="0" max="1" step="0.05" oninput="paramChanged('vignette',+this.value)"><span class="param-val" id="v-vignette">0.00</span></div>
+  <div class="param-row"><span class="param-label">Halation</span><input type="range" id="p-halationRadius" min="0" max="1" step="0.05" oninput="paramChanged('halationRadius',+this.value)"><span class="param-val" id="v-halationRadius">0.00</span></div>
+
+  <h3>Special</h3>
+  <div class="param-row"><span class="param-label">Strobe</span><input type="checkbox" id="p-strobeEnabled" onchange="paramChanged('strobeEnabled',this.checked)"></div>
+  <div class="param-row"><span class="param-label">Strobe Hz</span><input type="range" id="p-strobeFreq" min="0.5" max="24" step="0.5" oninput="paramChanged('strobeFreq',+this.value)"><span class="param-val" id="v-strobeFreq">4.0</span></div>
+  <div class="param-row"><span class="param-label">Flicker</span><input type="range" id="p-gateFlicker" min="0" max="0.5" step="0.01" oninput="paramChanged('gateFlicker',+this.value)"><span class="param-val" id="v-gateFlicker">0.00</span></div>
+</div>
+
+</div>
+
+<script>
+const PRESETS = {
+  // [name, description, state-snapshot for preview]
+  // state: [keyK, keyAz, keyEl, keySoft, keyShadow, fillI, rimI, ambI, sat, cont, exp, fogD, bloomI, emissive, vign, grain, chrAb, hue_r, hue_g, hue_b, midR, midG, midB]
+  // Simplified preview params: keyKelvin, keyAzimuth, keyElevation, keySoftness, keyShadowDen,
+  //   fillIntensity, rimIntensity, ambientIntensity, saturation, contrast, exposure,
+  //   fogDensity, bloomIntensity, emissiveScale, vignette, grainIntensity, chromaticAb,
+  //   shadowR, shadowG, shadowB, midR, midG, midB, strobeEnabled, strobeFreq, gateFlicker, halationRadius, godRayI
+  STUDIO_NEUTRAL: {
+    label:'Studio Neutral',desc:'Clean three-point. The zero point.',
+    s:{keyKelvin:5600,keyAzimuth:-45,keyElevation:35,keySoftness:0.3,keyShadowDen:0.8,fillKelvin:6200,fillIntensity:0.35,rimIntensity:0.6,ambientIntensity:0.25,saturation:1,contrast:1,exposure:0,fogDensity:0,bloomIntensity:0.2,emissiveScale:1,vignette:0,grainIntensity:0,chromaticAb:0,halationRadius:0,godRayIntensity:0,layerLightWrap:0,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.85,shadowHue:[0.08,0.10,0.18],midtoneTint:[1,1,1]}
+  },
+  HITCHCOCK: {
+    label:'Hitchcock',desc:'Hard shadow suspense. One source.',
+    s:{keyKelvin:3200,keyAzimuth:-70,keyElevation:25,keySoftness:0.05,keyShadowDen:0.98,fillKelvin:4000,fillIntensity:0.05,rimIntensity:0.1,ambientIntensity:0.08,saturation:0.7,contrast:1.5,exposure:0,fogDensity:0,bloomIntensity:0.05,emissiveScale:1,vignette:0.4,grainIntensity:0.06,chromaticAb:0,halationRadius:0,godRayIntensity:0,layerLightWrap:0,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.9,shadowHue:[0.03,0.03,0.08],midtoneTint:[1,1,1]}
+  },
+  SPIELBERG: {
+    label:'Spielberg',desc:'Backlit wonder. Liquid light. Eye sparkle.',
+    s:{keyKelvin:4800,keyAzimuth:180,keyElevation:10,keySoftness:0.7,keyShadowDen:0.5,fillKelvin:5800,fillIntensity:0.8,rimIntensity:2.5,ambientIntensity:0.45,saturation:1.15,contrast:0.9,exposure:0,fogDensity:0,bloomIntensity:0.6,emissiveScale:1,vignette:0.1,grainIntensity:0,chromaticAb:0,halationRadius:0,godRayIntensity:0.3,layerLightWrap:0.5,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.7,shadowHue:[0.10,0.12,0.20],midtoneTint:[1.02,0.98,0.92]}
+  },
+  NOLAN: {label:'Nolan',desc:'IMAX naturalism. Grounded weight.',s:{keyKelvin:5800,keyAzimuth:-30,keyElevation:40,keySoftness:0.45,keyShadowDen:0.85,fillKelvin:6000,fillIntensity:0.4,rimIntensity:0.5,ambientIntensity:0.3,saturation:1,contrast:1.1,exposure:0,fogDensity:0,bloomIntensity:0.1,emissiveScale:1,vignette:0.1,grainIntensity:0.02,chromaticAb:0,halationRadius:0,godRayIntensity:0,layerLightWrap:0,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.88,shadowHue:[0.08,0.09,0.15],midtoneTint:[1,1,1]}},
+  FINCHER: {label:'Fincher',desc:'Cinema Verde. Jaundice decay.',s:{keyKelvin:4000,keyAzimuth:-20,keyElevation:60,keySoftness:0.3,keyShadowDen:0.9,fillKelvin:4200,fillIntensity:0.15,rimIntensity:0.2,ambientIntensity:0.12,saturation:0.8,contrast:1.2,exposure:0,fogDensity:0,bloomIntensity:0.05,emissiveScale:1,vignette:0.35,grainIntensity:0.04,chromaticAb:0,halationRadius:0,godRayIntensity:0,layerLightWrap:0,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.9,shadowHue:[0.08,0.12,0.06],midtoneTint:[0.88,0.92,0.78]}},
+  RIDLEY_SCOTT: {label:'Ridley Scott',desc:'Neon on wet pavement. Blade Runner.',s:{keyKelvin:3000,keyAzimuth:-90,keyElevation:5,keySoftness:0.1,keyShadowDen:0.95,fillKelvin:5000,fillIntensity:0,rimIntensity:0.3,ambientIntensity:0.4,saturation:1.3,contrast:1.4,exposure:0,fogDensity:0.25,bloomIntensity:0.8,emissiveScale:2,vignette:0.5,grainIntensity:0,chromaticAb:0.8,halationRadius:0,godRayIntensity:0,layerLightWrap:0,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.5,shadowHue:[0,0,0.12],midtoneTint:[0.80,0.72,0.62]}},
+  MICHAEL_BAY: {label:'Michael Bay',desc:'Teal-orange. High chroma. Always golden hour.',s:{keyKelvin:3400,keyAzimuth:-120,keyElevation:8,keySoftness:0.2,keyShadowDen:0.7,fillKelvin:8000,fillIntensity:0.6,rimIntensity:1.8,ambientIntensity:0.3,saturation:1.5,contrast:1.3,exposure:0,fogDensity:0,bloomIntensity:0.7,emissiveScale:1,vignette:0,grainIntensity:0,chromaticAb:0,halationRadius:0,godRayIntensity:0.4,layerLightWrap:0.4,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.6,shadowHue:[0.02,0.12,0.18],midtoneTint:[1.1,0.95,0.7]}},
+  DEL_TORO: {label:'Del Toro',desc:'Amber-cobalt. Wet-look. Fairytale danger.',s:{keyKelvin:3200,keyAzimuth:-45,keyElevation:20,keySoftness:0.5,keyShadowDen:0.88,fillKelvin:8500,fillIntensity:0.5,rimIntensity:0.6,ambientIntensity:0.25,saturation:1.2,contrast:1.15,exposure:0,fogDensity:0.15,bloomIntensity:0.4,emissiveScale:1,vignette:0.3,grainIntensity:0,chromaticAb:0,halationRadius:0,godRayIntensity:0,layerLightWrap:0,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.8,shadowHue:[0.04,0.06,0.22],midtoneTint:[0.95,0.82,0.62]}},
+  TARANTINO: {label:'Tarantino',desc:'70s hard-retro. Pulp. Sweaty saturation.',s:{keyKelvin:3600,keyAzimuth:-30,keyElevation:30,keySoftness:0.15,keyShadowDen:0.85,fillKelvin:3800,fillIntensity:0.5,rimIntensity:0.4,ambientIntensity:0.3,saturation:1.4,contrast:1.25,exposure:0,fogDensity:0,bloomIntensity:0.05,emissiveScale:1,vignette:0.25,grainIntensity:0.08,chromaticAb:0,halationRadius:0,godRayIntensity:0,layerLightWrap:0,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.9,shadowHue:[0.12,0.08,0.02],midtoneTint:[1.08,0.96,0.78]}},
+  GHIBLI: {label:'Ghibli',desc:'Komorebi. Watercolor. Mauve-lavender shadows.',s:{keyKelvin:5200,keyAzimuth:-20,keyElevation:45,keySoftness:0.85,keyShadowDen:0.4,fillKelvin:6500,fillIntensity:0.7,rimIntensity:0.2,ambientIntensity:0.55,saturation:0.9,contrast:0.85,exposure:0,fogDensity:0,bloomIntensity:0.15,emissiveScale:1,vignette:0,grainIntensity:0,chromaticAb:0,halationRadius:0,godRayIntensity:0,layerLightWrap:0.7,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.85,shadowHue:[0.15,0.10,0.22],midtoneTint:[1.02,1,0.95]}},
+  PIXAR: {label:'Pixar',desc:'PBR perfect. The production standard.',s:{keyKelvin:5600,keyAzimuth:-35,keyElevation:40,keySoftness:0.6,keyShadowDen:0.75,fillKelvin:6000,fillIntensity:0.55,rimIntensity:0.8,ambientIntensity:0.4,saturation:1.05,contrast:1,exposure:0,fogDensity:0,bloomIntensity:0.2,emissiveScale:1,vignette:0,grainIntensity:0,chromaticAb:0,halationRadius:0,godRayIntensity:0,layerLightWrap:0.3,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.88,shadowHue:[0.08,0.10,0.18],midtoneTint:[1,1,1]}},
+  BATMAN_TAS: {label:'Batman TAS',desc:'Dark Deco. Painting on black.',s:{keyKelvin:3000,keyAzimuth:-60,keyElevation:70,keySoftness:0.05,keyShadowDen:1,fillKelvin:4000,fillIntensity:0.02,rimIntensity:0.1,ambientIntensity:0.03,saturation:0.7,contrast:2,exposure:0,fogDensity:0.4,bloomIntensity:0.1,emissiveScale:1,vignette:0.6,grainIntensity:0,chromaticAb:0,halationRadius:0,godRayIntensity:0.6,layerLightWrap:0,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.9,shadowHue:[0,0,0],midtoneTint:[1,1,1]}},
+  SPIDER_VERSE_NPR: {label:'Spider-Verse NPR',desc:'Living comic book. CMYK offset.',s:{keyKelvin:5600,keyAzimuth:-45,keyElevation:50,keySoftness:0,keyShadowDen:1,fillKelvin:5600,fillIntensity:0,rimIntensity:0.5,ambientIntensity:0.5,saturation:1.6,contrast:1.5,exposure:0,fogDensity:0,bloomIntensity:0.3,emissiveScale:1.5,vignette:0,grainIntensity:0,chromaticAb:2,halationRadius:0,godRayIntensity:0,layerLightWrap:0,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.8,shadowHue:[0.02,0,0.12],midtoneTint:[1,1,1]}},
+  AKIRA_NEON: {label:'Akira Neon',desc:'Neon drip. Light trails. Tokyo 2019.',s:{keyKelvin:4000,keyAzimuth:0,keyElevation:80,keySoftness:0.4,keyShadowDen:0.3,fillKelvin:4000,fillIntensity:0,rimIntensity:0.2,ambientIntensity:0.05,saturation:2,contrast:1.6,exposure:0,fogDensity:0.3,bloomIntensity:2,emissiveScale:3.5,vignette:0.4,grainIntensity:0,chromaticAb:1.5,halationRadius:0,godRayIntensity:0,layerLightWrap:0,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.2,shadowHue:[0,0,0.08],midtoneTint:[1,1,1]}},
+  NOIR: {label:'Noir',desc:'Binary shadow. Black and white. Pure contrast.',s:{keyKelvin:3800,keyAzimuth:-50,keyElevation:40,keySoftness:0,keyShadowDen:1,fillKelvin:4000,fillIntensity:0,rimIntensity:0.1,ambientIntensity:0.04,saturation:0,contrast:2.5,exposure:0,fogDensity:0,bloomIntensity:0.05,emissiveScale:1,vignette:0.5,grainIntensity:0.1,chromaticAb:0,halationRadius:0,godRayIntensity:0,layerLightWrap:0,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.9,shadowHue:[0,0,0],midtoneTint:[1,1,1]}},
+  FANTASY_WARM: {label:'Fantasy Warm',desc:'Golden warm glow. Magic in the air.',s:{keyKelvin:3500,keyAzimuth:-30,keyElevation:20,keySoftness:0.8,keyShadowDen:0.5,fillKelvin:4000,fillIntensity:0.6,rimIntensity:1.2,ambientIntensity:0.5,saturation:1.2,contrast:1,exposure:0,fogDensity:0.12,bloomIntensity:0.8,emissiveScale:2,vignette:0.1,grainIntensity:0,chromaticAb:0,halationRadius:0,godRayIntensity:0.3,layerLightWrap:0.6,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.5,shadowHue:[0.08,0.04,0.01],midtoneTint:[1,0.95,0.85]}},
+  MAGIC_REALISM: {label:'Magic Realism',desc:'Reality with impossible beauty.',s:{keyKelvin:4800,keyAzimuth:10,keyElevation:55,keySoftness:0.95,keyShadowDen:0.2,fillKelvin:6200,fillIntensity:0.8,rimIntensity:0.6,ambientIntensity:0.6,saturation:1.1,contrast:0.85,exposure:0,fogDensity:0,bloomIntensity:0.5,emissiveScale:1.5,vignette:0,grainIntensity:0,chromaticAb:0,halationRadius:0.3,godRayIntensity:0,layerLightWrap:0.8,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.6,shadowHue:[0.08,0.10,0.18],midtoneTint:[1,1,1]}},
+  CANDLELIGHT: {label:'Candlelight',desc:'Real practical. Intimate. Flicker.',s:{keyKelvin:1900,keyAzimuth:0,keyElevation:-10,keySoftness:0.3,keyShadowDen:0.9,fillKelvin:2000,fillIntensity:0,rimIntensity:0.1,ambientIntensity:0.05,saturation:0.9,contrast:1.3,exposure:0,fogDensity:0.05,bloomIntensity:0.4,emissiveScale:1.2,vignette:0.6,grainIntensity:0.04,chromaticAb:0,halationRadius:0,godRayIntensity:0,layerLightWrap:0,strobeEnabled:false,strobeFreq:4,gateFlicker:0.15,bloomThreshold:0.5,shadowHue:[0.08,0.04,0.01],midtoneTint:[1.05,0.95,0.8]}},
+  HORROR: {label:'Horror',desc:'Under-lit. Motivated from below.',s:{keyKelvin:3200,keyAzimuth:0,keyElevation:-30,keySoftness:0.1,keyShadowDen:0.95,fillKelvin:3000,fillIntensity:0.05,rimIntensity:0.1,ambientIntensity:0.08,saturation:0.7,contrast:1.5,exposure:0,fogDensity:0,bloomIntensity:0.05,emissiveScale:1,vignette:0.55,grainIntensity:0.08,chromaticAb:0,halationRadius:0,godRayIntensity:0,layerLightWrap:0,strobeEnabled:false,strobeFreq:4,gateFlicker:0.06,bloomThreshold:0.9,shadowHue:[0.06,0.04,0],midtoneTint:[1,1,1]}},
+  PSYCHEDELIC: {label:'Psychedelic',desc:'Acid. Color cycling. Reality dissolving.',s:{keyKelvin:5600,keyAzimuth:-45,keyElevation:35,keySoftness:0.5,keyShadowDen:0.3,fillKelvin:5600,fillIntensity:0.8,rimIntensity:1,ambientIntensity:0.8,saturation:2,contrast:1.2,exposure:0,fogDensity:0,bloomIntensity:2,emissiveScale:3,vignette:0,grainIntensity:0,chromaticAb:3,halationRadius:0,godRayIntensity:0,layerLightWrap:0,strobeEnabled:false,strobeFreq:4,gateFlicker:0.2,bloomThreshold:0.1,shadowHue:[0.08,0.10,0.18],midtoneTint:[1,1,1]}},
+  RAVE_STROBE: {label:'Rave Strobe',desc:'DMX club. Beat flash. Freeze frame.',s:{keyKelvin:5600,keyAzimuth:-45,keyElevation:35,keySoftness:0.5,keyShadowDen:0.2,fillKelvin:5600,fillIntensity:0,rimIntensity:0.5,ambientIntensity:0,saturation:1.8,contrast:1.5,exposure:0,fogDensity:0,bloomIntensity:1.5,emissiveScale:2.5,vignette:0.3,grainIntensity:0,chromaticAb:1,halationRadius:0,godRayIntensity:0,layerLightWrap:0,strobeEnabled:true,strobeFreq:6,gateFlicker:0,bloomThreshold:0.2,shadowHue:[0,0,0],midtoneTint:[1,1,1]}},
+  ROM_COM_GOLDEN: {label:'Rom-Com Golden',desc:'Warm. Flattering. Magic hour that never ends.',s:{keyKelvin:3800,keyAzimuth:-100,keyElevation:12,keySoftness:0.7,keyShadowDen:0.5,fillKelvin:5000,fillIntensity:0.6,rimIntensity:1,ambientIntensity:0.45,saturation:1.15,contrast:0.95,exposure:0,fogDensity:0,bloomIntensity:0.5,emissiveScale:1,vignette:0.1,grainIntensity:0,chromaticAb:0,halationRadius:0.2,godRayIntensity:0.2,layerLightWrap:0.5,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.65,shadowHue:[0.08,0.06,0.02],midtoneTint:[1.05,1,0.95]}},
+  MARVEL_ACTION: {label:'Marvel Action',desc:'Hero lighting. Saturated. Complementary rim.',s:{keyKelvin:5600,keyAzimuth:-40,keyElevation:35,keySoftness:0.4,keyShadowDen:0.7,fillKelvin:6000,fillIntensity:0.5,rimIntensity:1.5,ambientIntensity:0.4,saturation:1.3,contrast:1.1,exposure:0,fogDensity:0,bloomIntensity:0.5,emissiveScale:1.8,vignette:0,grainIntensity:0,chromaticAb:0,halationRadius:0,godRayIntensity:0,layerLightWrap:0.4,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.75,shadowHue:[0.08,0.10,0.18],midtoneTint:[1,1,1]}},
+  GOLDEN_HOUR: {label:'Golden Hour',desc:'The 20 minutes cinematographers pray for.',s:{keyKelvin:3200,keyAzimuth:-110,keyElevation:5,keySoftness:0.55,keyShadowDen:0.75,fillKelvin:7500,fillIntensity:0.4,rimIntensity:2,ambientIntensity:0.4,saturation:1.25,contrast:1.05,exposure:0,fogDensity:0,bloomIntensity:0.7,emissiveScale:1,vignette:0.1,grainIntensity:0,chromaticAb:0,halationRadius:0.4,godRayIntensity:0.5,layerLightWrap:0.7,strobeEnabled:false,strobeFreq:4,gateFlicker:0,bloomThreshold:0.55,shadowHue:[0.06,0.04,0.02],midtoneTint:[1.05,0.98,0.88]}},
+};
+
+const GROUPS = [
+  {label:'Film / Director DNA', keys:['STUDIO_NEUTRAL','HITCHCOCK','SPIELBERG','NOLAN','FINCHER','RIDLEY_SCOTT','MICHAEL_BAY','DEL_TORO','TARANTINO']},
+  {label:'Animation', keys:['GHIBLI','PIXAR','BATMAN_TAS','SPIDER_VERSE_NPR','AKIRA_NEON']},
+  {label:'Genre', keys:['NOIR','FANTASY_WARM','MAGIC_REALISM','HORROR','ROM_COM_GOLDEN','MARVEL_ACTION']},
+  {label:'Special / Atmospheric', keys:['CANDLELIGHT','PSYCHEDELIC','RAVE_STROBE','GOLDEN_HOUR']},
+];
+
+let current = 'STUDIO_NEUTRAL';
+let mixBlend = 0;
+let mixTargetA = 'SPIELBERG', mixTargetB = 'NOIR';
+let rafId = null;
+let flickerVal = 1.0;
+let strobePhase = 0;
+let huePhase = 0;
+
+const canvas  = document.getElementById('preview-canvas');
+const ctx     = canvas.getContext('2d');
+
+function resize() {
+  canvas.width  = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Build preset list
+const panel = document.getElementById('preset-panel');
+for (const group of GROUPS) {
+  const lbl = document.createElement('div');
+  lbl.className = 'preset-group-label';
+  lbl.textContent = group.label;
+  panel.appendChild(lbl);
+  for (const key of group.keys) {
+    const p = PRESETS[key];
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn';
+    btn.id = 'btn-' + key;
+    btn.textContent = p.label;
+    btn.onclick = () => selectPreset(key);
+    panel.appendChild(btn);
+  }
+}
+
+// Build mix selects
+const mixA = document.getElementById('mix-a');
+const mixB = document.getElementById('mix-b');
+for (const key of Object.keys(PRESETS)) {
+  const p = PRESETS[key];
+  [mixA, mixB].forEach(sel => {
+    const opt = document.createElement('option');
+    opt.value = key; opt.textContent = p.label;
+    sel.appendChild(opt);
+  });
+}
+mixA.value = 'SPIELBERG';
+mixB.value = 'HITCHCOCK';
+mixTargetA = 'SPIELBERG'; mixTargetB = 'HITCHCOCK';
+mixA.onchange = () => { mixTargetA = mixA.value; onMixSlider(mixBlend*100); };
+mixB.onchange = () => { mixTargetB = mixB.value; onMixSlider(mixBlend*100); };
+
+function onMixSlider(val) {
+  mixBlend = val / 100;
+  document.getElementById('mix-val').textContent = Math.round(val) + '%';
+  if (mixBlend > 0) {
+    // Blend the two states
+    const a = PRESETS[mixTargetA].s;
+    const b = PRESETS[mixTargetB].s;
+    const blended = blendStates(a, b, mixBlend);
+    renderPreview(blended, mixBlend === 0 ? PRESETS[mixTargetA].label : `${PRESETS[mixTargetA].label} ↔ ${PRESETS[mixTargetB].label}`, '');
+    updateParams(blended);
+  } else {
+    selectPreset(current);
+  }
+}
+
+function blendStates(a, b, t) {
+  const out = {};
+  for (const k of Object.keys(a)) {
+    if (typeof a[k] === 'number') out[k] = a[k] + (b[k]-a[k])*t;
+    else if (Array.isArray(a[k])) out[k] = a[k].map((v,i) => v + (b[k][i]-v)*t);
+    else out[k] = t >= 0.5 ? b[k] : a[k];
+  }
+  return out;
+}
+
+function selectPreset(key) {
+  current = key;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('btn-'+key);
+  if (btn) btn.classList.add('active');
+  const p = PRESETS[key];
+  document.getElementById('lbl-name').textContent = p.label;
+  document.getElementById('lbl-desc').textContent = p.desc;
+  renderPreview(p.s, p.label, p.desc);
+  updateParams(p.s);
+  // Reset mix
+  document.getElementById('mix-slider').value = 0;
+  document.getElementById('mix-val').textContent = '0%';
+  mixBlend = 0;
+}
+
+function paramChanged(key, val) {
+  const s = getCurrentState();
+  s[key] = val;
+  // Update value display
+  const vEl = document.getElementById('v-'+key);
+  if (vEl) {
+    if (typeof val === 'boolean') vEl.textContent = val ? 'on' : 'off';
+    else if (key.includes('Kelvin')) vEl.textContent = Math.round(val)+'K';
+    else if (key.includes('zimuth') || key.includes('levation')) vEl.textContent = Math.round(val)+'°';
+    else vEl.textContent = val.toFixed ? val.toFixed(2) : val;
+  }
+  renderPreview(s, PRESETS[current]?.label || 'Custom', '');
+}
+
+function getCurrentState() {
+  if (mixBlend > 0) {
+    return blendStates(PRESETS[mixTargetA].s, PRESETS[mixTargetB].s, mixBlend);
+  }
+  return Object.assign({}, PRESETS[current]?.s || PRESETS.STUDIO_NEUTRAL.s);
+}
+
+function updateParams(s) {
+  const fields = ['keyKelvin','keyAzimuth','keyElevation','keySoftness','keyShadowDen',
+    'fillKelvin','fillIntensity','rimIntensity','saturation','contrast','exposure',
+    'fogDensity','bloomIntensity','emissiveScale','vignette','grainIntensity','chromaticAb',
+    'halationRadius','godRayIntensity','layerLightWrap','strobeEnabled','strobeFreq','gateFlicker','bloomThreshold'];
+  for (const f of fields) {
+    const el = document.getElementById('p-'+f);
+    const vEl= document.getElementById('v-'+f);
+    if (!el || !(f in s)) continue;
+    if (el.type === 'checkbox') {
+      el.checked = !!s[f];
+    } else {
+      el.value = s[f];
+    }
+    if (vEl) {
+      const v = s[f];
+      if (typeof v === 'boolean') vEl.textContent = v ? 'on' : 'off';
+      else if (f.includes('Kelvin')) vEl.textContent = Math.round(v)+'K';
+      else if (f.includes('zimuth')||f.includes('levation')) vEl.textContent = Math.round(v)+'°';
+      else vEl.textContent = v.toFixed ? v.toFixed(2) : v;
+    }
+  }
+}
+
+// ── PREVIEW RENDERER ──
+function kelvinToRGB(K) {
+  K = Math.max(1500, Math.min(12000, K));
+  let r, g, b;
+  if (K <= 6600) {
+    r = 1.0;
+    g = Math.max(0, Math.min(1, 0.39008 * Math.log(K/100) - 0.63184));
+    b = K <= 1900 ? 0 : Math.max(0, Math.min(1, 0.54320 * Math.log(K/100-10) - 1.19625));
+  } else {
+    r = Math.max(0, Math.min(1, 1.292 * Math.pow(K/100-60, -0.1332)));
+    g = Math.max(0, Math.min(1, 1.129 * Math.pow(K/100-60, -0.0755)));
+    b = 1.0;
+  }
+  return [Math.round(r*255), Math.round(g*255), Math.round(b*255)];
+}
+
+function rgb(r,g,b,a=1) { return `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${a})`; }
+
+function renderPreview(s, label, desc) {
+  cancelAnimationFrame(rafId);
+  let frame = 0;
+  const W = canvas.width, H = canvas.height;
+
+  function draw() {
+    if (canvas.width !== canvas.offsetWidth) resize();
+    const W = canvas.width, H = canvas.height;
+    const t = frame / 60;
+    frame++;
+
+    // Background
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+
+    // Key light color
+    const [kr,kg,kb] = kelvinToRGB(s.keyKelvin);
+    const [fr,fg,fb] = kelvinToRGB(s.fillKelvin ?? 6200);
+
+    // Ambient fill
+    const ai = (s.ambientIntensity ?? 0.25) * 255;
+    const sh = s.shadowHue ?? [0.08,0.10,0.18];
+    ctx.fillStyle = rgb(sh[0]*ai*2, sh[1]*ai*2, sh[2]*ai*2);
+    ctx.fillRect(0, 0, W, H);
+
+    // Fog / atmosphere
+    if ((s.fogDensity??0) > 0.01) {
+      const fc = s.fogColor ?? [0.6,0.65,0.75];
+      const fg2 = ctx.createLinearGradient(0, H, 0, H*(1-(s.fogHeight??0.3)));
+      fg2.addColorStop(0, rgb(fc[0]*255,fc[1]*255,fc[2]*255, s.fogDensity * 0.7));
+      fg2.addColorStop(1, rgb(fc[0]*255,fc[1]*255,fc[2]*255, 0));
+      ctx.fillStyle = fg2;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // God rays
+    if ((s.godRayIntensity??0) > 0.01) {
+      const angle = ((s.godRayAngle??-45) * Math.PI) / 180;
+      const cx2 = W/2 + Math.cos(angle) * W;
+      const cy2 = H/2 - Math.sin(angle) * H * 0.5;
+      for (let i = 0; i < 8; i++) {
+        const offset = (i - 4) * 0.04;
+        const g2 = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, W);
+        g2.addColorStop(0, rgb(kr*0.8,kg*0.8,kb*0.5, s.godRayIntensity * 0.15));
+        g2.addColorStop(1, rgb(0,0,0,0));
+        ctx.fillStyle = g2;
+        ctx.fillRect(0, 0, W, H);
+      }
+    }
+
+    // Scene elements — figure silhouettes to demonstrate lighting
+    // Draw 3 "avatar" shapes at different z-depths
+    const figures = [
+      {x: W*0.25, y: H*0.55, scale: 0.7, z: 0.8},
+      {x: W*0.5,  y: H*0.5,  scale: 1.0, z: 0.5},
+      {x: W*0.75, y: H*0.55, scale: 0.75, z: 0.7},
+    ];
+
+    for (const fig of figures) {
+      const ks = s.keySoftness ?? 0.3;
+      const ki = s.keyIntensity ?? 1.0;
+      const fi = s.fillIntensity ?? 0.35;
+      const ri = s.rimIntensity ?? 0.6;
+      const az = (s.keyAzimuth ?? -45) * Math.PI / 180;
+      const el = (s.keyElevation ?? 35) * Math.PI / 180;
+
+      // Shadow offset from key direction
+      const shadowX = -Math.sin(az) * 20 * fig.scale;
+      const shadowY = -Math.sin(el) * 10 * fig.scale;
+      const shadowAlpha = (s.keyShadowDen ?? 0.8) * 0.6;
+
+      // Draw shadow
+      const bodyH = H * 0.35 * fig.scale;
+      const bodyW = H * 0.12 * fig.scale;
+      ctx.save();
+      ctx.globalAlpha = shadowAlpha;
+      ctx.fillStyle = rgb(sh[0]*80,sh[1]*80,sh[2]*100);
+      ctx.beginPath();
+      ctx.ellipse(fig.x + shadowX, fig.y + bodyH * 0.5 + shadowY, bodyW*0.7, bodyH*0.06, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+
+      // Figure base color = lit by fill
+      const fillLit = fi * 0.5;
+      const mt = s.midtoneTint ?? [1,1,1];
+      const baseLum = 120 * fillLit + ai * 0.8;
+      const baseR = baseLum * mt[0] * (1 + (fr/255-0.5)*0.3);
+      const baseG = baseLum * mt[1] * (1 + (fg/255-0.5)*0.3);
+      const baseB = baseLum * mt[2] * (1 + (fb/255-0.5)*0.3);
+
+      // Key illumination gradient
+      const keyAngleX = Math.cos(az + Math.PI);
+      const keyAngleY = -Math.sin(el);
+      const gx = ctx.createLinearGradient(
+        fig.x + keyAngleX * bodyW, fig.y + keyAngleY * bodyH,
+        fig.x - keyAngleX * bodyW * 1.5, fig.y - keyAngleY * bodyH * 0.5
+      );
+      const keyLum = ki * 180;
+      gx.addColorStop(0, rgb(kr/255*keyLum*mt[0], kg/255*keyLum*mt[1], kb/255*keyLum*mt[2]));
+      gx.addColorStop(0.5, rgb(baseR, baseG, baseB));
+      gx.addColorStop(1, rgb(sh[0]*80, sh[1]*80, sh[2]*120));
+
+      // Draw head
+      ctx.save();
+      ctx.fillStyle = gx;
+      ctx.beginPath();
+      ctx.ellipse(fig.x, fig.y - bodyH*0.52, bodyW*0.38, bodyW*0.45, 0, 0, Math.PI*2);
+      ctx.fill();
+
+      // Draw body
+      ctx.beginPath();
+      ctx.moveTo(fig.x - bodyW*0.5, fig.y - bodyH*0.25);
+      ctx.bezierCurveTo(fig.x - bodyW*0.6, fig.y, fig.x - bodyW*0.45, fig.y + bodyH*0.35, fig.x - bodyW*0.3, fig.y + bodyH*0.5);
+      ctx.lineTo(fig.x + bodyW*0.3, fig.y + bodyH*0.5);
+      ctx.bezierCurveTo(fig.x + bodyW*0.45, fig.y + bodyH*0.35, fig.x + bodyW*0.6, fig.y, fig.x + bodyW*0.5, fig.y - bodyH*0.25);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      // Rim light
+      if (ri > 0.05) {
+        ctx.save();
+        ctx.globalAlpha = Math.min(0.9, ri * 0.35);
+        const rimAngle = az + Math.PI;
+        const rxOffset = Math.cos(rimAngle) * bodyW * 0.55;
+        const rimGrad = ctx.createLinearGradient(
+          fig.x + rxOffset, fig.y - bodyH*0.3,
+          fig.x - rxOffset * 0.3, fig.y
+        );
+        const [rr,rg,rb] = kelvinToRGB(s.rimKelvin ?? 5600);
+        rimGrad.addColorStop(0, rgb(rr,rg,rb,1));
+        rimGrad.addColorStop(1, rgb(rr,rg,rb,0));
+        ctx.fillStyle = rimGrad;
+        // Rim as thin edge shape
+        ctx.beginPath();
+        ctx.ellipse(fig.x + rxOffset*0.9, fig.y - bodyH*0.1, bodyW*0.15, bodyH*0.35, az, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Light wrap
+      if ((s.layerLightWrap??0) > 0.05) {
+        ctx.save();
+        ctx.globalAlpha = s.layerLightWrap * 0.2;
+        const wGrad = ctx.createRadialGradient(fig.x, fig.y, 0, fig.x, fig.y, bodyW*1.5);
+        wGrad.addColorStop(0, rgb(baseR, baseG, baseB));
+        wGrad.addColorStop(1, rgb(0,0,0,0));
+        ctx.fillStyle = wGrad;
+        ctx.beginPath();
+        ctx.ellipse(fig.x, fig.y, bodyW*1.5, bodyH*0.7, 0, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // Bloom overlay
+    if ((s.bloomIntensity??0) > 0.05) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      ctx.globalAlpha = Math.min(0.8, s.bloomIntensity * 0.25);
+      const bl = ctx.createRadialGradient(W/2, H*0.4, 0, W/2, H*0.4, W*0.6);
+      bl.addColorStop(0, rgb(kr,kg,kb));
+      bl.addColorStop(1, rgb(0,0,0,0));
+      ctx.fillStyle = bl;
+      ctx.fillRect(0,0,W,H);
+      ctx.restore();
+    }
+
+    // Emissive scale boost
+    if ((s.emissiveScale??1) > 1.5) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      ctx.globalAlpha = ((s.emissiveScale??1)-1) * 0.08;
+      ctx.fillStyle = rgb(kr,kg,kb);
+      ctx.fillRect(0,0,W,H);
+      ctx.restore();
+    }
+
+    // Saturation + contrast + exposure via CSS filter on offscreen (approximated inline)
+    // Apply color grade via compositing
+    const sat = s.saturation ?? 1;
+    if (sat < 0.05) {
+      // Desaturate — draw a luminance overlay
+      ctx.save();
+      ctx.globalCompositeOperation = 'saturation';
+      ctx.globalAlpha = 1 - sat;
+      ctx.fillStyle = '#808080';
+      ctx.fillRect(0,0,W,H);
+      ctx.restore();
+    }
+
+    // Vignette
+    if ((s.vignette??0) > 0.01) {
+      const vc = s.vignetteColor ?? [0,0,0];
+      const vg = ctx.createRadialGradient(W/2,H/2,W*0.25, W/2,H/2,W*0.85);
+      vg.addColorStop(0, rgb(vc[0]*255,vc[1]*255,vc[2]*255,0));
+      vg.addColorStop(1, rgb(vc[0]*255,vc[1]*255,vc[2]*255, s.vignette * 0.85));
+      ctx.fillStyle = vg;
+      ctx.fillRect(0,0,W,H);
+    }
+
+    // Film grain (approximated)
+    if ((s.grainIntensity??0) > 0.005) {
+      ctx.save();
+      ctx.globalAlpha = s.grainIntensity;
+      for (let i=0; i<200; i++) {
+        const gx2 = Math.random()*W, gy2 = Math.random()*H;
+        const lum = Math.random() > 0.5 ? 200 : 50;
+        ctx.fillStyle = rgb(lum,lum,lum,0.3);
+        ctx.fillRect(gx2, gy2, 1, 1);
+      }
+      ctx.restore();
+    }
+
+    // Halation (red bleed on bright areas)
+    if ((s.halationRadius??0) > 0.01) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      ctx.globalAlpha = s.halationRadius * 0.3;
+      const hc = s.halationColor ?? [1,0.3,0.1];
+      for (const fig of figures) {
+        const hr = ctx.createRadialGradient(fig.x, fig.y-H*0.07*fig.scale, 0, fig.x, fig.y-H*0.07*fig.scale, H*0.15*fig.scale);
+        hr.addColorStop(0, rgb(hc[0]*255,hc[1]*255,hc[2]*255,1));
+        hr.addColorStop(1, rgb(0,0,0,0));
+        ctx.fillStyle = hr;
+        ctx.fillRect(0,0,W,H);
+      }
+      ctx.restore();
+    }
+
+    // Gate flicker
+    const flicker = (s.gateFlicker??0) > 0 ? 1 + (Math.random()-0.5)*s.gateFlicker : 1;
+
+    // Strobe
+    let strobeAlpha = 0;
+    if (s.strobeEnabled) {
+      strobePhase = (t * (s.strobeFreq??4)) % 1;
+      if (strobePhase < (s.strobeDuty??0.2)) {
+        strobeAlpha = 0.6;
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.globalAlpha = strobeAlpha;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0,0,W,H);
+        ctx.restore();
+      }
+    }
+
+    // Psychedelic hue cycle
+    if ((s.chromaticAb??0) > 1.5) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      const hc = Math.sin(t * 0.5) * 0.5 + 0.5;
+      const hc2 = Math.sin(t * 0.7 + 2) * 0.5 + 0.5;
+      ctx.globalAlpha = 0.08;
+      ctx.fillStyle = rgb(hc*255, hc2*100, (1-hc)*200);
+      ctx.fillRect(0,0,W,H);
+      ctx.restore();
+    }
+
+    // Exposure clamp
+    if ((s.exposure??0) !== 0) {
+      const ev = Math.pow(2, s.exposure);
+      ctx.save();
+      if (ev < 1) {
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.globalAlpha = 1 - ev;
+        ctx.fillStyle = '#000';
+      } else {
+        ctx.globalCompositeOperation = 'screen';
+        ctx.globalAlpha = Math.min(0.8, (ev-1)*0.3);
+        ctx.fillStyle = '#fff';
+      }
+      ctx.fillRect(0,0,W,H);
+      ctx.restore();
+    }
+
+    rafId = requestAnimationFrame(draw);
+  }
+
+  draw();
+}
+
+// Initial render
+selectPreset('STUDIO_NEUTRAL');
+</script>
+</body>
+</html>

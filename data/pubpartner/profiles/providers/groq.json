@@ -1,0 +1,10 @@
+{
+  "provider": "groq",
+  "model": "",
+  "fixes": [
+    "trim_boilerplate",
+    "preserve_alex_voice"
+  ],
+  "created_at": 1792024059.0222251,
+  "updated_at": 1792024059.0222251
+}

@@ -1,0 +1,120 @@
+........................................................................ [  5%]
+........................................................................ [ 10%]
+........................................................................ [ 15%]
+........................................................................ [ 20%]
+........................................................................ [ 25%]
+........................................................................ [ 30%]
+........................................................................ [ 35%]
+........................................................................ [ 40%]
+........................................................................ [ 46%]
+........................................................................ [ 51%]
+........................................................................ [ 56%]
+.............................................................F.......... [ 61%]
+.......F..........F..................................................... [ 66%]
+........................................................................ [ 71%]
+........................................................................ [ 76%]
+........................................................................ [ 81%]
+........................................................................ [ 86%]
+........................................................................ [ 92%]
+....................F.......................................s........... [ 97%]
+.......................................                                  [100%]
+=================================== FAILURES ===================================
+______ test_blank_counter_is_default_and_restore_is_opt_in_by_saved_state ______
+
+    def test_blank_counter_is_default_and_restore_is_opt_in_by_saved_state():
+        html = (ROOT / 'static/foresight_counter.html').read_text(encoding='utf-8')
+        assert "params.has('fresh') ? null" in html
+>       assert 'if(!(saved && counter.restore(saved))) programs.autostart();' in html
+E       assert 'if(!(saved && counter.restore(saved))) programs.autostart();' in '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...{ counter.settle(120); counter.start(); }\n  setInterval(updateHint, 1000);\n}\nboot();\n</script>\n</body>\n</html>\n'
+
+tests/test_foresight_workbench_acceptance.py:40: AssertionError
+___ test_startup_boots_surface_voxel_and_studio_without_constructor_failures ___
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x7fb7c07ddb80>
+
+    def test_startup_boots_surface_voxel_and_studio_without_constructor_failures(caplog):
+        caplog.set_level(logging.INFO)
+        with TestClient(main.app):
+            pass
+        text = caplog.text
+        assert "[14] Surface manager failed" not in text
+        assert "[16] Voxel stack failed" not in text
+        assert "[17] Voxel bridge not connected" not in text
+        assert "[18] Studio Control failed" not in text
+>       assert "[14] Surface manager ready" in text
+E       AssertionError: assert '[14] Surface manager ready' in 'INFO     thinking_context.memory:memory.py:233 UniversalMemorySystem: restored 0 entries from snapshot (0 min old) ->...ast-pytest-data-mjvjd74n/memory_snapshot.json\nINFO     thinking_context:mount.py:247 ThinkingContext: memory saved.\n'
+
+tests/test_frontend_startup_contracts.py:15: AssertionError
+------------------------------ Captured log call -------------------------------
+INFO     thinking_context.memory:memory.py:233 UniversalMemorySystem: restored 0 entries from snapshot (0 min old) -> /tmp/pubcast-pytest-data-mjvjd74n/memory_snapshot.json
+INFO     thinking_context:mount.py:208 🆕 ThinkingContext: fresh session — no prior memory.
+INFO     jeremy_cricket:jeremy.py:416 🦗 Jeremy Cricket: Conversation Orchestra Conductor — ready.
+INFO     jeremy_cricket:jeremy.py:797 🦗 Jeremy registered character: bot-sir_purfluous
+INFO     jeremy_cricket:jeremy.py:797 🦗 Jeremy registered character: bot-jeremy
+INFO     jeremy_cricket:jeremy.py:797 🦗 Jeremy registered character: bot-pete
+INFO     jeremy_cricket:jeremy.py:797 🦗 Jeremy registered character: bot-repeat
+INFO     jeremy_cricket:jeremy.py:797 🦗 Jeremy registered character: bot-sir_purfluous_waiting_room
+INFO     jeremy_cricket:jeremy.py:799 ✅ JeremyCricket ready. 5 character(s) known.
+INFO     jeremy_cricket:jeremy.py:431 🦗 Jeremy now watching room 'studio'.
+INFO     thinking_context:mount.py:230 ThinkingContext: watching room 'studio'
+INFO     jeremy_cricket:jeremy.py:431 🦗 Jeremy now watching room 'green_room'.
+INFO     thinking_context:mount.py:230 ThinkingContext: watching room 'green_room'
+INFO     thinking_context:mount.py:232 ✅ ThinkingContext: mounted and ready.
+INFO     thinking_context:mount.py:242 ThinkingContext: shutting down Jeremy...
+INFO     jeremy_cricket:jeremy.py:446 🦗 Jeremy released room 'studio'.
+INFO     jeremy_cricket:jeremy.py:446 🦗 Jeremy released room 'green_room'.
+INFO     jeremy_cricket:jeremy.py:451 🦗 Jeremy Cricket has taken his final bow.
+INFO     thinking_context:mount.py:245 ThinkingContext: saving memory to /tmp/pubcast-pytest-data-mjvjd74n/memory_snapshot.json
+INFO     thinking_context.memory:memory.py:175 UniversalMemorySystem: saved 5 character(s), 0 global entries -> /tmp/pubcast-pytest-data-mjvjd74n/memory_snapshot.json
+INFO     thinking_context:mount.py:247 ThinkingContext: memory saved.
+____ test_full_host_uses_one_shared_bridge_connection_attempt_per_lifespan _____
+
+    def test_full_host_uses_one_shared_bridge_connection_attempt_per_lifespan():
+        import main
+    
+        # Reach intentionally keeps an app singleton across TestClient entries.  Other
+        # lifecycle tests may therefore have already exercised the same bridge object.
+        # Measure connection attempts relative to the pre-entry count rather than
+        # assuming a brand-new process/bridge with a literal zero counter.
+        existing_bridge = getattr(main, "voxel_bridge", None)
+        attempts_before = getattr(existing_bridge, "_connection_attempts", 0)
+    
+        with TestClient(main.app):
+            bridge = main.voxel_bridge
+            twin = main.app.state.twin_engine
+            pete = main.app.state.pete_enhanced
+            assert bridge is not None
+            assert twin.bridge is bridge
+            assert pete.bridge is bridge
+            assert pete._owns_bridge is False
+            first_attempts = bridge._connection_attempts
+>           assert first_attempts == attempts_before + 1
+E           assert 1 == (1 + 1)
+
+tests/test_full_host_shared_bridge_lifecycle.py:23: AssertionError
+_ test_system_memory_is_wired_into_room_conductor_and_rearms_across_lifespans __
+
+    def test_system_memory_is_wired_into_room_conductor_and_rearms_across_lifespans():
+        with TestClient(main.app):
+            conductor = main.app.state.room_conductor
+            system_memory = main.app.state.system_memory
+            assert conductor._system_memory is system_memory
+            assert system_memory._conn is not None
+    
+>       assert system_memory._conn is None
+E       assert <sqlite3.Connection object at 0x7fb7f70b5120> is None
+E        +  where <sqlite3.Connection object at 0x7fb7f70b5120> = <modules.system_memory.SystemMemory object at 0x7fb7f68e9f40>._conn
+
+tests/test_system_memory_conductor_wiring.py:13: AssertionError
+=========================== short test summary info ============================
+SKIPPED [1] tests/alex_little_one/test_public_baby_role.py:8: Alex Little One research protocol tests require ENABLE_ALEX_LITTLE_ONE=true.
+SKIPPED [1] tests/test_foresight_airgapped_ui.py:16: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] tests/test_foresight_counter_workspaces.py:18: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] tests/test_foresight_file_workspace.py:15: Optional browser verification requires Playwright
+SKIPPED [1] tests/test_public_baby_role.py:5: Moved to tests/alex_little_one/test_public_baby_role.py. Set ENABLE_ALEX_LITTLE_ONE=true to run the research protocol tests.
+SKIPPED [1] tests/world_chat_integration/test_browser_widget_local.py:27: could not import 'bs4': No module named 'bs4'
+FAILED tests/test_foresight_workbench_acceptance.py::test_blank_counter_is_default_and_restore_is_opt_in_by_saved_state
+FAILED tests/test_frontend_startup_contracts.py::test_startup_boots_surface_voxel_and_studio_without_constructor_failures
+FAILED tests/test_full_host_shared_bridge_lifecycle.py::test_full_host_uses_one_shared_bridge_connection_attempt_per_lifespan
+FAILED tests/test_system_memory_conductor_wiring.py::test_system_memory_is_wired_into_room_conductor_and_rearms_across_lifespans
+4 failed, 1402 passed, 6 skipped, 211 warnings in 101.61s (0:01:41)

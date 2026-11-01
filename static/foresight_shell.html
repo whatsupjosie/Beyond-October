@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><title>PubCast shell</title><style>
+html,body{margin:0;height:100%;background:#18130f;color:#f2dfbd;font:14px monospace}body{display:flex;flex-direction:column;padding:14px;box-sizing:border-box;gap:8px}button,input,textarea{font:inherit}header{display:flex;gap:8px;align-items:center;flex-wrap:wrap}pre{flex:1;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;margin:0;padding:10px;background:#0c0b09}form{display:flex;gap:8px}input{flex:1;min-width:0;background:#222;color:#fff}small{line-height:1.4}
+</style></head><body><header><button id="connect">Start shell</button><button id="stop" disabled>Stop shell and children</button><span id="status" role="status">Stopped</span></header><small>Owner host shell. Commands run on this computer in PubCast’s workspace folder. This console uses standard input/output; full-screen terminal applications require a terminal emulator.</small><pre id="output" aria-label="Shell output" tabindex="0"></pre><form id="form"><input id="command" aria-label="Shell command" autocomplete="off" spellcheck="false" disabled><button id="send" disabled>Run</button></form><script src="/static/foresight_files.js"></script><script>
+'use strict';
+const $=id=>document.getElementById(id);let socket;
+function print(text){$('output').textContent=($('output').textContent+text).slice(-250000);$('output').scrollTop=$('output').scrollHeight}
+if(new URLSearchParams(location.search).has('script'))$('connect').textContent='Run Python working copy';
+$('connect').onclick=async()=>{
+ const token=sessionStorage.getItem('pubcast_token')||localStorage.getItem('pubpartner.auth.token.v1');
+ if(!token){$('status').textContent='Sign in as owner before starting a host shell';return}
+ socket=new WebSocket(location.origin.replace(/^http/,'ws')+'/api/foresight/host/shell');$('connect').disabled=true;
+ socket.onopen=async()=>{
+ try{
+  const id=new URLSearchParams(location.search).get('script');
+  if(id){const file=await ForesightFiles.record(id);if(!file||typeof file.draft!=='string')throw Error('Saved script working copy not found');socket.send(JSON.stringify({token,mode:'python',source:file.draft,name:file.name}));print('Running saved working copy: '+file.name+'\n')}
+  else socket.send(JSON.stringify({token}));
+ }catch(e){$('status').textContent=e.message;socket.close()}
+};
+ socket.onmessage=e=>{const d=JSON.parse(e.data);if(d.type==='started'){print('Workspace: '+d.cwd+'\n');$('status').textContent='Running · PID '+d.pid;$('command').disabled=$('send').disabled=$('stop').disabled=false;$('command').focus()}else if(d.type==='output')print(d.text);else if(d.type==='exited')print('\nShell exited: '+d.code+'\n')};
+ socket.onerror=()=>{$('status').textContent='Connection failed'};
+ socket.onclose=e=>{$('status').textContent=e.code===1008?'Owner authorization or origin refused':'Stopped';$('connect').disabled=false;$('command').disabled=$('send').disabled=$('stop').disabled=true};
+};
+$('form').onsubmit=e=>{e.preventDefault();if(socket?.readyState!==1)return;const text=$('command').value;print('> '+text+'\n');socket.send(JSON.stringify({type:'input',text:text+'\n'}));$('command').value=''};
+$('stop').onclick=()=>{if(socket?.readyState===1)socket.send(JSON.stringify({type:'stop'}))};
+addEventListener('pagehide',()=>socket?.close());
+</script></body></html>

@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PubCast AI - Director Switcher</title>
+<style>
+:root {
+  --void: #050302;
+  --back: #0b0705;
+  --wood: #3a1f12;
+  --wood-hi: #7b4b2d;
+  --brass: #d8af5b;
+  --brass-hi: #ffe5a0;
+  --green: #0e5b38;
+  --green-hi: #42d997;
+  --teal: #47e7ff;
+  --teal-dim: rgba(71,231,255,.18);
+  --red: #e14f54;
+  --cream: #fff2d2;
+  --muted: #9b8668;
+  --ink: #120b08;
+  --shadow: rgba(0,0,0,.72);
+  --mono: Consolas, "Courier New", monospace;
+  --display: Georgia, "Times New Roman", serif;
+  --body: Candara, "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100%; background: var(--void); color: var(--cream); }
+body {
+  font-family: var(--body);
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(255,229,160,.22), transparent 20rem),
+    radial-gradient(circle at 16% 28%, rgba(71,231,255,.10), transparent 22rem),
+    radial-gradient(circle at 86% 34%, rgba(216,175,91,.13), transparent 18rem),
+    linear-gradient(180deg, #120b08 0%, #050302 62%, #020101 100%);
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 54px, rgba(216,175,91,.035) 55px 56px),
+    repeating-linear-gradient(0deg, transparent 0 5px, rgba(0,0,0,.18) 6px 7px);
+  opacity: .75;
+}
+.room-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  padding: 18px clamp(12px, 2vw, 28px) 26px;
+  position: relative;
+  z-index: 1;
+}
+.top-rail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 auto 12px;
+  width: min(1400px, 100%);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.brand {
+  font-family: var(--display);
+  color: var(--brass);
+  font-size: clamp(18px, 2vw, 28px);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.rail-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.rail-actions a, .rail-actions button {
+  color: var(--cream);
+  text-decoration: none;
+  border: 1px solid rgba(216,175,91,.24);
+  background: rgba(15,10,7,.68);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font: inherit;
+  cursor: pointer;
+}
+.rail-actions a:hover, .rail-actions button:hover { border-color: var(--teal); color: var(--teal); }
+.cockpit {
+  width: min(1400px, 100%);
+  margin: auto;
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(250px, 36vh) auto minmax(370px, 1fr);
+  gap: 12px;
+}
+.monitor-wall {
+  position: relative;
+  display: grid;
+  grid-template-columns: 160px 1fr 1fr 160px;
+  gap: 12px;
+  align-items: stretch;
+  padding: 12px;
+  border: 1px solid rgba(216,175,91,.22);
+  border-radius: 26px 26px 12px 12px;
+  background:
+    linear-gradient(135deg, rgba(255,229,160,.10), transparent 24%),
+    linear-gradient(180deg, rgba(58,31,18,.92), rgba(12,7,5,.94));
+  box-shadow: inset 0 0 32px rgba(255,229,160,.04), 0 24px 70px var(--shadow);
+}
+.monitor-wall::before, .console::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: inherit;
+  pointer-events: none;
+  border: 1px solid rgba(255,229,160,.10);
+}
+.side-stack { display: grid; grid-template-rows: repeat(3, 1fr); gap: 8px; }
+.monitor {
+  position: relative;
+  min-height: 90px;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 3px solid rgba(216,175,91,.55);
+  background: #071015;
+  box-shadow: inset 0 0 26px rgba(0,0,0,.84), 0 0 20px rgba(216,175,91,.08);
+}
+.monitor.big { border-width: 4px; }
+.monitor::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.13), transparent 24%),
+    repeating-linear-gradient(0deg, transparent 0 4px, rgba(0,0,0,.20) 5px 6px);
+  z-index: 2;
+  pointer-events: none;
+}
+.feed {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 14px;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(71,231,255,.24), transparent 18rem),
+    linear-gradient(145deg, rgba(20,42,48,.92), rgba(11,11,14,.94));
+}
+.feed.alt {
+  background:
+    radial-gradient(circle at 70% 30%, rgba(216,175,91,.22), transparent 17rem),
+    linear-gradient(145deg, rgba(46,34,20,.94), rgba(10,8,8,.94));
+}
+.feed-grid {
+  width: 82%;
+  height: 58%;
+  border: 1px solid rgba(71,231,255,.26);
+  background:
+    linear-gradient(rgba(71,231,255,.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(71,231,255,.10) 1px, transparent 1px);
+  background-size: 18px 18px;
+  transform: perspective(420px) rotateX(58deg);
+  box-shadow: 0 0 34px rgba(71,231,255,.18);
+}
+.feed-title {
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  z-index: 3;
+  color: var(--teal);
+  font: 700 12px var(--mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px currentColor;
+}
+.feed-source {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 3;
+  font: 700 10px var(--mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: rgba(0,0,0,.54);
+  border: 1px solid rgba(255,229,160,.16);
+  border-radius: 4px;
+  padding: 4px 6px;
+}
+.feed-source.real { color: var(--green-hi); border-color: rgba(66,217,151,.32); }
+.feed-source.unavailable { color: var(--red); border-color: rgba(225,79,84,.32); }
+.monitor.pgm .feed-title { color: var(--red); }
+.feed-name {
+  position: absolute;
+  z-index: 3;
+  left: 14px;
+  bottom: 14px;
+  font: 700 clamp(20px, 3vw, 46px) var(--display);
+  letter-spacing: .06em;
+  color: var(--cream);
+  text-shadow: 0 4px 18px rgba(0,0,0,.8);
+}
+.timecode {
+  position: absolute;
+  z-index: 3;
+  right: 14px;
+  top: 12px;
+  font: 700 13px var(--mono);
+  color: var(--green-hi);
+  text-shadow: 0 0 10px currentColor;
+}
+.console {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(220px, .8fr) minmax(420px, 1.5fr) minmax(260px, .9fr);
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(216,175,91,.26);
+  border-radius: 16px 16px 90px 90px / 16px 16px 42px 42px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(71,231,255,.10), transparent 44%),
+    linear-gradient(160deg, rgba(16,91,56,.96), rgba(27,19,12,.98) 44%, rgba(58,31,18,.96));
+  box-shadow: inset 0 6px 24px rgba(255,229,160,.08), 0 26px 80px rgba(0,0,0,.74);
+}
+.console-section {
+  position: relative;
+  z-index: 1;
+  padding: 14px;
+  border: 1px solid rgba(255,229,160,.14);
+  border-radius: 12px;
+  background: rgba(5,3,2,.26);
+}
+.section-title {
+  font: 700 12px var(--display);
+  letter-spacing: .18em;
+  color: var(--brass);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.button-grid { display: grid; gap: 8px; }
+.cameras { grid-template-columns: repeat(5, minmax(54px, 1fr)); }
+.presets { grid-template-columns: repeat(2, minmax(90px, 1fr)); }
+.transport { grid-template-columns: repeat(4, minmax(70px, 1fr)); }
+button.switch {
+  min-height: 44px;
+  border-radius: 9px;
+  border: 1px solid rgba(255,229,160,.22);
+  color: var(--cream);
+  background:
+    radial-gradient(circle at 36% 22%, rgba(255,229,160,.18), transparent 34%),
+    linear-gradient(180deg, rgba(58,31,18,.96), rgba(15,9,6,.98));
+  box-shadow: inset 0 -5px 0 rgba(0,0,0,.25), 0 7px 12px rgba(0,0,0,.28);
+  font: 700 12px var(--mono);
+  letter-spacing: .08em;
+  cursor: pointer;
+  transition: transform .08s ease, box-shadow .08s ease, border-color .15s ease, color .15s ease;
+}
+button.switch:hover { border-color: var(--brass-hi); color: var(--brass-hi); }
+button.switch:active, button.switch.clicked {
+  transform: translateY(3px);
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,.35), 0 3px 7px rgba(0,0,0,.28);
+}
+button.switch.preview { color: var(--green-hi); }
+button.switch.program { color: var(--red); }
+button.switch.active-preview {
+  border-color: var(--green-hi);
+  box-shadow: 0 0 18px rgba(66,217,151,.32), inset 0 -5px 0 rgba(0,0,0,.25);
+}
+button.switch.active-program {
+  border-color: var(--red);
+  box-shadow: 0 0 18px rgba(225,79,84,.36), inset 0 -5px 0 rgba(0,0,0,.25);
+}
+.cut-button {
+  grid-column: span 2;
+  min-height: 68px !important;
+  color: var(--brass-hi) !important;
+  font-size: 18px !important;
+  background:
+    radial-gradient(circle at 50% 22%, rgba(255,229,160,.28), transparent 35%),
+    linear-gradient(180deg, #7b4b2d, #251309) !important;
+}
+.record.live {
+  color: #fff !important;
+  border-color: var(--red) !important;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(225,79,84,.42), transparent 36%),
+    linear-gradient(180deg, #6a1116, #1a0505) !important;
+  animation: livePulse 1s infinite;
+}
+@keyframes livePulse { 50% { filter: brightness(.72); } }
+.audio-row {
+  display: grid;
+  grid-template-columns: 72px 1fr 48px;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+  font: 700 12px var(--mono);
+  color: var(--muted);
+}
+.meter {
+  height: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,229,160,.15);
+  background: rgba(0,0,0,.35);
+  overflow: hidden;
+}
+.meter span {
+  display: block;
+  height: 100%;
+  width: 50%;
+  background: linear-gradient(90deg, var(--green-hi), var(--teal), var(--brass));
+  box-shadow: 0 0 14px var(--teal-dim);
+}
+.knob-bank {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+.knob {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid rgba(255,229,160,.28);
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255,229,160,.30), transparent 18%),
+    conic-gradient(from 210deg, var(--brass), var(--wood), var(--green), var(--brass));
+  cursor: pointer;
+  position: relative;
+  box-shadow: inset 0 0 12px rgba(0,0,0,.5), 0 8px 14px rgba(0,0,0,.25);
+}
+.knob::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 14%;
+  width: 2px;
+  height: 34%;
+  background: var(--cream);
+  transform-origin: 50% 100%;
+  transform: translateX(-50%) rotate(var(--turn, 0deg));
+  box-shadow: 0 0 8px var(--cream);
+}
+.script-pad {
+  min-height: 142px;
+  padding: 13px;
+  border: 1px solid rgba(216,175,91,.28);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255,242,210,.88), rgba(221,191,134,.88)),
+    repeating-linear-gradient(0deg, transparent 0 23px, rgba(80,44,22,.16) 24px 25px);
+  color: #2b1a0d;
+  box-shadow: inset 0 0 20px rgba(80,44,22,.16);
+}
+.script-pad h3 {
+  font: 700 14px var(--display);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.script-pad ul {
+  list-style: none;
+  display: grid;
+  gap: 5px;
+  font: 700 12px var(--mono);
+}
+.event-log {
+  height: 132px;
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid rgba(71,231,255,.16);
+  border-radius: 8px;
+  background: rgba(0,0,0,.34);
+  font: 12px var(--mono);
+  color: var(--teal);
+}
+.event-log div { padding: 2px 0; border-bottom: 1px solid rgba(71,231,255,.06); }
+.truth-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(120px, 1fr));
+  gap: 8px;
+}
+.truth-card {
+  border: 1px solid rgba(216,175,91,.18);
+  border-radius: 10px;
+  background: rgba(5,3,2,.42);
+  padding: 10px;
+  min-height: 74px;
+}
+.truth-label {
+  font: 700 10px var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.truth-value {
+  margin-top: 7px;
+  font: 700 18px var(--display);
+  color: var(--cream);
+}
+.truth-detail {
+  margin-top: 3px;
+  font: 11px var(--mono);
+  color: var(--muted);
+  line-height: 1.3;
+}
+.truth-card.ok .truth-value { color: var(--green-hi); }
+.truth-card.warn .truth-value { color: var(--brass-hi); }
+.truth-card.bad .truth-value { color: var(--red); }
+.utility-dock {
+  position: fixed;
+  left: 14px;
+  bottom: 14px;
+  z-index: 25;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.utility-dock button {
+  border: 1px solid rgba(216,175,91,.28);
+  background: rgba(5,3,2,.86);
+  color: var(--cream);
+  border-radius: 7px;
+  padding: 8px 10px;
+  font: 700 11px var(--mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.utility-dock button:hover { border-color: var(--teal); color: var(--teal); }
+.side-panel {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: min(420px, 92vw);
+  z-index: 40;
+  transform: translateX(105%);
+  transition: transform .22s ease;
+  background:
+    linear-gradient(180deg, rgba(36,27,18,.98), rgba(6,4,3,.98));
+  border-left: 1px solid rgba(216,175,91,.3);
+  box-shadow: -24px 0 60px rgba(0,0,0,.55);
+  display: flex;
+  flex-direction: column;
+}
+.side-panel.open { transform: translateX(0); }
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px;
+  border-bottom: 1px solid rgba(216,175,91,.18);
+  color: var(--brass);
+  font: 700 13px var(--display);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.panel-head button {
+  background: transparent;
+  border: 1px solid rgba(216,175,91,.28);
+  color: var(--cream);
+  border-radius: 6px;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+.panel-body {
+  padding: 14px;
+  overflow: auto;
+  display: grid;
+  gap: 10px;
+}
+.danger-line, .chat-line, .check-line {
+  border: 1px solid rgba(255,229,160,.12);
+  border-radius: 8px;
+  background: rgba(0,0,0,.26);
+  padding: 9px;
+  font: 12px var(--mono);
+  color: var(--cream);
+}
+.danger-line.bad { border-color: rgba(225,79,84,.42); color: var(--red); }
+.danger-line.ok { border-color: rgba(66,217,151,.34); color: var(--green-hi); }
+.chat-form {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding: 12px 14px 16px;
+  border-top: 1px solid rgba(216,175,91,.16);
+}
+.chat-form input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(0,0,0,.35);
+  border: 1px solid rgba(216,175,91,.22);
+  border-radius: 7px;
+  color: var(--cream);
+  padding: 8px;
+}
+.chat-form button {
+  border: 1px solid rgba(71,231,255,.32);
+  background: var(--teal-dim);
+  color: var(--teal);
+  border-radius: 7px;
+  padding: 8px 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.chair {
+  position: fixed;
+  right: clamp(12px, 5vw, 74px);
+  bottom: -62px;
+  width: clamp(120px, 15vw, 230px);
+  aspect-ratio: 1;
+  border-radius: 45% 45% 20% 20%;
+  background:
+    radial-gradient(circle at 45% 18%, rgba(255,242,210,.18), transparent 20%),
+    linear-gradient(160deg, #7c4a2b, #28120a);
+  border: 1px solid rgba(216,175,91,.28);
+  box-shadow: inset 0 0 32px rgba(0,0,0,.44), 0 20px 50px rgba(0,0,0,.65);
+  z-index: 0;
+}
+.status-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%) translateY(100px);
+  background: rgba(5,3,2,.92);
+  border: 1px solid var(--teal);
+  color: var(--teal);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font: 700 12px var(--mono);
+  letter-spacing: .08em;
+  opacity: 0;
+  transition: .22s ease;
+  z-index: 20;
+}
+.status-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+@media (max-width: 1000px) {
+  .monitor-wall { grid-template-columns: 1fr 1fr; }
+  .side-stack { display: none; }
+  .console { grid-template-columns: 1fr; border-radius: 16px; }
+  .cockpit { grid-template-rows: auto auto; }
+}
+@media (max-width: 620px) {
+  .top-rail { align-items: flex-start; flex-direction: column; }
+  .monitor-wall { grid-template-columns: 1fr; }
+  .button-grid.cameras { grid-template-columns: repeat(3, 1fr); }
+  .button-grid.transport { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+  <script src="/static/reach_auth.js"></script>
+</head>
+<body>
+<div class="room-shell">
+  <header class="top-rail">
+    <div>
+      <div class="brand">PubCast Director Switcher</div>
+      <div>First-person control room surface - local-safe operator mode</div>
+    </div>
+    <div class="rail-actions">
+      <a href="/control">Classic Control</a>
+      <a href="/static/control_room.html">Image Console</a>
+      <a href="/stage">Stage</a>
+      <button id="dangerPanelBtn" type="button">Status/Danger</button>
+      <button id="publicChatBtn" type="button">Public Chat</button>
+      <button id="controlChatBtn" type="button">Control Chat</button>
+      <button id="blackoutBtn" type="button">Blackout</button>
+    </div>
+  </header>
+
+  <main class="cockpit">
+    <section class="monitor-wall" aria-label="Program and preview monitors">
+      <div class="side-stack" id="auxLeft"></div>
+      <div class="monitor big pgm" id="programMonitor">
+        <div class="feed-title">Program Monitor</div>
+        <div class="timecode" id="timecode">00:00:00:00</div>
+        <div class="feed">
+          <div class="feed-grid"></div>
+          <div class="feed-name" id="programName">Camera 1</div>
+          <div class="feed-source" id="programSource">LOCAL PREVIEW - NOT A LIVE FEED</div>
+        </div>
+      </div>
+      <div class="monitor big" id="previewMonitor">
+        <div class="feed-title">Preview Monitor</div>
+        <div class="timecode" id="previewMode">Ready</div>
+        <div class="feed alt">
+          <div class="feed-grid"></div>
+          <div class="feed-name" id="previewName">Camera 3</div>
+          <div class="feed-source" id="previewSource">LOCAL PREVIEW - STANDBY</div>
+        </div>
+      </div>
+      <div class="side-stack" id="auxRight"></div>
+    </section>
+
+    <section class="truth-grid" aria-label="Live control room truth status">
+      <div class="truth-card warn" id="truthHealth"><div class="truth-label">System Health</div><div class="truth-value">Checking</div><div class="truth-detail">Polling /health</div></div>
+      <div class="truth-card warn" id="truthRecording"><div class="truth-label">Recording</div><div class="truth-value">Idle</div><div class="truth-detail">Visible local state</div></div>
+      <div class="truth-card warn" id="truthMocap"><div class="truth-label">Mocap Capture</div><div class="truth-value">Checking</div><div class="truth-detail">Polling /api/mocap/status</div></div>
+      <div class="truth-card warn" id="truthAudio"><div class="truth-label">Audio State</div><div class="truth-value">Local</div><div class="truth-detail">Meters and mutes visible; capture backend not proven</div></div>
+      <div class="truth-card warn" id="truthScene"><div class="truth-label">Scene/Camera</div><div class="truth-value">Local</div><div class="truth-detail">Program/preview are local until backend confirms</div></div>
+      <div class="truth-card warn" id="truthTimeline"><div class="truth-label">Timeline</div><div class="truth-value">Checking</div><div class="truth-detail">Polling /api/timeline/status</div></div>
+      <div class="truth-card warn" id="truthAI"><div class="truth-label">AI Brains</div><div class="truth-value">Checking</div><div class="truth-detail">Polling local model status</div></div>
+      <div class="truth-card warn" id="truthExport"><div class="truth-label">Export Readiness</div><div class="truth-value">Checking</div><div class="truth-detail">Recording/export pipeline status</div></div>
+    </section>
+
+    <section class="console" aria-label="Director switcher console">
+      <div class="console-section">
+        <div class="section-title">Audio Wing</div>
+        <div id="audioRows"></div>
+        <div class="knob-bank">
+          <button class="knob" type="button" data-knob="tone" title="Tone" aria-label="Tone knob"></button>
+          <button class="knob" type="button" data-knob="duck" title="Duck" aria-label="Duck knob"></button>
+          <button class="knob" type="button" data-knob="room" title="Room" aria-label="Room knob"></button>
+          <button class="knob" type="button" data-knob="sparkle" title="Sparkle" aria-label="Sparkle knob"></button>
+        </div>
+      </div>
+
+      <div class="console-section">
+        <div class="section-title">Vision Mixer</div>
+        <div class="button-grid cameras" id="previewButtons"></div>
+        <div style="height:10px"></div>
+        <div class="button-grid cameras" id="programButtons"></div>
+        <div style="height:14px"></div>
+        <div class="button-grid transport">
+          <button class="switch cut-button" type="button" id="cutBtn">CUT</button>
+          <button class="switch" type="button" id="fadeBtn">FADE</button>
+          <button class="switch record" type="button" id="recordBtn">REC</button>
+          <button class="switch" type="button" id="pauseBtn">PAUSE</button>
+          <button class="switch" type="button" id="markBtn">MARK</button>
+          <button class="switch" type="button" id="exportBtn">EXPORT</button>
+          <button class="switch" type="button" id="panicBtn">PANIC</button>
+          <button class="switch" type="button" id="barsBtn">BARS</button>
+        </div>
+      </div>
+
+      <div class="console-section">
+        <div class="section-title">Call Sheet</div>
+        <div class="script-pad">
+          <h3>Tonight</h3>
+          <ul>
+            <li>Open: host wide, music under</li>
+            <li>Pete: camera 2, medium push</li>
+            <li>Guest: camera 3, warm key</li>
+            <li>Wrap: fade to stage vortex</li>
+          </ul>
+        </div>
+        <div style="height:12px"></div>
+        <div class="button-grid presets">
+          <button class="switch" type="button" data-preset="show_open">Show Open</button>
+          <button class="switch" type="button" data-preset="interview">Interview</button>
+          <button class="switch" type="button" data-preset="closeup">Close Up</button>
+          <button class="switch" type="button" data-preset="wrap">Wrap</button>
+        </div>
+        <div style="height:12px"></div>
+        <div class="event-log" id="eventLog"></div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="utility-dock">
+  <button type="button" id="selfTestBtn">Run Console Self-Test</button>
+  <button type="button" id="refreshTruthBtn">Refresh Truth</button>
+</div>
+<aside class="side-panel" id="dangerPanel" aria-label="Status and danger panel">
+  <div class="panel-head"><span>Status / Danger</span><button type="button" data-close="dangerPanel">Close</button></div>
+  <div class="panel-body" id="dangerBody"></div>
+</aside>
+<aside class="side-panel" id="publicChatPanel" aria-label="Public chat panel">
+  <div class="panel-head"><span>Public Chat</span><button type="button" data-close="publicChatPanel">Close</button></div>
+  <div class="panel-body" id="publicChatLog"><div class="chat-line">Public chat unavailable until server/WebSocket confirms. Messages typed here are local operator notes.</div></div>
+  <form class="chat-form" id="publicChatForm"><input id="publicChatInput" placeholder="Message public room or local note"><button type="submit" aria-label="Send public chat local note">Send</button></form>
+</aside>
+<aside class="side-panel" id="controlChatPanel" aria-label="Control-room chat panel">
+  <div class="panel-head"><span>Control-Room Chat</span><button type="button" data-close="controlChatPanel">Close</button></div>
+  <div class="panel-body" id="controlChatLog"><div class="chat-line">Control-room chat unavailable until server/WebSocket confirms. Messages typed here are local operator notes.</div></div>
+  <form class="chat-form" id="controlChatForm"><input id="controlChatInput" placeholder="Message control room or local note"><button type="submit" aria-label="Send control-room chat local note">Send</button></form>
+</aside>
+<div class="chair" aria-hidden="true"></div>
+<div class="status-toast" id="toast">READY</div>
+
+<script src="/static/studio_console_hotspots.js"></script>
+<script src="/static/studio25d_remote_feed.js"></script>
+<script>
+const cameras = [
+  {id: "cam1", sourceId: "wide_shot", label: "Camera 1", shot: "Wide"},
+  {id: "cam2", sourceId: "medium_shot", label: "Camera 2", shot: "Host"},
+  {id: "cam3", sourceId: "close_up", label: "Camera 3", shot: "Guest"},
+  {id: "cam4", sourceId: "overhead", label: "Camera 4", shot: "Desk"},
+  {id: "cam5", sourceId: "cam1_ndi", label: "Camera 5", shot: "Stage"}
+];
+// One audio mixer shared by all studios. These are real server buses, NOT a
+// fabricated separation of individual speakers (host/guest/Pete routing is future work).
+const audio = [
+  {name:"Dialogue",bus:"dialogue",muted:false,volume:1,activeSources:0},
+  {name:"Music",bus:"music",muted:false,volume:1,activeSources:0},
+  {name:"Sound FX",bus:"sfx",muted:false,volume:1,activeSources:0},
+  {name:"VTR",bus:"vtr",muted:false,volume:1,activeSources:0}
+];
+let program = "cam1";
+let preview = "cam3";
+let recording = false;
+let paused = false;
+let directorBlackout = false, directorPreviewBars = false;
+let fadeInProgress = false;
+let activeRecordingSessionId = "";
+let clockStart = performance.now();
+let backendTruth = {
+  health: null,
+  studio: null,
+  cameras: null,
+  recordingStorage: null,
+  mocap: null,
+  timeline: null,
+  voxel: null,
+  ai: null,
+  switcher: null,
+  programAudio: null,
+  failures: []
+};
+
+const $ = (id) => document.getElementById(id);
+const cameraById = (id) => cameras.find(c => c.id === id)
+  || {id:"unavailable",sourceId:null,label:"NO VERIFIED CAMERA",shot:"UNAVAILABLE"};
+// Real media is deliberately separate from canonical Program/Preview state.
+function createRemoteViewer(){
+  if(!window.PubCast25DRemoteFeed)return null;
+  const targets={};
+  for(const [role,monitor,readout] of [
+    ["program","programMonitor","programSource"],["preview","previewMonitor","previewSource"]]){
+    const holder=$(monitor)?.querySelector(".feed");
+    if(!holder)continue;
+    holder.style.position="relative";
+    const img=document.createElement("img");img.alt="Real 2.5D "+role+" confidence video";img.hidden=true;
+    img.style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:1";
+    holder.append(img);
+    targets[role]={image:img,status:$(readout)};
+  }
+  return window.PubCast25DRemoteFeed.create({targets});
+}
+const remoteViewer=createRemoteViewer();
+const studioActions = window.PubCastStudioConsoleHotspots
+  ? new window.PubCastStudioConsoleHotspots.StudioConsoleHotspots()
+  : null;
+
+function headers() {
+  return {
+    "Content-Type": "application/json",
+    "X-Client-Id": localStorage.getItem("pubcastHostId") || "director"
+  };
+}
+
+async function postJSON(url, payload) {
+  try {
+    const res = await fetch(url, {method: "POST", headers: headers(), body: JSON.stringify(payload || {})});
+    if (!res.ok) throw new Error(String(res.status));
+    const data = await res.json().catch(() => ({}));
+    log("backend ok: " + url);
+    return data;
+  } catch (err) {
+    const msg = `${url} backend unavailable: ${err.message}`;
+    backendTruth.failures.push(msg);
+    log("visible failure: " + msg);
+    return null;
+  }
+}
+
+async function getJSON(url) {
+  try {
+    const res = await fetch(url, {headers: headers()});
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return await res.json();
+  } catch (err) {
+    const msg = `${url} unavailable: ${err.message}`;
+    backendTruth.failures.push(msg);
+    log("visible failure: " + msg);
+    return {available: false, error: err.message, endpoint: url};
+  }
+}
+
+async function runStudioAction(actionId, payload, options = {}) {
+  try {
+    if (!studioActions) throw new Error("studio action adapter unavailable");
+    const result = await studioActions.executeConfirmed(actionId, payload || {}, {
+      spec: options.spec || null,
+    });
+    if (result && result.canceled) {
+      log("studio action canceled: " + actionId);
+      toast("CANCELED");
+      return null;
+    }
+    log("studio action ok: " + actionId);
+    return result;
+  } catch (err) {
+    const msg = `${actionId} studio action unavailable: ${err.message}`;
+    backendTruth.failures.push(msg);
+    log("visible failure: " + msg);
+    return null;
+  }
+}
+
+function clickFlash(btn) {
+  btn.classList.add("clicked");
+  setTimeout(() => btn.classList.remove("clicked"), 120);
+}
+
+function toast(text) {
+  const el = $("toast");
+  el.textContent = text;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 1100);
+}
+
+function log(text) {
+  const el = document.createElement("div");
+  const t = new Date().toLocaleTimeString([], {hour12:false});
+  el.textContent = t + "  " + text;
+  $("eventLog").prepend(el);
+}
+
+function setTruthCard(id, state, value, detail) {
+  const card = $(id);
+  if (!card) return;
+  card.classList.remove("ok", "warn", "bad");
+  card.classList.add(state);
+  card.querySelector(".truth-value").textContent = value;
+  card.querySelector(".truth-detail").textContent = detail;
+}
+
+function renderDangerPanel() {
+  const body = $("dangerBody");
+  const lines = [];
+  const healthOk = backendTruth.health && !backendTruth.health.error;
+  lines.push(`<div class="danger-line ${healthOk ? "ok" : "bad"}">Health: ${healthOk ? "OK" : "Unavailable"} ${backendTruth.health?.error || ""}</div>`);
+  lines.push(`<div class="danger-line ${recording ? "bad" : "ok"}">Recording: ${recording ? "LOCAL REC ARMED" : "IDLE"} - visible on truth rail and REC button.</div>`);
+  lines.push(`<div class="danger-line warn">Recording session: ${activeRecordingSessionId || "no backend session confirmed"}</div>`);
+  lines.push(`<div class="danger-line ${backendTruth.mocap?.available ? "ok" : "bad"}">Mocap: ${backendTruth.mocap?.available ? "Available" : "Unavailable"} ${backendTruth.mocap?.error || ""}</div>`);
+  lines.push(`<div class="danger-line ${backendTruth.timeline?.error ? "bad" : "ok"}">Timeline: ${backendTruth.timeline?.state || backendTruth.timeline?.error || "Unknown"}</div>`);
+  lines.push(`<div class="danger-line ${backendTruth.ai?.error ? "bad" : "warn"}">AI brains: ${backendTruth.ai?.error || backendTruth.ai?.status || "not proven"}</div>`);
+  lines.push(`<div class="danger-line warn">Feeds: monitors are labeled LOCAL PREVIEW unless a real backend feed confirms availability.</div>`);
+  lines.push(`<div class="danger-line warn">Export: ${exportDetail()}</div>`);
+  backendTruth.failures.slice(-8).forEach(f => lines.push(`<div class="danger-line bad">${escapeHTML(f)}</div>`));
+  body.innerHTML = lines.join("");
+}
+
+function exportDetail() {
+  if (recording) return "not ready while recording/local REC is active";
+  if (activeRecordingSessionId) return `stopped session ${activeRecordingSessionId} can request recording export`;
+  if (backendTruth.health && !backendTruth.health.error) return "backend reachable; export package still requires recording/project proof";
+  return "backend status unavailable; export readiness not proven";
+}
+
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+function renderAux(containerId, offset) {
+  const node = $(containerId);
+  node.innerHTML = "";
+  cameras.slice(offset, offset + 3).forEach(cam => {
+    const mon = document.createElement("div");
+    mon.className = "monitor";
+    // Source presence is not proof of a decoded video feed.
+    mon.innerHTML = `<div class="feed-title">${escapeHTML(cam.shot)}</div><div class="feed"><div class="feed-grid"></div><div class="feed-name" style="font-size:18px">${escapeHTML(cam.label)}</div><div class="feed-source unavailable">VIDEO FEED NOT BOUND</div></div>`;
+    node.appendChild(mon);
+  });
+}
+
+function renderButtons() {
+  $("previewButtons").innerHTML = "";
+  $("programButtons").innerHTML = "";
+  cameras.forEach(cam => {
+    const pvw = document.createElement("button");
+    pvw.type = "button";
+    pvw.className = "switch preview" + (cam.id === preview ? " active-preview" : "");
+    pvw.textContent = "PVW " + cam.id.replace("cam", "");
+    pvw.title = cam.label + " preview";
+    pvw.onclick = () => setPreview(cam.id, pvw);
+    $("previewButtons").appendChild(pvw);
+
+    const pgm = document.createElement("button");
+    pgm.type = "button";
+    pgm.className = "switch program" + (cam.id === program ? " active-program" : "");
+    pgm.textContent = "PGM " + cam.id.replace("cam", "");
+    pgm.title = cam.label + " program";
+    pgm.onclick = () => setProgram(cam.id, pgm);
+    $("programButtons").appendChild(pgm);
+  });
+}
+
+function renderAudio() {
+  $("audioRows").replaceChildren();
+  const connected=!!backendTruth.programAudio?.ok;
+  audio.forEach(channel => {
+    const row=document.createElement("div");row.className="audio-row";
+    const label=document.createElement("span");label.textContent=channel.name;row.append(label);
+    // A gain percentage is not an audio level meter. Do not fake VU activity.
+    const detail=document.createElement("span");
+    detail.style.cssText="flex:1;font-size:11px;color:#c7b4a0";
+    detail.textContent=connected
+      ?("GAIN "+Math.round(channel.volume*100)+"% · "+(channel.muted?"MUTED":"ON")+" · "+channel.activeSources+" source(s); VU unavailable")
+      :"AUDIO STATUS UNAVAILABLE";
+    row.append(detail);
+    const btn=document.createElement("button");btn.className="switch";btn.type="button";btn.textContent=channel.muted?"UNMUTE":"MUTE";
+    btn.disabled=!connected;btn.title=channel.name+" mute through shared program audio";
+    btn.onclick=async ev=>{
+      btn.disabled=true;clickFlash(ev.currentTarget);
+      const result=await postJSON("/api/program-audio/event",{action:channel.muted?"unmute":"mute",bus:channel.bus});
+      if(result?.ok){await refreshAudioTruth();}
+      else {toast("AUDIO FAILED");log("Shared audio mute failed for "+channel.bus);}
+      btn.disabled=false;
+    };
+    row.append(btn);$("audioRows").append(row);
+  });
+}
+async function refreshAudioTruth() {
+  const status=await getJSON("/api/program-audio/status");
+  backendTruth.programAudio=status;
+  if(status?.ok&&status.status?.buses){
+    for(const channel of audio){
+      const bus=status.status.buses[channel.bus];
+      if(!bus)continue;
+      channel.muted=!!bus.muted;
+      channel.volume=Number(bus.volume)||0;
+      channel.activeSources=Number(bus.active_sources)||0;
+    }
+    setTruthCard("truthAudio","ok","Shared",`Program master ${Math.round((status.status.master_volume??1)*100)}% · active bus state confirmed; VU measurement unavailable`);
+  }else{
+    setTruthCard("truthAudio","warn","Unavailable","Real audio mixer state could not be fetched");
+  }
+  renderAudio();
+}
+
+function updateMonitors() {
+  $("programName").textContent = cameraById(program).label;
+  $("previewName").textContent = cameraById(preview).label;
+  $("programSource").textContent = backendTruth.switcher?.sources ? "SERVER SWITCH STATE — VIDEO FEED UNBOUND" : "SWITCHER UNVERIFIED — NO LIVE FEED";
+  $("programSource").className = "feed-source unavailable";
+  $("previewSource").textContent = backendTruth.switcher?.sources ? "SERVER PREVIEW STATE — VIDEO FEED UNBOUND" : "PREVIEW UNVERIFIED — NO LIVE FEED";
+  $("previewSource").className = "feed-source unavailable";
+  setTruthCard("truthScene","warn",`${cameraById(program).shot} / ${cameraById(preview).shot}`,
+    backendTruth.switcher?.sources ? "Shared camera state confirmed; video decoder not connected" : "Switcher unavailable; no live video claimed");
+  renderButtons();
+}
+
+// One camera source of truth for every studio: the canonical backend switcher.
+// The console labels remain provisional until the owner supplies final hardware imagery.
+function syncVideoSwitcherState(snapshot){
+  if(!snapshot||!Array.isArray(snapshot.sources))return false;
+  const ids=new Map(cameras.map(c=>[c.sourceId,c.id]));
+  const nextCameras=snapshot.sources.map((s,i)=>({
+    id:ids.get(s.id)||("cam"+(i+1)),sourceId:s.id,
+    label:s.name||s.id,shot:s.name||s.id,transport:s.transport||"unknown"
+  }));
+  cameras.splice(0,cameras.length,...nextCameras);
+  program=cameras.find(c=>c.sourceId===snapshot.program)?.id||program;
+  preview=cameras.find(c=>c.sourceId===snapshot.preview)?.id||preview;
+  backendTruth.switcher=snapshot;
+  remoteViewer?.setSources(snapshot.program,snapshot.preview);
+  updateMonitors();
+  renderAux("auxLeft",0);renderAux("auxRight",2);
+  return true;
+}
+let lastSwitcherSignature="";
+async function refreshSwitcherState() {
+  try {
+    const response=await fetch("/api/switcher/state",{cache:"no-store"});
+    if(!response.ok)return;
+    const data=await response.json();
+    if(!Array.isArray(data.sources))return;
+    const signature=JSON.stringify({program:data.program,preview:data.preview,sources:data.sources.map(x=>[x.id,x.name])});
+    if(signature!==lastSwitcherSignature){lastSwitcherSignature=signature;syncVideoSwitcherState(data);}
+  }catch(_) { /* 10-second truth refresh owns visible connection diagnostics. */ }
+}
+async function videoAction(path,payload,description){
+  const result=await postJSON(path,payload);
+  if(!result||!syncVideoSwitcherState(result)){toast("SWITCH FAILED");log(description+" failed: backend state unavailable");return false;}
+  log(description+" confirmed by shared switcher");
+  toast(description);
+  return true;
+}
+async function setPreview(id,btn){
+  const cam=cameras.find(c=>c.id===id);
+  if(!cam){toast("BAD CAMERA");return false;}
+  if(btn)clickFlash(btn);
+  return videoAction("/api/switcher/preview/"+encodeURIComponent(cam.sourceId),{},"PREVIEW");
+}
+async function setProgram(id,btn){
+  const cam=cameras.find(c=>c.id===id);
+  if(!cam){toast("BAD CAMERA");return false;}
+  if(btn)clickFlash(btn);
+  return videoAction("/api/switcher/cut/"+encodeURIComponent(cam.sourceId),{},"PROGRAM");
+}
+async function cut(){
+  return videoAction("/api/switcher/cut",{},"CUT");
+}
+async function fade(){
+  if(fadeInProgress){toast("FADE BUSY");return false;}
+  fadeInProgress=true;
+  try{return await videoAction("/api/switcher/transition",{type:"dissolve",duration_ms:600},"DISSOLVE");}
+  finally{fadeInProgress=false;}
+}
+
+async function toggleRecord(btn) {
+  if (!recording) {
+    const camera=cameraById(program);
+    if(!camera.sourceId){toast("NO VERIFIED CAMERA");log("Recording denied: no live Program source");return;}
+    const sessionId = `director_${Date.now()}`;
+    const started = await runStudioAction("recording.start", {
+      session_id: sessionId,
+      sources: [cameraById(program).sourceId],
+      profile_id: "broadcast_mp4",
+      countdown_seconds: 0
+    }, {
+      spec: {safety: "confirm", label: "Start recording"}
+    });
+    if (started?.result?.session_id) {
+      activeRecordingSessionId = started.result.session_id;
+      recording = true;
+      paused = false;
+      setTruthCard("truthRecording", "ok", "Backend REC", `Recording session ${activeRecordingSessionId} started`);
+    } else {
+      activeRecordingSessionId = "";
+      recording = false;
+      paused = false;
+      setTruthCard("truthRecording", "bad", "Blocked", "Recording did not start because the studio action was canceled or unavailable");
+    }
+  } else {
+    const stopped = activeRecordingSessionId ? await runStudioAction("recording.stop", {
+      session_id: activeRecordingSessionId,
+    }, {
+      spec: {safety: "confirm", label: "Stop recording"}
+    }) : null;
+    if (activeRecordingSessionId && !stopped) {
+      setTruthCard("truthRecording", "ok", "Backend REC", `Recording session ${activeRecordingSessionId} remains active`);
+      btn.classList.toggle("live", true);
+      return;
+    }
+    recording = false;
+    paused = false;
+    setTruthCard("truthRecording", stopped ? "ok" : "warn", "Idle", stopped ? `Stopped backend session ${activeRecordingSessionId}` : "Stopped local-only REC state");
+  }
+  btn.classList.toggle("live", recording);
+  setTruthCard("truthExport", recording ? "bad" : "warn", recording ? "Locked" : "Check", exportDetail());
+  log(recording ? "backend recording confirmed" : "recording stop outcome checked");
+  toast(recording ? "REC CONFIRMED" : "REC STOPPED");
+}
+
+async function pauseRecording(btn) {
+  clickFlash(btn);
+  if (!recording) {
+    log("pause not wired: no active recording");
+    toast("NO REC");
+    return;
+  }
+  if(!activeRecordingSessionId){toast("NO BACKEND REC");return;}
+  const desired=!paused;
+  const result=await postJSON(`/api/recording/${encodeURIComponent(activeRecordingSessionId)}/pause`,{paused:desired});
+  if(!result){toast("PAUSE FAILED");return;}
+  paused=desired;
+  btn.classList.toggle("active-preview",paused);
+  setTruthCard("truthRecording",paused?"warn":"bad",paused?"Backend Paused":"Backend REC",
+    `Backend confirmed pause=${paused}`);
+  log(paused?"backend recording paused":"backend recording resumed");
+  toast(paused?"PAUSED":"RESUMED");
+}
+
+async function marker() {
+  if(!activeRecordingSessionId){log("Marker denied: no confirmed backend recording");toast("NO REC");return;}
+  const result=await postJSON(`/api/recording/${encodeURIComponent(activeRecordingSessionId)}/marker`,
+    {label:"Director marker",operator:"director"});
+  if(!result){toast("MARK FAILED");return;}
+  log("Director recording marker acknowledged");
+  toast("MARK SAVED");
+}
+
+async function panic() {
+  // Do not update the local video source or claim recording stopped until
+  // the backend has actually attempted the stop, black cue, and audio mute.
+  const result=await postJSON("/api/production/panic",{});
+  if(!result){setTruthCard("truthRecording","bad","PANIC FAILED","Backend not reached");toast("PANIC FAILED");return;}
+  if(activeRecordingSessionId&&result.sessions_stopped?.includes(activeRecordingSessionId)){
+    recording=false;paused=false;$("recordBtn").classList.remove("live");
+  }
+  directorBlackout=!!result.blackout_cued;
+  setTruthCard("truthRecording",result.ok?"warn":"bad",result.ok?"PANIC SENT":"PANIC PARTIAL",
+    `${result.sessions_stopped?.length||0} sessions stopped; ${result.capture_errors?.length||0} capture errors; audio mute ${result.audio_muted?"confirmed":"unverified"}`);
+  log("Emergency backend response: "+JSON.stringify(result));
+  renderDangerPanel();
+  toast(result.ok?"PANIC SENT":"PANIC PARTIAL");
+}
+
+async function bars() {
+  const desired=!directorPreviewBars;
+  const result=await postJSON("/api/production/video-cue",{cue:"preview_bars",enabled:desired});
+  if(!result?.ok){log("Preview bars command failed; no local-only success state");toast("BARS FAILED");return;}
+  directorPreviewBars=desired;$("previewMode").textContent=desired?"BARS":"Ready";
+  log("Preview bars confirmed by backend: "+desired);
+  toast(desired?"BARS ON":"BARS OFF");
+}
+
+async function preset(name,btn) {
+  clickFlash(btn);
+  const result=await postJSON("/api/timeline/load",{name});
+  if(!result?.loaded){log("Preset did not load: "+name);toast("PRESET FAILED");return;}
+  const map={show_open:"cam1",interview:"cam2",closeup:"cam3",wrap:"cam5"};
+  const camera=cameras.find(c=>c.id===map[name]);
+  if(camera){if(!await setPreview(camera.id))return;}
+  log("Timeline preset loaded: "+result.loaded);
+  toast("PRESET LOADED");
+}
+
+async function exportRecording(btn) {
+  clickFlash(btn);
+  if (recording) {
+    setTruthCard("truthExport", "bad", "Locked", "Stop recording before export");
+    log("export blocked: recording is active");
+    toast("EXPORT LOCKED");
+    return;
+  }
+  if (!activeRecordingSessionId) {
+    setTruthCard("truthExport", "warn", "No Session", "No backend recording session has been confirmed");
+    log("export not wired yet: no backend recording session");
+    toast("NO EXPORT SESSION");
+    return;
+  }
+  const result = await postJSON(`/api/recording/${encodeURIComponent(activeRecordingSessionId)}/export`, {format: "mp4"});
+  setTruthCard("truthExport", result ? "ok" : "bad", result ? "Requested" : "Failed", result ? `Export requested for ${activeRecordingSessionId}` : "Backend export unavailable or returned a file response not handled by this static fetch");
+  log("export requested for " + activeRecordingSessionId);
+  toast("EXPORT CHECK");
+}
+
+async function refreshTruth() {
+  backendTruth.failures = [];
+  const [health, studio, camerasState, recordingStorage, mocap, timeline, voxel, ai, switcher] = await Promise.all([
+    getJSON("/health"),
+    getJSON("/api/studio/status"),
+    getJSON("/api/cameras"),
+    getJSON("/api/recording/storage"),
+    getJSON("/api/mocap/status"),
+    getJSON("/api/timeline/status"),
+    getJSON("/api/voxel/status"),
+    getJSON("/api/byok/ollama/status"),
+    getJSON("/api/switcher/state")
+  ]);
+  backendTruth = {health, studio, cameras: camerasState, recordingStorage, mocap, timeline, voxel, ai, switcher, programAudio:backendTruth.programAudio, failures: backendTruth.failures};
+  if(!switcher.error) syncVideoSwitcherState(switcher);
+  setTruthCard("truthHealth", health.error ? "bad" : "ok", health.error ? "Offline" : "OK", health.error || `cameras=${health.systems?.cameras ?? "?"} recording_profiles=${health.systems?.recording_profiles ?? "?"}`);
+  const studioState = studio.state || studio.status || (studio.available ? "available" : "unavailable");
+  setTruthCard("truthRecording", recording ? "bad" : (studio.available ? "ok" : "warn"), recording ? "Local REC" : "Idle", `studio=${studioState}; duration=${Math.round(studio.recording_duration || 0)}s; recording pipeline not proven without browser/backend test`);
+  setTruthCard("truthMocap", mocap.available ? "ok" : "bad", mocap.available ? "Available" : "Unavailable", mocap.error || JSON.stringify(mocap).slice(0, 90));
+  await refreshAudioTruth();
+  setTruthCard("truthTimeline", timeline.error ? "bad" : "ok", timeline.state || "Unknown", `progress=${Math.round((timeline.progress || 0) * 100)}% timeline=${timeline.timeline_name || timeline.timeline || "none"}`);
+  setTruthCard("truthAI", ai.error ? "bad" : "warn", ai.error ? "Unavailable" : (ai.status || "Reachable"), ai.error || `Studio/Architect model availability must be confirmed before show`);
+  setTruthCard("truthExport", recording ? "bad" : (health.error ? "bad" : "warn"), recording ? "Locked" : "Visible", exportDetail());
+  updateMonitors();
+  renderDangerPanel();
+  log("truth surface refreshed");
+}
+
+function togglePanel(id, open) {
+  const panel = $(id);
+  if (!panel) return;
+  panel.classList.toggle("open", open ?? !panel.classList.contains("open"));
+  log(`${id} ${panel.classList.contains("open") ? "opened" : "closed"}`);
+}
+
+function sendLocalChat(kind, inputId, logId) {
+  const input = $(inputId);
+  const text = input.value.trim();
+  if (!text) return;
+  const line = document.createElement("div");
+  line.className = "chat-line";
+  line.textContent = `${new Date().toLocaleTimeString([], {hour12:false})} ${kind}: ${text} (local note; WebSocket not confirmed)`;
+  $(logId).appendChild(line);
+  input.value = "";
+  log(`${kind} chat local note added`);
+}
+
+function runSelfTest() {
+  const checks = [
+    "Buttons are wired to click handlers and pressed states.",
+    "Preview buttons update Preview monitor.",
+    "Program buttons and Cut/Fade update Program monitor.",
+    "Camera 4/5 auxiliary monitors honestly show unavailable/local state.",
+    "Recording state is visible on REC button and truth rail, and local-only recording is labeled.",
+    "Status/danger panel opens and closes.",
+    "Public chat panel opens and closes.",
+    "Control-room chat panel opens and closes.",
+    "Mocap, scene/camera, timeline, and export readiness are visible on truth rail.",
+    "AI brain status is visible on truth rail.",
+    "No external assets or font links are used on this page.",
+    "Failures are written to the visible event log and danger panel."
+  ];
+  const body = $("dangerBody");
+  body.innerHTML = checks.map(c => `<div class="check-line">${c}</div>`).join("");
+  $("dangerPanel").classList.add("open");
+  log("console self-test checklist displayed");
+  toast("SELF-TEST VISIBLE");
+}
+
+function tick() {
+  const elapsed = performance.now() - clockStart;
+  const total = Math.floor(elapsed / 1000);
+  const h = String(Math.floor(total / 3600)).padStart(2, "0");
+  const m = String(Math.floor(total / 60) % 60).padStart(2, "0");
+  const s = String(total % 60).padStart(2, "0");
+  const f = String(Math.floor((elapsed % 1000) / 33)).padStart(2, "0");
+  $("timecode").textContent = `${h}:${m}:${s}:${f}`;
+  // No synthetic meter animation. Real signal meters must use actual audio samples.
+  requestAnimationFrame(tick);
+}
+
+function init() {
+  renderAux("auxLeft", 0);
+  renderAux("auxRight", 2);
+  renderAudio();
+  updateMonitors();
+  $("cutBtn").onclick = (ev) => { clickFlash(ev.currentTarget); cut(); };
+  $("fadeBtn").onclick = (ev) => { clickFlash(ev.currentTarget); fade(); };
+  $("recordBtn").onclick = (ev) => { clickFlash(ev.currentTarget); toggleRecord(ev.currentTarget); };
+  $("pauseBtn").onclick = (ev) => pauseRecording(ev.currentTarget);
+  $("markBtn").onclick = (ev) => { clickFlash(ev.currentTarget); marker(); };
+  $("exportBtn").onclick = (ev) => exportRecording(ev.currentTarget);
+  $("panicBtn").onclick = (ev) => { clickFlash(ev.currentTarget); panic(); };
+  $("barsBtn").onclick = (ev) => { clickFlash(ev.currentTarget); bars(); };
+  $("blackoutBtn").onclick = async ()=>{
+    const desired=!directorBlackout;
+    const result=await postJSON("/api/production/video-cue",{cue:"blackout",enabled:desired});
+    if(!result?.ok){toast("BLACKOUT FAILED");log("Blackout command not acknowledged");return;}
+    directorBlackout=desired;
+    log("Server blackout "+(desired?"ON":"OFF"));
+    toast(desired?"BLACKOUT ON":"BLACKOUT OFF");
+  };
+  document.querySelectorAll("[data-preset]").forEach(btn => btn.onclick = () => preset(btn.dataset.preset, btn));
+  $("dangerPanelBtn").onclick = () => { renderDangerPanel(); togglePanel("dangerPanel"); };
+  $("publicChatBtn").onclick = () => togglePanel("publicChatPanel");
+  $("controlChatBtn").onclick = () => togglePanel("controlChatPanel");
+  $("selfTestBtn").onclick = runSelfTest;
+  $("refreshTruthBtn").onclick = refreshTruth;
+  document.querySelectorAll("[data-close]").forEach(btn => btn.onclick = () => togglePanel(btn.dataset.close, false));
+  $("publicChatForm").onsubmit = (ev) => { ev.preventDefault(); sendLocalChat("public", "publicChatInput", "publicChatLog"); };
+  $("controlChatForm").onsubmit = (ev) => { ev.preventDefault(); sendLocalChat("control", "controlChatInput", "controlChatLog"); };
+  // Undefined decorative effect controls must not pretend to change audio.
+  // Keep their visual positions for the owner's final hardware reference.
+  document.querySelectorAll(".knob").forEach(knob=>{
+    knob.disabled=true;
+    knob.title=knob.dataset.knob+" effect mapping awaits owner's Control Room specification";
+    knob.setAttribute("aria-label",knob.dataset.knob+" not wired — requires approved effect mapping");
+  });
+  document.addEventListener("keydown", (ev) => {
+    if (/^[1-5]$/.test(ev.key)) setPreview("cam" + ev.key);
+    if (ev.key === " " || ev.key.toLowerCase() === "c") { ev.preventDefault(); cut(); }
+    if (ev.key.toLowerCase() === "f") fade();
+    if (ev.key.toLowerCase() === "r") toggleRecord($("recordBtn"));
+    if (ev.key === "Escape") panic();
+  });
+  log("switcher ready");
+  setTruthCard("truthExport", "warn", "Check", "Backend not polled yet");
+  refreshTruth();
+  setInterval(refreshTruth, 10000);
+  setInterval(refreshSwitcherState, 1000);
+  setInterval(()=>remoteViewer?.refresh().catch(e=>log("Confidence preview: "+e.message)),350);
+  window.addEventListener("pagehide",()=>remoteViewer?.stop());
+  tick();
+}
+init();
+</script>
+</body>
+</html>

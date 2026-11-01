@@ -1,0 +1,110 @@
+....FFFF....FF                                                           [100%]
+=================================== FAILURES ===================================
+_______________ test_explicit_empty_permissions_deny_all_writes ________________
+
+    def test_explicit_empty_permissions_deny_all_writes():
+        initial = SemanticField()
+        engine = ArbitrationEngine(permissions={})
+        result = engine.resolve(initial, [StateMutationRequest(
+            source="system", role="system", path="emotion.intensity", value=0.9)])
+>       assert result == initial
+E       AssertionError: assert SemanticField...986217.598069) == SemanticField...986217.598069)
+E         
+E         Omitting 5 identical items, use -vv to show
+E         Differing attributes:
+E         ['emotion']
+E         
+E         Drill down into differing attribute emotion:
+E           emotion: EmotionState(valence=0.0, intensity=0.9, stability=1.0) != EmotionState(valence=0.0, intensity=0.0, stability=1.0)...
+E         
+E         ...Full output truncated (7 lines hidden), use '-vv' to show
+
+tests/test_evo_semantic_runtime.py:95: AssertionError
+________ test_permissions_are_owned_by_arbitrator_not_aliased_to_caller ________
+
+    def test_permissions_are_owned_by_arbitrator_not_aliased_to_caller():
+        permissions = {"observer": ()}
+        engine = ArbitrationEngine(permissions=permissions)
+        permissions["observer"] = ("emotion",)
+        mutation = StateMutationRequest(source="observer", role="observer",
+            path="emotion.intensity", value=0.9)
+>       assert not engine.is_allowed(mutation)
+E       AssertionError: assert not True
+E        +  where True = is_allowed(StateMutationRequest(source='observer', role='observer', path='emotion.intensity', value=0.9, priority=0, confidence=1.0, reason='', created_at=1792986217.6171064))
+E        +    where is_allowed = <modules.evo.arbitration.ArbitrationEngine object at 0x7f03e14932c0>.is_allowed
+
+tests/test_evo_semantic_runtime.py:104: AssertionError
+__________ test_lower_priority_parent_cannot_overwrite_accepted_child __________
+
+    def test_lower_priority_parent_cannot_overwrite_accepted_child():
+        engine = ArbitrationEngine()
+        mutations = [StateMutationRequest(source="anchor", role="anchor",
+            path="emotion.intensity", value=0.2, priority=100),
+            StateMutationRequest(source="performer", role="performer", path="emotion",
+                value=EmotionState(intensity=0.9), priority=1)]
+        for batch in (mutations, list(reversed(mutations))):
+>           assert engine.resolve(SemanticField(), batch).emotion.intensity == 0.2
+E           AssertionError: assert 0.9 == 0.2
+E            +  where 0.9 = EmotionState(valence=0.0, intensity=0.9, stability=1.0).intensity
+E            +    where EmotionState(valence=0.0, intensity=0.9, stability=1.0) = SemanticField(emotion=EmotionState(valence=0.0, intensity=0.9, stability=1.0), audience=AudienceState(engagement=0.5, ...=0.5, tension=0.0, momentum=0.5), safety=SafetyState(flags=mappingproxy({})), revision=0, timestamp=1792986217.6198106).emotion
+E            +      where SemanticField(emotion=EmotionState(valence=0.0, intensity=0.9, stability=1.0), audience=AudienceState(engagement=0.5, ...=0.5, tension=0.0, momentum=0.5), safety=SafetyState(flags=mappingproxy({})), revision=0, timestamp=1792986217.6198106) = resolve(SemanticField(emotion=EmotionState(valence=0.0, intensity=0.0, stability=1.0), audience=AudienceState(engagement=0.5, ...=0.5, tension=0.0, momentum=0.5), safety=SafetyState(flags=mappingproxy({})), revision=0, timestamp=1792986217.6198106), [StateMutationRequest(source='anchor', role='anchor', path='emotion.intensity', value=0.2, priority=100, confidence=1....State(valence=0.0, intensity=0.9, stability=1.0), priority=1, confidence=1.0, reason='', created_at=1792986217.619795)])
+E            +        where resolve = <modules.evo.arbitration.ArbitrationEngine object at 0x7f03e14be6c0>.resolve
+E            +        and   SemanticField(emotion=EmotionState(valence=0.0, intensity=0.0, stability=1.0), audience=AudienceState(engagement=0.5, ...=0.5, tension=0.0, momentum=0.5), safety=SafetyState(flags=mappingproxy({})), revision=0, timestamp=1792986217.6198106) = SemanticField()
+
+tests/test_evo_semantic_runtime.py:114: AssertionError
+__________ test_lower_priority_child_cannot_overwrite_accepted_parent __________
+
+    def test_lower_priority_child_cannot_overwrite_accepted_parent():
+        engine = ArbitrationEngine()
+        result = engine.resolve(SemanticField(), [
+            StateMutationRequest(source="system", role="system", path="emotion",
+                value=EmotionState(intensity=0.2), priority=100),
+            StateMutationRequest(source="performer", role="performer",
+                path="emotion.intensity", value=0.9, priority=1)])
+>       assert result.emotion.intensity == 0.2
+E       assert 0.9 == 0.2
+E        +  where 0.9 = EmotionState(valence=0.0, intensity=0.9, stability=1.0).intensity
+E        +    where EmotionState(valence=0.0, intensity=0.9, stability=1.0) = SemanticField(emotion=EmotionState(valence=0.0, intensity=0.9, stability=1.0), audience=AudienceState(engagement=0.5, ...=0.5, tension=0.0, momentum=0.5), safety=SafetyState(flags=mappingproxy({})), revision=0, timestamp=1792986217.6230528).emotion
+
+tests/test_evo_semantic_runtime.py:124: AssertionError
+______ test_subscriber_cannot_corrupt_revision_seen_by_later_subscribers _______
+
+    def test_subscriber_cannot_corrupt_revision_seen_by_later_subscribers():
+        bus = EventBus()
+        seen = []
+        def corrupt(event):
+            event.payload["revision"] = 999
+        bus.subscribe("semantic.updated", corrupt)
+        bus.subscribe("semantic.updated", lambda event: seen.append(event.payload["revision"]))
+        event = EventEnvelope(source="runtime", role="system", event_type="semantic.updated",
+            payload={"revision": 1})
+        result = bus.publish(event)
+>       assert seen == [1]
+E       assert [999] == [1]
+E         
+E         At index 0 diff: 999 != 1
+E         Use -v to get more diff
+
+tests/test_evo_event_bus.py:102: AssertionError
+____________ test_event_payload_owns_and_freezes_nested_containers _____________
+
+    def test_event_payload_owns_and_freezes_nested_containers():
+        original = {"nested": {"paths": ["emotion.intensity"]}}
+        event = EventEnvelope(source="runtime", role="system", event_type="semantic.updated",
+            payload=original)
+        original["nested"]["paths"].append("scene.pacing")
+>       assert tuple(event.payload["nested"]["paths"]) == ("emotion.intensity",)
+E       AssertionError: assert ('emotion.int...scene.pacing') == ('emotion.intensity',)
+E         
+E         Left contains one more item: 'scene.pacing'
+E         Use -v to get more diff
+
+tests/test_evo_event_bus.py:112: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_evo_semantic_runtime.py::test_explicit_empty_permissions_deny_all_writes
+FAILED tests/test_evo_semantic_runtime.py::test_permissions_are_owned_by_arbitrator_not_aliased_to_caller
+FAILED tests/test_evo_semantic_runtime.py::test_lower_priority_parent_cannot_overwrite_accepted_child
+FAILED tests/test_evo_semantic_runtime.py::test_lower_priority_child_cannot_overwrite_accepted_parent
+FAILED tests/test_evo_event_bus.py::test_subscriber_cannot_corrupt_revision_seen_by_later_subscribers
+FAILED tests/test_evo_event_bus.py::test_event_payload_owns_and_freezes_nested_containers
+6 failed, 8 passed in 0.17s

@@ -1,0 +1,50 @@
+{
+  "base": "PubCast_Reach_FORESIGHT_8787_REPAIRED_09-15-2026.zip",
+  "pass": "Foresight Neighbor Integration / Front Door Pass 2",
+  "date": "2026-09-15",
+  "changed_files": [
+    "2i-backend/server.js",
+    "2i-backend/test/bridge_contract.test.js",
+    "2i/index.html",
+    "main.py",
+    "run_reach.py",
+    "static/analytics.html",
+    "static/bar.html",
+    "static/control_room.html",
+    "static/director_switcher.html",
+    "static/doctor.html",
+    "static/dressing.html",
+    "static/foresight.html",
+    "static/gallery.html",
+    "static/general_chat.html",
+    "static/login.html",
+    "static/map.html",
+    "static/pub_partner_chat.html",
+    "static/pubcast_teleprompter.html",
+    "static/pubpartner.html",
+    "static/pubworld_stage.html",
+    "static/stage.html",
+    "static/stage_panoramic.html",
+    "static/studio_control_room.html",
+    "static/waiting_room.html",
+    "static/world.html",
+    "tests/test_foresight_8787_wiring.py"
+  ],
+  "new_files": [
+    "FORESIGHT_NEIGHBOR_INTEGRATION_HANDOFF_2026-09-15.md",
+    "static/reach_auth.js",
+    "tests/test_foresight_front_door.py"
+  ],
+  "deleted_files": [],
+  "verification": {
+    "focused_pytest": "59 passed in 7.42s",
+    "bridge_node": "6 passed, 1 conditional live test skipped",
+    "broad_pytest_failfast": "423 passed, 2 skipped, then known historical REG-003 failure",
+    "secured_http_acceptance": "passed fresh setup, auth, World Chat storage, PubPartner status, restart/login/persistence",
+    "javascript_syntax": "19 inline scripts + reach_auth.js + foresight.config.js + server.js passed node --check"
+  },
+  "known_environment_limits": [
+    "npm dependencies unavailable in sandbox; exact Express process not launched",
+    "Chromium blocks localhost/HTTP navigation by administrator policy"
+  ]
+}

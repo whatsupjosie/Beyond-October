@@ -1,0 +1,134 @@
+html,
+body {
+  min-height: 100%;
+}
+
+body.pc-console-page {
+  margin: 0;
+  background: #090b0f;
+  color: #f3efe4;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.pc-console-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.pc-console-topbar,
+.pc-console-statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 14px;
+  background: rgba(9, 11, 15, 0.92);
+  border-bottom: 1px solid rgba(212, 177, 93, 0.28);
+}
+
+.pc-console-statusbar {
+  border-top: 1px solid rgba(212, 177, 93, 0.28);
+  border-bottom: 0;
+  font: 12px Consolas, monospace;
+  color: #aeb7c2;
+}
+
+.pc-console-title {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pc-console-meta {
+  font: 12px Consolas, monospace;
+  color: #9fb7c9;
+}
+
+.pc-console-mount {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+}
+
+.pc-console-frame {
+  position: relative;
+  width: min(100%, 1400px);
+  line-height: 0;
+}
+
+.pc-console-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  user-select: none;
+}
+
+.pc-console-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.pc-console-hotspot {
+  position: absolute;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  color: transparent;
+  padding: 0;
+}
+
+.pc-console-hotspot:hover,
+.pc-console-hotspot:focus-visible {
+  outline: 2px solid rgba(93, 238, 255, 0.86);
+  outline-offset: 1px;
+  background: rgba(93, 238, 255, 0.08);
+}
+
+.pc-console-hotspot.is-active {
+  background: rgba(136, 255, 218, 0.20);
+  box-shadow: 0 0 18px rgba(136, 255, 218, 0.42);
+}
+
+.pc-console-hotspot--monitor:hover,
+.pc-console-hotspot--monitor:focus-visible {
+  outline-color: rgba(255, 78, 220, 0.88);
+  background: rgba(255, 78, 220, 0.08);
+}
+
+.pc-console-slider {
+  display: grid;
+  place-items: center;
+  transform: rotate(-8deg);
+}
+
+.pc-console-slider input {
+  width: 100%;
+  accent-color: #e8f0f4;
+  opacity: 0.56;
+}
+
+.pc-console-knob::after {
+  content: "";
+  position: absolute;
+  left: 46%;
+  top: 18%;
+  width: 8%;
+  height: 32%;
+  border-radius: 999px;
+  background: rgba(215, 255, 96, 0.7);
+  transform: rotate(var(--turn, 0deg));
+  transform-origin: 50% 100%;
+}
+
+[data-console-status][data-level="error"] {
+  color: #ffaaa2;
+}
+
+[data-console-status][data-level="ok"] {
+  color: #bdf4cb;
+}

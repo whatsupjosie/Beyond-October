@@ -1,0 +1,42 @@
+{
+  "schema": "pubcast.console_hotspot_manifest.v1",
+  "console_id": "audio_console",
+  "image": {
+    "clean_path": "/static/audio_console.png",
+    "overlay_path": "/static/audio_console_overlay_map.png",
+    "width_px": 1408,
+    "height_px": 768,
+    "coordinate_mode": "normalized_percentages",
+    "notes": "Coordinates are stored as normalized x/y/w/h percentages against a 1408x768 source image. Browser overlays should multiply by rendered image size."
+  },
+  "color_legend": {
+    "dark_hot_pink": "monitor/display region",
+    "light_blue": "push button",
+    "light_green": "rotary knob",
+    "grey_white": "slider handle/path",
+    "light_pink": "fan/seashell button group"
+  },
+  "hotspots": [
+    {"id": "audio.monitor.program", "kind": "monitor", "label": "Program audio monitor", "x": 0.060, "y": 0.130, "w": 0.290, "h": 0.340, "action_id": "audio.status", "payload": {}},
+    {"id": "audio.monitor.levels", "kind": "monitor", "label": "Audio levels monitor", "x": 0.400, "y": 0.120, "w": 0.170, "h": 0.180, "action_id": "audio.status", "payload": {}},
+    {"id": "audio.monitor.transmission", "kind": "monitor", "label": "Transmission monitor", "x": 0.400, "y": 0.320, "w": 0.180, "h": 0.160, "action_id": "studio.readiness", "payload": {}},
+    {"id": "audio.slider.channel_1", "kind": "slider", "label": "Channel 1 level", "x": 0.070, "y": 0.660, "w": 0.050, "h": 0.160, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "dialogue"}},
+    {"id": "audio.slider.mic_1", "kind": "slider", "label": "Mic 1 level", "x": 0.110, "y": 0.670, "w": 0.050, "h": 0.150, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "dialogue"}},
+    {"id": "audio.slider.mic", "kind": "slider", "label": "Mic level", "x": 0.180, "y": 0.640, "w": 0.050, "h": 0.180, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "dialogue"}},
+    {"id": "audio.slider.guest", "kind": "slider", "label": "Guest level", "x": 0.250, "y": 0.630, "w": 0.050, "h": 0.190, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "dialogue"}},
+    {"id": "audio.slider.ai_mix", "kind": "slider", "label": "AI mix level", "x": 0.320, "y": 0.650, "w": 0.050, "h": 0.170, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "ui"}},
+    {"id": "audio.slider.background", "kind": "slider", "label": "Background level", "x": 0.480, "y": 0.640, "w": 0.050, "h": 0.180, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "music"}},
+    {"id": "audio.slider.sfx", "kind": "slider", "label": "SFX level", "x": 0.600, "y": 0.650, "w": 0.050, "h": 0.160, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "sfx"}},
+    {"id": "audio.slider.vtr", "kind": "slider", "label": "VTR level", "x": 0.820, "y": 0.590, "w": 0.050, "h": 0.180, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "vtr"}},
+    {"id": "audio.knob.dialogue_gain", "kind": "knob", "label": "Dialogue gain", "x": 0.045, "y": 0.630, "w": 0.040, "h": 0.070, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "dialogue"}},
+    {"id": "audio.knob.music_gain", "kind": "knob", "label": "Music gain", "x": 0.360, "y": 0.550, "w": 0.040, "h": 0.070, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "music"}},
+    {"id": "audio.knob.room_gain", "kind": "knob", "label": "Room gain", "x": 0.630, "y": 0.550, "w": 0.040, "h": 0.070, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "room"}},
+    {"id": "audio.knob.sfx_gain", "kind": "knob", "label": "SFX gain", "x": 0.720, "y": 0.700, "w": 0.050, "h": 0.090, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "sfx"}},
+    {"id": "audio.knob.ui_gain", "kind": "knob", "label": "UI gain", "x": 0.760, "y": 0.760, "w": 0.050, "h": 0.080, "action_id": "audio.event", "payload": {"action": "set_volume", "bus": "ui"}},
+    {"id": "audio.button.mute_dialogue", "kind": "button", "label": "Mute dialogue", "x": 0.160, "y": 0.550, "w": 0.030, "h": 0.050, "action_id": "audio.event", "payload": {"action": "mute", "bus": "dialogue"}},
+    {"id": "audio.button.mute_music", "kind": "button", "label": "Mute music", "x": 0.310, "y": 0.570, "w": 0.030, "h": 0.050, "action_id": "audio.event", "payload": {"action": "mute", "bus": "music"}},
+    {"id": "audio.button.stop_all", "kind": "button", "label": "Stop all sounds", "x": 0.670, "y": 0.780, "w": 0.040, "h": 0.050, "action_id": "audio.stop_all", "payload": {}},
+    {"id": "audio.fan.dialogue_cue", "kind": "fan", "label": "Dialogue cue fan", "x": 0.200, "y": 0.600, "w": 0.080, "h": 0.070, "action_id": "audio.event", "payload": {"action": "play", "bus": "dialogue"}},
+    {"id": "audio.fan.music_cue", "kind": "fan", "label": "Music cue fan", "x": 0.640, "y": 0.570, "w": 0.090, "h": 0.070, "action_id": "audio.event", "payload": {"action": "play", "bus": "music"}}
+  ]
+}

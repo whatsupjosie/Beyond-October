@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "defaults": {
+    "surface": "carpet",
+    "lounge_enabled": true,
+    "projector_enabled": false,
+    "master_volume": 0.78,
+    "music_volume": 0.12,
+    "ambience_volume": 0.2,
+    "sfx_volume": 0.82
+  },
+  "one_shots": {
+    "footstep_carpet_flats": {
+      "url": "/assets/audio/foley/footstep_carpet_flats_01.wav",
+      "gain": 0.8
+    },
+    "footstep_hardwood_heels": {
+      "url": "/assets/audio/foley/footstep_hardwood_heels_01.wav",
+      "gain": 0.86
+    },
+    "footstep_cement_flats": {
+      "url": "/assets/audio/foley/footstep_cement_flats_01.wav",
+      "gain": 0.82
+    },
+    "footstep_tile_heels": {
+      "url": "/assets/audio/foley/footstep_tile_heels_01.wav",
+      "gain": 0.84
+    },
+    "door_open": {
+      "url": "/assets/audio/foley/door_open_01.wav",
+      "gain": 0.9
+    },
+    "door_close": {
+      "url": "/assets/audio/foley/door_close_01.wav",
+      "gain": 0.94
+    },
+    "typewriter_click": {
+      "url": "/assets/audio/foley/typewriter_click_01.wav",
+      "gain": 0.58
+    },
+    "breath_soft": {
+      "url": "/assets/audio/foley/breath_soft_01.wav",
+      "gain": 0.5
+    },
+    "throat_clear": {
+      "url": "/assets/audio/foley/throat_clear_01.wav",
+      "gain": 0.48
+    }
+  },
+  "loops": {
+    "room_tone": {
+      "url": "/assets/audio/foley/room_tone_loop_01.wav",
+      "gain": 0.42,
+      "channel": "ambience"
+    },
+    "projector": {
+      "url": "/assets/audio/foley/projector_loop_01.wav",
+      "gain": 0.24,
+      "channel": "ambience"
+    },
+    "lounge_placeholder": {
+      "url": "/assets/audio/foley/lounge_placeholder_loop_01.wav",
+      "gain": 0.26,
+      "channel": "music"
+    }
+  }
+}

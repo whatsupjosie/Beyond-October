@@ -1,0 +1,253 @@
+<!doctype html>
+<!-- Compatibility markers retained for regression contracts: Living · Hyperreal Lantern Desk · HYPERREAL UI PROTOTYPE · Cinematic Hyperreal Lantern Desk · CINEMATIC POLISH -->
+<html lang="en" data-theme="lantern">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PubPartner — Your AI friend, carried across models</title>
+  <link rel="stylesheet" href="/static/pubpartner.css" />
+  <!-- API: /api/pubpartner/turns/live -->
+  <script src="/static/reach_auth.js"></script>
+</head>
+<body>
+
+  <div class="auth-gate" id="authGate" role="dialog" aria-modal="true" aria-labelledby="authTitle" hidden>
+    <div class="auth-card panel-glow">
+      <div class="auth-lantern" aria-hidden="true">✦</div>
+      <p class="auth-kicker">Private local ownership</p>
+      <h2 id="authTitle">Secure your PubPartner</h2>
+      <p id="authCopy">Create the owner account that protects relationship data and authority controls.</p>
+      <form id="authForm" autocomplete="on">
+        <label>Owner name<input id="authUsername" name="username" autocomplete="username" minlength="3" maxlength="64" required /></label>
+        <label>Password<input id="authPassword" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="256" required /></label>
+        <label id="authConfirmRow">Confirm password<input id="authConfirm" name="confirm_password" type="password" autocomplete="new-password" minlength="12" maxlength="256" required /></label>
+        <p class="auth-hint" id="authHint">At least 12 characters and three character types. This password never leaves your local app.</p>
+        <p class="auth-error" id="authError" aria-live="polite"></p>
+        <button id="authSubmit" type="submit">Create owner account</button>
+      </form>
+      <p class="auth-foot">PubPartner binds locally by default. Your model provider settings remain separate from this owner login.</p>
+    </div>
+  </div>
+  <div class="auth-gate" id="cartridgeGate" role="dialog" aria-modal="true" aria-labelledby="cartridgeTitle" hidden>
+    <div class="auth-card panel-glow">
+      <div class="auth-lantern" aria-hidden="true">✦</div>
+      <p class="auth-kicker">Saved on this PubCast</p>
+      <h2 id="cartridgeTitle">New cartridge</h2>
+      <p id="cartridgeCopy">A new friend, saved as a portable cartridge. You can talk to them as soon as it is made.</p>
+      <form id="cartridgeForm" autocomplete="off">
+        <label class="cartridge-new">Name<input id="cartridgeName" maxlength="80" required /></label>
+        <label class="cartridge-new">Who they are<textarea id="cartridgeSummary" maxlength="480" rows="3" required></textarea></label>
+        <label class="cartridge-new">How they talk<input id="cartridgeCadence" maxlength="200" placeholder="natural" /></label>
+        <label class="cartridge-new">Words they use<input id="cartridgeVocabulary" maxlength="200" placeholder="everyday" /></label>
+        <label>Avatar<select id="cartridgeAvatar"><option value="">No avatar</option></select></label>
+        <p class="auth-hint"><a href="/static/avatar_import.html" target="_blank" rel="noopener">Add an avatar to your library…</a></p>
+        <p class="auth-error" id="cartridgeError" aria-live="polite"></p>
+        <button id="cartridgeSubmit" type="submit">Create cartridge</button>
+        <button id="cartridgeCancel" type="button">Cancel</button>
+      </form>
+    </div>
+  </div>
+  <div class="ambient-lantern ambient-left" aria-hidden="true"></div>
+  <div class="ambient-lantern ambient-right" aria-hidden="true"></div>
+  <div class="app-shell" id="appShell">
+    <header class="topbar panel-glow">
+      <div class="brand-block">
+        <div class="lantern-mark" aria-hidden="true">✦</div>
+        <div>
+          <h1>Pub Partner</h1>
+          <p>your friend · your memory · your words · local or cloud intelligence</p>
+        </div>
+      </div>
+      <nav class="menu-strip" aria-label="Primary menu">
+        <div class="menu-root"><button type="button" data-menu="file" aria-haspopup="menu" aria-expanded="false">File</button><div class="menu-pop" role="menu">
+          <button role="menuitem" data-command="new-session">New session</button><button role="menuitem" data-command="new-cartridge">New cartridge…</button><button role="menuitem" data-command="backup-friend">Back up my friend</button>
+          <button role="menuitem" data-command="save-workspace">Save workspace</button><button role="menuitem" data-command="import-layout">Import layout…</button><button role="menuitem" data-command="export-layout">Export layout…</button>
+        </div></div>
+        <div class="menu-root"><button type="button" data-menu="edit" aria-haspopup="menu" aria-expanded="false">Edit</button><div class="menu-pop" role="menu">
+          <button role="menuitem" data-command="focus-conversation">Conversation</button><button role="menuitem" data-command="undo-layout">Undo tray movement</button><button role="menuitem" data-command="reset-layout">Reset layout</button>
+        </div></div>
+        <div class="menu-root"><button type="button" data-menu="view" aria-haspopup="menu" aria-expanded="false">View</button><div class="menu-pop" role="menu">
+          <button role="menuitem" data-command="focus-preview">Live preview</button><button role="menuitem" data-command="focus-status">System status</button><button role="menuitem" data-command="compact-layout">Compact trays</button><button role="menuitem" data-command="toggle-motion">Reduce motion</button>
+          <div class="menu-separator" role="separator"></div><button role="menuitem" data-theme-value="lantern">Lantern theme</button><button role="menuitem" data-theme-value="glass">Glass theme</button><button role="menuitem" data-theme-value="emerald">Oak / emerald theme</button><button role="menuitem" data-theme-value="violet">Copper / violet theme</button>
+        </div></div>
+        <div class="menu-root"><button type="button" data-menu="media" aria-haspopup="menu" aria-expanded="false">Media</button><div class="menu-pop" role="menu">
+          <button role="menuitem" data-command="focus-preview">Preview and avatar</button><button role="menuitem" data-command="focus-files">Recent encounters</button><button role="menuitem" data-command="focus-knowledge">Online reference desk</button>
+        </div></div>
+        <div class="menu-root"><button type="button" data-menu="tools" aria-haspopup="menu" aria-expanded="false">Tools</button><div class="menu-pop" role="menu">
+          <button role="menuitem" data-command="focus-tools">Trust controls</button><button role="menuitem" data-command="verify-receipts">Verify receipts</button><button role="menuitem" data-command="restore-source">Restore exact source</button><button role="menuitem" data-command="provider-test">Provider diagnostic</button><button role="menuitem" data-command="preflight">Run preflight</button>
+        </div></div>
+        <div class="menu-root"><button type="button" data-menu="wardrobe" aria-haspopup="menu" aria-expanded="false">Wardrobe</button><div class="menu-pop" role="menu">
+          <button role="menuitem" data-command="focus-preview">Avatar preview</button><button role="menuitem" data-command="focus-setup">Companion selection</button><button role="menuitem" data-command="cartridge-avatar">Choose avatar…</button>
+        </div></div>
+        <div class="menu-root"><button type="button" data-menu="memory" aria-haspopup="menu" aria-expanded="false">Memory</button><div class="menu-pop" role="menu">
+          <button role="menuitem" data-command="focus-memory">What we’ve learned</button><button role="menuitem" data-command="refresh-relationship">Refresh relationship</button><button role="menuitem" data-command="show-encounters">Evidence encounters</button><button role="menuitem" data-command="show-guidance">Guidance and corrections</button>
+        </div></div>
+        <div class="menu-root"><button type="button" data-menu="settings" aria-haspopup="menu" aria-expanded="false">Settings</button><div class="menu-pop menu-pop-right" role="menu">
+          <button role="menuitem" data-command="focus-setup">Friend and provider setup</button><button role="menuitem" data-command="focus-knowledge">Reference settings</button><button role="menuitem" data-command="toggle-customize">Customize layout</button>
+        </div></div>
+      </nav>
+      <div class="notif-chip" title="Reviewable relationship lessons"><span>●</span><strong id="reviewCount">0</strong></div>
+      <div class="project-chip">
+        <span>Project:</span>
+        <strong id="projectLabel">PubPartner Core</strong>
+      </div>
+      <div class="profile-chip">
+        <span class="profile-orb">PP</span>
+        <div><strong id="accountName">Pub Partner</strong><small id="providerLabel">mock</small></div><button id="accountButton" class="account-button" type="button" title="Owner account">Sign in</button>
+      </div>
+    </header>
+
+    <main class="desk" id="desk" aria-label="PubPartner workspace">
+      <section class="fan-menu panel static-panel panel-glow" aria-label="Action fan">
+        <button id="newSession" title="Create or reopen session">New Session</button>
+        <button id="restoreSource" title="Restore exact source text">Restore Source</button>
+        <button id="showReceipts" title="Show receipt chain">Receipts</button>
+        <button id="showFcp1" title="Show last FCP1/provenance packet">Show FCP1</button>
+        <button id="providerTest" title="Run provider diagnostic">Provider Test</button>
+        <button id="resetLayout" title="Reset movable panels">Reset Layout</button>
+      </section>
+
+      <section class="panel conversation" data-panel="conversation" style="left:24px;top:235px;width:320px;height:440px;">
+        <div class="panel-title drag-handle"><span>Conversation</span><button class="mini" data-panel-action="collapse">–</button></div>
+        <div class="identity-row">
+          <label>User<input id="userId" value="josie" /></label>
+          <label>Session<input id="sessionId" value="pubpartner_live" /></label>
+        </div>
+        <div id="messages" class="messages" aria-live="polite">
+          <div class="msg sys">Open a session, type, and send. Exact text is preserved before transformation.</div>
+        </div>
+        <div class="composer">
+          <textarea id="message" placeholder="Ask anything…"></textarea>
+          <div class="composer-actions">
+            <select id="kind" title="Content kind">
+              <option value="message">message</option>
+              <option value="lyrics">lyrics</option>
+              <option value="code">code</option>
+              <option value="legal">legal</option>
+              <option value="quote">quote</option>
+            </select>
+            <button id="send">Send</button>
+          </div>
+        </div>
+        <span class="resize-handle" aria-hidden="true"></span>
+      </section>
+
+      <section class="panel live-preview hero-panel" data-panel="preview" style="left:365px;top:75px;width:525px;height:300px;">
+        <div class="panel-title drag-handle"><span>Live Preview</span><button class="mini" data-panel-action="collapse">–</button></div>
+        <div class="preview-stage" id="previewStage">
+          <div class="living-veil" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="preview-art">
+            <div class="pub-sign">Copper<br/>Lantern<br/>Pub</div>
+            <div class="street-glow"></div>
+          </div>
+          <div class="preview-controls"><button title="Camera preview is not active in this release" disabled>📷</button><span class="live-dot"></span><strong id="previewMode">LOCAL</strong><span id="clock">00:00:00</span><button title="Preview settings are not active in this release" disabled>⚙</button></div>
+        </div>
+        <div class="tool-rail" aria-label="Preview tools"><button type="button" data-command="focus-conversation" title="Open conversation">▣</button><button type="button" data-command="focus-status" title="Open system status">◉</button><button type="button" data-command="focus-files" title="Open encounter evidence">⌗</button><button type="button" data-command="focus-tools" title="Open trust controls">T</button><button type="button" data-command="focus-setup" title="Open companion setup">◇</button></div>
+        <span class="resize-handle" aria-hidden="true"></span>
+      </section>
+
+      <section class="panel project-files" data-panel="files" style="left:365px;top:395px;width:520px;height:190px;">
+        <div class="panel-title drag-handle"><span>Recent Encounters</span><span class="status-pill" id="encounterChain">No encounters</span><button class="mini" data-panel-action="collapse">–</button></div>
+        <div class="encounter-grid" id="encounterGrid">
+          <article class="encounter-card empty"><strong>Your shared history begins here.</strong><small>Each live turn creates a verifiable encounter record without replacing your exact source text.</small></article>
+        </div>
+        <span class="resize-handle" aria-hidden="true"></span>
+      </section>
+
+      <section class="panel work-output" data-panel="output" style="left:395px;top:605px;width:470px;height:178px;">
+        <div class="panel-title drag-handle"><span>Work Output</span><span class="status-pill good">Ready</span><button class="mini" data-panel-action="collapse">–</button></div>
+        <div class="output-body">
+          <h2 id="outputTitle">PubPartner Friend Layer</h2>
+          <p id="outputText">The local prototype preserves source text, builds FCP1, dispatches through providers, restores friend voice, and writes receipt hashes.</p>
+          <dl><dt>Status</dt><dd id="receiptStatus">Waiting for first turn</dd><dt>Tokens</dt><dd id="tokenStatus">—</dd><dt>Source</dt><dd id="sourceStatus">—</dd></dl>
+        </div>
+        <span class="resize-handle" aria-hidden="true"></span>
+      </section>
+
+      <section class="panel system-status" data-panel="status" style="left:930px;top:78px;width:330px;height:325px;">
+        <div class="panel-title drag-handle"><span>System Status</span><button class="mini" data-panel-action="collapse">–</button></div>
+        <div class="status-list">
+          <div><span>AI Agent</span><strong id="agentStatus">checking</strong></div>
+          <div><span>Creative Engine</span><strong id="engineStatus">checking</strong></div>
+          <div><span>Source Vault</span><strong id="vaultStatus">checking</strong></div>
+          <div><span>Receipt Chain</span><strong id="chainStatus">waiting</strong></div>
+          <div><span>Llama / Ollama</span><strong id="llamaStatus">checking</strong></div>
+          <div><span>Living Pulse</span><strong id="pulseStatus">warming</strong></div>
+          <div><span>Pub Manager</span><strong id="pubManagerStatus">checking</strong></div>
+        </div>
+        <div class="health-ring"><span id="healthScore">—</span><small>Runtime Readiness</small></div>
+        <div class="jeremy-card"><div class="silhouette"></div><p id="jeremyLine">Waiting for verified runtime telemetry.</p></div>
+        <div class="living-meter" aria-label="Living system pulse"><span></span><span></span><span></span><span></span></div><div class="telemetry-caption" id="telemetryCaption">waiting for living telemetry</div>
+        <span class="resize-handle" aria-hidden="true"></span>
+      </section>
+
+      <section class="panel wardrobe" data-panel="wardrobe" style="left:940px;top:425px;width:315px;height:245px;">
+        <div class="panel-title drag-handle"><span>What We’ve Learned</span><button class="mini" data-panel-action="collapse">–</button></div>
+        <div class="relationship-summary">
+          <div class="relationship-counts"><span><strong id="confirmedCount">0</strong> confirmed</span><span><strong id="emergingCount">0</strong> emerging</span></div>
+          <div id="lessonList" class="lesson-list"><p class="empty-copy">No relationship lessons yet. Teach your friend naturally: “I prefer…”, “Never…”, or “When…, please…”.</p></div>
+          <div class="relationship-actions"><button id="refreshRelationship">Refresh</button><button id="showEncounters">Evidence</button></div>
+        </div>
+        <span class="resize-handle" aria-hidden="true"></span>
+      </section>
+
+      <section class="panel tools" data-panel="tools" style="left:690px;top:605px;width:230px;height:178px;">
+        <div class="panel-title drag-handle"><span>Trust Controls</span><button class="mini" data-panel-action="collapse">–</button></div>
+        <div class="tool-grid">
+          <button id="toolRelationship">Relationship</button><button id="toolGuidance">Guidance</button><button id="toolReceipts">Verify Receipts</button><button id="toolSource">Exact Source</button><button id="toolProvider">Provider</button><button id="toolPreflight">Preflight</button>
+        </div>
+        <span class="resize-handle" aria-hidden="true"></span>
+      </section>
+
+      <section class="panel knowledge-dock" data-panel="knowledge" style="left:930px;top:470px;width:330px;height:210px;">
+        <div class="panel-title drag-handle"><span>Online Reference Desk</span><button class="mini" data-panel-action="collapse">–</button></div>
+        <div class="setup-grid knowledge-grid">
+          <label>Mode<select id="knowledgeMode"><option value="off">Off — fully local</option><option value="shadow">Shadow experiment</option><option value="assisted">Assisted response</option></select></label>
+          <label>Source<select id="knowledgeCredential"><option value="">No Zen key configured</option></select></label>
+          <label class="wide">OpenCode Zen API key<input id="zenApiKey" type="password" autocomplete="off" placeholder="Stored encrypted; never shown again" /></label>
+          <button id="saveZenKey" type="button">Save Big Pickle Key</button><button id="testZen" type="button">Test Reference Desk</button>
+          <p id="zenStatus" class="knowledge-note">Off by default. Sends only the sanitized current question—never Alex memory, relationship lessons, or vault contents.</p>
+        </div>
+        <span class="resize-handle" aria-hidden="true"></span>
+      </section>
+
+      <section class="panel debug-drawer" data-panel="debug" style="left:20px;top:700px;width:330px;height:160px;">
+        <div class="panel-title drag-handle"><span>Custody / Debug</span><button class="mini" data-panel-action="collapse">–</button></div>
+        <pre id="debugBox">No turn yet.</pre>
+        <span class="resize-handle" aria-hidden="true"></span>
+      </section>
+
+      <section class="panel setup-dock" data-panel="setup" style="left:930px;top:690px;width:330px;height:260px;">
+        <div class="panel-title drag-handle"><span>Friend Setup</span><button class="mini" data-panel-action="collapse">–</button></div>
+        <div class="setup-grid">
+          <label>Friend<select id="friendId"><option value="alex" selected>Alex</option><option value="craig">Craig</option><option value="friend">Friend</option></select></label>
+          <label>Provider<select id="provider">
+            <option value="ollama" selected>Ollama local</option><option value="mock">Mock test (diagnostics only)</option><option value="offline">Offline rules (diagnostics only)</option>
+            <option value="openai">OpenAI / GPT</option><option value="anthropic">Anthropic / Claude</option><option value="gemini">Google Gemini</option>
+            <option value="mistral">Mistral</option><option value="groq">Groq</option><option value="opencode_zen">OpenCode Zen</option>
+            <option value="openai_compatible">OpenAI-compatible / LM Studio / llama.cpp / gateway</option><option value="echo">Echo test</option>
+          </select></label>
+          <label>Model<input id="modelName" value="gpt-4o-mini" list="ollamaModels" placeholder="llama3.1 / mistral / gemma3:1b" /><datalist id="ollamaModels"></datalist></label>
+          <label>Host / Base URL<input id="providerHost" value="http://localhost:11434" placeholder="Ollama host or OpenAI-compatible /v1 base URL" /></label>
+          <label>Credential<select id="providerCredential"><option value="">Environment key / no key</option></select></label>
+          <label class="wide">Provider API key<input id="providerApiKey" type="password" autocomplete="off" placeholder="Stored encrypted; never shown again" /></label>
+          <button id="saveProviderKey" type="button">Save Provider Key</button>
+          <p class="wide">These connections use provider API credentials. Chat subscription sign-in is not connected in this build.</p>
+          <textarea id="guidance" placeholder="Add guidance: when I’m stressed, keep it short; for lyrics, never alter exact text."></textarea>
+          <label class="wide checkline"><input id="allowFallback" type="checkbox" /> Allow offline diagnostic fallback (not a real AI reply)</label>
+          <button id="saveGuidance">Save Guidance</button><button id="scanModels" type="button">Scan Models</button><button id="runPreflight" type="button">Preflight</button>
+        </div>
+        <span class="resize-handle" aria-hidden="true"></span>
+      </section>
+    </main>
+
+    <input id="layoutImport" type="file" accept="application/json,.json" hidden />
+    <footer class="bottombar panel-glow">
+      <span>PubPartner 0.1.0-prebeta.10-ui-candidate · Alex vessel foundation · evidence-governed memory · model portability</span>
+      <span id="saveStatus">All changes saved locally</span>
+      <div class="bottom-actions"><button id="toggleCustomize">Customize Layout</button><button id="themeToggle">Lantern / Glass</button><button id="backupFriend" title="Create a portable, verified backup without provider keys or runtime secrets">Back Up My Friend</button></div>
+    </footer>
+  </div>
+  <script src="/static/pubpartner.js"></script>
+</body>
+</html>

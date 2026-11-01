@@ -1,0 +1,312 @@
+{
+    "version":  1,
+    "menus":  [
+                  {
+                      "id":  "play_stage",
+                      "label":  "Play / Stage",
+                      "roles":  [
+                                    "player",
+                                    "host",
+                                    "guest"
+                                ],
+                      "systems":  [
+                                      "room_entry",
+                                      "avatar_movement",
+                                      "basic_voice",
+                                      "chat"
+                                  ],
+                      "recovery":  [
+                                       "reset_position",
+                                       "reload_view",
+                                       "ask_pub_manager"
+                                   ]
+                  },
+                  {
+                      "id":  "character",
+                      "label":  "Character",
+                      "roles":  [
+                                    "player",
+                                    "director"
+                                ],
+                      "systems":  [
+                                      "avatar_choice",
+                                      "appearance",
+                                      "voice",
+                                      "skeleton_status",
+                                      "motion_style"
+                                  ],
+                      "recovery":  [
+                                       "reload_avatar",
+                                       "rebind_skeleton",
+                                       "reset_pose"
+                                   ]
+                  },
+                  {
+                      "id":  "scene_room",
+                      "label":  "Scene / Room",
+                      "roles":  [
+                                    "player",
+                                    "host",
+                                    "director"
+                                ],
+                      "systems":  [
+                                      "backgrounds",
+                                      "props",
+                                      "lighting",
+                                      "sound_zones",
+                                      "object_adaptation",
+                                      "voxel_block_kit",
+                                      "voxel_block_preview"
+                                  ],
+                      "recovery":  [
+                                       "reload_assets",
+                                       "fallback_background",
+                                       "reset_objects",
+                                       "voxel_block_kit_status"
+                                   ]
+                  },
+                  {
+                      "id":  "audio",
+                      "label":  "Audio",
+                      "roles":  [
+                                    "player",
+                                    "host",
+                                    "audio_operator",
+                                    "director"
+                                ],
+                      "systems":  [
+                                      "mic_input",
+                                      "program_audio",
+                                      "tts",
+                                      "music",
+                                      "sfx",
+                                      "spatial_audio"
+                                  ],
+                      "recovery":  [
+                                       "stop_all_sounds",
+                                       "restart_program_audio",
+                                       "rescan_mics"
+                                   ]
+                  },
+                  {
+                      "id":  "performance",
+                      "label":  "Performance",
+                      "roles":  [
+                                    "player",
+                                    "performer",
+                                    "director"
+                                ],
+                      "systems":  [
+                                      "animation_presets",
+                                      "mocap",
+                                      "retargeting",
+                                      "object_contact"
+                                  ],
+                      "recovery":  [
+                                       "stop_animation_loop",
+                                       "pause_mocap",
+                                       "clear_animation_queue",
+                                       "reset_pose"
+                                   ]
+                  },
+                  {
+                      "id":  "visual_patch",
+                      "label":  "Visual Patch Kit",
+                      "roles":  [
+                                    "player",
+                                    "director",
+                                    "avatar_ai",
+                                    "admin"
+                                ],
+                      "systems":  [
+                                      "2d_patch",
+                                      "3d_patch",
+                                      "voxel_patch",
+                                      "patch_approval",
+                                      "inventory_save"
+                                  ],
+                      "recovery":  [
+                                       "remove_temporary_patch",
+                                       "revert_patch"
+                                   ]
+                  },
+                  {
+                      "id":  "recording_show",
+                      "label":  "Recording / Show",
+                      "roles":  [
+                                    "host",
+                                    "director",
+                                    "recorder",
+                                    "admin"
+                                ],
+                      "systems":  [
+                                      "recording",
+                                      "markers",
+                                      "camera_switching",
+                                      "vtr",
+                                      "chyron",
+                                      "teleprompter"
+                                  ],
+                      "recovery":  [
+                                       "emergency_save",
+                                       "stop_recording_safely",
+                                       "export_issue_report"
+                                   ]
+                  },
+                  {
+                      "id":  "director_advanced",
+                      "label":  "Director / Advanced",
+                      "roles":  [
+                                    "director",
+                                    "pub_manager",
+                                    "admin"
+                                ],
+                      "systems":  [
+                                      "runtime_events",
+                                      "automation",
+                                      "debug_overlays",
+                                      "system_health"
+                                  ],
+                      "recovery":  [
+                                       "reconnect_websocket",
+                                       "resync_scene",
+                                       "safe_mode"
+                                   ]
+                  },
+                  {
+                      "id":  "help_recovery",
+                      "label":  "Help / Recovery",
+                      "roles":  [
+                                    "player",
+                                    "host",
+                                    "director",
+                                    "admin"
+                                ],
+                      "systems":  [
+                                      "pub_manager",
+                                      "system_status",
+                                      "issue_report",
+                                      "safe_actions",
+                                      "conversation_ai",
+                                      "model_slots",
+                                      "switchblade_router",
+                                      "runtime_spine",
+                                      "voxel_block_kit",
+                                      "voxel_block_preview"
+                                  ],
+                      "recovery":  [
+                                       "stabilize_show",
+                                       "stop_all_sounds",
+                                       "stop_all_animations",
+                                       "reload_room",
+                                       "ask_pub_manager",
+                                       "model_slot_status",
+                                       "switchblade_route_preview",
+                                       "runtime_spine_status",
+                                       "voxel_block_kit_status",
+                                       "voxel_block_preview"
+                                   ]
+                  },
+                  {
+                      "id":  "settings_safety",
+                      "label":  "Settings / Safety",
+                      "roles":  [
+                                    "player",
+                                    "host",
+                                    "admin"
+                                ],
+                      "systems":  [
+                                      "accessibility",
+                                      "permissions",
+                                      "storage_cache",
+                                      "auto_approve",
+                                      "diagnostics"
+                                  ],
+                      "recovery":  [
+                                       "reset_current_state",
+                                       "clear_temporary_cache"
+                                   ]
+                  },
+                  {
+                      "id":  "safe_console",
+                      "label":  "Out-of-Session Safe Console",
+                      "roles":  [
+                                    "player",
+                                    "host",
+                                    "admin",
+                                    "pub_manager"
+                                ],
+                      "systems":  [
+                                      "server_health",
+                                      "asset_check",
+                                      "audio_stop",
+                                      "pub_manager_status",
+                                      "ai_model_slots",
+                                      "switchblade_status",
+                                      "runtime_spine_status",
+                                      "pub_manager_safe_actions"
+                                  ],
+                      "recovery":  [
+                                       "open_safe_stage",
+                                       "export_issue_report",
+                                       "ask_pub_manager",
+                                       "switchblade_route_preview",
+                                       "runtime_spine_status"
+                                   ]
+                  },
+                  {
+                      "id":  "ai_conversation",
+                      "label":  "AI / Conversation",
+                      "roles":  [
+                                    "player",
+                                    "host",
+                                    "director",
+                                    "pub_manager",
+                                    "admin"
+                                ],
+                      "systems":  [
+                                      "alex",
+                                      "jeremy",
+                                      "conversation_router",
+                                      "evo",
+                                      "eq",
+                                      "model_slots",
+                                      "switchblade_router",
+                                      "auto_switchblade",
+                                      "background_math"
+                                  ],
+                      "recovery":  [
+                                       "ask_pub_manager",
+                                       "model_slot_status",
+                                       "fallback_to_echo_test",
+                                       "export_issue_report",
+                                       "switchblade_route_preview"
+                                   ]
+                  },
+                  {
+                      "id":  "pub_partner_chat",
+                      "label":  "Pub Partner Chat",
+                      "roles":  [
+                                    "player",
+                                    "host",
+                                    "director",
+                                    "pub_manager",
+                                    "admin"
+                                ],
+                      "systems":  [
+                                      "pub_partner_alex",
+                                      "jeremy",
+                                      "model_slots",
+                                      "chat_history",
+                                      "auto_switchblade",
+                                      "background_math",
+                                      "switchblade_router"
+                                  ],
+                      "recovery":  [
+                                       "model_slot_status",
+                                       "ask_pub_manager",
+                                       "switchblade_route_preview"
+                                   ]
+                  }
+              ]
+}

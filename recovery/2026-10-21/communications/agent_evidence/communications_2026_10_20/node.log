@@ -1,0 +1,3 @@
+test_program_audio_runtime_node.js passed
+PASS: room policy, director exception, rejected playback cleanup, interruption
+PASS: PCM packets and final tail; tab verification; truthful video/audio labels; track cleanup

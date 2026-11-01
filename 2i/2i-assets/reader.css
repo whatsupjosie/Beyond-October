@@ -1,0 +1,41 @@
+/* Audio and window controls retain the desk's brass palette and touch targets. */
+#reachAudio { display:block; min-width:0; margin:0; padding:0 10px; border-block:1px solid #7b6036; background:linear-gradient(#21190e,#151008); color:#f1dfb7; font:15px/1.4 Georgia,serif; }
+#reachAudio>summary,#readerSettings>summary { min-height:48px; padding:13px 2px; cursor:pointer; font-size:16px; }
+#readerControls { display:grid; gap:7px; padding:0 0 10px; }
+#readerStatus { font:13px/1.5 system-ui,sans-serif; overflow-wrap:anywhere; color:#f5ddad; }
+#reachAudio .reader-row { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+#reachAudio #readerTransport { grid-template-columns:repeat(3,minmax(0,1fr)); }
+#reachAudio button,#reachDeskDock button,#deskMiniAudio button,.modal #deskSettingsBody button {
+  min-height:48px; min-width:48px; padding:8px 7px; border:1px solid #907441; border-radius:5px;
+  background:linear-gradient(#352918,#21180c); color:#f7e6bf; font:14px/1.3 Georgia,serif; cursor:pointer; touch-action:manipulation;
+}
+#reachAudio button:disabled { opacity:.45; cursor:not-allowed; }
+#phoneRoom #reachAudio button { min-height:48px; padding:8px 7px!important; font-size:14px; }
+#reachAudio #readerRead { background:linear-gradient(#3a472a,#222f19); border-color:#a8a26b; }
+#readerOptions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; padding-bottom:6px; }
+#readerOptions label,#deskTextSizeLabel { display:flex; flex-direction:column; gap:5px; font:13px/1.4 Georgia,serif; color:#ebd5ae; }
+#readerOptions select,#deskTextSize { width:100%; min-width:0; min-height:48px; border:1px solid #927646; border-radius:5px; padding:7px; color:#f1dfbb; background:#1b150d; font:16px/1.4 Georgia,serif; }
+#readerOptions .reader-note,#readerCursor { grid-column:1/-1; }
+#reachAudio .reader-note { margin:0; color:#d2bc94; font:12px/1.45 Georgia,serif; overflow-wrap:anywhere; }
+#readerExcerpt { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+#readerModalBody #reachAudio { padding:0; }
+#phoneRoom #phoneHeaderActions { display:grid!important; grid-template-columns:repeat(4,48px); gap:4px; }
+#phoneRoom #phoneHeaderActions button { width:48px!important; min-width:48px; height:48px!important; padding:4px!important; font:23px/1 Georgia,serif; }
+#phoneRoom #phoneHeaderActions #deskClose { font-size:30px; }
+#phoneRoom #phoneHeader { gap:6px; }
+#phoneRoom #phoneBrandTitle { font-size:17px; }
+#phoneRoom #phoneBrandSmall { letter-spacing:.06em; font-size:10px; }
+#phoneRoom .solo-textarea,#phoneRoom .m-line,#phoneRoom .draft-area,#phoneRoom .m-line-edit textarea { font-size:var(--reach-manuscript-size,18px); }
+#deskSettingsBody { display:grid; gap:12px; }
+#deskNotice { padding:12px; color:#ffddad; background:#392716; font:14px/1.5 Georgia,serif; }
+#deskMiniAudio { display:none; flex-wrap:wrap; padding:8px 12px; background:#1c140b; gap:8px; }
+#deskMiniState { flex-basis:100%; color:#edd3a6; font:13px/1.5 Georgia,serif; }
+#reachDeskDock { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:14px; color:#f1dfb7; background:#21190e; border:1px solid #8b6a39; border-radius:8px; font:17px/1.4 Georgia,serif; }
+#reachDeskDock[hidden],#deskNotice[hidden] { display:none!important; }
+body[data-desk-state="closed"] .app-shell { display:none!important; }
+body[data-desk-state="collapsed"] .app-shell { height:auto!important; }
+body[data-desk-state="collapsed"] #phoneRoom { height:auto!important; }
+body[data-desk-state="collapsed"] #phoneRoom>:not(#phoneHeader):not(#deskMiniAudio) { display:none!important; }
+body[data-desk-state="collapsed"] #deskMiniAudio { display:flex; }
+body[data-desk-state="collapsed"] #deskMiniAudio button { flex:1; }
+@media(max-width:360px){#phoneRoom #phoneHeader{padding-inline:8px;}#phoneRoom #phoneBrandTitle{font-size:15px;}#phoneRoom #phoneBrandSmall{font-size:9px;}}

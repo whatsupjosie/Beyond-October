@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PubCast AI - Manny Walk Proof</title>
+<style>
+:root {
+  --void:#050302; --surface:#120b08; --brass:#d8af5b; --brass-hi:#ffe5a0;
+  --teal:#47e7ff; --green:#42d997; --red:#e14f54; --cream:#fff2d2;
+  --muted:#9b8668; --mono:Consolas,"Courier New",monospace; --body:Candara,"Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:radial-gradient(circle at 50% -10%,rgba(71,231,255,.15),transparent 32rem),linear-gradient(180deg,#160d08,#030201);color:var(--cream);font-family:var(--body);overflow:hidden}
+.shell{height:100vh;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:0}
+.stage{position:relative;min-width:0;background:linear-gradient(135deg,rgba(216,175,91,.08),transparent 35%),#050302}
+canvas{display:block;width:100%;height:100%}
+.stage::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0 5px,rgba(0,0,0,.18) 6px 7px),radial-gradient(circle at 50% 72%,transparent,rgba(0,0,0,.55))}
+.panel{padding:18px;border-left:1px solid rgba(216,175,91,.28);background:linear-gradient(180deg,rgba(58,31,18,.96),rgba(8,5,3,.98));box-shadow:-20px 0 70px rgba(0,0,0,.42);overflow:auto}
+h1{font:400 24px Georgia,"Times New Roman",serif;color:var(--brass);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}
+.sub{font:700 11px var(--mono);color:var(--muted);letter-spacing:.08em;text-transform:uppercase;line-height:1.5;margin-bottom:18px}
+label{display:block;font:700 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--brass-hi);margin:14px 0 6px}
+select,button{width:100%;border:1px solid rgba(216,175,91,.35);border-radius:7px;background:rgba(0,0,0,.38);color:var(--cream);padding:10px;font:700 12px var(--mono);letter-spacing:.06em}
+button{cursor:pointer;margin-top:10px}
+button:hover{border-color:var(--teal);color:var(--teal)}
+.readout{border:1px solid rgba(71,231,255,.24);border-radius:8px;padding:12px;margin:12px 0;background:rgba(3,11,13,.55);font:12px var(--mono);color:var(--teal);line-height:1.6}
+#walkStatus.ok{color:var(--green)} #walkStatus.warn{color:var(--brass-hi)} #walkStatus.bad{color:var(--red)}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:14px 0}
+.key{border:1px solid rgba(255,229,160,.2);border-radius:6px;padding:9px;text-align:center;font:700 11px var(--mono);color:var(--muted)}
+.log{height:210px;overflow:auto;border:1px solid rgba(255,229,160,.14);border-radius:8px;background:rgba(0,0,0,.28);padding:10px;font:11px var(--mono);line-height:1.55;color:var(--muted)}
+.log .bad{color:var(--red)}
+.nav{position:fixed;top:12px;left:12px;z-index:10;display:flex;gap:8px}
+.nav a{background:rgba(0,0,0,.65);border:1px solid rgba(216,175,91,.4);border-radius:7px;color:var(--brass-hi);padding:8px 10px;text-decoration:none;font:700 11px var(--mono)}
+@media(max-width:900px){body{overflow:auto}.shell{height:auto;min-height:100vh;grid-template-columns:1fr}.stage{height:62vh}.panel{border-left:0;border-top:1px solid rgba(216,175,91,.28)}}
+</style>
+</head>
+<body>
+<nav class="nav"><a href="/safe-console" style="background:rgba(0,0,0,.75);border:1px solid #e3b65d;color:#f2f2e8;padding:6px 10px;text-decoration:none;font:700 11px system-ui,sans-serif">HELP / RECOVERY</a><a href="/director-switcher">Director Switcher</a><a href="/stage">Stage</a><a href="/dressing">Dressing</a></nav>
+<div class="shell">
+  <main class="stage" aria-label="3D avatar walk proof stage">
+    <canvas id="walkCanvas" width="1280" height="820"></canvas>
+  </main>
+  <aside class="panel">
+    <h1>Manny Walk Proof</h1>
+    <p class="sub">Real GLB performer asset test. No sprites. No CDN. W/A/S/D or arrow keys move the avatar on the floor grid.</p>
+    <label for="avatarSelect">Performer Asset</label>
+    <select id="avatarSelect"></select>
+    <button id="resetAvatar" type="button">Reset To Floor Origin</button>
+    <div class="readout"><strong>Status</strong><br><span id="walkStatus" class="warn">Loading manifest</span></div>
+    <div class="readout"><strong>Position</strong><br><span id="avatarPosition">x 0.00 | y 0.00 | z 0.00</span></div>
+    <div class="readout"><strong>Rig / Animation</strong><br><span id="avatarMeta">Waiting for GLB...</span></div>
+    <div class="keys"><div class="key"></div><div class="key">W / Up</div><div class="key"></div><div class="key">A / Left</div><div class="key">Shift Run</div><div class="key">D / Right</div><div class="key"></div><div class="key">S / Down</div><div class="key"></div></div>
+    <label>Event Log</label>
+    <div class="log" id="walkLog"></div>
+  </aside>
+</div>
+<script src="/static/js/avatar_glb_walk.js"></script>
+  <script src="/static/program_audio_runtime.js"></script>
+  <script src="/static/avatar_glb_motion_consumer.js"></script>
+  <script src="/static/voxel_block_preview_client.js"></script>
+</body>
+</html>

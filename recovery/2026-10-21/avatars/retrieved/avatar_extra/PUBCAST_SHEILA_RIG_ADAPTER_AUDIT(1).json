@@ -1,0 +1,1485 @@
+[
+  {
+    "file": "animation__walking_with_skin_glb.glb",
+    "joint_count": 25,
+    "animation_count": 1,
+    "mapping": {
+      "GLTF_created_0_rootJoint": null,
+      "Hips_23": "Pelvis",
+      "Spline_12": "Spine_03",
+      "Head_1": "Head",
+      "head_end_0": null,
+      "LeftShoulder_6": "Clavicle_L",
+      "LeftArm_5": "UpperArm_L",
+      "LeftForeArm_4": "LowerArm_L",
+      "LeftHand_3": "Hand_L",
+      "LeftHand_End_2": null,
+      "RightShoulder_11": "Clavicle_R",
+      "RightArm_10": "UpperArm_R",
+      "RightForeArm_9": "LowerArm_R",
+      "RightHand_8": "Hand_R",
+      "RightHand_End_7": null,
+      "LeftUpLeg_17": "Thigh_L",
+      "LeftLeg_16": "Calf_L",
+      "LeftFoot_15": "Foot_L",
+      "LeftToeBase_14": "Toe_L",
+      "LeftToe_end_13": null,
+      "RightUpLeg_22": "Thigh_R",
+      "RightLeg_21": "Calf_R",
+      "RightFoot_20": "Foot_R",
+      "RightToeBase_19": "Toe_R",
+      "RightToe_end_18": null
+    },
+    "unmapped_joints": [
+      "GLTF_created_0_rootJoint",
+      "head_end_0",
+      "LeftHand_End_2",
+      "RightHand_End_7",
+      "LeftToe_end_13",
+      "RightToe_end_18"
+    ],
+    "essential_missing": [
+      "Neck_01",
+      "Spine_01",
+      "Spine_02"
+    ],
+    "animation_channels": [
+      {
+        "source": "Hips_23",
+        "canonical": "Pelvis",
+        "path": "translation"
+      },
+      {
+        "source": "Hips_23",
+        "canonical": "Pelvis",
+        "path": "rotation"
+      },
+      {
+        "source": "Hips_23",
+        "canonical": "Pelvis",
+        "path": "scale"
+      },
+      {
+        "source": "Spline_12",
+        "canonical": "Spine_03",
+        "path": "translation"
+      },
+      {
+        "source": "Spline_12",
+        "canonical": "Spine_03",
+        "path": "rotation"
+      },
+      {
+        "source": "Spline_12",
+        "canonical": "Spine_03",
+        "path": "scale"
+      },
+      {
+        "source": "Head_1",
+        "canonical": "Head",
+        "path": "translation"
+      },
+      {
+        "source": "Head_1",
+        "canonical": "Head",
+        "path": "rotation"
+      },
+      {
+        "source": "head_end_0",
+        "canonical": null,
+        "path": "translation"
+      },
+      {
+        "source": "head_end_0",
+        "canonical": null,
+        "path": "rotation"
+      },
+      {
+        "source": "head_end_0",
+        "canonical": null,
+        "path": "scale"
+      },
+      {
+        "source": "LeftShoulder_6",
+        "canonical": "Clavicle_L",
+        "path": "translation"
+      },
+      {
+        "source": "LeftShoulder_6",
+        "canonical": "Clavicle_L",
+        "path": "rotation"
+      },
+      {
+        "source": "LeftShoulder_6",
+        "canonical": "Clavicle_L",
+        "path": "scale"
+      },
+      {
+        "source": "LeftArm_5",
+        "canonical": "UpperArm_L",
+        "path": "translation"
+      },
+      {
+        "source": "LeftArm_5",
+        "canonical": "UpperArm_L",
+        "path": "rotation"
+      },
+      {
+        "source": "LeftArm_5",
+        "canonical": "UpperArm_L",
+        "path": "scale"
+      },
+      {
+        "source": "LeftForeArm_4",
+        "canonical": "LowerArm_L",
+        "path": "translation"
+      },
+      {
+        "source": "LeftForeArm_4",
+        "canonical": "LowerArm_L",
+        "path": "rotation"
+      },
+      {
+        "source": "LeftHand_3",
+        "canonical": "Hand_L",
+        "path": "translation"
+      },
+      {
+        "source": "LeftHand_3",
+        "canonical": "Hand_L",
+        "path": "rotation"
+      },
+      {
+        "source": "LeftHand_3",
+        "canonical": "Hand_L",
+        "path": "scale"
+      },
+      {
+        "source": "LeftHand_End_2",
+        "canonical": null,
+        "path": "translation"
+      },
+      {
+        "source": "LeftHand_End_2",
+        "canonical": null,
+        "path": "rotation"
+      },
+      {
+        "source": "LeftHand_End_2",
+        "canonical": null,
+        "path": "scale"
+      },
+      {
+        "source": "RightShoulder_11",
+        "canonical": "Clavicle_R",
+        "path": "translation"
+      },
+      {
+        "source": "RightShoulder_11",
+        "canonical": "Clavicle_R",
+        "path": "rotation"
+      },
+      {
+        "source": "RightShoulder_11",
+        "canonical": "Clavicle_R",
+        "path": "scale"
+      },
+      {
+        "source": "RightArm_10",
+        "canonical": "UpperArm_R",
+        "path": "translation"
+      },
+      {
+        "source": "RightArm_10",
+        "canonical": "UpperArm_R",
+        "path": "rotation"
+      },
+      {
+        "source": "RightArm_10",
+        "canonical": "UpperArm_R",
+        "path": "scale"
+      },
+      {
+        "source": "RightForeArm_9",
+        "canonical": "LowerArm_R",
+        "path": "translation"
+      },
+      {
+        "source": "RightForeArm_9",
+        "canonical": "LowerArm_R",
+        "path": "rotation"
+      },
+      {
+        "source": "RightForeArm_9",
+        "canonical": "LowerArm_R",
+        "path": "scale"
+      },
+      {
+        "source": "RightHand_8",
+        "canonical": "Hand_R",
+        "path": "translation"
+      },
+      {
+        "source": "RightHand_8",
+        "canonical": "Hand_R",
+        "path": "rotation"
+      },
+      {
+        "source": "RightHand_8",
+        "canonical": "Hand_R",
+        "path": "scale"
+      },
+      {
+        "source": "RightHand_End_7",
+        "canonical": null,
+        "path": "translation"
+      },
+      {
+        "source": "RightHand_End_7",
+        "canonical": null,
+        "path": "rotation"
+      },
+      {
+        "source": "RightHand_End_7",
+        "canonical": null,
+        "path": "scale"
+      },
+      {
+        "source": "LeftUpLeg_17",
+        "canonical": "Thigh_L",
+        "path": "translation"
+      },
+      {
+        "source": "LeftUpLeg_17",
+        "canonical": "Thigh_L",
+        "path": "rotation"
+      },
+      {
+        "source": "LeftUpLeg_17",
+        "canonical": "Thigh_L",
+        "path": "scale"
+      },
+      {
+        "source": "LeftLeg_16",
+        "canonical": "Calf_L",
+        "path": "translation"
+      },
+      {
+        "source": "LeftLeg_16",
+        "canonical": "Calf_L",
+        "path": "rotation"
+      },
+      {
+        "source": "LeftLeg_16",
+        "canonical": "Calf_L",
+        "path": "scale"
+      },
+      {
+        "source": "LeftFoot_15",
+        "canonical": "Foot_L",
+        "path": "translation"
+      },
+      {
+        "source": "LeftFoot_15",
+        "canonical": "Foot_L",
+        "path": "rotation"
+      },
+      {
+        "source": "LeftFoot_15",
+        "canonical": "Foot_L",
+        "path": "scale"
+      },
+      {
+        "source": "LeftToeBase_14",
+        "canonical": "Toe_L",
+        "path": "translation"
+      },
+      {
+        "source": "LeftToeBase_14",
+        "canonical": "Toe_L",
+        "path": "rotation"
+      },
+      {
+        "source": "LeftToeBase_14",
+        "canonical": "Toe_L",
+        "path": "scale"
+      },
+      {
+        "source": "LeftToe_end_13",
+        "canonical": null,
+        "path": "translation"
+      },
+      {
+        "source": "LeftToe_end_13",
+        "canonical": null,
+        "path": "rotation"
+      },
+      {
+        "source": "LeftToe_end_13",
+        "canonical": null,
+        "path": "scale"
+      },
+      {
+        "source": "RightUpLeg_22",
+        "canonical": "Thigh_R",
+        "path": "translation"
+      },
+      {
+        "source": "RightUpLeg_22",
+        "canonical": "Thigh_R",
+        "path": "rotation"
+      },
+      {
+        "source": "RightUpLeg_22",
+        "canonical": "Thigh_R",
+        "path": "scale"
+      },
+      {
+        "source": "RightLeg_21",
+        "canonical": "Calf_R",
+        "path": "translation"
+      },
+      {
+        "source": "RightLeg_21",
+        "canonical": "Calf_R",
+        "path": "rotation"
+      },
+      {
+        "source": "RightLeg_21",
+        "canonical": "Calf_R",
+        "path": "scale"
+      },
+      {
+        "source": "RightFoot_20",
+        "canonical": "Foot_R",
+        "path": "translation"
+      },
+      {
+        "source": "RightFoot_20",
+        "canonical": "Foot_R",
+        "path": "rotation"
+      },
+      {
+        "source": "RightFoot_20",
+        "canonical": "Foot_R",
+        "path": "scale"
+      },
+      {
+        "source": "RightToeBase_19",
+        "canonical": "Toe_R",
+        "path": "translation"
+      },
+      {
+        "source": "RightToeBase_19",
+        "canonical": "Toe_R",
+        "path": "rotation"
+      },
+      {
+        "source": "RightToeBase_19",
+        "canonical": "Toe_R",
+        "path": "scale"
+      },
+      {
+        "source": "RightToe_end_18",
+        "canonical": null,
+        "path": "translation"
+      },
+      {
+        "source": "RightToe_end_18",
+        "canonical": null,
+        "path": "rotation"
+      },
+      {
+        "source": "RightToe_end_18",
+        "canonical": null,
+        "path": "scale"
+      }
+    ],
+    "unmapped_animation_channels": [
+      {
+        "source": "head_end_0",
+        "canonical": null,
+        "path": "translation"
+      },
+      {
+        "source": "head_end_0",
+        "canonical": null,
+        "path": "rotation"
+      },
+      {
+        "source": "head_end_0",
+        "canonical": null,
+        "path": "scale"
+      },
+      {
+        "source": "LeftHand_End_2",
+        "canonical": null,
+        "path": "translation"
+      },
+      {
+        "source": "LeftHand_End_2",
+        "canonical": null,
+        "path": "rotation"
+      },
+      {
+        "source": "LeftHand_End_2",
+        "canonical": null,
+        "path": "scale"
+      },
+      {
+        "source": "RightHand_End_7",
+        "canonical": null,
+        "path": "translation"
+      },
+      {
+        "source": "RightHand_End_7",
+        "canonical": null,
+        "path": "rotation"
+      },
+      {
+        "source": "RightHand_End_7",
+        "canonical": null,
+        "path": "scale"
+      },
+      {
+        "source": "LeftToe_end_13",
+        "canonical": null,
+        "path": "translation"
+      },
+      {
+        "source": "LeftToe_end_13",
+        "canonical": null,
+        "path": "rotation"
+      },
+      {
+        "source": "LeftToe_end_13",
+        "canonical": null,
+        "path": "scale"
+      },
+      {
+        "source": "RightToe_end_18",
+        "canonical": null,
+        "path": "translation"
+      },
+      {
+        "source": "RightToe_end_18",
+        "canonical": null,
+        "path": "rotation"
+      },
+      {
+        "source": "RightToe_end_18",
+        "canonical": null,
+        "path": "scale"
+      }
+    ]
+  },
+  {
+    "file": "standard_walk.glb",
+    "joint_count": 66,
+    "animation_count": 1,
+    "mapping": {
+      "_rootJoint": "Root",
+      "mixamorig:Hips_01": "Pelvis",
+      "mixamorig:Spine_02": "Spine_01",
+      "mixamorig:Spine1_03": "Spine_02",
+      "mixamorig:Spine2_04": "Spine_03",
+      "mixamorig:Neck_05": "Neck_01",
+      "mixamorig:Head_06": "Head",
+      "mixamorig:HeadTop_End_07": null,
+      "mixamorig:RightShoulder_08": "Clavicle_R",
+      "mixamorig:RightArm_09": "UpperArm_R",
+      "mixamorig:RightForeArm_010": "LowerArm_R",
+      "mixamorig:RightHand_011": "Hand_R",
+      "mixamorig:RightHandThumb1_012": "Thumb_01_R",
+      "mixamorig:RightHandThumb2_013": "Thumb_02_R",
+      "mixamorig:RightHandThumb3_014": "Thumb_03_R",
+      "mixamorig:RightHandThumb4_015": "Thumb_04_R",
+      "mixamorig:RightHandIndex1_016": "Index_01_R",
+      "mixamorig:RightHandIndex2_017": "Index_02_R",
+      "mixamorig:RightHandIndex3_018": "Index_03_R",
+      "mixamorig:RightHandIndex4_019": "Index_04_R",
+      "mixamorig:RightHandMiddle1_020": "Middle_01_R",
+      "mixamorig:RightHandMiddle2_021": "Middle_02_R",
+      "mixamorig:RightHandMiddle3_022": "Middle_03_R",
+      "mixamorig:RightHandMiddle4_023": "Middle_04_R",
+      "mixamorig:RightHandRing1_024": "Ring_01_R",
+      "mixamorig:RightHandRing2_025": "Ring_02_R",
+      "mixamorig:RightHandRing3_026": "Ring_03_R",
+      "mixamorig:RightHandRing4_027": "Ring_04_R",
+      "mixamorig:RightHandPinky1_028": "Pinky_01_R",
+      "mixamorig:RightHandPinky2_029": "Pinky_02_R",
+      "mixamorig:RightHandPinky3_030": "Pinky_03_R",
+      "mixamorig:RightHandPinky4_031": "Pinky_04_R",
+      "mixamorig:LeftShoulder_032": "Clavicle_L",
+      "mixamorig:LeftArm_033": "UpperArm_L",
+      "mixamorig:LeftForeArm_034": "LowerArm_L",
+      "mixamorig:LeftHand_035": "Hand_L",
+      "mixamorig:LeftHandThumb1_036": "Thumb_01_L",
+      "mixamorig:LeftHandThumb2_037": "Thumb_02_L",
+      "mixamorig:LeftHandThumb3_038": "Thumb_03_L",
+      "mixamorig:LeftHandThumb4_039": "Thumb_04_L",
+      "mixamorig:LeftHandIndex1_040": "Index_01_L",
+      "mixamorig:LeftHandIndex2_041": "Index_02_L",
+      "mixamorig:LeftHandIndex3_042": "Index_03_L",
+      "mixamorig:LeftHandIndex4_043": "Index_04_L",
+      "mixamorig:LeftHandMiddle1_044": "Middle_01_L",
+      "mixamorig:LeftHandMiddle2_045": "Middle_02_L",
+      "mixamorig:LeftHandMiddle3_046": "Middle_03_L",
+      "mixamorig:LeftHandMiddle4_047": "Middle_04_L",
+      "mixamorig:LeftHandRing1_048": "Ring_01_L",
+      "mixamorig:LeftHandRing2_049": "Ring_02_L",
+      "mixamorig:LeftHandRing3_050": "Ring_03_L",
+      "mixamorig:LeftHandRing4_051": "Ring_04_L",
+      "mixamorig:LeftHandPinky1_052": "Pinky_01_L",
+      "mixamorig:LeftHandPinky2_053": "Pinky_02_L",
+      "mixamorig:LeftHandPinky3_054": "Pinky_03_L",
+      "mixamorig:LeftHandPinky4_055": "Pinky_04_L",
+      "mixamorig:RightUpLeg_056": "Thigh_R",
+      "mixamorig:RightLeg_057": "Calf_R",
+      "mixamorig:RightFoot_058": "Foot_R",
+      "mixamorig:RightToeBase_059": "Toe_R",
+      "mixamorig:RightToe_End_060": null,
+      "mixamorig:LeftUpLeg_061": "Thigh_L",
+      "mixamorig:LeftLeg_00": "Calf_L",
+      "mixamorig:LeftFoot_062": "Foot_L",
+      "mixamorig:LeftToeBase_063": "Toe_L",
+      "mixamorig:LeftToe_End_064": null
+    },
+    "unmapped_joints": [
+      "mixamorig:HeadTop_End_07",
+      "mixamorig:RightToe_End_060",
+      "mixamorig:LeftToe_End_064"
+    ],
+    "essential_missing": [],
+    "animation_channels": [
+      {
+        "source": "mixamorig:Head_06",
+        "canonical": "Head",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:Head_06",
+        "canonical": "Head",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:Neck_05",
+        "canonical": "Neck_01",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:Neck_05",
+        "canonical": "Neck_01",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandThumb3_014",
+        "canonical": "Thumb_03_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightHandThumb3_014",
+        "canonical": "Thumb_03_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandThumb2_013",
+        "canonical": "Thumb_02_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightHandThumb2_013",
+        "canonical": "Thumb_02_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandThumb1_012",
+        "canonical": "Thumb_01_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandIndex3_018",
+        "canonical": "Index_03_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightHandIndex3_018",
+        "canonical": "Index_03_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandIndex2_017",
+        "canonical": "Index_02_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightHandIndex2_017",
+        "canonical": "Index_02_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandIndex1_016",
+        "canonical": "Index_01_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandMiddle3_022",
+        "canonical": "Middle_03_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightHandMiddle3_022",
+        "canonical": "Middle_03_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandMiddle2_021",
+        "canonical": "Middle_02_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightHandMiddle2_021",
+        "canonical": "Middle_02_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandMiddle1_020",
+        "canonical": "Middle_01_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandRing3_026",
+        "canonical": "Ring_03_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightHandRing3_026",
+        "canonical": "Ring_03_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandRing2_025",
+        "canonical": "Ring_02_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightHandRing2_025",
+        "canonical": "Ring_02_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandRing1_024",
+        "canonical": "Ring_01_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandPinky3_030",
+        "canonical": "Pinky_03_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightHandPinky3_030",
+        "canonical": "Pinky_03_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandPinky2_029",
+        "canonical": "Pinky_02_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightHandPinky2_029",
+        "canonical": "Pinky_02_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandPinky1_028",
+        "canonical": "Pinky_01_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHand_011",
+        "canonical": "Hand_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightForeArm_010",
+        "canonical": "LowerArm_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightForeArm_010",
+        "canonical": "LowerArm_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightArm_09",
+        "canonical": "UpperArm_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightArm_09",
+        "canonical": "UpperArm_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightShoulder_08",
+        "canonical": "Clavicle_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandThumb3_038",
+        "canonical": "Thumb_03_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftHandThumb3_038",
+        "canonical": "Thumb_03_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandThumb2_037",
+        "canonical": "Thumb_02_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftHandThumb2_037",
+        "canonical": "Thumb_02_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandThumb1_036",
+        "canonical": "Thumb_01_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandIndex3_042",
+        "canonical": "Index_03_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftHandIndex3_042",
+        "canonical": "Index_03_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandIndex2_041",
+        "canonical": "Index_02_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftHandIndex2_041",
+        "canonical": "Index_02_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandIndex1_040",
+        "canonical": "Index_01_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandMiddle3_046",
+        "canonical": "Middle_03_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftHandMiddle3_046",
+        "canonical": "Middle_03_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandMiddle2_045",
+        "canonical": "Middle_02_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftHandMiddle2_045",
+        "canonical": "Middle_02_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandMiddle1_044",
+        "canonical": "Middle_01_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandRing3_050",
+        "canonical": "Ring_03_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftHandRing3_050",
+        "canonical": "Ring_03_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandRing2_049",
+        "canonical": "Ring_02_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftHandRing2_049",
+        "canonical": "Ring_02_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandRing1_048",
+        "canonical": "Ring_01_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandPinky3_054",
+        "canonical": "Pinky_03_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftHandPinky3_054",
+        "canonical": "Pinky_03_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandPinky2_053",
+        "canonical": "Pinky_02_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftHandPinky2_053",
+        "canonical": "Pinky_02_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandPinky1_052",
+        "canonical": "Pinky_01_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHand_035",
+        "canonical": "Hand_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftForeArm_034",
+        "canonical": "LowerArm_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftForeArm_034",
+        "canonical": "LowerArm_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftArm_033",
+        "canonical": "UpperArm_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftArm_033",
+        "canonical": "UpperArm_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftShoulder_032",
+        "canonical": "Clavicle_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:Spine2_04",
+        "canonical": "Spine_03",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:Spine2_04",
+        "canonical": "Spine_03",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:Spine1_03",
+        "canonical": "Spine_02",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:Spine1_03",
+        "canonical": "Spine_02",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:Spine_02",
+        "canonical": "Spine_01",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:Spine_02",
+        "canonical": "Spine_01",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightToeBase_059",
+        "canonical": "Toe_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightToeBase_059",
+        "canonical": "Toe_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightFoot_058",
+        "canonical": "Foot_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightFoot_058",
+        "canonical": "Foot_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightLeg_057",
+        "canonical": "Calf_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightLeg_057",
+        "canonical": "Calf_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightUpLeg_056",
+        "canonical": "Thigh_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftToeBase_063",
+        "canonical": "Toe_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftToeBase_063",
+        "canonical": "Toe_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftFoot_062",
+        "canonical": "Foot_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftFoot_062",
+        "canonical": "Foot_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftLeg_00",
+        "canonical": "Calf_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftLeg_00",
+        "canonical": "Calf_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftUpLeg_061",
+        "canonical": "Thigh_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:Hips_01",
+        "canonical": "Pelvis",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:Hips_01",
+        "canonical": "Pelvis",
+        "path": "rotation"
+      }
+    ],
+    "unmapped_animation_channels": []
+  },
+  {
+    "file": "walking-girl.glb",
+    "joint_count": 66,
+    "animation_count": 1,
+    "mapping": {
+      "_rootJoint": "Root",
+      "mixamorig:Hips_01": "Pelvis",
+      "mixamorig:Spine_02": "Spine_01",
+      "mixamorig:Spine1_03": "Spine_02",
+      "mixamorig:Spine2_04": "Spine_03",
+      "mixamorig:Neck_05": "Neck_01",
+      "mixamorig:Head_06": "Head",
+      "mixamorig:HeadTop_End_07": null,
+      "mixamorig:LeftShoulder_08": "Clavicle_L",
+      "mixamorig:LeftArm_09": "UpperArm_L",
+      "mixamorig:LeftForeArm_010": "LowerArm_L",
+      "mixamorig:LeftHand_011": "Hand_L",
+      "mixamorig:LeftHandThumb1_012": "Thumb_01_L",
+      "mixamorig:LeftHandThumb2_013": "Thumb_02_L",
+      "mixamorig:LeftHandThumb3_014": "Thumb_03_L",
+      "mixamorig:LeftHandThumb4_015": "Thumb_04_L",
+      "mixamorig:LeftHandIndex1_016": "Index_01_L",
+      "mixamorig:LeftHandIndex2_017": "Index_02_L",
+      "mixamorig:LeftHandIndex3_018": "Index_03_L",
+      "mixamorig:LeftHandIndex4_019": "Index_04_L",
+      "mixamorig:LeftHandMiddle1_020": "Middle_01_L",
+      "mixamorig:LeftHandMiddle2_021": "Middle_02_L",
+      "mixamorig:LeftHandMiddle3_022": "Middle_03_L",
+      "mixamorig:LeftHandMiddle4_023": "Middle_04_L",
+      "mixamorig:LeftHandRing1_024": "Ring_01_L",
+      "mixamorig:LeftHandRing2_025": "Ring_02_L",
+      "mixamorig:LeftHandRing3_026": "Ring_03_L",
+      "mixamorig:LeftHandRing4_027": "Ring_04_L",
+      "mixamorig:LeftHandPinky1_028": "Pinky_01_L",
+      "mixamorig:LeftHandPinky2_029": "Pinky_02_L",
+      "mixamorig:LeftHandPinky3_030": "Pinky_03_L",
+      "mixamorig:LeftHandPinky4_031": "Pinky_04_L",
+      "mixamorig:RightShoulder_032": "Clavicle_R",
+      "mixamorig:RightArm_033": "UpperArm_R",
+      "mixamorig:RightForeArm_034": "LowerArm_R",
+      "mixamorig:RightHand_035": "Hand_R",
+      "mixamorig:RightHandThumb1_036": "Thumb_01_R",
+      "mixamorig:RightHandThumb2_037": "Thumb_02_R",
+      "mixamorig:RightHandThumb3_038": "Thumb_03_R",
+      "mixamorig:RightHandThumb4_039": "Thumb_04_R",
+      "mixamorig:RightHandIndex1_040": "Index_01_R",
+      "mixamorig:RightHandIndex2_041": "Index_02_R",
+      "mixamorig:RightHandIndex3_042": "Index_03_R",
+      "mixamorig:RightHandIndex4_043": "Index_04_R",
+      "mixamorig:RightHandMiddle1_044": "Middle_01_R",
+      "mixamorig:RightHandMiddle2_045": "Middle_02_R",
+      "mixamorig:RightHandMiddle3_046": "Middle_03_R",
+      "mixamorig:RightHandMiddle4_047": "Middle_04_R",
+      "mixamorig:RightHandRing1_048": "Ring_01_R",
+      "mixamorig:RightHandRing2_049": "Ring_02_R",
+      "mixamorig:RightHandRing3_050": "Ring_03_R",
+      "mixamorig:RightHandRing4_051": "Ring_04_R",
+      "mixamorig:RightHandPinky1_052": "Pinky_01_R",
+      "mixamorig:RightHandPinky2_053": "Pinky_02_R",
+      "mixamorig:RightHandPinky3_054": "Pinky_03_R",
+      "mixamorig:RightHandPinky4_055": "Pinky_04_R",
+      "mixamorig:LeftUpLeg_056": "Thigh_L",
+      "mixamorig:LeftLeg_00": "Calf_L",
+      "mixamorig:LeftFoot_057": "Foot_L",
+      "mixamorig:LeftToeBase_058": "Toe_L",
+      "mixamorig:LeftToe_End_059": null,
+      "mixamorig:RightUpLeg_060": "Thigh_R",
+      "mixamorig:RightLeg_061": "Calf_R",
+      "mixamorig:RightFoot_062": "Foot_R",
+      "mixamorig:RightToeBase_063": "Toe_R",
+      "mixamorig:RightToe_End_064": null
+    },
+    "unmapped_joints": [
+      "mixamorig:HeadTop_End_07",
+      "mixamorig:LeftToe_End_059",
+      "mixamorig:RightToe_End_064"
+    ],
+    "essential_missing": [],
+    "animation_channels": [
+      {
+        "source": "mixamorig:Head_06",
+        "canonical": "Head",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:Head_06",
+        "canonical": "Head",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:Neck_05",
+        "canonical": "Neck_01",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:Neck_05",
+        "canonical": "Neck_01",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandThumb3_014",
+        "canonical": "Thumb_03_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandThumb2_013",
+        "canonical": "Thumb_02_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandThumb1_012",
+        "canonical": "Thumb_01_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandIndex3_018",
+        "canonical": "Index_03_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandIndex2_017",
+        "canonical": "Index_02_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftHandIndex2_017",
+        "canonical": "Index_02_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandIndex1_016",
+        "canonical": "Index_01_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandMiddle3_022",
+        "canonical": "Middle_03_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandMiddle2_021",
+        "canonical": "Middle_02_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftHandMiddle2_021",
+        "canonical": "Middle_02_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandMiddle1_020",
+        "canonical": "Middle_01_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandRing3_026",
+        "canonical": "Ring_03_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandRing2_025",
+        "canonical": "Ring_02_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftHandRing2_025",
+        "canonical": "Ring_02_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandRing1_024",
+        "canonical": "Ring_01_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandPinky3_030",
+        "canonical": "Pinky_03_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandPinky2_029",
+        "canonical": "Pinky_02_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftHandPinky2_029",
+        "canonical": "Pinky_02_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHandPinky1_028",
+        "canonical": "Pinky_01_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftHand_011",
+        "canonical": "Hand_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftHand_011",
+        "canonical": "Hand_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftForeArm_010",
+        "canonical": "LowerArm_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftForeArm_010",
+        "canonical": "LowerArm_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftArm_09",
+        "canonical": "UpperArm_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftArm_09",
+        "canonical": "UpperArm_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftShoulder_08",
+        "canonical": "Clavicle_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandThumb3_038",
+        "canonical": "Thumb_03_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandThumb2_037",
+        "canonical": "Thumb_02_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightHandThumb2_037",
+        "canonical": "Thumb_02_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandThumb1_036",
+        "canonical": "Thumb_01_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandIndex3_042",
+        "canonical": "Index_03_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandIndex2_041",
+        "canonical": "Index_02_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightHandIndex2_041",
+        "canonical": "Index_02_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandIndex1_040",
+        "canonical": "Index_01_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandMiddle3_046",
+        "canonical": "Middle_03_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandMiddle2_045",
+        "canonical": "Middle_02_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightHandMiddle2_045",
+        "canonical": "Middle_02_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandMiddle1_044",
+        "canonical": "Middle_01_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandRing3_050",
+        "canonical": "Ring_03_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandRing2_049",
+        "canonical": "Ring_02_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightHandRing2_049",
+        "canonical": "Ring_02_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandRing1_048",
+        "canonical": "Ring_01_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandPinky3_054",
+        "canonical": "Pinky_03_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandPinky2_053",
+        "canonical": "Pinky_02_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightHandPinky2_053",
+        "canonical": "Pinky_02_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHandPinky1_052",
+        "canonical": "Pinky_01_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightHand_035",
+        "canonical": "Hand_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightHand_035",
+        "canonical": "Hand_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightForeArm_034",
+        "canonical": "LowerArm_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightForeArm_034",
+        "canonical": "LowerArm_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightArm_033",
+        "canonical": "UpperArm_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightArm_033",
+        "canonical": "UpperArm_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightShoulder_032",
+        "canonical": "Clavicle_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:Spine2_04",
+        "canonical": "Spine_03",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:Spine2_04",
+        "canonical": "Spine_03",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:Spine1_03",
+        "canonical": "Spine_02",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:Spine1_03",
+        "canonical": "Spine_02",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:Spine_02",
+        "canonical": "Spine_01",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:Spine_02",
+        "canonical": "Spine_01",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftToeBase_058",
+        "canonical": "Toe_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftToeBase_058",
+        "canonical": "Toe_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftFoot_057",
+        "canonical": "Foot_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftFoot_057",
+        "canonical": "Foot_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftLeg_00",
+        "canonical": "Calf_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftLeg_00",
+        "canonical": "Calf_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:LeftUpLeg_056",
+        "canonical": "Thigh_L",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:LeftUpLeg_056",
+        "canonical": "Thigh_L",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightToeBase_063",
+        "canonical": "Toe_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightToeBase_063",
+        "canonical": "Toe_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightFoot_062",
+        "canonical": "Foot_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightFoot_062",
+        "canonical": "Foot_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightLeg_061",
+        "canonical": "Calf_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightLeg_061",
+        "canonical": "Calf_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:RightUpLeg_060",
+        "canonical": "Thigh_R",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:RightUpLeg_060",
+        "canonical": "Thigh_R",
+        "path": "rotation"
+      },
+      {
+        "source": "mixamorig:Hips_01",
+        "canonical": "Pelvis",
+        "path": "translation"
+      },
+      {
+        "source": "mixamorig:Hips_01",
+        "canonical": "Pelvis",
+        "path": "rotation"
+      }
+    ],
+    "unmapped_animation_channels": []
+  }
+]

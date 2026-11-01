@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "character": "alex",
+  "directions": {
+    "S":  {"set": "front",  "mirror": false},
+    "SE": {"set": "q_front", "mirror": false},
+    "E":  {"set": "side",   "mirror": false},
+    "NE": {"set": "q_back", "mirror": false},
+    "N":  {"set": "back",   "mirror": false},
+    "NW": {"set": "q_back", "mirror": true},
+    "W":  {"set": "side",   "mirror": true},
+    "SW": {"set": "q_front", "mirror": true}
+  },
+  "walk": {
+    "side":    {"frames": ["walk_side_1.png","walk_side_2.png","walk_side_3.png","walk_side_4.png","walk_side_5.png","walk_side_6.png","walk_side_7.png","walk_side_8.png"]},
+    "q_front": {"frames": ["walk_34_1.png","walk_34_2.png","walk_34_3.png","walk_34_4.png","walk_34_5.png"]},
+    "front":   {"frames": [], "still": "turn_front.png"},
+    "q_back":  {"frames": [], "still": "turn_three_quarter_back.png"},
+    "back":    {"frames": [], "still": "turn_back.png"}
+  },
+  "idle": {"front":"turn_front.png","q_front":"turn_three_quarter_front.png","side":"turn_side.png","q_back":"turn_three_quarter_back.png","back":"turn_back.png"},
+  "portraits": {
+    "neutral":    ["expr_neutral.png"],
+    "happy":      ["expr_smile.png"],
+    "serious":    ["expr_serious.png"],
+    "curious":    ["expr_curious.png"],
+    "playful":    ["expr_playful.png"],
+    "determined": ["expr_determined.png"]
+  },
+  "stridePx": 150
+}

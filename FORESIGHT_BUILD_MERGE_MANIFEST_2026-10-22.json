@@ -1,0 +1,60 @@
+{
+  "donor_sources": [
+    "Communications Core 2026-10-20",
+    "Foresight Counter Update 2026-10-21",
+    "2i Rich Integration Checked 2026-10-21"
+  ],
+  "merge_changes": [
+    {
+      "path": "static/foresight_programs.js",
+      "before": "d8a3665a12413dbce14a54f0379191f24247cabf443975de21c9c9f5646a3a18",
+      "after": "179ee8fcbfe2957fe45c988d46db1d82d560df77920ddc3829aa18d70b7c07c2",
+      "reason": "Foresight file/session/tray provider merged; preserves other communications modules"
+    },
+    {
+      "path": "static/foresight_counter.html",
+      "before": "c4f6f6079df724f8534cd6c0063b05289f93c31c3abc1685ec560aec16f37414",
+      "after": "0cecd0902523a0a167e09ee7afc96a773ca52a84f285d44731ee0612600edf35"
+    },
+    {
+      "path": "run_reach.py",
+      "before": "7c88cbadef9b42e7205be98d2b3fff55296d3233d11e18ed864103d939a75e18",
+      "after": "c0e817c611af7910674077634eea1b4372e784261f948459bad2ac7699ba6dc3"
+    },
+    {
+      "path": "main.py",
+      "before": "38a80996e474be3f4890187438d38ca0d4ebb86a0bc157fc5d2408797b3b7e71",
+      "after": "73ee3fcb287bc0a7c1835143461bf08a3543c8410111d9ed586f4240ec7ec65d"
+    },
+    {
+      "path": "main.py",
+      "before": "73ee3fcb287bc0a7c1835143461bf08a3543c8410111d9ed586f4240ec7ec65d",
+      "after": "5e4b9b3006e9e7e69989a81be3fcab5149965bea8585219f8cc0181f999de1c7"
+    },
+    {
+      "path": "modules/bots.py",
+      "before": "96e123331c0270e2c577397dbe56e326febd24932f35babd6355f96ad6a5ec22",
+      "after": "28bbb5d3d00aa753b4a7c5d2b68071176e8cf0fa72c14518efedf90ce2eb1672"
+    },
+    {
+      "path": "2i/writers-room-v22.html",
+      "before": "91c4ea9d422803cb1b557c592c58a5e9361c22f1c934103cff4fa1867cb54940",
+      "after": "26598ef7cc8e785923445b470b1ba37cb7b9cbe3e0e459283b1be23c3b137ba9"
+    },
+    {
+      "path": "2i/writers-room-v22.html",
+      "before": "26598ef7cc8e785923445b470b1ba37cb7b9cbe3e0e459283b1be23c3b137ba9",
+      "after": "3deeb5973be56a63bba93a8fb1e41a3753a7e4284300660efba9034e984e4e41"
+    },
+    {
+      "path": "2i/writers-room-v22.html",
+      "before": "3deeb5973be56a63bba93a8fb1e41a3753a7e4284300660efba9034e984e4e41",
+      "after": "4a33b3ee2725cd3ca8abbb378b696688d618f90ab531ea50268a5b78d9ed7b5d"
+    },
+    {
+      "path": "2i/writers-room-v22.html",
+      "before": "4a33b3ee2725cd3ca8abbb378b696688d618f90ab531ea50268a5b78d9ed7b5d",
+      "after": "88fa2d32c3b796cbd6a4e900c16183f5f2ddc092b401deb391e561a7f3b84e66"
+    }
+  ]
+}

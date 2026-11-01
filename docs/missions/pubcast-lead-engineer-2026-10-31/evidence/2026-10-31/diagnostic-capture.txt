@@ -1,0 +1,6 @@
+BASELINE {"state": {"package": "news", "program": "wide", "preview": "anchor", "recording": false, "session": null, "storage": true}, "actors": "3D GLB actors: p25d-news-performer-1 (1 animations), p25d-news-performer-2 (1 animations)", "errors": [], "failed": []}
+START {"link": "VIDEO: SHARED SWITCHER", "feed": "REMOTE FRAMES: CONFIRMED (19)", "alert": "", "errors": [], "failed": []}
+RECORDED ✓ news · 2026-10-31 20:40:23 · Take 1 · 65157 bytes
+PLAYBACK {'w': 1280, 'h': 720, 'duration': inf, 'bytes': '✓ news · 2026-10-31 20:40:23 · Take 1 · 65157 bytes', 'errors': ''}
+ERRORS []
+HTTP_FAILURES []

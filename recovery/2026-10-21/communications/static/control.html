@@ -1,0 +1,565 @@
+{% extends "base.html" %}
+
+{% block title %}PubCast AI V9{% endblock %}
+
+{% block head %}
+  <link rel="stylesheet" href="/static/styles.css" />
+{% endblock %}
+
+{% block body %}
+  <header>
+    <div class="logo">PubCast</div>
+    <nav><a href="/safe-console" style="background:rgba(0,0,0,.75);border:1px solid #e3b65d;color:#f2f2e8;padding:6px 10px;text-decoration:none;font:700 11px system-ui,sans-serif">HELP / RECOVERY</a>
+      <button class="nav-btn" data-room="dressing">Dressing</button>
+      <button class="nav-btn" data-room="green">Green Room</button>
+      <button class="nav-btn" data-room="studio">Studio</button>
+      <button class="nav-btn" data-room="control">Control Room</button>
+      <a href="/director-switcher"><button class="nav-btn" type="button">Director Switcher</button></a>
+      <button class="nav-btn" data-room="conference">Conference</button>
+      <button class="nav-btn" data-room="pub">Pub</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="view-dressing" class="view">
+      <h2>Dressing Room</h2>
+      <div class="room-nav" data-room-nav="dressing"></div>
+      <div class="grid two">
+        <div>
+          <h3>Mirror</h3>
+          <div id="mirror-preview" class="mirror">
+            <div class="avatar" id="avatar-preview"></div>
+            <div class="name" id="name-preview"></div>
+          </div>
+        </div>
+        <div>
+          <h3>Wardrobe</h3>
+          <form id="wardrobe-form">
+            <label>Display Name <input type="text" id="displayName" /></label>
+            <label>Avatar Color <input type="color" id="avatarColor" value="#00e0ff" /></label>
+            <label>Badge <input type="text" id="badge" /></label>
+            <div class="row">
+              <button type="submit">Save</button>
+            </div>
+          </form>
+          <h3>Upload (&le;5MB)</h3>
+          <form id="upload-form">
+            <input type="file" id="uploadFile" />
+            <select id="uploadTarget">
+              <option value="">My Uploads</option>
+              <option value="vod">Replay (assets/vod)</option>
+            </select>
+            <button type="submit">Upload</button>
+            <div id="upload-result"></div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-green" class="view hidden">
+      <h2>Green Room</h2>
+      <div class="room-nav" data-room-nav="green"></div>
+      <div class="grid two">
+        <div>
+          <h3>Program Monitor <span id="program-badge" class="badge">LIVE</span></h3>
+          <div id="monitor">
+            <video id="replay-video" controls class="hidden"></video>
+            <div id="live-banner" class="live">ON AIR</div>
+            <div id="lower-third" class="lower-third"></div>
+          </div>
+        </div>
+        <div>
+          <h3>Roster</h3>
+          <ul id="roster"></ul>
+          <p class="muted">You will be invited when it's your turn.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-studio" class="view hidden">
+      <h2>Studio</h2>
+      <div class="room-nav" data-room-nav="studio"></div>
+      <div id="studio-stage">
+        <div id="studio-onair" class="onair hidden">ON AIR</div>
+        <div id="studio-lower-third" class="lower-third"></div>
+        <div id="studio-camera" class="camera">Camera: <span id="camera-mode">wide</span></div>
+        <div id="studio-lighting" class="lighting">Lighting: <span id="lighting-mode">normal</span></div>
+      </div>
+    </section>
+
+    <section id="view-control" class="view hidden">
+      <h2>Control Room</h2>
+      <div class="room-nav" data-room-nav="control"></div>
+      <!-- Stations toolbar -->
+      <div id="stations-bar" style="display:flex;gap:8px;align-items:center;margin:8px 0 10px;flex-wrap:wrap;">
+        <button class="ghost" data-station="director">Director / Switcher</button>
+        <button class="ghost" data-station="audio">Audio Mixer</button>
+        <button class="ghost" data-station="editor">Video Editor</button>
+        <button class="ghost" data-station="chyron">Chyron</button>
+        <button class="ghost" data-station="prompter">Teleprompter</button>
+        <button class="ghost" data-station="vtr">VTR</button>
+      </div>
+
+      <div id="station-director">        <div class="panel">
+          <h3>Vision Mixer</h3>
+          <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
+            <button id="vm-join">Join Monitors</button>
+            <button id="vm-cut" class="ghost">Cut</button>
+            <button id="vm-take" class="ghost">Fade</button>
+            <label class="muted small" style="display:flex;align-items:center;gap:6px;">Mix (ms)
+              <input id="vm-mix" type="number" min="100" max="4000" value="400" style="width:90px;" />
+            </label>
+            <span class="muted small">Keys: 1–9 PVW, Space/Enter/C Cut, F Fade</span>
+          </div>
+          <div class="grid two" style="gap:10px;">
+            <div>
+              <h4>Program</h4>
+              <video id="pgm-monitor" muted playsinline autoplay style="width:100%;background:#000;border-radius:6px;"></video>
+              <div id="pgm-meter" class="muted small" style="margin-top:4px;">PGM: -- dB</div>
+            </div>
+            <div>
+              <h4>Preview</h4>
+              <video id="pvw-monitor" muted playsinline autoplay style="width:100%;background:#000;border-radius:6px;"></video>
+              <div class="muted small" style="margin-top:4px;">Click any source to set Preview, then Take.</div>
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <h4>Sources</h4>
+            <div id="cam-list" class="video-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Quick Macros & Safety</h3>
+          <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;">
+            <button id="qx-open" class="ghost">Show Open</button>
+            <button id="qx-interview" class="ghost">Interview</button>
+            <button id="qx-commercial" class="ghost">Commercial</button>
+            <button id="qx-end" class="ghost">Show End</button>
+            <span class="muted small">Uses production_state patches</span>
+          </div>
+          <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;">
+            <button id="qx-bleep" style="background:#7a1b1b;color:#fff;">BLEEP</button>
+            <label class="muted small" style="display:flex;align-items:center;gap:6px;">ms <input id="qx-bleep-ms" type="number" min="100" max="5000" value="800" style="width:90px;"></label>
+            <button id="qx-ohshit" style="background:#d22;color:#fff;">OH SHIT!</button>
+            <span class="muted small">Bleep tone + emergency fade to black</span>
+          </div>
+        </div>
+      <form id="control-form" class="grid two">
+        <div>
+          <label>Mode
+            <select id="prod-mode">
+              <option value="LIVE">LIVE</option>
+              <option value="REPLAY">REPLAY</option>
+            </select>
+          </label>
+          <label>On Air
+            <select id="prod-onair">
+              <option value="false">OFF</option>
+              <option value="true">ON</option>
+            </select>
+          </label>
+          <label>Replay Asset (assets/vod/...)
+            <input type="text" id="prod-replay" placeholder="vod_filename.mp4" />
+          </label>
+          <label>Lower Third
+            <input type="text" id="prod-lower" placeholder="Guest Name / Title" />
+          </label>
+        </div>
+        <div>
+          <label>Camera
+            <select id="prod-camera">
+              <option value="wide">wide</option>
+              <option value="closeup">closeup</option>
+              <option value="overhead">overhead</option>
+            </select>
+          </label>
+          <label>Lighting
+            <select id="prod-lighting">
+              <option value="normal">normal</option>
+              <option value="warm">warm</option>
+              <option value="cool">cool</option>
+            </select>
+          </label>
+          <div class="row">
+            <button type="submit">Push to Program</button>
+          </div>
+          <div class="muted small">Tip: this broadcasts to all rooms via WebSocket.</div>
+        </div>
+      </form>
+      </div>
+
+      <!-- Audio Mixer Station -->
+      <div id="station-audio" class="hidden">
+        <div class="panel">
+          <h3>Audio Mixer</h3>
+          <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap;">
+            <label class="muted small">Program</label>
+            <input id="mixer-program" type="range" min="0" max="100" value="80" />
+            <label class="muted small">Hosts</label>
+            <input id="mixer-hosts" type="range" min="0" max="100" value="85" />
+            <label class="muted small">Music</label>\n            <input id="mixer-music" type="range" min="0" max="100" value="60" />\n            <label class="muted small" style="margin-left:8px;display:flex;align-items:center;gap:6px;"><input id="mixer-monitor" type="checkbox" /> Monitor Program</label>\n            <label class="muted small">Level</label>\n            <input id="mixer-monitor-level" type="range" min="0" max="100" value="80" />
+            <label class="muted small" style="margin-left:8px;display:flex;align-items:center;gap:6px;"><input id="mixer-afv" type="checkbox" /> Duck Music on VTR</label>
+            <button id="mixer-apply" class="ghost">Apply</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Video Editor Station -->
+      <div id="station-editor" class="hidden">
+        <div class="panel">
+          <h3>Editor</h3>
+          <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
+            <input id="ed-search" class="pc-input" placeholder="Search media…" style="min-width:220px;" />
+            <label class="muted small" style="display:flex;align-items:center;gap:6px;">
+              <input id="ed-meta" type="checkbox" /> Metadata
+            </label>
+            <button id="ed-refresh" class="ghost">Refresh</button>
+          </div>
+          <div class="grid two" style="gap:10px;">
+            <div>
+              <h4>Bin</h4>
+              <div id="ed-bin" class="list" style="max-height:260px; overflow:auto;"></div>
+            </div>
+            <div>
+              <h4>Viewer</h4>
+              <video id="ed-view" controls playsinline style="width:100%;background:#000;border-radius:6px;"></video>
+              <div class="row" style="gap:6px;align-items:center;">
+                <button id="ed-mark-in" class="ghost">Mark In (I)</button>
+                <button id="ed-mark-out" class="ghost">Mark Out (O)</button>
+                <button id="ed-add-subclip">Add To Timeline</button>
+                <span id="ed-io" class="muted small">In: — Out: —</span>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <h4>Timeline</h4>
+            <div id="ed-timeline" class="list" style="min-height:54px;"></div>
+            <div class="row" style="gap:6px;align-items:center;">
+              <label class="muted small">Output</label>
+              <input id="ed-export-name" placeholder="final_edit.mp4" style="min-width:220px;" />
+              <button id="ed-export">Export</button>
+              <span id="ed-status" class="muted small"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chyron Station -->
+      <div id="station-chyron" class="hidden">
+        <div class="panel">
+          <h3>Chyron</h3>
+          <div class="row" style="gap:6px;align-items:center;flex-wrap:wrap;">
+            <label class="muted small">Lower Third</label>
+            <input id="chy-lower" placeholder="Name / Title" />
+            <label class="muted small">Bug</label>
+            <input id="chy-bug" placeholder="#Hashtag or Bug" />
+            <button id="chy-apply" class="ghost">Apply</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Teleprompter Station -->
+      <div id="station-prompter" class="hidden">
+        <div class="panel">
+          <h3>Teleprompter</h3>
+          <div class="row" style="gap:6px;align-items:center;flex-wrap:wrap;">
+            <textarea id="pro-script" rows="5" placeholder="Paste script here…" style="flex:1;"></textarea>
+          </div>
+          <div class="row" style="gap:6px;align-items:center;">
+            <label class="muted small">Speed</label>
+            <input id="pro-speed" type="range" min="1" max="10" value="5" />
+            <button id="pro-start" class="ghost">Start</button>
+            <button id="pro-stop" class="ghost">Stop</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- VTR Station -->
+      <div id="station-vtr" class="hidden">
+        <div class="panel">
+          <h3>VTR</h3>
+          <div class="row" style="gap:6px;align-items:center;flex-wrap:wrap;">
+            <input id="vtr-asset" placeholder="assets/vod/clip.mp4" style="min-width:260px;" />
+            <button id="vtr-load">Load</button>
+            <button id="vtr-play">Play</button>
+            <button id="vtr-stop">Stop</button>
+          </div>
+        </div>
+      </div>
+
+            <div class="panel" style="margin-top:10px;">
+        <h3>Camera Controls</h3>
+        <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
+          <label class="muted small">Camera ID</label>
+          <input id="ptz-cam" placeholder="cam1" style="width:120px;" />
+          <label class="muted small">Preset A</label>
+          <input id="ptz-a-label" placeholder="Spot A" style="width:140px;" />
+          <input id="ptz-a-time" type="number" placeholder="ms" style="width:100px;" />
+          <button id="ptz-save-a" class="ghost">Save A</button>
+          <button id="ptz-go-a">Go A</button>
+        </div>
+        <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
+          <label class="muted small">Preset B</label>
+          <input id="ptz-b-label" placeholder="Spot B" style="width:140px;" />
+          <input id="ptz-b-time" type="number" placeholder="ms" style="width:100px;" />
+          <button id="ptz-save-b" class="ghost">Save B</button>
+          <button id="ptz-go-b">Go B</button>
+        </div>
+        <p class="muted small">Saves per-camera presets into production state; Go triggers an immediate camera_take_preset cue clients can honor.</p>
+      </div><section id="bot-admin" class="panel">
+        <h3>AI Co-hosts <button id="bot-reload" class="ghost" style="margin-left:8px;">Reload</button></h3>
+        <p class="muted small">Configure companion agents like ChatGPT or Gemini. Set their API key environment variable before running the server.</p>
+        <form id="bot-form" class="bot-form">
+          <div class="grid two">
+            <label>Bot ID
+              <input type="text" id="bot-id" placeholder="chatgpt" required />
+            </label>
+            <label>Display Name
+              <input type="text" id="bot-name" placeholder="ChatGPT" required />
+            </label>
+            <label>Provider
+              <select id="bot-provider">
+                <option value="openai">OpenAI / ChatGPT</option>
+                <option value="gemini">Google Gemini</option>
+              </select>
+            </label>
+            <label>Model
+              <input type="text" id="bot-model" placeholder="gpt-4o-mini" required />
+            </label>
+            <label>API Key Env Var
+              <input type="text" id="bot-key" placeholder="PUBCAST_OPENAI_KEY" required />
+            </label>
+            <label>Rooms (Ctrl/Cmd+Click to select)
+              <select id="bot-rooms" multiple size="5">
+                <option value="dressing">Dressing</option>
+                <option value="green" selected>Green</option>
+                <option value="studio">Studio</option>
+                <option value="control">Control</option>
+                <option value="conference">Conference</option>
+                <option value="pub">Pub</option>
+              </select>
+            </label>
+          </div>
+          <label>System Prompt
+            <textarea id="bot-system" rows="3" placeholder="Set tone, role, and guardrails for the co-host."></textarea>
+          </label>
+          <div class="bot-options">
+            <label><input type="checkbox" id="bot-auto" checked /> Auto reply</label>
+            <label><input type="checkbox" id="bot-mention" /> Respond when mentioned</label>
+            <label><input type="checkbox" id="bot-shadow" checked /> Show in roster with owner</label>
+          </div>
+          <div class="row">
+            <button type="submit">Save Co-host</button>
+          </div>
+        </form>
+        <ul id="bot-list" class="bot-list"></ul>
+        <div class="panel" style="margin-top:10px;">
+          <h4>Speak as Bot</h4>
+          <div class="row" style="gap:6px; align-items:center;">
+            <label class="muted small">Bot</label>
+            <select id="bot-speak-id" style="min-width:200px;"></select>
+            <label class="muted small">Room</label>
+            <select id="bot-speak-room" style="min-width:140px;">
+              <option value="dressing">dressing</option>
+              <option value="green">green</option>
+              <option value="studio">studio</option>
+              <option value="control" selected>control</option>
+              <option value="conference">conference</option>
+              <option value="pub">pub</option>
+            </select>
+          </div>
+          <div class="row" style="gap:6px; align-items:center; margin-top:6px;">
+            <input id="bot-speak-text" placeholder="Type something for the bot to say..." style="flex:1;" />
+            <button id="bot-speak-btn">Speak</button>
+          </div>
+        </div>
+            <section class="panel" style="margin-top:16px;">
+        <h3>Audio Post‑Production</h3>
+        <div class="row" style="gap:8px; align-items:center; flex-wrap:wrap;">
+          <label class="muted small">Admin Key</label>
+          <input id="admin-key" placeholder="X-Admin-Key" style="min-width:240px;" />
+          <button id="admin-key-save" class="ghost">Save</button>
+          <span id="admin-key-status" class="muted small"></span>
+        </div>
+        <div class="grid two" style="margin-top:8px;">
+          <div>
+            <h4>Patch (Preset)</h4>
+            <div class="row" style="gap:6px; align-items:center;">
+              <label class="muted small">Source</label>
+              <input id="au-src" placeholder="uploads/audio.wav" style="flex:1;" />
+            </div>
+            <div class="row" style="gap:6px; align-items:center; margin-top:6px;">
+              <label class="muted small">Preset</label>
+              <select id="au-preset" style="min-width:220px;"></select>
+              <label class="muted small">Start ms</label>
+              <input id="au-start" type="number" min="0" style="width:120px;" />
+              <label class="muted small">End ms</label>
+              <input id="au-end" type="number" min="0" style="width:120px;" />
+              <label class="muted small" style="display:flex; align-items:center; gap:4px;">
+                <input id="au-mux" type="checkbox" /> Export mux hint
+              </label>
+              <button id="au-run-patch">Run Patch</button>
+            </div>
+          </div>
+          <div>
+            <h4>Replace / Mux</h4>
+            <div class="row" style="gap:6px; align-items:center;">
+              <label class="muted small">Video</label>
+              <input id="au-video" placeholder="uploads/clip.mp4" style="flex:1;" />
+            </div>
+            <div class="row" style="gap:6px; align-items:center; margin-top:6px;">
+              <label class="muted small">Audio</label>
+              <input id="au-audio" placeholder="exports/processed.wav" style="flex:1;" />
+            </div>
+            <div class="row" style="gap:6px; align-items:center; margin-top:6px;">
+              <label class="muted small">Offset ms</label>
+              <input id="au-offset" type="number" value="0" style="width:120px;" />
+              <label class="muted small">Output name (mux)</label>
+              <input id="au-outname" placeholder="final.mp4" style="min-width:200px;" />
+              <button id="au-run-replace">Replace</button>
+              <button id="au-run-mux">Mux</button>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <h4>Jobs</h4>
+          <div id="au-jobs" class="code" style="max-height:240px; overflow:auto;"></div>
+        </div>
+      <!-- Director Dock and Summoned Area -->
+      <div id="director-dock" class="dock">
+        <span class="dock-title">Summon Consoles</span>
+        <div class="dock-buttons">
+          <button class="dock-btn" data-summon="director">Switcher</button>
+          <button class="dock-btn" data-summon="audio">Audio</button>
+          <button class="dock-btn" data-summon="editor">Editor</button>
+          <button class="dock-btn" data-summon="chyron">Chyron</button>
+          <button class="dock-btn" data-summon="prompter">Prompter</button>
+          <button class="dock-btn" data-summon="vtr">VTR</button>
+        </div>
+      </div>
+      <div id="summoned-area" class="summoned-area"></div>
+
+      </section></section>
+
+      <pre id="prod-json" class="code"></pre>
+    </section>
+
+      <section id="view-conference" class="view hidden">
+      <h2>Conference</h2>
+      <div class="room-nav" data-room-nav="conference"></div>
+      <div class="grid two">
+        <div>
+          <div class="panel">
+            <h3>Video</h3>
+            <div class="row" style="gap:6px;">
+              <button id="vc-join">Join</button>
+              <button id="vc-leave" disabled>Leave</button>
+              <button id="vc-mic" disabled>Mute Mic</button>
+              <button id="vc-cam" disabled>Hide Cam</button>
+            </div>
+            <div class="row" style="gap:6px; align-items:center; margin-top:6px;">
+              <label class="muted small">Microphone</label>
+              <select id="vc-mic-device" style="min-width:220px;"></select>
+              <button id="vc-apply-mic" class="ghost" disabled>Apply</button>
+              <label class="muted small" style="margin-left:10px;">Camera</label>
+              <select id="vc-cam-device" style="min-width:220px;"></select>
+              <button id="vc-apply-cam" class="ghost" disabled>Apply</button>
+              <label class="muted small" style="display:flex; align-items:center; gap:4px;">
+                <input id="vc-mic-humanize" type="checkbox" /> Humanize Mic (monitor)
+              </label>
+              <div id="vc-meter" title="Mic level" style="flex:1; height:8px; background:#222; border-radius:999px; overflow:hidden;">
+                <div id="vc-meter-fill" style="height:100%; width:0%; background:#0c6;"></div>
+              </div>
+            </div>
+            <div id="vc-status" class="muted small" style="margin-top:6px;">Not connected</div>
+            <div id="vc-grid" class="video-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap:8px; margin-top:8px;"></div>
+          </div>
+        </div>
+        <div>
+          <div class="panel">
+            <h3>Speech</h3>
+            <div class="row" style="gap:6px; align-items:center;">
+              <button id="stt-start">Start STT</button>
+              <button id="stt-stop" disabled>Stop STT</button>
+              <span id="stt-status" class="muted small">Idle</span>
+            </div>
+            <div id="stt-transcript" class="muted small" style="margin-top:6px; min-height:1em;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-pub" class="view hidden">
+      <h2>The Pub</h2>
+      <div class="room-nav" data-room-nav="pub"></div>
+      <p>PubWorld is served by the dedicated World surface so this control view does not fake an embedded world.</p>
+      <p><a href="/world">Open PubWorld</a></p>
+    </section>
+  </main>
+
+  <aside id="chat-drawer" class="drawer">
+    <div class="drawer-tab" id="drawer-tab">Chat</div>
+    <div class="drawer-body">
+      <div class="drawer-header">
+        <span>Chat</span>
+        <select id="chat-room" class="chat-room" style="margin-left:8px;">
+          <option value="dressing">dressing</option>
+          <option value="green">green</option>
+          <option value="studio">studio</option>
+          <option value="control" selected>control</option>
+          <option value="conference">conference</option>
+          <option value="pub">pub</option>
+        </select>
+        <button id="chat-switch" class="ghost" style="margin-left:6px;">Go</button>
+        <span id="presence" class="presence">0 online</span>
+        <span id="typing" class="typing" style="margin-left:8px;color:#888;font-size:12px;"></span>
+      </div>
+      <div id="chat-log" class="chat-log"></div>
+      <form id="chat-form" class="chat-form">
+        <input id="chat-input" placeholder="Type a message..." />
+        <button type="submit">Send</button>
+      </form>
+      <div id="tts-panel" class="tts" style="margin-top:8px; display:flex; gap:6px; align-items:center;">
+        <label for="tts-text" class="muted small">Voice:</label>
+        <select id="tts-voice" style="max-width:220px;"></select>
+        <input id="tts-text" placeholder="Type something for TTS..." style="flex:1;" />
+        <button id="tts-say" type="button">Speak</button>
+        <label class="muted small" style="display:flex; align-items:center; gap:4px;">
+          <input id="tts-autoplay" type="checkbox" /> Speak incoming chat
+        </label>
+        <label class="muted small" style="display:flex; align-items:center; gap:4px;">
+          <input id="tts-bots-only" type="checkbox" /> Bots only
+        </label>
+        <label class="muted small" style="display:flex; align-items:center; gap:4px;">
+          <input id="tts-server" type="checkbox" /> Use server TTS
+        </label>
+        <label class="muted small" style="display:flex; align-items:center; gap:4px;">
+          <input id="tts-humanize" type="checkbox" /> Humanizer
+        </label>
+      </div>
+    </div>
+  </aside>
+
+  <script src="/static/reach_auth.js"></script>
+  <script src="/static/program_audio_runtime.js"></script>
+  <script src="/static/ws.js"></script>
+  <script src="/static/ui.js"></script>
+  <script src="/static/app.js"></script>
+  <script src="/static/switcher.js"></script>
+  <script src="/static/conference.js"></script>
+  <script src="/static/editor_ui.js"></script>
+  <script src="/static/tts.js"></script>
+  <script src="/static/bots.js"></script>
+  <script src="/static/audio.js"></script>
+  <script src="/static/mic_device_picker.js"></script>
+  <script src="/static/mic_profiles.js"></script>
+  <script src="/static/mic_processor.js"></script>
+  <script src="/static/blackbox_client.js"></script>
+  <script src="/static/avatar_glb_motion_consumer.js"></script>
+  <script src="/static/voxel_block_preview_client.js"></script>
+{% endblock %}
+
+
+
+
+

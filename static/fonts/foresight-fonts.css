@@ -1,0 +1,10 @@
+/* Self-hosted, SIL Open Font License 1.1 (see LICENSE-*.txt in this folder).
+   Quicksand: soft, round, geometric: titles, labels, the system bar.
+   Nunito: soft, round, very readable at small sizes: menus and body text. */
+@font-face{font-family:"Quicksand";font-weight:400;font-style:normal;font-display:swap;src:url("quicksand-latin-400-normal.woff2") format("woff2")}
+@font-face{font-family:"Quicksand";font-weight:600;font-style:normal;font-display:swap;src:url("quicksand-latin-600-normal.woff2") format("woff2")}
+@font-face{font-family:"Quicksand";font-weight:700;font-style:normal;font-display:swap;src:url("quicksand-latin-700-normal.woff2") format("woff2")}
+@font-face{font-family:"Nunito";font-weight:400;font-style:normal;font-display:swap;src:url("nunito-latin-400-normal.woff2") format("woff2")}
+@font-face{font-family:"Nunito";font-weight:600;font-style:normal;font-display:swap;src:url("nunito-latin-600-normal.woff2") format("woff2")}
+@font-face{font-family:"Nunito";font-weight:700;font-style:normal;font-display:swap;src:url("nunito-latin-700-normal.woff2") format("woff2")}
+:root{--fs-font-body:"Nunito",ui-rounded,"Segoe UI",system-ui,sans-serif;--fs-font-display:"Quicksand","Nunito",ui-rounded,"Segoe UI",system-ui,sans-serif}

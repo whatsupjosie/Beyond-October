@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>PubCast — Sign In</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0a0b0f;--s:#111318;--s2:#181b24;--border:rgba(255,255,255,0.07);--accent:#00e0ff;--text:#b8bdd0;--bright:#eef0f6;--muted:#4a5068;--r:6px;--warn:#e05555}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;
+      background-image:radial-gradient(ellipse at 30% 60%,rgba(0,224,255,0.05),transparent 55%)}
+    .card{background:var(--s);border:1px solid var(--border);border-radius:var(--r);padding:2.5rem;width:100%;max-width:400px;position:relative}
+    .logo{font-family:'Playfair Display',serif;font-style:italic;font-size:2rem;color:var(--accent);text-align:center;margin-bottom:0.25rem}
+    .tagline{text-align:center;font-size:0.68rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:2rem}
+    .tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.5rem}
+    .tab{flex:1;background:none;border:none;font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--muted);padding:0.6rem;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s}
+    .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+    label{display:flex;flex-direction:column;gap:0.25rem;font-size:0.7rem;color:var(--muted);margin-bottom:0.9rem}
+    input{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);color:var(--bright);font-family:'DM Mono',monospace;font-size:0.82rem;padding:0.6rem 0.8rem;width:100%;transition:border-color 0.15s}
+    input:focus{outline:none;border-color:var(--accent)}
+    .btn{width:100%;background:var(--accent);border:none;border-radius:var(--r);color:#0a0b0f;font-family:'DM Mono',monospace;font-size:0.8rem;font-weight:500;padding:0.7rem;cursor:pointer;transition:opacity 0.15s;margin-top:0.4rem}
+    .btn:hover{opacity:0.88}
+    .btn:disabled{opacity:0.4;cursor:not-allowed}
+    .error{font-size:0.72rem;color:var(--warn);margin-top:0.6rem;min-height:1.2em;text-align:center}
+    .success{font-size:0.72rem;color:var(--accent);margin-top:0.6rem;text-align:center}
+    .hint{font-size:0.65rem;color:var(--muted);text-align:center;margin-top:1.2rem}
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,0.3);border-top-color:#000;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">PubCast</div>
+  <div class="tagline">Virtual Production Platform</div>
+
+  <div class="tabs">
+    <button class="tab active" id="tabLogin" onclick="showTab('login')">Sign In</button>
+    <button class="tab" id="tabRegister" onclick="showTab('register')">First Setup</button>
+  </div>
+
+  <!-- Login form -->
+  <div id="formLogin">
+    <label>Username
+      <input type="text" id="loginUser" autocomplete="username" placeholder="your_username">
+    </label>
+    <label>Password
+      <input type="password" id="loginPass" autocomplete="current-password" placeholder="••••••••">
+    </label>
+    <button class="btn" id="loginBtn" onclick="doLogin()">Sign In</button>
+    <div class="error" id="loginErr"></div>
+  </div>
+
+  <!-- Register form -->
+  <div id="formRegister" style="display:none">
+    <label>Username <span style="font-size:0.62rem">(min 3 chars)</span>
+      <input type="text" id="regUser" autocomplete="username" placeholder="choose_a_username">
+    </label>
+    <label>Password <span style="font-size:0.62rem">(min 12 chars · 3 character types)</span>
+      <input type="password" id="regPass" autocomplete="new-password" placeholder="••••••••">
+    </label>
+    <label>Confirm Password
+      <input type="password" id="regPass2" autocomplete="new-password" placeholder="••••••••">
+    </label>
+    <button class="btn" id="regBtn" onclick="doRegister()">Create Account</button>
+    <div class="error" id="regErr"></div>
+    <div class="success" id="regOk" style="display:none"></div>
+  </div>
+
+  <div class="hint">Feic Mo Chroí</div>
+</div>
+
+<script>
+  let setupRequired = false;
+
+  function safeNext() {
+    const raw = new URLSearchParams(location.search).get('next') || '/foresight';
+    try {
+      const target = new URL(raw, location.origin);
+      if (target.origin !== location.origin) return '/foresight';
+      return target.pathname + target.search + target.hash;
+    } catch (_) { return '/foresight'; }
+  }
+
+  function showTab(which) {
+    if (which === 'register' && !setupRequired) which = 'login';
+    document.getElementById('formLogin').style.display = which === 'login' ? '' : 'none';
+    document.getElementById('formRegister').style.display = which === 'register' ? '' : 'none';
+    document.getElementById('tabLogin').classList.toggle('active', which === 'login');
+    document.getElementById('tabRegister').classList.toggle('active', which === 'register');
+  }
+
+  function setLoading(btnId, loading, label) {
+    const btn = document.getElementById(btnId);
+    btn.disabled = loading;
+    btn.innerHTML = loading ? `<span class="spinner"></span>${label}…` : label;
+  }
+
+  function acceptSession(data) {
+    if (window.ReachAuth) window.ReachAuth.saveSession(data);
+    else {
+      sessionStorage.setItem('pubcast_token', data.access_token);
+      sessionStorage.setItem('pubcast_user', JSON.stringify({username:data.username, user_id:data.username, role:data.role}));
+      localStorage.setItem('pubcast.clientId', data.username);
+    }
+    location.href = safeNext();
+  }
+
+  async function doLogin() {
+    const user = document.getElementById('loginUser').value.trim();
+    const pass = document.getElementById('loginPass').value;
+    const err = document.getElementById('loginErr');
+    err.textContent = '';
+    if (!user || !pass) { err.textContent = 'Username and password required'; return; }
+    setLoading('loginBtn', true, 'Signing in');
+    try {
+      const r = await fetch('/api/auth/login', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username:user, password:pass})
+      });
+      const d = await r.json();
+      if (!r.ok) { err.textContent = d.detail || 'Login failed'; return; }
+      acceptSession(d);
+    } catch (_) { err.textContent = 'Reach is unavailable'; }
+    finally { setLoading('loginBtn', false, 'Sign In'); }
+  }
+
+  async function doRegister() {
+    const user = document.getElementById('regUser').value.trim();
+    const pass = document.getElementById('regPass').value;
+    const confirm = document.getElementById('regPass2').value;
+    const err = document.getElementById('regErr');
+    const ok = document.getElementById('regOk');
+    err.textContent = ''; ok.style.display = 'none';
+    if (!setupRequired) { err.textContent = 'Initial owner setup has already been completed.'; return; }
+    if (!user || !pass || !confirm) { err.textContent = 'Complete all setup fields.'; return; }
+    setLoading('regBtn', true, 'Creating owner');
+    try {
+      const r = await fetch('/api/auth/setup', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({username:user, password:pass, confirm_password:confirm})
+      });
+      const d = await r.json();
+      if (!r.ok) { err.textContent = d.detail || 'Setup failed'; return; }
+      ok.textContent = 'Owner created. Opening Foresight…'; ok.style.display = 'block';
+      acceptSession(d);
+    } catch (_) { err.textContent = 'Reach is unavailable'; }
+    finally { setLoading('regBtn', false, 'Create Owner'); }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    if (document.getElementById('formLogin').style.display !== 'none') doLogin();
+    else doRegister();
+  });
+
+  async function initializeLogin() {
+    try {
+      const state = window.ReachAuth ? await window.ReachAuth.status() : await (await fetch('/api/auth/status')).json();
+      setupRequired = !!state.setup_required;
+      document.getElementById('tabRegister').style.display = setupRequired ? '' : 'none';
+      if (setupRequired) {
+        document.getElementById('tabLogin').style.display = 'none';
+        showTab('register');
+        document.getElementById('regOk').textContent = 'Create the first local owner account for this Reach installation.';
+        document.getElementById('regOk').style.display = 'block';
+        return;
+      }
+      if (!state.auth_enforced) { location.href = safeNext(); return; }
+      if (window.ReachAuth && window.ReachAuth.getToken()) {
+        const verified = await window.ReachAuth.verify();
+        if (verified) { location.href = safeNext(); return; }
+        window.ReachAuth.clearSession();
+      }
+      showTab('login');
+    } catch (_) {
+      document.getElementById('loginErr').textContent = 'Reach authentication service is unavailable.';
+      showTab('login');
+    }
+  }
+
+  initializeLogin();
+</script>
+</body>
+</html>

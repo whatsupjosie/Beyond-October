@@ -1,0 +1,8 @@
+﻿PubCast First Prime Canon Snapshot Manifest
+Created: 2026-06-18T06:29:11.3798165-07:00
+Source: C:\Users\hardc\Downloads\big zip\codex_construction_pubcast_20260614
+Stage: C:\tmp\pubcast_first_prime_stage_20260618_062816\codex_construction_pubcast_20260614
+CopiedFiles: 1507
+SkippedFiles: 0
+
+Skipped files, if any:

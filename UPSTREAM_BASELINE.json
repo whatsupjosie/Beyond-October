@@ -1,0 +1,2552 @@
+{
+  "repository": "whatsupjosie/October",
+  "branch": "foresight/hdr-pipeline",
+  "commit": "82ebf26755d3706f8d4d7d75d823bb73f4d1b07e",
+  "retrieved_files": [
+    {
+      "path": "foresight/lab/lab.html",
+      "sha": "1a744b4f0eb177016103e169fe8c4e0ece3d69e9",
+      "size": 20521
+    },
+    {
+      "path": "foresight/lab/lab_v1.html",
+      "sha": "45538f7ea8a9b64a566ccfc1ade0a83d65e68ad6",
+      "size": 14456
+    },
+    {
+      "path": "foresight/lab/lab_v2.html",
+      "sha": "5320258146562455a20c0d28a28964737f29f77f",
+      "size": 50309
+    },
+    {
+      "path": "foresight/lab/morph2.py",
+      "sha": "df81fa81c661926a3b60ef84a744ae53ebf3ca52",
+      "size": 1527
+    },
+    {
+      "path": "foresight/lab/sample.webm",
+      "sha": "b5757825ef11f544b7d5b37f2349160cdb6a7ad4",
+      "size": 118877
+    },
+    {
+      "path": "foresight/lab/shot2.py",
+      "sha": "c6c8a5e2743f0dcf1b865f1a14b9d7fb72b0c4ba",
+      "size": 1475
+    },
+    {
+      "path": "handoffs/FORESIGHT_COUNTER_HANDOFF_2026-10-14.md",
+      "sha": "e825ec3e68ffc7cacf9e431669031d66df4fdb10",
+      "size": 12511
+    },
+    {
+      "path": "handoffs/PubCast_Foresight_Session_Verbatim_and_Decisions_2026-10-14.md",
+      "sha": "428f15ecda0e99bb2478d293f02cd9edb7d312fd",
+      "size": 25632
+    },
+    {
+      "path": "handoffs/PubCast_Foresight_Tray_Movement_Discussion_and_Verbatim_2026-10-14.md",
+      "sha": "ee6e7b8f2ca4cebc86bcfb03300cb0528a63adc4",
+      "size": 23524
+    },
+    {
+      "path": "handoffs/PubCast_Foresight_Tray_Movement_Recovered_Verbatim_2026-10-14_v2.md",
+      "sha": "01a6dabdd8c2bf5cb292f8a65df9db70e69f0ec3",
+      "size": 27181
+    },
+    {
+      "path": "main.py",
+      "sha": "4f03280dc62db452a0a41311d815bab63c1140e5",
+      "size": 204628
+    },
+    {
+      "path": "requirements.txt",
+      "sha": "374596476f5cb1a61330efa2fba7260caac88af0",
+      "size": 1331
+    },
+    {
+      "path": "run_reach.py",
+      "sha": "90c9a11c5e2f2c30c508bc82b196239ad6677641",
+      "size": 4469
+    },
+    {
+      "path": "skills/foresight-tray-art/SKILL.md",
+      "sha": "6f978853ef5a1c60fe2b3fa0d5500b7deaa4677a",
+      "size": 6941
+    },
+    {
+      "path": "skills/hyperreal-webgl-rendering/SKILL.md",
+      "sha": "7e9b97b9ce898371f40c077230734185b441fdc7",
+      "size": 11568
+    },
+    {
+      "path": "static/fonts/LICENSE-Nunito-OFL.txt",
+      "sha": "ae9dd5a09316226fe60a1874bf41a9760435464a",
+      "size": 4491
+    },
+    {
+      "path": "static/fonts/LICENSE-Quicksand-OFL.txt",
+      "sha": "fcc0a1ae8a4a90bdfcc7c9b7270cabadd638e1f2",
+      "size": 4443
+    },
+    {
+      "path": "static/fonts/foresight-fonts.css",
+      "sha": "3a86d1b32dc88cabbbc718b1fde30ed3ebd6c5d9",
+      "size": 1252
+    },
+    {
+      "path": "static/fonts/nunito-latin-400-normal.woff2",
+      "sha": "8c68e5744e4d08f9d720f9607d42d683c125f9fd",
+      "size": 16316
+    },
+    {
+      "path": "static/fonts/nunito-latin-600-normal.woff2",
+      "sha": "dac52ff90d4d35049fb62e9703259ddd48d26007",
+      "size": 16556
+    },
+    {
+      "path": "static/fonts/nunito-latin-700-normal.woff2",
+      "sha": "5b423ba969e8afefa066dc42eb1bd3b5bebbb96c",
+      "size": 16228
+    },
+    {
+      "path": "static/fonts/quicksand-latin-400-normal.woff2",
+      "sha": "8018cfd7d9bb09613508b2177421b529f9d2b743",
+      "size": 15776
+    },
+    {
+      "path": "static/fonts/quicksand-latin-600-normal.woff2",
+      "sha": "df7256d3c88299b44c1074fab8a9b91882edd4de",
+      "size": 15864
+    },
+    {
+      "path": "static/fonts/quicksand-latin-700-normal.woff2",
+      "sha": "42f7a0b616f26907490bea60172583ca3eb901f0",
+      "size": 15124
+    },
+    {
+      "path": "static/foresight.config.js",
+      "sha": "bdf6a220cbbe6b0ce93c416a341ded3dc8fdf5e7",
+      "size": 431
+    },
+    {
+      "path": "static/foresight.html",
+      "sha": "be917d91d143d353ed3a73baddea82dca137bbe4",
+      "size": 88356
+    },
+    {
+      "path": "static/foresight_care.html",
+      "sha": "ec4b750f3cafc830803223adffc9518ade9abfda",
+      "size": 4623
+    },
+    {
+      "path": "static/foresight_chain.js",
+      "sha": "72e3b55b0fa7e55a4a93897042e762fc78c0aed1",
+      "size": 60799
+    },
+    {
+      "path": "static/foresight_counter.html",
+      "sha": "15a250065692867b7fa93be8169e6624d3afae91",
+      "size": 27707
+    },
+    {
+      "path": "static/foresight_counter.js",
+      "sha": "964c19c8d09c2e937fdb667a63b6ddd4874bed1d",
+      "size": 74627
+    },
+    {
+      "path": "static/foresight_gl.js",
+      "sha": "77444b7caafd0ad5f17cb58865fa0fb2bc366b14",
+      "size": 98205
+    },
+    {
+      "path": "static/foresight_matter.cpp",
+      "sha": "35a58b81d8fc2eb01c2d2dc0639f69a4eff3a249",
+      "size": 42537
+    },
+    {
+      "path": "static/foresight_matter.js",
+      "sha": "af418c701d38bbd72ad1aae4f1815c2281922475",
+      "size": 6642
+    },
+    {
+      "path": "static/foresight_matter.wasm",
+      "sha": "140b8c35a58c58964a3a1676371acaba7ab7d4fd",
+      "size": 31754
+    },
+    {
+      "path": "static/foresight_programs.js",
+      "sha": "aff21c309205563ab475485c3080395f84a59891",
+      "size": 32458
+    },
+    {
+      "path": "static/foresight_shapes.js",
+      "sha": "427e969b165eff85a58ce5cd496aa97f0e41109e",
+      "size": 28830
+    },
+    {
+      "path": "static/foresight_skin.js",
+      "sha": "4830ae8d723ecf25d5b836221ad4be6af972859d",
+      "size": 11541
+    },
+    {
+      "path": "static/foresight_stone_tigereye.jpg",
+      "sha": "d4b5b74d42f831dd6d7153bcb5911646870aa40c",
+      "size": 656011
+    },
+    {
+      "path": "tests/test_foresight_8787_wiring.py",
+      "sha": "a1cc7b97536e861ad0cac839c34fa5cf6f249471",
+      "size": 2765
+    },
+    {
+      "path": "tests/test_foresight_chain.py",
+      "sha": "45f4a66936a888cf103e9c6f4a464db7da112d79",
+      "size": 9800
+    },
+    {
+      "path": "tests/test_foresight_cohesive_program.py",
+      "sha": "9552898cdb915dfefb10b55246f951120191e6a2",
+      "size": 5646
+    },
+    {
+      "path": "tests/test_foresight_frames.py",
+      "sha": "40c76e5698079214df039d5a8af32e96436c489b",
+      "size": 23158
+    },
+    {
+      "path": "tests/test_foresight_front_door.py",
+      "sha": "64609eb435a0f8de8e3501383a441039b03d4aa1",
+      "size": 5527
+    },
+    {
+      "path": "tests/test_foresight_matter.py",
+      "sha": "638a140577beac22a5aa5045a5f4992fa4520556",
+      "size": 3739
+    },
+    {
+      "path": "tests/test_foresight_shapes.py",
+      "sha": "3a50b6b2b6aad2e16d270c596ae35a523249c560",
+      "size": 7128
+    },
+    {
+      "path": "tools/foresight_checks/check_counter_page.py",
+      "sha": "bbd941e294e5040b780aa0955505c26fc8379e0c",
+      "size": 11149
+    },
+    {
+      "path": "tools/foresight_checks/check_lab_counter.py",
+      "sha": "7bfe52fe8f758f28005b5b0e21e360071cb54c94",
+      "size": 14148
+    },
+    {
+      "path": "data/bots/pete_character_identity.json",
+      "sha": "7154bd8e2fdbd520815205920221694851baa3fc",
+      "size": 717
+    },
+    {
+      "path": "conftest.py",
+      "sha": "29a12e4e47da75582f6949bab24aac1705f8cd46",
+      "size": 6049
+    },
+    {
+      "path": "blackbox_recorder.py",
+      "sha": "11c8b703368cc7eb6535233adaf57cd44490bc5e",
+      "size": 5518
+    },
+    {
+      "path": "config/ai_runtime.json",
+      "sha": "28c9395d56791e6eebebd840c4446d57a77da5cc",
+      "size": 12416
+    },
+    {
+      "path": "codex_add_pubblocks.py",
+      "sha": "dcdb6fe609de77d6d97024ef8d6bea57784beac6",
+      "size": 4664
+    },
+    {
+      "path": "codex_ast_check.py",
+      "sha": "0ea4be8e2c670ac01a1cd0351fd651f7fdddf91c",
+      "size": 304
+    },
+    {
+      "path": "conftest_FIXED.py",
+      "sha": "6ed493419c3815fdb693ac54e49f4a4915e8fa66",
+      "size": 4578
+    },
+    {
+      "path": "data/bots/pete.json",
+      "sha": "3729971367c4b68cbc37381d8bbf24f1cd327bd3",
+      "size": 1109
+    },
+    {
+      "path": "data/avatars/manifest.json",
+      "sha": "5e30475ef52023f373ec47bd3f7739a643e811e6",
+      "size": 1723
+    },
+    {
+      "path": "data/bots/repeat.json",
+      "sha": "b710bb4f0a9b6be4225d68f10d4fa880c895ec4a",
+      "size": 814
+    },
+    {
+      "path": "config/menu_coverage.json",
+      "sha": "5545b05fc5d76609444c56eb749950a2601de553",
+      "size": 14411
+    },
+    {
+      "path": "data/bots/jeremy.json",
+      "sha": "10c6b73793741b67e488ad66bf684addc11fe1ed",
+      "size": 1037
+    },
+    {
+      "path": "data/bots/sir_purfluous.json",
+      "sha": "30bf415819af741ff55bd2f43e36482bae8ec36d",
+      "size": 1509
+    },
+    {
+      "path": "data/characters/repeat.json",
+      "sha": "17902f5170c947e7a500e8decbcacd006934eaed",
+      "size": 20230
+    },
+    {
+      "path": "data/characters/sir_purfluous.json",
+      "sha": "720180f6dfe4e88c70a13736437bc5d018f75028",
+      "size": 15652
+    },
+    {
+      "path": "data/pubpartner/profiles/friends/craig.json",
+      "sha": "0d5b42789822323b3ba345bd0a2771136a2c65aa",
+      "size": 629
+    },
+    {
+      "path": "data/model_registry.json",
+      "sha": "3b6ae487c1be32fd59b42b1cbfd0375ced880f07",
+      "size": 191
+    },
+    {
+      "path": "data/pubpartner/profiles/friends/alex.json",
+      "sha": "75c45db851bb96df044d2b701712a07da159313a",
+      "size": 2160
+    },
+    {
+      "path": "data/pubpartner/profiles/providers/anthropic.json",
+      "sha": "d0a920b7c1d308dd17aa0211ab95095b3b22fa89",
+      "size": 208
+    },
+    {
+      "path": "data/characters/pete.json",
+      "sha": "4c0d35ce92c90145ad495445672203a0d831d60d",
+      "size": 16518
+    },
+    {
+      "path": "data/bots/sir_purfluous_waiting_room.json",
+      "sha": "796d43785fe0252cb194931ac39683c968ea947c",
+      "size": 6921
+    },
+    {
+      "path": "data/pubpartner/profiles/providers/groq.json",
+      "sha": "fe11064e45ac3ef88709cf435200c12879856103",
+      "size": 179
+    },
+    {
+      "path": "data/pubpartner/profiles/providers/gemini.json",
+      "sha": "b848f95c6ce315d4b0ac786bdb5f629712b70b3c",
+      "size": 197
+    },
+    {
+      "path": "data/pubpartner/profiles/providers/mistral.json",
+      "sha": "5ae55fa644e8fd9c49dcb4ba1a29a48f2d2f2a5b",
+      "size": 203
+    },
+    {
+      "path": "data/pubpartner/profiles/friends/friend.json",
+      "sha": "6b904cd8fbd9bb354a4cc2451b1d4157595a1498",
+      "size": 542
+    },
+    {
+      "path": "data/pubpartner/profiles/providers/mock.json",
+      "sha": "26e8b43999991fe2bfe2bcc6d2659be620530209",
+      "size": 157
+    },
+    {
+      "path": "data/pubpartner/profiles/providers/opencode_zen.json",
+      "sha": "4a684ed309fa15e0b8c3436cbac69411fdccafcb",
+      "size": 218
+    },
+    {
+      "path": "data/pubpartner/profiles/providers/openai.json",
+      "sha": "e690718e2f81a6e4991d0f3fb00281d3c7193a96",
+      "size": 219
+    },
+    {
+      "path": "data/pubpartner/profiles/providers/ollama.json",
+      "sha": "d04ef16defe126b510d31d95181466257aa108c3",
+      "size": 232
+    },
+    {
+      "path": "data/pubworld/voxel_sets/small_theater_platform_two_walls_doorway_codex_proof_20260502.json",
+      "sha": "11a6f59356cbefacf12b1e64c20b3468f1c60a6b",
+      "size": 8853
+    },
+    {
+      "path": "data/users/bot-pete.json",
+      "sha": "fcf4329ec15f5b78b16109276b34d36b9c9e11df",
+      "size": 131
+    },
+    {
+      "path": "data/users/bot-jeremy.json",
+      "sha": "ff000dcd8436c3ed745ef7a24e3bf40a29219eb8",
+      "size": 146
+    },
+    {
+      "path": "data/pubpartner/profiles/providers/offline.json",
+      "sha": "0a2d47deb560b6d9d85e7aa4b9da834d28ed6260",
+      "size": 195
+    },
+    {
+      "path": "data/pubpartner/profiles/providers/openai_compatible.json",
+      "sha": "dfb5b92953e01a584cbc122a98e1d63a1475e5b1",
+      "size": 188
+    },
+    {
+      "path": "data/users/bot-repeat.json",
+      "sha": "c421705832063c66d591ad10a33bfe2988d9d9a0",
+      "size": 135
+    },
+    {
+      "path": "data/users/bot-sir_purfluous.json",
+      "sha": "501522ec62944101ca5e0f097291c5852e5f5fde",
+      "size": 149
+    },
+    {
+      "path": "data/users/bot-sir_purfluous_waiting_room.json",
+      "sha": "0eb4d563ad0eacf45415e7d86c61160e15968b4f",
+      "size": 177
+    },
+    {
+      "path": "data/users/public-user.json",
+      "sha": "16b3853f45d9848a85f1c7c58ff0e3305010b5a0",
+      "size": 107
+    },
+    {
+      "path": "data/voxel_asset_library.json",
+      "sha": "1f697374ec6ed0a5056d17aed30393e96f0ca4a4",
+      "size": 344
+    },
+    {
+      "path": "modules/affect_wiring.py",
+      "sha": "cf1c7db475dfcb7297003831770f838b4a8ee444",
+      "size": 9768
+    },
+    {
+      "path": "modules/__init__.py",
+      "sha": "641594581710744b4eb2c31a778a07a797f81773",
+      "size": 216
+    },
+    {
+      "path": "modules/ai_providers.py",
+      "sha": "964b974b49970f9a3bcaaf82dc7bac5a4c5091c1",
+      "size": 10795
+    },
+    {
+      "path": "modules/affect_dynamics.py",
+      "sha": "af5b04d14f141f99e22b4a7acef6d1a854c8f61d",
+      "size": 19685
+    },
+    {
+      "path": "modules/agency_observation.py",
+      "sha": "c09b9ad5c9d325a199cac815e2a31e11b5e059ff",
+      "size": 4804
+    },
+    {
+      "path": "modules/affect_choreo_bridge.py",
+      "sha": "66ff7000f4a102051694069d6b528f032d44010b",
+      "size": 8838
+    },
+    {
+      "path": "modules/affect_context_engine.py",
+      "sha": "30718ff340e303e3ad78cae43fd60214dd4eef19",
+      "size": 123624
+    },
+    {
+      "path": "modules/alex_little_one/__init__.py",
+      "sha": "7e998e74040eb48841e5fb35ac88797ef6f0053c",
+      "size": 302
+    },
+    {
+      "path": "modules/alex_little_one/care_profile.py",
+      "sha": "9764f92c0e92b1b7a0ab8df09945da9193e76757",
+      "size": 33547
+    },
+    {
+      "path": "modules/ai_runtime_slots.py",
+      "sha": "1cb47ab99797ec5e67fd56b71dfdf7c3c4967787",
+      "size": 4260
+    },
+    {
+      "path": "modules/alex_jeremy_bridge.py",
+      "sha": "335098c2dba32e6cbdcc0955f52960d3eb0c18a7",
+      "size": 44512
+    },
+    {
+      "path": "modules/alex_core.py",
+      "sha": "6f4c50a17ffe37208517620d864d0ea699f87880",
+      "size": 53816
+    },
+    {
+      "path": "modules/animation_authority.py",
+      "sha": "c0cce36cd62a36fcc77197ec87f42407e01df2ff",
+      "size": 1726
+    },
+    {
+      "path": "modules/appconfig.py",
+      "sha": "5d60211340d0baa573d94df30b9ae3defddb4ec9",
+      "size": 3567
+    },
+    {
+      "path": "modules/alex_memory.py",
+      "sha": "82640b2074cfe78c2fece32fe8aab69b4698da17",
+      "size": 54440
+    },
+    {
+      "path": "modules/alex_routes.py",
+      "sha": "a12bf9a22dfffbb27179368200d6b856b093e020",
+      "size": 13134
+    },
+    {
+      "path": "modules/alex_memory_backup.py",
+      "sha": "d48db9d6d4d60fd6f9de4fe0a992e472383109e8",
+      "size": 23142
+    },
+    {
+      "path": "modules/auth_routes.py",
+      "sha": "b2c360a7bc75072fa8badc6c59aae14f98a71334",
+      "size": 8476
+    },
+    {
+      "path": "modules/avatar.py",
+      "sha": "f909ab23fe90eb99eb5948a87c96d919ddf7ead5",
+      "size": 9752
+    },
+    {
+      "path": "modules/audio_devices.py",
+      "sha": "71c4e27853e1010a566fa02cc57c9a0c896ef1f7",
+      "size": 23800
+    },
+    {
+      "path": "modules/auth.py",
+      "sha": "bc1dffcf2f0a656be8080bb16dc087c8d70fe137",
+      "size": 9176
+    },
+    {
+      "path": "modules/avatar_motion.py",
+      "sha": "1027bdead707f1f76fcf258db0bef6725f4eb575",
+      "size": 572
+    },
+    {
+      "path": "modules/auth_rate_limit.py",
+      "sha": "d5b1de81ad789d7b42b96937fba9a7b7f7b695fd",
+      "size": 2695
+    },
+    {
+      "path": "modules/avatar_performer.py",
+      "sha": "b10dd959d4372cd44872f2dc6459ca47db64226a",
+      "size": 43449
+    },
+    {
+      "path": "modules/avatar_studio_bridge.py",
+      "sha": "f3be03c23fdc3da9613e8d686f81f4d431b8fbf9",
+      "size": 7902
+    },
+    {
+      "path": "modules/blackbox_routes.py",
+      "sha": "91ae9c21a6a75e9fb5ad5be1c1e24b4f1aeadc1d",
+      "size": 1759
+    },
+    {
+      "path": "modules/avatar_assets.py",
+      "sha": "b2fbfd1656e853e4414eed0f1afe221f3034435e",
+      "size": 2697
+    },
+    {
+      "path": "modules/avatar_skeleton_system.py",
+      "sha": "c0ca2660b20fa02f3875cbbe1298cc8ecab6b70e",
+      "size": 13441
+    },
+    {
+      "path": "modules/blackbox_runtime.py",
+      "sha": "d6623391e3594d5d38096e3437f59f041ce965b3",
+      "size": 4098
+    },
+    {
+      "path": "modules/bots.py",
+      "sha": "0fcee3a74771f9a6dbc008c27e3a6675ec519263",
+      "size": 24080
+    },
+    {
+      "path": "modules/bridge_bulletproof.py",
+      "sha": "54f614cc91cfe47929e7b17b2f57c1bdad84065c",
+      "size": 52134
+    },
+    {
+      "path": "modules/bot_llm_adapter.py",
+      "sha": "480d0408b5e935364820c4df1ae4f4e552cadff0",
+      "size": 12808
+    },
+    {
+      "path": "modules/avatar_system_raw.py",
+      "sha": "2233256b5bb4952e0956e395be6627189314a8b2",
+      "size": 29987
+    },
+    {
+      "path": "modules/bridge.py",
+      "sha": "cf07549c9c96bfc5e7f125e5e53f3a6bf0578e41",
+      "size": 3047
+    },
+    {
+      "path": "modules/bubble_routes.py",
+      "sha": "e9bec8cd5e4f37239d7d90f8693c1fe98c9f0a82",
+      "size": 6494
+    },
+    {
+      "path": "modules/bubble_jeremy_adapter.py",
+      "sha": "02269ceb49600ee99fc4b37f96fb35cfda6d5c63",
+      "size": 2939
+    },
+    {
+      "path": "modules/bridge_raw.py",
+      "sha": "99691a2d728007e4708a3cfd3f4d725ef8b1894d",
+      "size": 13615
+    },
+    {
+      "path": "modules/bubble_stack.py",
+      "sha": "8d9b8d79cbd26b07eb2abf2be113c18af2864c28",
+      "size": 22208
+    },
+    {
+      "path": "modules/bubble_stack_pikpc/engine.py",
+      "sha": "6c842725e4984c441f68661358d09cb657e3931b",
+      "size": 27361
+    },
+    {
+      "path": "modules/bubble_stack_pikpc/routes.py",
+      "sha": "92a6406c9da34ed272bbdce94288ea0453162439",
+      "size": 1684
+    },
+    {
+      "path": "modules/bubble_stack_pikpc/core.py",
+      "sha": "d371116adef4fdf92faf694ed9b9d562784a286e",
+      "size": 10996
+    },
+    {
+      "path": "modules/byok_manager.py",
+      "sha": "1f6f7c9b68c966dd0931dec004e7f38463d7f7ff",
+      "size": 22942
+    },
+    {
+      "path": "modules/camera_manager.py",
+      "sha": "a3e7d7fa32f5352d867b891d18d9cf9857e98f9b",
+      "size": 1068
+    },
+    {
+      "path": "modules/bubble_stack_pikpc/performance.py",
+      "sha": "8205d9b29d03641fc546be2e1e16f45f2b4dc691",
+      "size": 9930
+    },
+    {
+      "path": "modules/bubble_stack_pikpc/__init__.py",
+      "sha": "aea6653b26eb074b91cbafc1e1b3ec8406bf3aa3",
+      "size": 886
+    },
+    {
+      "path": "modules/camera_boxer.py",
+      "sha": "dfb732c6f21862461dbed91ec2dc984642c3d194",
+      "size": 13866
+    },
+    {
+      "path": "modules/byok_routes.py",
+      "sha": "68c0c1396837b7e6b158b7fceb61252d0cd01569",
+      "size": 15002
+    },
+    {
+      "path": "modules/bubble_stack_pikpc/sandbox.py",
+      "sha": "812145aa5c1202197a8a936047bfd027f3f94ba6",
+      "size": 34165
+    },
+    {
+      "path": "modules/cameras.py",
+      "sha": "eafc25a6257b3de513b1858579b2316793a47102",
+      "size": 11588
+    },
+    {
+      "path": "modules/cameras_advanced.py",
+      "sha": "4c932b461abd036764de6a912a548da51b79ba44",
+      "size": 43944
+    },
+    {
+      "path": "modules/cc_memory_store.py",
+      "sha": "4dcca2c046551a75880ca1b0c2c875ab821e09c5",
+      "size": 18682
+    },
+    {
+      "path": "modules/capture.py",
+      "sha": "0f5d60187976fb36e54c9388983fa9ec428cf97f",
+      "size": 10705
+    },
+    {
+      "path": "modules/character_cast.py",
+      "sha": "597052caa6d3c66a730c02e91587afe0a22523dc",
+      "size": 6704
+    },
+    {
+      "path": "modules/care_eq.py",
+      "sha": "9b4227fc6db1b4a0d3ff5ad59930051e0665de57",
+      "size": 7663
+    },
+    {
+      "path": "modules/character_engine.py",
+      "sha": "660f9856622805e1ebe1c8521a62b2a9d3e0144f",
+      "size": 24617
+    },
+    {
+      "path": "modules/character_routes.py",
+      "sha": "4e414b96304f95f42e544e80e0eccbe09bc25864",
+      "size": 4401
+    },
+    {
+      "path": "modules/character_profiles.py",
+      "sha": "b644bf588aeca620d1706f7532532f515d321749",
+      "size": 15549
+    },
+    {
+      "path": "modules/character_service.py",
+      "sha": "2b77754ca5a86763d15ac55b4c28a0b42cbb3707",
+      "size": 9855
+    },
+    {
+      "path": "modules/choreography_runtime.py",
+      "sha": "13cdbc114b9237b900131d5bf05b8d77baf6d9eb",
+      "size": 5881
+    },
+    {
+      "path": "modules/choreography_controller.py",
+      "sha": "5fca6016a241e707842f336dd88927de16af64cf",
+      "size": 23835
+    },
+    {
+      "path": "modules/chat_commit_store.py",
+      "sha": "05113a3525ecc39045ac0532a4926244a48170a4",
+      "size": 11057
+    },
+    {
+      "path": "modules/context_block.py",
+      "sha": "0a8874d2fca8312d0ef07c782f91feb56d2a4b2a",
+      "size": 21604
+    },
+    {
+      "path": "modules/circuit_breaker.py",
+      "sha": "8b6cf455cc2936e24a769e58142c5bff2b7f7686",
+      "size": 9202
+    },
+    {
+      "path": "modules/chat_rooms.py",
+      "sha": "14bbeb1a35d0d2de6e8a09ff12aa598a261247ad",
+      "size": 32810
+    },
+    {
+      "path": "modules/contradiction_engine.py",
+      "sha": "f835643954e1bd347e041e889524001ab2edec96",
+      "size": 28957
+    },
+    {
+      "path": "modules/context_retriever.py",
+      "sha": "15be07c422269f7d5fe37ddfb7bbceb07883b1fe",
+      "size": 4783
+    },
+    {
+      "path": "modules/clip_analysis.py",
+      "sha": "2d23bc70a7fb527aa703842ba94bfdcdb6293e41",
+      "size": 10367
+    },
+    {
+      "path": "modules/conversation_routes.py",
+      "sha": "40972fc1a1781e2c1ec00a2fa98ebb09218fd546",
+      "size": 10977
+    },
+    {
+      "path": "modules/credits_export.py",
+      "sha": "62bf47b324004c76f7fc3125ca205706f4263d91",
+      "size": 3478
+    },
+    {
+      "path": "modules/credentials.py",
+      "sha": "1f836ac58b36bf2ab120e8edaea797829663fb1f",
+      "size": 12522
+    },
+    {
+      "path": "modules/deformation_math.py",
+      "sha": "1e6221b854a5060872562812879340e48bc80e15",
+      "size": 12588
+    },
+    {
+      "path": "modules/documents.py",
+      "sha": "3c2db3b83cd2bd2d2e9187a9287cea0d04b4ec80",
+      "size": 8667
+    },
+    {
+      "path": "modules/emotional_consultation.py",
+      "sha": "11e4def87382150a131d4526738a38fb559633cc",
+      "size": 3141
+    },
+    {
+      "path": "modules/doctor.py",
+      "sha": "8a3cfb120fabdbcccb593f46c1f435cddb3d8d44",
+      "size": 22004
+    },
+    {
+      "path": "modules/ethereal_avatars.py",
+      "sha": "16418a57f539c3aca3f8f84cd5ad25675d4cc5b8",
+      "size": 19162
+    },
+    {
+      "path": "modules/dressing_room_security.py",
+      "sha": "1d1f28f40cb98a261ccebb79dc6331409fea0467",
+      "size": 16796
+    },
+    {
+      "path": "modules/eq_monitoring_recorder.py",
+      "sha": "9176ee6f290f2dbd145dac49573bfade61cb22c1",
+      "size": 4707
+    },
+    {
+      "path": "modules/director_engine.py",
+      "sha": "6380c6a2a861a12427d6b8f4b256318dd4589006",
+      "size": 5051
+    },
+    {
+      "path": "modules/emotional_orchestrator.py",
+      "sha": "fd349cfe70141aaf902a0191f2211a6d1dc853c8",
+      "size": 15884
+    },
+    {
+      "path": "modules/engine.py",
+      "sha": "47ece2e31544847bc278c8e19855a98eeb4208db",
+      "size": 10167
+    },
+    {
+      "path": "modules/evidence_layer.py",
+      "sha": "16c2029e4150aa67cf7e0518654334c9d91f0e17",
+      "size": 63641
+    },
+    {
+      "path": "modules/evo/camera_manager.py",
+      "sha": "7edffc3e8e7d8595591c5babc8e5a7e308c18319",
+      "size": 38083
+    },
+    {
+      "path": "modules/event_agency.py",
+      "sha": "24555c5093d666b9057e10f2197262f9115fd35d",
+      "size": 8151
+    },
+    {
+      "path": "modules/evo/pete.py",
+      "sha": "9d1be2c3c46f2bc502bed1f0b7f0845630ee1840",
+      "size": 16154
+    },
+    {
+      "path": "modules/evo/prosody_engine.py",
+      "sha": "75c85027d700530d92b9c7f09d05ec7a876ef45b",
+      "size": 25842
+    },
+    {
+      "path": "modules/evo/evo_integration.py",
+      "sha": "c09693287b490d0f50e7f0e7635be77f1368480a",
+      "size": 22781
+    },
+    {
+      "path": "modules/evo/epete.py",
+      "sha": "cd4a5f5fcd970c01d9611ee23169e038584fd072",
+      "size": 35502
+    },
+    {
+      "path": "modules/evo/distributed_engine.py",
+      "sha": "ad8baedfd8f42810cde1277cb5c20235c9969007",
+      "size": 29325
+    },
+    {
+      "path": "modules/evo/facial_performance.py",
+      "sha": "8066eebe978e1a689a3d6bb3d037366009d2a310",
+      "size": 24680
+    },
+    {
+      "path": "modules/evo/voice_characters.py",
+      "sha": "73b62f75b8bab5cf50f1136e792f031513cf7827",
+      "size": 12484
+    },
+    {
+      "path": "modules/evo/switchblade_governor.py",
+      "sha": "47043ccb5f390449256786103981163a6a8cf56a",
+      "size": 20125
+    },
+    {
+      "path": "modules/evo/vdi_engine.py",
+      "sha": "40f205638d246f82e6fff4892a70f00a3d67f2d8",
+      "size": 15729
+    },
+    {
+      "path": "modules/foresight_gateway.py",
+      "sha": "4219776bb105e0cd8e7ce4fb27f470439a54c408",
+      "size": 8472
+    },
+    {
+      "path": "modules/general_chat_service.py",
+      "sha": "2518985e9a454fc4c8455b3e464c301276927295",
+      "size": 5170
+    },
+    {
+      "path": "modules/feature_flags.py",
+      "sha": "90e58f1e575be341e134826ff803c02b7ef06fd9",
+      "size": 353
+    },
+    {
+      "path": "modules/glb_motion_retargeter.py",
+      "sha": "e29254b693070d003931ac8e7edad708fa8d6980",
+      "size": 5223
+    },
+    {
+      "path": "modules/foresight_sidecar.py",
+      "sha": "eeeb19ad957d8f97d8b7f228023bb6ca7033a94b",
+      "size": 4328
+    },
+    {
+      "path": "modules/conversation_archive.py",
+      "sha": "9cd0f0274b7e9adb17cb49f015bd3176d47ad39b",
+      "size": 12196
+    },
+    {
+      "path": "modules/ai_runtime.py",
+      "sha": "668f2753d7f91b4b7ed81bb1b719f6769533aad9",
+      "size": 8914
+    },
+    {
+      "path": "modules/governance.py",
+      "sha": "09bd938646c15f1bfa9ed144ce042c1419027424",
+      "size": 23059
+    },
+    {
+      "path": "modules/governance_waiting_room.py",
+      "sha": "3ba82084c8e984aceff70288a3c1518a737567b9",
+      "size": 11565
+    },
+    {
+      "path": "modules/inference.py",
+      "sha": "96aced3b2c787d9ae9673208d52cba17c02cc345",
+      "size": 11251
+    },
+    {
+      "path": "modules/hub.py",
+      "sha": "4b7185f198606696e8adfdeaf31ce0af9bb095bb",
+      "size": 21506
+    },
+    {
+      "path": "modules/evo/__init__.py",
+      "sha": "eb9074325ea46c0a4313569beae6987099d5dae2",
+      "size": 2267
+    },
+    {
+      "path": "modules/hotspot_system.py",
+      "sha": "d730a7d8069d592bdcc62e64590df7bb76db7741",
+      "size": 9124
+    },
+    {
+      "path": "modules/governance_routes.py",
+      "sha": "3192886ab15c432ad781173dc0879002e0a4d601",
+      "size": 21549
+    },
+    {
+      "path": "modules/jeremy_cricket.py",
+      "sha": "b871b84ba4538aeb40b549f58763da44c8df009c",
+      "size": 22420
+    },
+    {
+      "path": "modules/integrity_checker.py",
+      "sha": "32b44007aee0a2a782aa64727d3b15543f4c2cf4",
+      "size": 12217
+    },
+    {
+      "path": "modules/key_recovery.py",
+      "sha": "014231395b1d7773d3f750872fce9b7255e1dad3",
+      "size": 22318
+    },
+    {
+      "path": "modules/lighting_engine.py",
+      "sha": "869d7eb1e0ce998524d7be2e0d5be86508cd8718",
+      "size": 42972
+    },
+    {
+      "path": "modules/irm.py",
+      "sha": "e6a692b8f63be20ffee93ed9ed6ab24b1f51c82d",
+      "size": 12758
+    },
+    {
+      "path": "modules/limited_exposure.py",
+      "sha": "3444b754227a254ce4e1dcf4aac031d141697be4",
+      "size": 7892
+    },
+    {
+      "path": "modules/linux_enforcer.py",
+      "sha": "c44abff66527b9a88aa81f5b7363f95681f3b2bd",
+      "size": 15659
+    },
+    {
+      "path": "modules/lighting.py",
+      "sha": "b83326b32745b52a4bb65c35583295b310473ada",
+      "size": 8103
+    },
+    {
+      "path": "modules/llm_framework.py",
+      "sha": "da5c2390fb9bc16433d6cd9a0adfcaadb7af3fa9",
+      "size": 35261
+    },
+    {
+      "path": "modules/local_model_config.py",
+      "sha": "abefec19a450f971e45fa2085cc8b83351fc2364",
+      "size": 1692
+    },
+    {
+      "path": "modules/littlemode_protocol.py",
+      "sha": "5fbf1f28390503001741fc10eda58f78530235f8",
+      "size": 21128
+    },
+    {
+      "path": "modules/manuscript_intelligence.py",
+      "sha": "a3812754ce1231d63d2f74db3dd8008df2765ebc",
+      "size": 8375
+    },
+    {
+      "path": "modules/memory_routes.py",
+      "sha": "e4d48fa39fa7ca55f7216c6e0b70e24a519a411d",
+      "size": 2835
+    },
+    {
+      "path": "modules/media_intake_routes.py",
+      "sha": "dc350d6d43d17a775455a745a958338f6dc4422c",
+      "size": 2833
+    },
+    {
+      "path": "modules/memory_engine.py",
+      "sha": "3cf274158914e20d2d5323dee86537b8c9b91029",
+      "size": 4555
+    },
+    {
+      "path": "modules/media_intake.py",
+      "sha": "8992f844bd0042fec769b3f9141bbcf22d90ecb5",
+      "size": 8530
+    },
+    {
+      "path": "modules/llm_orchestrator.py",
+      "sha": "49aa447a7cf4a761ff57f838bd1235da1c9efc4a",
+      "size": 30348
+    },
+    {
+      "path": "modules/mic_routes.py",
+      "sha": "2b599f213785ca21fd564f164591d058f775841a",
+      "size": 5151
+    },
+    {
+      "path": "modules/mode_resolver.py",
+      "sha": "e44131bc05d16319f6685280393f9945d4ea87fe",
+      "size": 6969
+    },
+    {
+      "path": "modules/memory_ingestor.py",
+      "sha": "5a0a94d246cb4db6054da5be64d49cd077502b6f",
+      "size": 26710
+    },
+    {
+      "path": "modules/mocap_integration.py",
+      "sha": "edb45c19e366cf3bdd8c480f185d93a4df6119c1",
+      "size": 22552
+    },
+    {
+      "path": "modules/ollama_provider.py",
+      "sha": "6435d09edc139bfe4f8afcb706267c6412f9df6f",
+      "size": 9290
+    },
+    {
+      "path": "modules/mocap_precision.py",
+      "sha": "8f20f0aef1c20ca4b89026b0cce8430310015c52",
+      "size": 43668
+    },
+    {
+      "path": "modules/model_registry.py",
+      "sha": "983afeba1100e732267cde4c0105264332743d54",
+      "size": 8161
+    },
+    {
+      "path": "modules/openai_compatible_provider.py",
+      "sha": "fe21447890510fac3d92909a36f343fd3577998b",
+      "size": 10586
+    },
+    {
+      "path": "modules/offline_brain.py",
+      "sha": "a91a41ea3f1043b1727aff4c7c4f0d6a0675134a",
+      "size": 3916
+    },
+    {
+      "path": "modules/package_service.py",
+      "sha": "0a0d2f50b62ef7ad6de2a23b38c6ce1eb626579a",
+      "size": 13699
+    },
+    {
+      "path": "modules/orchestrator.py",
+      "sha": "17996fef71fe6b91feedc1a79b689797b707b356",
+      "size": 1905
+    },
+    {
+      "path": "modules/orchestrator_raw.py",
+      "sha": "2af42ee9e4930d808580e2661e7a1b8dfe64c12b",
+      "size": 9293
+    },
+    {
+      "path": "modules/performance/avatar_adapter.py",
+      "sha": "90c2a772d59630beef61974308e1121f23a9dd59",
+      "size": 6165
+    },
+    {
+      "path": "modules/performance/routes.py",
+      "sha": "dfb64564b5d0c8d4a6712f27dff709b949d9efcf",
+      "size": 1009
+    },
+    {
+      "path": "modules/openai_responses_provider.py",
+      "sha": "51be5ca168af8db15d36eefade2ba0a8cb241e8e",
+      "size": 2958
+    },
+    {
+      "path": "modules/performance_manager.py",
+      "sha": "85e5f008175b3ed4913618bddef047b3a6b83092",
+      "size": 5918
+    },
+    {
+      "path": "modules/persistence.py",
+      "sha": "031a1fe2bed0f8d6ecf27df6e2199d15625e39d6",
+      "size": 7369
+    },
+    {
+      "path": "modules/opencode_zen.py",
+      "sha": "d81a3961ab66eeaafed1db1bfef9fc8cc9669143",
+      "size": 12381
+    },
+    {
+      "path": "modules/personal_ai_memory_api.py",
+      "sha": "3a60b13ca24c5fac981dd462d3bb29dec60b2c19",
+      "size": 4713
+    },
+    {
+      "path": "modules/performance/__init__.py",
+      "sha": "f3b6ef61431db8c588617df7028152c5c19b6043",
+      "size": 147
+    },
+    {
+      "path": "modules/pete_avatar.py",
+      "sha": "a647fd2706bcdfa30f85254a728958630b54dd45",
+      "size": 45986
+    },
+    {
+      "path": "modules/pete_enhanced_routes.py",
+      "sha": "13cfec2f3ba10c7dc6e132e8514305afd588f014",
+      "size": 5374
+    },
+    {
+      "path": "modules/production_routes.py",
+      "sha": "b9f1160d2b340f470202930a54fd8a02350d6391",
+      "size": 28909
+    },
+    {
+      "path": "modules/posture_library.py",
+      "sha": "241ea9cf93e9cf544a6b984eea02c6712ae0ce4d",
+      "size": 2130
+    },
+    {
+      "path": "modules/pete_enhanced.py",
+      "sha": "29ea059b5d48c74ed47a38d2b73451ccc33358c6",
+      "size": 47694
+    },
+    {
+      "path": "modules/program_audio.py",
+      "sha": "6b3890455e23c025be0e51bcb32f08242fbeec83",
+      "size": 3737
+    },
+    {
+      "path": "modules/prompt_context_builder.py",
+      "sha": "0b2f1e4823d296b62b348f67b4225a30248fe639",
+      "size": 2281
+    },
+    {
+      "path": "modules/projects.py",
+      "sha": "fbc6a98f724678eaf98c72cf283982d738b0ef06",
+      "size": 2650
+    },
+    {
+      "path": "modules/pete_character_runtime.py",
+      "sha": "5e1bace0b51a2f157425a7ca092a177147d2f328",
+      "size": 3516
+    },
+    {
+      "path": "modules/models.py",
+      "sha": "14f8c1552984207328c2ff3e7d651788c6623207",
+      "size": 3973
+    },
+    {
+      "path": "modules/pete_repeat_character_profiles_v2.py",
+      "sha": "db10aba48d06f22fcd1063a61b7becdabf5c1d21",
+      "size": 14492
+    },
+    {
+      "path": "modules/provider_neutralizer.py",
+      "sha": "0400f828098e1148d47a956173f005ee5e8cea03",
+      "size": 9621
+    },
+    {
+      "path": "modules/provider_capabilities.py",
+      "sha": "498c43dbaca48b9c268681047e1d8db479236ddf",
+      "size": 3551
+    },
+    {
+      "path": "modules/program_audio_routes.py",
+      "sha": "064810ad3d7e6b070f7f5e7e57f925229013b17d",
+      "size": 3453
+    },
+    {
+      "path": "modules/pub_manager_authority.py",
+      "sha": "47b4e7291212a643bde38fc3cf48256385df4453",
+      "size": 31756
+    },
+    {
+      "path": "modules/pubcast_story_bible.py",
+      "sha": "498ffa92bce5a0079ddd3345162e838bd3dd1d3d",
+      "size": 35270
+    },
+    {
+      "path": "modules/pub_manager_recovery.py",
+      "sha": "cc462c325d579cb17ca00f703ae5ed3d1097f199",
+      "size": 7273
+    },
+    {
+      "path": "modules/pub_partner_chat.py",
+      "sha": "023e421fb066cd6048bf2cc464de2821d3b7f488",
+      "size": 8310
+    },
+    {
+      "path": "modules/pub_manager_decision.py",
+      "sha": "d7c3238e262f0f0f711e95e6d23057cadb792c36",
+      "size": 15417
+    },
+    {
+      "path": "modules/pubcast_vault.py",
+      "sha": "84745208361545613feabbc258fd6eb9908a8d06",
+      "size": 7649
+    },
+    {
+      "path": "modules/pubcast_vision_integration.py",
+      "sha": "b472166d737ab90f36b1216d136f00636bca1511",
+      "size": 22421
+    },
+    {
+      "path": "modules/pubcast_vision_routes.py",
+      "sha": "87fd48ccd8e10d34bdd0dcd26adab6f6d3dab7c3",
+      "size": 16346
+    },
+    {
+      "path": "modules/pubpartner_backup.py",
+      "sha": "5434285b9e1530672e89367194d1fd61854c68a0",
+      "size": 4460
+    },
+    {
+      "path": "modules/pubpartner_preflight.py",
+      "sha": "01419e3d6538608cb5dfc1972f30c2d24dd8ffd0",
+      "size": 7908
+    },
+    {
+      "path": "modules/pubpartner_guidance.py",
+      "sha": "9d472863eed00fd89ca81426a434cfee0baf87c3",
+      "size": 4780
+    },
+    {
+      "path": "modules/pubpartner_profiles.py",
+      "sha": "0bf8aa3dbf73765023f072729a27ce238028fb73",
+      "size": 10489
+    },
+    {
+      "path": "modules/pubcast_voxel_integration.py",
+      "sha": "dfe35c351e558f41ed5f3fa4aa48e59bf3456a93",
+      "size": 2766
+    },
+    {
+      "path": "modules/pubpartner_provider.py",
+      "sha": "339e935e68c32f90c7d55285561f4e95066cf7fe",
+      "size": 24030
+    },
+    {
+      "path": "modules/pubcast_room_layout.py",
+      "sha": "be98f2908c5c870748f6207706dfa53e87ed74ac",
+      "size": 20244
+    },
+    {
+      "path": "modules/pubpartner_knowledge.py",
+      "sha": "8c03679a83422ec6ce2d973d4fff65621b87676a",
+      "size": 14917
+    },
+    {
+      "path": "modules/pubpartner_core.py",
+      "sha": "60daf9d54202ccc1f493726d3472b43140e57aed",
+      "size": 74862
+    },
+    {
+      "path": "modules/pubpartner_tokens.py",
+      "sha": "24bf9b8f122402ea0e32cbf4fe1bd2177358a0a1",
+      "size": 2938
+    },
+    {
+      "path": "modules/pubpartner_rate_limit.py",
+      "sha": "f19fec959ebf17b6e43d588eca8047a33dba4c1d",
+      "size": 1724
+    },
+    {
+      "path": "modules/pubpartner_routes.py",
+      "sha": "4d3188a43be213f2f6f37ad6341ff0d29b1c2d2c",
+      "size": 40941
+    },
+    {
+      "path": "modules/pubpartner_receipts.py",
+      "sha": "737ebdf32a44dbf62e2c3fe39e8bb499f5ebd85c",
+      "size": 3977
+    },
+    {
+      "path": "modules/pubpartner_relationship.py",
+      "sha": "a368553b10aea8ea54f462ddb106827e310ed2c2",
+      "size": 22779
+    },
+    {
+      "path": "modules/pubpartner_vessel/errors.py",
+      "sha": "4c57771b080a72ea19dbe0de7b455995d58573db",
+      "size": 711
+    },
+    {
+      "path": "modules/pubpartner_vessel/models.py",
+      "sha": "1b34924a14cb7512d8aafcc167206e59d1754fcd",
+      "size": 3060
+    },
+    {
+      "path": "modules/pubpartner_vessel/runtime.py",
+      "sha": "9ed3f224859dd737fffa253c12197d2ee5b4b2bd",
+      "size": 9421
+    },
+    {
+      "path": "modules/pubpartner_vessel/__init__.py",
+      "sha": "5f642e927f69fa3304af787b5af2abc574e44844",
+      "size": 1169
+    },
+    {
+      "path": "modules/pubpartner_vessel/schema.py",
+      "sha": "211a6ce42f695386e73bff8c0e8ff97d82da5a83",
+      "size": 5059
+    },
+    {
+      "path": "modules/pubpartner_vessel/__main__.py",
+      "sha": "1dc5ac21f0a6055037e64606622ee72245863975",
+      "size": 4472
+    },
+    {
+      "path": "modules/pubpartner_vessel/memory.py",
+      "sha": "448643d642bd164fe868bf134a3e5427e5353949",
+      "size": 33025
+    },
+    {
+      "path": "modules/pubpartner_vessel/context.py",
+      "sha": "cf45ee19ada5eaa638bcd0ced2e915f67a7ac54a",
+      "size": 8296
+    },
+    {
+      "path": "modules/pubpartner_vessel/store.py",
+      "sha": "b7c2c0f0a777fb391af42618ac13ad36bb724458",
+      "size": 33503
+    },
+    {
+      "path": "modules/pubworld.py",
+      "sha": "5e0ac0b48a0d1a4806cce6569e36d0560aef23d3",
+      "size": 2169
+    },
+    {
+      "path": "modules/pubworld_router.py",
+      "sha": "018aa12f92d21700f8acf0f78088f8309fc07ab2",
+      "size": 6080
+    },
+    {
+      "path": "modules/pubworld_stage/perspective_solver.py",
+      "sha": "2b38c225f17e09376c879ab16723239fa351e343",
+      "size": 4704
+    },
+    {
+      "path": "modules/pubworld_stage/__init__.py",
+      "sha": "50fc52f1b1bfcd008f66429c6d98010d1c545cd1",
+      "size": 492
+    },
+    {
+      "path": "modules/pubworld_blocks.py",
+      "sha": "e478bf43662d5ed6bb54455419741dbf355fb181",
+      "size": 22452
+    },
+    {
+      "path": "modules/pubworld_stage/routes.py",
+      "sha": "cb1bd57a2a73ebc51c9a266ed05de05f268e6759",
+      "size": 1381
+    },
+    {
+      "path": "modules/pubworld_hotspots.py",
+      "sha": "5835cabec77b3d751e9c98e83eba671e4bd8aede",
+      "size": 13405
+    },
+    {
+      "path": "modules/pubpartner_voice.py",
+      "sha": "1c4bcf48cd37e3d8d05db442b7edf13d5f39ab2f",
+      "size": 14683
+    },
+    {
+      "path": "modules/recording_pipeline.py",
+      "sha": "c5c2903faaf4606a3eb6221e527ef412036c6e0e",
+      "size": 6848
+    },
+    {
+      "path": "modules/pubworld_stage/stage_service.py",
+      "sha": "a9649c3d8c5c392040ccb72dbaae9ee06815f7c3",
+      "size": 3654
+    },
+    {
+      "path": "modules/pubworld_stage/manifest_store.py",
+      "sha": "418256e0095c974e00db5fd32a0ed526e1d63c0b",
+      "size": 7879
+    },
+    {
+      "path": "modules/recording_pipeline_routes.py",
+      "sha": "375826455d745526ce206f54db2983fa50c9f19d",
+      "size": 5997
+    },
+    {
+      "path": "modules/runtime_compat_bootstrap.py",
+      "sha": "268ed888c994b88ca32f282fc43d0bf3a430378f",
+      "size": 1523
+    },
+    {
+      "path": "modules/response_execution_layer.py",
+      "sha": "ade8f5918da163cf0294ada31565aca7542d7b85",
+      "size": 49460
+    },
+    {
+      "path": "modules/route_security.py",
+      "sha": "ab8ffd4ffe1b9e4a59a824c36fcfcd35b2e918a9",
+      "size": 6599
+    },
+    {
+      "path": "modules/room_conductor.py",
+      "sha": "72a094e3c090f917508e4ca0abf4250857fd57ad",
+      "size": 39133
+    },
+    {
+      "path": "modules/recording.py",
+      "sha": "0235eff8004eebc7b96deec7ea9fd9aaded16e28",
+      "size": 31241
+    },
+    {
+      "path": "modules/rooms.py",
+      "sha": "2fca4b31d6b773133e6535b1c2fca031f6e8fd07",
+      "size": 9381
+    },
+    {
+      "path": "modules/recreate_bundle.py",
+      "sha": "48c78a3098a1741562ff72ab81bc8c4bc7444292",
+      "size": 9674
+    },
+    {
+      "path": "modules/runtime_control_routes.py",
+      "sha": "38fc15c3e86876c4f97eb7e7620c3e8dcca8182a",
+      "size": 7228
+    },
+    {
+      "path": "modules/rust_camera_routes.py",
+      "sha": "ec910252d07821ecfd6668bed9f27654798ce9ac",
+      "size": 365
+    },
+    {
+      "path": "modules/repete_runtime.py",
+      "sha": "8c7613a7f88ea0f9a8ba93648239b299448f9c8b",
+      "size": 322
+    },
+    {
+      "path": "modules/scene_contract.py",
+      "sha": "9db756a0cdd60a284b7e2119b5651652cebabcaa",
+      "size": 16745
+    },
+    {
+      "path": "modules/sculptor.py",
+      "sha": "c396919ae55f1b120b27531f0b6d4144a3ccacad",
+      "size": 7664
+    },
+    {
+      "path": "modules/schemas.py",
+      "sha": "af4cfce516604a47fdf351f4371003a51b69af76",
+      "size": 5500
+    },
+    {
+      "path": "modules/secure_secrets.py",
+      "sha": "aee29c1bdd1570842f26fe07625f821229c9dd72",
+      "size": 7415
+    },
+    {
+      "path": "modules/security_authority.py",
+      "sha": "359d6343175be6ce38ba5a80fe3303c3aa9c9fe6",
+      "size": 7297
+    },
+    {
+      "path": "modules/save_metadata.py",
+      "sha": "d37c14aa6b1136b0b73988bced69cc399cd8cea6",
+      "size": 8116
+    },
+    {
+      "path": "modules/sir_purfluous_runtime.py",
+      "sha": "8d21f8aa12e4fcc1c1f049c7e707ba47e247b978",
+      "size": 6322
+    },
+    {
+      "path": "modules/sir_purfluous_character_profile.py",
+      "sha": "6e6c2b31d0226b120ba93a3a9f2ed3274d7d40df",
+      "size": 37892
+    },
+    {
+      "path": "modules/session_resurrector.py",
+      "sha": "351c49db6ec0aa7d92396318357fa89889033433",
+      "size": 15585
+    },
+    {
+      "path": "modules/session_runtime.py",
+      "sha": "827f2298d4d161335dae53d389e110f78e87e1f3",
+      "size": 15241
+    },
+    {
+      "path": "modules/sir_purfluous_waiting_room.py",
+      "sha": "49aff4e51a200817e81fbbc672be16c560286f76",
+      "size": 3265
+    },
+    {
+      "path": "modules/split_llm.py",
+      "sha": "3b03238c42a072f35f64606ec2cc7180db037065",
+      "size": 3528
+    },
+    {
+      "path": "modules/rust_camera_runtime.py",
+      "sha": "fd9a4ab69c861dfb890a9cb9787d2faf0daf3a07",
+      "size": 5544
+    },
+    {
+      "path": "modules/skeleton_tracker.py",
+      "sha": "c944fd6ee5a3a989f06fcbe6c09f0fc9e733291b",
+      "size": 1791
+    },
+    {
+      "path": "modules/story_routes.py",
+      "sha": "ab2ab07cbad5cab740ccb8fcdb7b03941ecdd7fe",
+      "size": 1662
+    },
+    {
+      "path": "modules/streaming_chain_resolver.py",
+      "sha": "5b2f11617133f2ca74b75ebcddfab6751a3d8575",
+      "size": 17749
+    },
+    {
+      "path": "modules/smollm_prompt.py",
+      "sha": "a436e1dee12678ba40bab269fd677fbf511fdc59",
+      "size": 7472
+    },
+    {
+      "path": "modules/stage_compat_routes.py",
+      "sha": "447a55c9a4ed093ad58fae134297e5883e83dbc9",
+      "size": 8213
+    },
+    {
+      "path": "modules/structured_log.py",
+      "sha": "83094794d7188bae3014e4dd228399473fb6e47e",
+      "size": 2861
+    },
+    {
+      "path": "modules/studio_websocket.py",
+      "sha": "b734a8ea849d5795872830bd437ded3dd34d10c6",
+      "size": 12312
+    },
+    {
+      "path": "modules/stt_engine.py",
+      "sha": "9f607a9c573b281783aaa50f848c55502af4ce9a",
+      "size": 7030
+    },
+    {
+      "path": "modules/studio_console_actions.py",
+      "sha": "28a425c8d17cd01a2daba0264afdc50a52d7d538",
+      "size": 6893
+    },
+    {
+      "path": "modules/switchblade_router.py",
+      "sha": "12e3c67c0c0e489ee4a423814c22aa052a997ec3",
+      "size": 2821
+    },
+    {
+      "path": "modules/switcher_routes.py",
+      "sha": "9576d7cd753acc5925432b42a23fe994a49ace7a",
+      "size": 3107
+    },
+    {
+      "path": "modules/system_memory.py",
+      "sha": "e346ae9bc81b6454cc366f0dbc809ba9dd2cc3c4",
+      "size": 15990
+    },
+    {
+      "path": "modules/studio_control.py",
+      "sha": "8a498b50a60e938199e2f626f50a8d8b60ff2a40",
+      "size": 24580
+    },
+    {
+      "path": "modules/studio_camera_preflight.py",
+      "sha": "bc4c799ca9daacd56c1cb3125971098d35be3abe",
+      "size": 8200
+    },
+    {
+      "path": "modules/timeline.py",
+      "sha": "8d034073704e7c8d2fb00fcdbd3bc943e0efda63",
+      "size": 14297
+    },
+    {
+      "path": "modules/structured_log_routes.py",
+      "sha": "5143afca93026f1319a5e232cc9e7568cbd61351",
+      "size": 3619
+    },
+    {
+      "path": "modules/turn_serialization.py",
+      "sha": "64805f78313ce8bb2cdae2a11dca821c78df7762",
+      "size": 866
+    },
+    {
+      "path": "modules/surfaces.py",
+      "sha": "b0d55dac38b8ccba8fcc6df9c364b5ca20996b0a",
+      "size": 2494
+    },
+    {
+      "path": "modules/tts_engine.py",
+      "sha": "af3f9f14d856cbe96353d131048b4181c5f1d81b",
+      "size": 7808
+    },
+    {
+      "path": "modules/unity_bridge.py",
+      "sha": "3137f1f56c9fc7969b81b3d1ed4798365f4015a6",
+      "size": 16736
+    },
+    {
+      "path": "modules/theory_graph.py",
+      "sha": "9987756837f2cb583909114f2103795b8c1a72b2",
+      "size": 42487
+    },
+    {
+      "path": "modules/timeline_routes.py",
+      "sha": "117d243d0764f921d5b2c23fb0fe3f119bd1f047",
+      "size": 10493
+    },
+    {
+      "path": "modules/vault_engine_hardened.py",
+      "sha": "e352f2b2c5fbd8836bfa24663797e9503d779071",
+      "size": 31548
+    },
+    {
+      "path": "modules/userdb.py",
+      "sha": "c832d4dadd334bb10d68292503e6195af9c1f965",
+      "size": 10844
+    },
+    {
+      "path": "modules/vault_engine.py",
+      "sha": "aa407520960f31f762adca46b106aaa57972c131",
+      "size": 24173
+    },
+    {
+      "path": "modules/visual_patch_approval_bridge.py",
+      "sha": "a42316bff9aaeccdb22b945b0ea5f33b49a3df02",
+      "size": 6558
+    },
+    {
+      "path": "modules/universal_memory_system.py",
+      "sha": "853ce5615d32369701415f04da9976ef8cdc6d96",
+      "size": 16898
+    },
+    {
+      "path": "modules/universal_avatar_builder_v1.py",
+      "sha": "1917bf1c014cd3a64dea080677b648438ecb48ae",
+      "size": 20536
+    },
+    {
+      "path": "modules/visual_patch_voxel_adapter.py",
+      "sha": "d9bb775290c9d78e1fe6e49f8cd12c14edd9a4c8",
+      "size": 10016
+    },
+    {
+      "path": "modules/voxel_block_kit.py",
+      "sha": "c53d4073617e7f8082c39ddbeff129e3be4590fa",
+      "size": 5612
+    },
+    {
+      "path": "modules/voxel_llm_adapter.py",
+      "sha": "65b325cb358b9f2cc397fc8144b7d00056ed0b12",
+      "size": 13278
+    },
+    {
+      "path": "modules/unified_bridge.py",
+      "sha": "f9cd680a27b0662d2a635f5aec4c24141442a221",
+      "size": 8012
+    },
+    {
+      "path": "modules/voxel_studio_integration.py",
+      "sha": "91545bcea34f803735d6a69cf9ae2708ac95af29",
+      "size": 10167
+    },
+    {
+      "path": "modules/voxel_studio.py",
+      "sha": "5099d702efd68362888dc59e084dda01840e320c",
+      "size": 56955
+    },
+    {
+      "path": "modules/voxel_webrtc_bridge.py",
+      "sha": "0acb8f209e7ec3614f186a33eb07b7a60be67976",
+      "size": 11329
+    },
+    {
+      "path": "modules/wired/NUDGE_MINIMAL.py",
+      "sha": "b2a0a502d344631f00b569a23e4de9a83ad9ec5f",
+      "size": 8053
+    },
+    {
+      "path": "modules/vision.py",
+      "sha": "e99518f6c4ba2cab92b1267995bc267a4c4f802e",
+      "size": 21190
+    },
+    {
+      "path": "modules/voxel_block_preview.py",
+      "sha": "badc73e39bd0ec73749e25aac198bb4f4b20091c",
+      "size": 9217
+    },
+    {
+      "path": "modules/voxel_set_contract.py",
+      "sha": "ce44a5b14e73da80d73a74d9557e4651ea7a93a4",
+      "size": 12147
+    },
+    {
+      "path": "modules/wired/__init__.py",
+      "sha": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "size": 0
+    },
+    {
+      "path": "modules/voxel_asset_manager.py",
+      "sha": "949321e6c4cacc04a516ae1376d4c6a72b49e2c7",
+      "size": 28903
+    },
+    {
+      "path": "modules/wired/animation_presets_complete.py",
+      "sha": "e4c30a929123f73f209a68ab0c98afb2f0aec930",
+      "size": 36041
+    },
+    {
+      "path": "modules/wired/companion_core.py",
+      "sha": "c240617b887c477fe31900bb92b0e51547f0aadb",
+      "size": 18214
+    },
+    {
+      "path": "modules/wired/conversation_state.py",
+      "sha": "cd01a3ca6480f40eb425141fa6365e94bd10f092",
+      "size": 24939
+    },
+    {
+      "path": "modules/wired/eq_adaptor.py",
+      "sha": "74731d5a5725e65a39fc9d94a6eea3eead8acfbb",
+      "size": 23698
+    },
+    {
+      "path": "modules/wired/acceptance_engine.py",
+      "sha": "af3c9a0f8da5882c301fc55a05eba3049936dc7a",
+      "size": 21668
+    },
+    {
+      "path": "modules/wired/eq_card_selector.py",
+      "sha": "c2ae032f2e9808ad670436314119b4527b4692fe",
+      "size": 22012
+    },
+    {
+      "path": "modules/twin_engine_service.py",
+      "sha": "37b2a38da09a45bcd5f5cabdf4dabae31743d4d1",
+      "size": 21042
+    },
+    {
+      "path": "modules/wired/eq_disambiguation_engine.py",
+      "sha": "474e26183b772633c329c27c2963ac5da565e97b",
+      "size": 29912
+    },
+    {
+      "path": "modules/wired/gpt_adapter.py",
+      "sha": "83fec2f50d8aba893bea1b0fb83f17ec8024f5d3",
+      "size": 12593
+    },
+    {
+      "path": "modules/wired/ethereal_avatar_generator.py",
+      "sha": "30341ba5de8c8b0a4527e27287c34dc32421d88a",
+      "size": 18331
+    },
+    {
+      "path": "modules/wired/orchestrator_wired.py",
+      "sha": "27ffa2dfda7093c9778e159976ac3a0e232b9ad4",
+      "size": 16632
+    },
+    {
+      "path": "modules/wired/director.py",
+      "sha": "e72a58ded899ab9c94bbf727bd57b5ea5ae4f316",
+      "size": 21328
+    },
+    {
+      "path": "modules/wired/meaning_maker.py",
+      "sha": "f86c3b586358c83e5edaad28cf598a382d4be60b",
+      "size": 28627
+    },
+    {
+      "path": "modules/wired/companion_runner.py",
+      "sha": "ae72d4a3508a0dfe77569428d91191b5dd56f3b1",
+      "size": 16318
+    },
+    {
+      "path": "modules/wired/pubcast_adapter.py",
+      "sha": "32b0463d721b3d635b28f05de6e11f5cb5f01980",
+      "size": 1743
+    },
+    {
+      "path": "modules/wired/conversation_pacing.py",
+      "sha": "80b8a841247ed1d46c3ca2f34c49746d0be4b2a4",
+      "size": 21377
+    },
+    {
+      "path": "modules/wired/eq_integration_layer.py",
+      "sha": "217efb2676ff969ff1ad8bcb6ea7efa227294685",
+      "size": 20217
+    },
+    {
+      "path": "modules/wired/pubcast_runtime.py",
+      "sha": "6a1615ac5f0e6b2bbadf4204a155fa5d555fda79",
+      "size": 21965
+    },
+    {
+      "path": "modules/wired/orchestrator_hardening.py",
+      "sha": "7d635e6e8e8165a90c977b972b29379592ad9f46",
+      "size": 9475
+    },
+    {
+      "path": "modules/wired/pubcast_voxel_hollow_patch.py",
+      "sha": "127b51c35634a005108a5985ce7d31433339caad",
+      "size": 13128
+    },
+    {
+      "path": "modules/wired/rate_limiter.py",
+      "sha": "20dd8f0e8ea74bfc47d65d301118067e13c8959a",
+      "size": 7905
+    },
+    {
+      "path": "modules/wired/hardened_websocket.py",
+      "sha": "5b61bd7f55803faec3359b7503d3a813f9ef910a",
+      "size": 12329
+    },
+    {
+      "path": "modules/wired/response_composer.py",
+      "sha": "08565b5a8a457d8141e06df3f00b7b175014491e",
+      "size": 13589
+    },
+    {
+      "path": "modules/wired/security.py",
+      "sha": "d3e0534d93bbfc6b19dbfb09ceb4eca130889766",
+      "size": 13851
+    },
+    {
+      "path": "modules/wired/test_hardening.py",
+      "sha": "000a76d5d3e3a9be9fdbc96c5e999cff85398066",
+      "size": 9770
+    },
+    {
+      "path": "modules/wired/unified_runtime_boot.py",
+      "sha": "9d5302bcb38b71045e257d292b242bd288c6be17",
+      "size": 21379
+    },
+    {
+      "path": "modules/wired/wired_orchestrator.py",
+      "sha": "b5c508391925d87607280bca6922cd89b83a8a60",
+      "size": 23782
+    },
+    {
+      "path": "pubpartner_app.py",
+      "sha": "86c698313de22d58f1ca2d5b6a97194bb41e63e9",
+      "size": 8927
+    },
+    {
+      "path": "modules/wired/wired_system.py",
+      "sha": "91f364ac55202184654421844b6c3d4d29a659ee",
+      "size": 20913
+    },
+    {
+      "path": "modules/wired/voxel_renderer.py",
+      "sha": "a50138d3f2844d0e719f088b1271666a74ddfb4d",
+      "size": 30752
+    },
+    {
+      "path": "modules/writers_room.py",
+      "sha": "1f63f18de75aef5021ceb85a01107a70c74b3807",
+      "size": 4776
+    },
+    {
+      "path": "requirements-architect.txt",
+      "sha": "7ba0f6019857f19c2d57c38ccf045d4abd36b026",
+      "size": 260
+    },
+    {
+      "path": "modules/wired/version_comparison.html",
+      "sha": "a6181decd80a6c5010922b56c9d58887e9862ca0",
+      "size": 8761
+    },
+    {
+      "path": "requirements-dev.txt",
+      "sha": "81a1aef404378ab9c964e1c4934784a4b2deaaad",
+      "size": 240
+    },
+    {
+      "path": "requirements_CORRECTED.txt",
+      "sha": "d883ca0ccac5efc97acceced2848a286b0fbdd17",
+      "size": 158
+    },
+    {
+      "path": "start_reach.py",
+      "sha": "d5931e3e4400cdba056d2d060d8c089bdd5e826e",
+      "size": 6203
+    },
+    {
+      "path": "static/analytics.html",
+      "sha": "fcb3a0da5bfb78eef8c3ba790dede8132f1447bd",
+      "size": 11261
+    },
+    {
+      "path": "modules/wired/wired_server.py",
+      "sha": "ec0249e5371f83e85dfba7bd999670a57aa0b28c",
+      "size": 17724
+    },
+    {
+      "path": "static/audio.js",
+      "sha": "1f7b41d2d28555661de6626b8775fb0b8777a4d6",
+      "size": 2594
+    },
+    {
+      "path": "setup_smollm.py",
+      "sha": "fae7f64edf46b38c62a99efe7b5bcfaa209ca1f8",
+      "size": 2387
+    },
+    {
+      "path": "static/app.js",
+      "sha": "bca1afa2418560c28f71c7c071ae29df6b83a17a",
+      "size": 10725
+    },
+    {
+      "path": "static/avatar.js",
+      "sha": "7530b06452a06c275b7765ff3f16131a430a4363",
+      "size": 984
+    },
+    {
+      "path": "static/audio_console_hotspot_manifest.json",
+      "sha": "ce5faa60a821281d75f230f588de3e695e434c4e",
+      "size": 4933
+    },
+    {
+      "path": "run_smollm.py",
+      "sha": "f769293b892f8d6f0c6be201e2c41c258478d0bb",
+      "size": 8646
+    },
+    {
+      "path": "static/animation_presets_complete.js",
+      "sha": "2242be04ccef7747f7570409eedc8d2e856308ce",
+      "size": 37372
+    },
+    {
+      "path": "static/audio_console.html",
+      "sha": "a8640965e959c0fdc01f311d18a8d5192b326b3e",
+      "size": 932
+    },
+    {
+      "path": "static/avatar_controls.html",
+      "sha": "bf37866dbf4b36a8d855ce5a2306cf90db5d95cd",
+      "size": 22785
+    },
+    {
+      "path": "static/avatar_glb_motion_consumer.js",
+      "sha": "056d7912e7f6117ca3d326872c9934b9c3afa0c6",
+      "size": 9228
+    },
+    {
+      "path": "static/avatar_glow.js",
+      "sha": "b81e37a62c3e749f7ae2a14c6d98f5c51d8e55fe",
+      "size": 12559
+    },
+    {
+      "path": "static/basebar.js",
+      "sha": "eb2720ef80262907456fe3a56bac659da4909afd",
+      "size": 5495
+    },
+    {
+      "path": "static/bots.js",
+      "sha": "0151e21bc9b70ec7d34e79c69444ea0dad2c66ec",
+      "size": 7095
+    },
+    {
+      "path": "static/base.html",
+      "sha": "65c778727e224fefdefd5604c32f686d3aaae6b5",
+      "size": 1067
+    },
+    {
+      "path": "static/avatar_foundry.html",
+      "sha": "3884315dc69dd7af6078853ea2dac4d9a3ef0459",
+      "size": 12680
+    },
+    {
+      "path": "static/avatar_studio_demo.html",
+      "sha": "d89a80e65bd9c99525ef8372cc0f9101b3323d8c",
+      "size": 6678
+    },
+    {
+      "path": "static/builder.html",
+      "sha": "194b427889d26814e768bd30df4f8bd14f20b4a0",
+      "size": 35925
+    },
+    {
+      "path": "static/avatar_walk_test.html",
+      "sha": "c7bd313afbd39273d62cf75aacaaf2da65dae98f",
+      "size": 5018
+    },
+    {
+      "path": "static/byok.html",
+      "sha": "843f5f4d16eacacc7f806c01f5ebe49af951304b",
+      "size": 37229
+    },
+    {
+      "path": "static/conference.js",
+      "sha": "ec8ce5ff93fde6842dedafbcf201e8ecf201e451",
+      "size": 3263
+    },
+    {
+      "path": "static/bar.html",
+      "sha": "96456c737701aff03e18c7d3831f1a1af4aec347",
+      "size": 10515
+    },
+    {
+      "path": "static/choreography.html",
+      "sha": "ff8730188d99a19e46eb987fc2038bc124ad6cc6",
+      "size": 20378
+    },
+    {
+      "path": "static/console_hotspot_renderer.js",
+      "sha": "510d6781e02f0adeb0b2602bed06c242daf8ddc7",
+      "size": 7032
+    },
+    {
+      "path": "static/console_hotspot_renderer.css",
+      "sha": "526f14eb02501bbf05c2b20bb8e874c4d861f4e6",
+      "size": 2409
+    },
+    {
+      "path": "static/director_console.html",
+      "sha": "395a579352190f55b300a7fd5d709d0b13f0acc7",
+      "size": 945
+    },
+    {
+      "path": "static/console.js",
+      "sha": "d034be328a88eed740e77a40d5fc80026f9af6cb",
+      "size": 2377
+    },
+    {
+      "path": "static/control.html",
+      "sha": "2e74499abacac020adedf7d139dff0ae07d60dc4",
+      "size": 27005
+    },
+    {
+      "path": "static/director_console_hotspot_manifest.json",
+      "sha": "fcf14e58c938a1d282de00259a4427f2ca2331c9",
+      "size": 5803
+    },
+    {
+      "path": "static/director_switcher.html",
+      "sha": "c88087ca6184a97af848970d9b4f9584c4c6fe33",
+      "size": 46295
+    },
+    {
+      "path": "static/control_stations.js",
+      "sha": "f7dd07f0e55e0f9f1e0967167f4be004dcbd1646",
+      "size": 7142
+    },
+    {
+      "path": "static/css/main.css",
+      "sha": "c0374d8103c8aee8325ed441e86cfe9b278f005d",
+      "size": 10439
+    },
+    {
+      "path": "static/doctor.html",
+      "sha": "25c6079cd4f43d3904c80bd0fe92f96e7688cefe",
+      "size": 6645
+    },
+    {
+      "path": "static/control_room.html",
+      "sha": "b7f871960e0d4a86bd58265b54ed5d78449eb045",
+      "size": 25507
+    },
+    {
+      "path": "static/dressing.css",
+      "sha": "015f0dbea7e3eb537aa2c4ecb8a5c74f0a243d37",
+      "size": 22364
+    },
+    {
+      "path": "static/dressing.html",
+      "sha": "317673f7fa47d0af76c11bad4ac03db9cfe5a325",
+      "size": 16439
+    },
+    {
+      "path": "static/editor_ui.js",
+      "sha": "365d15abb00a5cf97a25a86153b357e3c7b672c4",
+      "size": 3996
+    },
+    {
+      "path": "static/dressing.js",
+      "sha": "2875cc5ddc185d9027660ac8db6a8c6280e59d86",
+      "size": 15585
+    },
+    {
+      "path": "static/ethereal_skin_shader_system_CORRECTED.js",
+      "sha": "4cd206ec25e52c4cdc0c981dd30281bc19e92dfe",
+      "size": 17498
+    },
+    {
+      "path": "static/gallery.html",
+      "sha": "7f4bd9068c132fabb6228cb8e0c5c4eba28f2b74",
+      "size": 13119
+    },
+    {
+      "path": "static/foley_manifest.json",
+      "sha": "5e81b335fd2f8bc649ea29f29d904f63033364de",
+      "size": 1679
+    },
+    {
+      "path": "static/ethereal_shader_system.js",
+      "sha": "6376ca1a86348d3a57e91049d18c89d4441a4fb2",
+      "size": 14140
+    },
+    {
+      "path": "static/index.html",
+      "sha": "cffde22c93cf3b24fe37fff2ddbd2172d0444106",
+      "size": 8343
+    },
+    {
+      "path": "static/dressing_foundry.html",
+      "sha": "6b9b8d15b63e90770bd599c6a39f9239cd65a243",
+      "size": 13308
+    },
+    {
+      "path": "static/foley_engine.js",
+      "sha": "525c9f9855dcb6de5e2eaa77a1232c22c992d062",
+      "size": 10757
+    },
+    {
+      "path": "static/js/avatar/avatar_camera_studio.js",
+      "sha": "2ccd6aa17f1ec2dbf9c24ccd6beca5f5f16d3388",
+      "size": 777
+    },
+    {
+      "path": "static/js/avatar/avatar_humanoid_runtime.js",
+      "sha": "a97254ccfdffe02098fbe422fb2bfee6d6a58295",
+      "size": 9120
+    },
+    {
+      "path": "static/js/animation_presets.js",
+      "sha": "cf4052b1c63ac7876bf64e7062d7bc5a7b55dc2c",
+      "size": 2617
+    },
+    {
+      "path": "static/launch.html",
+      "sha": "a9f678c49eee48af755551ffa20a110830e0c2cb",
+      "size": 27947
+    },
+    {
+      "path": "static/login.html",
+      "sha": "cceedb5a50fdb9e6477df307323a36bbe7cef6b9",
+      "size": 9360
+    },
+    {
+      "path": "static/js/avatar_glb_walk.js",
+      "sha": "34e0c5f74ac5a47c047daa640cc2f1a991fa01b2",
+      "size": 14344
+    },
+    {
+      "path": "static/js/choreo_demo.js",
+      "sha": "33cde3bade4baf7081b462eb369a54446bc8ae47",
+      "size": 5662
+    },
+    {
+      "path": "static/map.html",
+      "sha": "604200bcd69693686d15c50c5bd3e53d788923ae",
+      "size": 28220
+    },
+    {
+      "path": "static/memory-manager.js",
+      "sha": "5c90580d485e2620cf3b5b9d58988b16cfd6fecb",
+      "size": 9381
+    },
+    {
+      "path": "static/mic_device_picker.js",
+      "sha": "ae2f37c67d3b24288423c1b1939722a345943d1a",
+      "size": 21742
+    },
+    {
+      "path": "static/mic_profiles.js",
+      "sha": "9a8064dd2808e8ab1efd4e4e6bf3e2063593c641",
+      "size": 19907
+    },
+    {
+      "path": "static/program_audio_runtime.js",
+      "sha": "bbac7b2f4f52930cc88c97aca0da1689ae7b0953",
+      "size": 6907
+    },
+    {
+      "path": "static/pub_partner_chat.html",
+      "sha": "469f3c21c942752167a758c7be1cbd5a3cdc270e",
+      "size": 15265
+    },
+    {
+      "path": "static/general_chat.html",
+      "sha": "326eca260963481c5e2033bb8b100f00de2895c2",
+      "size": 10175
+    },
+    {
+      "path": "static/mic_processor.js",
+      "sha": "9bfeea63d4a2cf15142d057bf28ccb7e7efcb766",
+      "size": 37870
+    },
+    {
+      "path": "static/pubcast_lighting_engine.js",
+      "sha": "f4986fed9dd48000308025b457a7c597dc2fc7f2",
+      "size": 46303
+    },
+    {
+      "path": "static/pubpartner.html",
+      "sha": "7d76ee383b4763bd457bd418603810f2084bf20f",
+      "size": 20338
+    },
+    {
+      "path": "static/pubcast_lighting_explorer.html",
+      "sha": "1503596d43b12666c71c0335cb5856c067dcfa1c",
+      "size": 40297
+    },
+    {
+      "path": "static/pubpartner.js",
+      "sha": "aaf7432343a6063500d12638d336f5bd6f32adfb",
+      "size": 60113
+    },
+    {
+      "path": "static/pubpartner.css",
+      "sha": "35bdd8c2517b3affe41eef99d400ae1bfba66d9d",
+      "size": 40863
+    },
+    {
+      "path": "static/pubworld_stage.html",
+      "sha": "75ab02628c52163a72e949a69403c1a10d72303f",
+      "size": 61939
+    },
+    {
+      "path": "static/stage.html",
+      "sha": "9182d941e5ee9a8652f8cbda3cedaaf75e4f5c38",
+      "size": 44970
+    },
+    {
+      "path": "static/reach_auth.js",
+      "sha": "86351d7b95a4014f5a96c73605d2efe2d1cd1c71",
+      "size": 5610
+    },
+    {
+      "path": "static/safe_console.html",
+      "sha": "fe0327d79d936f6f60583556d09851a390bd413d",
+      "size": 4239
+    },
+    {
+      "path": "static/pubcast_teleprompter.html",
+      "sha": "c19e0684952b9974a29da3360f34f295bb0a7f88",
+      "size": 39972
+    },
+    {
+      "path": "static/stage_3d.html",
+      "sha": "31f40e3299512cbd4e7eb8db7ee704408ce1ae0a",
+      "size": 26860
+    },
+    {
+      "path": "static/studio_console_hotspots.js",
+      "sha": "f07faf3d9072cf43aab619303489500be87bcac3",
+      "size": 10378
+    },
+    {
+      "path": "static/tts.js",
+      "sha": "c35bd333f7933ade5a684bd63787da71d97ca7e8",
+      "size": 4400
+    },
+    {
+      "path": "static/stage_panoramic.html",
+      "sha": "e0e6c48f52ab2ace60de09882c0bbbe31e0c4072",
+      "size": 103241
+    },
+    {
+      "path": "static/switcher.js",
+      "sha": "9ceb882332d16137088046c832572dc8b102bece",
+      "size": 2924
+    },
+    {
+      "path": "static/world_chat.css",
+      "sha": "125cd5e74582aac4c373c87980eca3c98b29c673",
+      "size": 1264
+    },
+    {
+      "path": "static/studio_control_room.html",
+      "sha": "b579938465353b052a603899a3d11b7d37182628",
+      "size": 36047
+    },
+    {
+      "path": "static/voxel_block_preview_client.js",
+      "sha": "499911bda74df20c5183b670318b8c82071a262f",
+      "size": 2953
+    },
+    {
+      "path": "static/world.html",
+      "sha": "cf99da1d9032d7126ab4c73b0d7d1845ba406ee1",
+      "size": 76488
+    },
+    {
+      "path": "static/world_chat.html",
+      "sha": "562bc4e51894cb5a76f4ef8c695f709ba8f4237d",
+      "size": 1310
+    },
+    {
+      "path": "static/world_chat_widget.js",
+      "sha": "27ac795bd8e836e2b64eee598334e5e8735e135c",
+      "size": 7652
+    },
+    {
+      "path": "static/ws.js",
+      "sha": "9a66269104aa1ff562a1724cbdc7ca1fb16d69d9",
+      "size": 1719
+    },
+    {
+      "path": "static/ui.js",
+      "sha": "f4f522a4b125db2e96aa261a3c321ee713997c42",
+      "size": 2535
+    },
+    {
+      "path": "test_04_websockets_FIXED.py",
+      "sha": "2d7395415342379dd43e2d3691dbe879ed0c52fa",
+      "size": 13564
+    },
+    {
+      "path": "static/waiting_room.html",
+      "sha": "de74c552d33fe35cf05bbbb027a9700af14ccafd",
+      "size": 13752
+    },
+    {
+      "path": "static/styles.css",
+      "sha": "34b0d6ad14738ee04a7be071c8d1daf6c5915a66",
+      "size": 12057
+    },
+    {
+      "path": "test_run1_live.py",
+      "sha": "d4dea0d5d655e7698e9ad8c2a9c39462734c11bf",
+      "size": 3005
+    },
+    {
+      "path": "2i-backend/package-lock.json",
+      "sha": "1b70de7422a9ee3f5a485115fd5dfe3aadd8dee2",
+      "size": 50094
+    },
+    {
+      "path": "2i-backend/package.json",
+      "sha": "5aec7c7a91791b63ddba9272905bbd3d52363094",
+      "size": 771
+    },
+    {
+      "path": "2i-backend/server.js",
+      "sha": "9517c0341a7168547304d83686841fc8b8cc70ec",
+      "size": 51591
+    },
+    {
+      "path": "2i-backend/test/bridge_contract.test.js",
+      "sha": "c37fa12305878826777ea2bca3ade24f4139087b",
+      "size": 10283
+    },
+    {
+      "path": "2i/2i-assets/artwork.css",
+      "sha": "4676cb25bbcbc2c633dfa7790af5168f3718d7db",
+      "size": 9845
+    },
+    {
+      "path": "2i/2i-assets/artwork.js",
+      "sha": "68ed45ac519189198ee110e6e44cf399f3c145aa",
+      "size": 17582
+    },
+    {
+      "path": "2i/2i-assets/button-bindings.js",
+      "sha": "7467f12625637271223a199a2219cdc6a6680da5",
+      "size": 1469
+    },
+    {
+      "path": "2i/2i-assets/desk-controls.js",
+      "sha": "c1d8fa201b3f8db114cd4745c73126687b4779cd",
+      "size": 11039
+    },
+    {
+      "path": "2i/2i-assets/hotspots.json",
+      "sha": "d9589413d3ec27afa22a220e727e1bed944bdd28",
+      "size": 5481
+    },
+    {
+      "path": "2i/2i-assets/phone.css",
+      "sha": "5fca42edd4f9b3ef37eac216d3234232bd32837d",
+      "size": 9608
+    },
+    {
+      "path": "2i/2i-assets/phone.js",
+      "sha": "ab424995367bc9584d9500782bd507366f8e9eb6",
+      "size": 8622
+    },
+    {
+      "path": "2i/2i-assets/reach.css",
+      "sha": "f496fd74cfeeb00427673ae126b7a0fb9d6f9f8d",
+      "size": 6554
+    },
+    {
+      "path": "2i/2i-assets/reach.js",
+      "sha": "f2c4a59ee8b524637637e00a72a3479cf2d9fe70",
+      "size": 26337
+    },
+    {
+      "path": "2i/2i-assets/reader.css",
+      "sha": "aa0096813f141dc00c6400813087985daff30e14",
+      "size": 3941
+    },
+    {
+      "path": "2i/2i-assets/reader.js",
+      "sha": "250e3fa11fe331e8a8ca998d1a735bb4ae6dc203",
+      "size": 8157
+    },
+    {
+      "path": "2i/index.html",
+      "sha": "d4fcc0abe36084b10817558be1ee3793edcb2552",
+      "size": 96927
+    },
+    {
+      "path": "2i/writers-room-v22.html",
+      "sha": "60145c9a1d14c7c4b162e82ddf99d3b8144f15e6",
+      "size": 110786
+    },
+    {
+      "path": "pubpartner/__init__.py",
+      "sha": "fbda7ea22550b6d124435ff8845388432ba6fac7",
+      "size": 1163
+    },
+    {
+      "path": "pubpartner/cartridge.py",
+      "sha": "e90b5636f701b0f0db4ee61f13ebb16bef4bc189",
+      "size": 5851
+    },
+    {
+      "path": "pubpartner/cli.py",
+      "sha": "3bc35c30ce83f7212a66305c1ccdbc604fb9c069",
+      "size": 6617
+    },
+    {
+      "path": "pubpartner/memory_store.py",
+      "sha": "484306aa8bf6f56c96ceb5a979e60dfe7c05672b",
+      "size": 7462
+    },
+    {
+      "path": "pubpartner/portable_runtime.py",
+      "sha": "d8993c94f2a7d6abfdaa1a81eb838caf8d5dc875",
+      "size": 9525
+    },
+    {
+      "path": "pubpartner/prompt_assembler.py",
+      "sha": "46e5b1046bf05e9c8aaf89cf23f47fc79c7129ff",
+      "size": 4394
+    },
+    {
+      "path": "pubpartner/pubpartner_federation/__init__.py",
+      "sha": "0f3655f16f99586a40215a9947fc62fe2c7491db",
+      "size": 144
+    },
+    {
+      "path": "pubpartner/pubpartner_federation/engine.py",
+      "sha": "3848e837472d21cd3bc9fd2984d0e973556d4ead",
+      "size": 9509
+    },
+    {
+      "path": "pubpartner/pubpartner_federation/identity.py",
+      "sha": "8556d0d95b7e3868fa50940b1395c7ca85a38615",
+      "size": 1250
+    },
+    {
+      "path": "pubpartner/pubpartner_federation/memory.py",
+      "sha": "7b88d69cca9a2368a06937d36f16b215fce4e940",
+      "size": 1502
+    },
+    {
+      "path": "pubpartner/pubpartner_federation/protocol.py",
+      "sha": "d60579b742c0645877b4167ca90646d4deb081ee",
+      "size": 4520
+    },
+    {
+      "path": "pubpartner/pubpartner_federation/service.py",
+      "sha": "88f9980728cfaeacc230e47b4b56138f3a6689f6",
+      "size": 12171
+    },
+    {
+      "path": "pubpartner/pubpartner_federation/store.py",
+      "sha": "859fcca2a1a9a1c01ff8030592fb05a72a95d66e",
+      "size": 6184
+    },
+    {
+      "path": "pubpartner/schema.py",
+      "sha": "c20f53316d590914582073bdc2826c379f782533",
+      "size": 3845
+    },
+    {
+      "path": "pubpartner/sequence_controller.py",
+      "sha": "9aaaeda01a56a2a1d201cdd5418b37cce6c8856e",
+      "size": 10481
+    },
+    {
+      "path": "pubpartner/tokenizer.py",
+      "sha": "df382e5fbeed04899c31716b3df87d8b33701e2a",
+      "size": 1627
+    },
+    {
+      "path": "run_pubpartner.py",
+      "sha": "651488c0e4173cf778582cb0ed586cf72a95606c",
+      "size": 4470
+    },
+    {
+      "path": "static/console.css",
+      "sha": "78c8c2797f48d0f8645c2424f55c76c18e042fb2",
+      "size": 2351
+    }
+  ]
+}

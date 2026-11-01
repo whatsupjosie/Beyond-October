@@ -1,0 +1,519 @@
+{
+  "asset_id": "small_theater_platform_two_walls_doorway_codex_proof_20260502",
+  "name": "Small Theater Platform With Two Side Walls And A Doorway",
+  "version": 1,
+  "units": "voxel",
+  "dimensions": {
+    "x": 7,
+    "y": 3,
+    "z": 5
+  },
+  "origin": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "blocks": [
+    {
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 1,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 2,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 3,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 4,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 0,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 1,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 2,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 3,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 4,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 0,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 1,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 2,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 3,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 4,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 0,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 1,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 2,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 3,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 4,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 0,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 1,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 2,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 3,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 4,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 0,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 1,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 2,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 3,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 4,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 0,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 1,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 2,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 3,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 4,
+      "material": "stage_wood",
+      "color": "#8b5a2b",
+      "metadata": {
+        "part": "platform"
+      }
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 0,
+      "material": "wall_red",
+      "color": "#7a1f2a",
+      "metadata": {
+        "part": "left_wall"
+      }
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 0,
+      "material": "wall_red",
+      "color": "#7a1f2a",
+      "metadata": {
+        "part": "right_wall"
+      }
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 1,
+      "material": "wall_red",
+      "color": "#7a1f2a",
+      "metadata": {
+        "part": "left_wall"
+      }
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 1,
+      "material": "wall_red",
+      "color": "#7a1f2a",
+      "metadata": {
+        "part": "right_wall"
+      }
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 2,
+      "material": "wall_red",
+      "color": "#7a1f2a",
+      "metadata": {
+        "part": "left_wall"
+      }
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 2,
+      "material": "wall_red",
+      "color": "#7a1f2a",
+      "metadata": {
+        "part": "right_wall"
+      }
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 3,
+      "material": "wall_red",
+      "color": "#7a1f2a",
+      "metadata": {
+        "part": "left_wall"
+      }
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 3,
+      "material": "wall_red",
+      "color": "#7a1f2a",
+      "metadata": {
+        "part": "right_wall"
+      }
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 4,
+      "material": "wall_red",
+      "color": "#7a1f2a",
+      "metadata": {
+        "part": "left_wall"
+      }
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "z": 4,
+      "material": "wall_red",
+      "color": "#7a1f2a",
+      "metadata": {
+        "part": "right_wall"
+      }
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 4,
+      "material": "wall_red",
+      "color": "#7a1f2a",
+      "metadata": {
+        "part": "doorway_side"
+      }
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 4,
+      "material": "wall_red",
+      "color": "#7a1f2a",
+      "metadata": {
+        "part": "doorway_side"
+      }
+    },
+    {
+      "x": 3,
+      "y": 2,
+      "z": 4,
+      "material": "brass_trim",
+      "color": "#d8af5b",
+      "metadata": {
+        "part": "doorway_header"
+      }
+    }
+  ],
+  "materials": {
+    "stage_wood": {
+      "kind": "solid",
+      "label": "Stage wood"
+    },
+    "wall_red": {
+      "kind": "solid",
+      "label": "Red theater wall"
+    },
+    "brass_trim": {
+      "kind": "solid",
+      "label": "Brass trim"
+    }
+  },
+  "created_by": "builder",
+  "source_prompt": "small theater platform with two side walls and a doorway",
+  "safety": {
+    "ai_authority": "off",
+    "approved_by_user": false,
+    "sandbox_only": true
+  }
+}

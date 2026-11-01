@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PubCast — Chat</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0d1120;--surface:#141926;--border:#2a3050;
+    --gold:#d4a843;--gold-dim:#8e6336;--gold-text:#f2cf93;
+    --text:#e8dfc8;--text-dim:#7a7060;
+    --user-bg:#1a2035;--char-bg:#191510;
+    --green:#4caf7d;--red:#c0392b;--orange:#e67e22;
+  }
+  html,body{height:100%;background:var(--bg);color:var(--text);
+    font-family:'Georgia',serif;font-size:14px}
+
+  /* ── Layout ── */
+  body{display:grid;grid-template-rows:auto 1fr auto;height:100vh;overflow:hidden}
+
+  header{
+    padding:12px 18px;border-bottom:1px solid var(--border);
+    background:var(--surface);
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap
+  }
+  header h1{font-size:13px;letter-spacing:3px;color:var(--gold-text);
+    text-transform:uppercase;font-weight:normal}
+  #status-dot{width:8px;height:8px;border-radius:50%;background:var(--text-dim);
+    flex-shrink:0;transition:background .4s}
+  #status-dot.ok{background:var(--green)}
+  #status-dot.err{background:var(--red)}
+  #status-label{font-size:11px;color:var(--text-dim);letter-spacing:1px}
+
+  main{display:grid;grid-template-columns:220px 1fr;overflow:hidden}
+
+  /* ── Sidebar ── */
+  aside{
+    border-right:1px solid var(--border);padding:16px 14px;
+    overflow-y:auto;display:flex;flex-direction:column;gap:16px;
+    background:var(--surface)
+  }
+  .field-label{font-size:10px;letter-spacing:2px;color:var(--gold-dim);
+    text-transform:uppercase;margin-bottom:5px}
+  select,input{
+    width:100%;background:var(--bg);border:1px solid var(--border);
+    color:var(--text);padding:7px 10px;font-family:inherit;font-size:13px;
+    border-radius:3px;appearance:none;-webkit-appearance:none
+  }
+  select:focus,input:focus{outline:none;border-color:var(--gold-dim)}
+
+  /* Character selector */
+  #char-select{padding-right:28px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238e6336'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 10px center}
+
+  /* Provider badge */
+  .char-badge{
+    font-size:10px;letter-spacing:1px;padding:2px 7px;border-radius:2px;
+    text-transform:uppercase;font-family:monospace;display:inline-block;margin-top:5px
+  }
+  .badge-anthropic{background:#2a1f0e;color:#d4a843;border:1px solid #5a3e10}
+  .badge-openai{background:#0e1a2a;color:#7b9fd4;border:1px solid #1e3560}
+  .badge-gemini{background:#0a1f1a;color:#3ddad7;border:1px solid #105050}
+  .badge-ollama{background:#1a1a1a;color:#888;border:1px solid #333}
+  .badge-nokey{background:#2a0e0e;color:#c05050;border:1px solid #601010}
+
+  #char-info{min-height:36px;padding:8px;background:var(--bg);
+    border:1px solid var(--border);border-radius:3px;font-size:11px;color:var(--text-dim)}
+
+  #dm-section{border-top:1px solid var(--border);padding-top:14px}
+  .dm-note{font-size:11px;color:var(--text-dim);line-height:1.5;margin-top:6px}
+
+  /* ── Chat log ── */
+  #log{
+    overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px
+  }
+  .msg{display:flex;flex-direction:column;max-width:82%;gap:3px}
+  .msg.user{align-self:flex-end;align-items:flex-end}
+  .msg.char{align-self:flex-start;align-items:flex-start}
+  .msg .meta{font-size:10px;color:var(--text-dim);letter-spacing:1px}
+  .msg .bubble{
+    padding:9px 13px;border-radius:4px;line-height:1.6;font-size:13px;
+    white-space:pre-wrap;word-break:break-word
+  }
+  .msg.user .bubble{background:var(--user-bg);border:1px solid #2a3050;color:var(--text)}
+  .msg.char .bubble{background:var(--char-bg);border:1px solid #2a1e08;color:var(--gold-text)}
+  .msg.system .bubble{
+    background:transparent;border:none;color:var(--text-dim);
+    font-size:11px;letter-spacing:1px;text-align:center;align-self:center
+  }
+  .msg.error .bubble{background:#1a0808;border:1px solid #601010;color:#c08080}
+
+  /* Loading pulse */
+  .typing span{display:inline-block;width:5px;height:5px;border-radius:50%;
+    background:var(--gold-dim);animation:blink 1.2s infinite;margin:0 2px}
+  .typing span:nth-child(2){animation-delay:.2s}
+  .typing span:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+
+  /* ── Footer ── */
+  footer{
+    border-top:1px solid var(--border);padding:12px 16px;
+    background:var(--surface);display:flex;gap:10px;align-items:flex-end
+  }
+  #message{
+    flex:1;resize:none;height:52px;max-height:120px;
+    background:var(--bg);border:1px solid var(--border);
+    color:var(--text);padding:8px 12px;font-family:'Georgia',serif;
+    font-size:13px;border-radius:3px;line-height:1.5
+  }
+  #message:focus{outline:none;border-color:var(--gold-dim)}
+  #send{
+    background:transparent;border:1px solid var(--gold-dim);
+    color:var(--gold-text);padding:8px 20px;cursor:pointer;
+    font-family:'Georgia',serif;font-size:12px;letter-spacing:2px;
+    text-transform:uppercase;border-radius:3px;
+    transition:background .2s,border-color .2s;flex-shrink:0;height:52px
+  }
+  #send:hover{background:#1a1208;border-color:var(--gold)}
+  #send:disabled{opacity:.4;cursor:not-allowed}
+  .hint{font-size:10px;color:var(--text-dim);letter-spacing:1px;
+    align-self:center;flex-shrink:0}
+</style>
+  <script src="/static/reach_auth.js"></script>
+</head>
+<body>
+
+<header>
+  <div id="status-dot"></div>
+  <h1>PubCast · Chat</h1>
+  <span id="status-label">loading characters…</span>
+</header>
+
+<main>
+  <aside>
+    <div>
+      <div class="field-label">Talking to</div>
+      <select id="char-select">
+        <option value="">— loading —</option>
+      </select>
+      <div id="char-info"></div>
+    </div>
+
+    <div>
+      <div class="field-label">Your name</div>
+      <input id="user" placeholder="signed-in user" readonly>
+    </div>
+
+    <div id="dm-section">
+      <div class="field-label">Private message</div>
+      <select id="dm-select">
+        <option value="">— select person —</option>
+      </select>
+      <p class="dm-note" id="dm-note">Send a DM request. Security and host bypass automatically.</p>
+      <button id="dm-btn" style="margin-top:8px;width:100%;padding:7px;
+        background:transparent;border:1px solid var(--border);color:var(--text-dim);
+        font-family:inherit;font-size:11px;letter-spacing:2px;text-transform:uppercase;
+        cursor:pointer;border-radius:3px" onclick="sendDMRequest()">Send Request</button>
+    </div>
+  </aside>
+
+  <div id="log"></div>
+</main>
+
+<footer>
+  <textarea id="message" placeholder="Type a message… Ctrl+Enter to send"></textarea>
+  <button id="send" onclick="send()">Send</button>
+  <span class="hint">Ctrl+↵</span>
+</footer>
+
+<script>
+const $=id=>document.getElementById(id);
+if(window.ReachAuth) $('user').value=(window.ReachAuth.getUser()?.username||window.ReachAuth.getUser()?.user_id||'');
+const params=new URLSearchParams(location.search);
+const BRIDGE_BASE='/api/foresight/bridge'; // Never accept a query-selected remote conversation endpoint.
+let characters=[];
+let sending=false;
+
+function bridgeHeaders(extra={}){
+  // ReachAuth adds the current bearer token automatically for same-origin calls.
+  // Never forward credentials to a second localhost or remote origin.
+  return {...extra};
+}
+
+// ── Character loading ─────────────────────────────────────────────────────────
+
+async function loadCharacters(){
+  try{
+    const res=await fetch(`${BRIDGE_BASE}/api/chat/characters`,{mode:'cors',headers:bridgeHeaders()});
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data=await res.json();
+    const rows=Array.isArray(data)?data:(Array.isArray(data.characters)?data.characters:[]);
+    characters=rows.map(c=>({
+      ...c,
+      bot_id:c.bot_id||c.id,
+      name:c.name||c.character_name||c.id,
+      provider:c.provider||'unknown',
+      model:c.model||'unknown'
+    })).filter(c=>c.bot_id);
+
+    $('char-select').innerHTML='';
+    $('dm-select').innerHTML='<option value="">— select person —</option>';
+
+    characters.forEach(c=>{
+      const opt=document.createElement('option');
+      opt.value=c.bot_id;
+      opt.textContent=c.name;
+      $('char-select').appendChild(opt.cloneNode(true));
+      $('dm-select').appendChild(opt);
+    });
+
+    // Also add non-bot users for DM (hardcoded for now — would come from presence)
+    ['josie','pete','sir_purfluous','jeremy'].forEach(u=>{
+      if(!characters.find(c=>c.bot_id===u)){
+        const opt=document.createElement('option');
+        opt.value=u; opt.textContent=u;
+        $('dm-select').appendChild(opt);
+      }
+    });
+
+    updateCharInfo();
+    await loadDirectHistory();
+    $('status-dot').className='ok';
+    $('status-label').textContent=`${characters.length} characters available`;
+  }catch(err){
+    $('status-dot').className='err';
+    $('status-label').textContent='PubCast character service unavailable';
+    addMessage('system',`Connection failed: ${err.message}`);
+  }
+}
+
+function updateCharInfo(){
+  const id=$('char-select').value;
+  const c=characters.find(x=>x.bot_id===id);
+  const box=$('char-info');
+  box.replaceChildren();
+  if(!c)return;
+  function tag(label,kind){
+    const node=document.createElement('span');
+    node.className='char-badge'+(kind?' '+kind:'');
+    node.textContent=String(label||'unknown');
+    box.appendChild(node);
+  }
+  const knownMissing=c.credential_ready===false;
+  tag(c.provider,knownMissing?'badge-nokey':'badge-'+String(c.provider).replace(/[^a-z0-9_-]/ig,''));
+  tag(c.model);
+  if(knownMissing || c.provider==='ollama'){
+    const note=document.createElement('div');
+    note.style.fontSize='10px';
+    note.style.color=knownMissing?'#c05050':'var(--text-dim)';
+    note.textContent=knownMissing?'⚠ no provider key configured':'Local model connection not checked';
+    box.appendChild(note);
+  }
+}
+
+async function loadDirectHistory(){
+  const selected=$('char-select').value;
+  $('log').replaceChildren();
+  if(!selected)return;
+  try{
+    const res=await fetch(`${BRIDGE_BASE}/api/chat/history?character_id=${encodeURIComponent(selected)}&room_id=studio`);
+    if(!res.ok)throw Error(`History HTTP ${res.status}`);
+    const data=await res.json();
+    for(const entry of (data.messages||[])){
+      addMessage(entry.user===($('user').value||'')?'user':'char',entry.text,entry.user);
+    }
+  }catch(e){addMessage('system','Saved conversation unavailable: '+e.message)}
+}
+$('char-select').addEventListener('change',()=>{updateCharInfo();loadDirectHistory()});
+
+// ── Sending ───────────────────────────────────────────────────────────────────
+
+function addMessage(type,text,meta=''){
+  const div=document.createElement('div');
+  div.className=`msg ${type}`;
+  const metaEl=meta?'<div class="meta"></div>':'';
+  if(type==='typing'){
+    div.innerHTML=`<div class="bubble"><span class="typing"><span></span><span></span><span></span></span></div>`;
+  }else{
+    div.innerHTML=`${metaEl}<div class="bubble"></div>`;
+    div.querySelector('.bubble').textContent=text;
+    if(meta) div.querySelector('.meta').textContent=meta;
+  }
+  $('log').appendChild(div);
+  $('log').scrollTop=$('log').scrollHeight;
+  return div;
+}
+
+async function send(){
+  if(sending)return;
+  const text=$('message').value.trim();
+  if(!text)return;
+  const charId=$('char-select').value;
+  if(!charId){addMessage('error','Select a character first.');return}
+  const userId=(window.ReachAuth && (window.ReachAuth.getUser()?.username||window.ReachAuth.getUser()?.user_id)) || $('user').value.trim() || 'user';
+
+  $('message').value='';
+  const c=characters.find(x=>x.bot_id===charId);
+  addMessage('user',text,userId);
+  const typing=addMessage('typing','');
+  $('send').disabled=true;
+  sending=true;
+
+  try{
+    const res=await fetch(`${BRIDGE_BASE}/api/chat/character`,{
+      method:'POST',
+      mode:'cors',
+      headers:bridgeHeaders({'Content-Type':'application/json'}),
+      body:JSON.stringify({character_id:charId,message:text,room_id:'studio',user_id:userId})
+    });
+    const data=await res.json();
+    typing.remove();
+
+    if(!res.ok){
+      const detail=data.detail||data.error||`HTTP ${res.status}`;
+      if(res.status===503){
+        addMessage('error',
+          `${c?.name||charId} can't respond — no API key configured.\n`+
+          `Set ${detail.match(/env var '([^']+)'/)?.[1]||'the API key'} on the PubCast host.`,
+          'no key'
+        );
+      }else{
+        addMessage('error',detail,`error ${res.status}`);
+      }
+      return;
+    }
+    addMessage('char',data.reply,`${data.character_name||c?.name||charId} · ${data.provider||'unknown'} · ${data.model||'unknown'}`);
+  }catch(err){
+    typing.remove();
+    addMessage('error',String(err),'request failed');
+  }finally{
+    $('send').disabled=false;
+    sending=false;
+    $('message').focus();
+  }
+}
+
+// ── DM requests ───────────────────────────────────────────────────────────────
+
+async function sendDMRequest(){
+  const toUser=$('dm-select').value;
+  if(!toUser){$('dm-note').textContent='Select someone first.';return}
+  const userId=(window.ReachAuth && (window.ReachAuth.getUser()?.username||window.ReachAuth.getUser()?.user_id)) || $('user').value.trim() || 'user';
+  $('dm-note').textContent='Sending…';
+  try{
+    const res=await fetch('/api/chat/dm/request',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'X-Client-Id':userId
+      },
+      body:JSON.stringify({to_user:toUser,message:''})
+    });
+    const data=await res.json();
+    if(data.ok){
+      if(data.dm_room){
+        $('dm-note').textContent=`Channel open: ${data.dm_room}`;
+        addMessage('system',`Private channel accepted with ${toUser}. Open it through PubChat's DM viewer. Room: ${data.dm_room}`);
+      }else{
+        $('dm-note').textContent=`Request sent to ${toUser}. Waiting for acceptance.`;
+        addMessage('system',`DM request sent to ${toUser}. They'll see a notification.`);
+      }
+    }else{
+      $('dm-note').textContent=data.detail||'Request failed.';
+    }
+  }catch(err){
+    $('dm-note').textContent=String(err);
+  }
+}
+
+// ── Keyboard ──────────────────────────────────────────────────────────────────
+
+$('message').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();send()}
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+
+loadCharacters();
+addMessage('system','Select a character and start talking. Ctrl+Enter to send.');
+</script>
+</body>
+</html>

@@ -1,0 +1,906 @@
+{
+  "purpose": "Preserved source, donors, plans and historical evidence; not a claim of runtime integration.",
+  "files": [
+    {
+      "path": "communications/2i/index.html",
+      "sha256": "e183ac8719c7b650f88d5d858cd402a1d4d0b8b2f213256cf89896c66d993e91",
+      "bytes": 96984,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/2i/writers-room-v22.html",
+      "sha256": "91c4ea9d422803cb1b557c592c58a5e9361c22f1c934103cff4fa1867cb54940",
+      "bytes": 112948,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/COMMUNICATIONS_IMPLEMENTATION_2026-10-20.md",
+      "sha256": "9362efab2c96ddb88a852605a6c0c1da73470685293bae5fb7922ae8a65e7827",
+      "bytes": 12971,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/COMMUNICATIONS_SOURCE_CHANGES_2026-10-20.json",
+      "sha256": "fee0e825f2e98a799fdf8b3d4076c0c6d553ca46e75834fabadffe7a7c8dd941",
+      "bytes": 11296,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/agent_evidence/communications_2026_10_20/initial_combined_failure.log",
+      "sha256": "ca8233350b32c83e2f9f15c7a818bd9e8c8b7adc7ab98872e7697733d39ddc0f",
+      "bytes": 191136,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/agent_evidence/communications_2026_10_20/node.log",
+      "sha256": "12981cea1ecf7b694dd23e542bf30c1f5c619ea6b394ae492463737e73093aa4",
+      "bytes": 216,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/agent_evidence/communications_2026_10_20/preflight.log",
+      "sha256": "a911215556dc74fafb36f1f8df98fabd0bb94fbe20badb21fd09cac5a7ae067c",
+      "bytes": 21106,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/agent_evidence/communications_2026_10_20/pytest.log",
+      "sha256": "dd9d0d8831700690d512b37ec9ddfba2a5bba82b8f63d0352edfef6cb2d0ecaa",
+      "bytes": 791,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/agent_evidence/communications_2026_10_20/pytest.xml",
+      "sha256": "31cafb22b5342d8033b241ad0c5477ff01bcdaa5262fe5a704bff7c3b990889e",
+      "bytes": 24287,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/blackbox_recorder/append_only_recorder.py",
+      "sha256": "52697643f0927f31fa0cffbd747fff2c4cd6eb7805b49afd4d772fc38950ab79",
+      "bytes": 6803,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/docs/communications_2026_10_20/PubCast_Communications_Parts_Audit_2026-10-20.md",
+      "sha256": "a4bb507869bc7c3851f8363e661f07765d3004a601cae03ed92d591c46a055e1",
+      "bytes": 7177,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/docs/communications_2026_10_20/PubCast_Findings_and_Marathon_Plan_for_Claude_2026-10-20.md",
+      "sha256": "f6a9374fb3ed9054f0dfff36a3ed12901e5a86a3e250038aa8dabf4482ee861d",
+      "bytes": 18516,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/main.py",
+      "sha256": "38a80996e474be3f4890187438d38ca0d4ebb86a0bc157fc5d2408797b3b7e71",
+      "bytes": 209450,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/modules/blackbox_media.py",
+      "sha256": "19272eda630f4260d3c5121a6b5a151d8ee8cd53eedba5569776d8f07b5b480e",
+      "bytes": 8414,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/modules/blackbox_routes.py",
+      "sha256": "66953ffc6ed21ae20495ddf346549e85d3cd5c0380673bea5463317415370d27",
+      "bytes": 8503,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/modules/blackbox_runtime.py",
+      "sha256": "4cdfd96c72f739cc6cddf0a7d7cb4ccb4c3ae022aa00e68fc246e9db4a1964e5",
+      "bytes": 5583,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/modules/bots.py",
+      "sha256": "96e123331c0270e2c577397dbe56e326febd24932f35babd6355f96ad6a5ec22",
+      "bytes": 30035,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/modules/character_service.py",
+      "sha256": "5d03f90c6e9a35317db3ede652c0d2c2ebe8bcfe413655f3842e5300038f3633",
+      "bytes": 10421,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/modules/offline_brain.py",
+      "sha256": "8b6e37aea12d356d72190bc7119bfda962af9bcbc1ac22b10b7ed5fb18fc66ec",
+      "bytes": 4053,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/modules/production_routes.py",
+      "sha256": "14b77d75efd871b9424fa310d86aae3c2add5bfd55f49de2798f441e9933c46c",
+      "bytes": 28918,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/modules/program_audio.py",
+      "sha256": "9998c86dd5af48f82bacd261b12cc038208ec463de4fa39ae6f86791e297aebd",
+      "bytes": 4733,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/modules/program_audio_routes.py",
+      "sha256": "32af5a9c80e828f5a5164eb447d408c31e3c157e7bfcf0a5c62edba3d184afc9",
+      "bytes": 5272,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/modules/pub_partner_chat.py",
+      "sha256": "b74d25d4730c2b6e98ebb063fb507e45d4fe56ac5bcdf22800009541aa5fc22d",
+      "bytes": 10766,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/modules/pubpartner_core.py",
+      "sha256": "e02fd29ab1966410515066060a283e4d85b2cfc5234022740ec021e74147e5d9",
+      "bytes": 75369,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/modules/pubpartner_provider.py",
+      "sha256": "12358b07b704be25d31b9a227abd5f3d23656bb20cdc9ed94338d848dc97c72e",
+      "bytes": 25984,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/modules/room_conductor.py",
+      "sha256": "8bd66bc88cfd64d82ddbd5a63e55562bf1d75fddb9cee043528faa0d1f0648b4",
+      "bytes": 38966,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/modules/turn_requests.py",
+      "sha256": "a50470158b6e1ef6e666094127b5916bb021d11b1d4ae9c0a444a62ea080d625",
+      "bytes": 2048,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/recovery_donors/Pub-Partner-Base-Horizon-main.zip",
+      "sha256": "3a93e9d9be98e7abb6a4e05c743b4d4dbb3224900e78cc1cf4d1e2726df58cb0",
+      "bytes": 54400,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/recovery_donors/pubpartner-manuscript-intelligence.zip",
+      "sha256": "ab7f6b2012b72a5c2754e794377ead538a873173140d01d13cdfba6cb529bd7b",
+      "bytes": 54602,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/static/blackbox_client.js",
+      "sha256": "0565f51fc48b60ca404f35636493033d08622c57b7803f7a2f141a96c3cd373e",
+      "bytes": 8378,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/static/blackbox_pcm_worklet.js",
+      "sha256": "483f52acdea47960110d6a88d7a5180c62a3ce62992ca8cd62a1d84f9618f330",
+      "bytes": 960,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/static/control.html",
+      "sha256": "e0b56d379af5c5daf0cc3b92f166ad4dbaedd3e73b7bf409791f7d3f8eefcc0d",
+      "bytes": 27214,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/static/dressing.html",
+      "sha256": "d9c2ec2cc7d5ea8f831b6bbb753ad259c679eef40ce5107526cab3edcaf757d8",
+      "bytes": 16496,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/static/foresight.html",
+      "sha256": "194ddf6f6561a6cd3f0a29f62485e1435f928f4d1bd5b56992eea929c26f0056",
+      "bytes": 88428,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/static/foresight_counter.html",
+      "sha256": "c4f6f6079df724f8534cd6c0063b05289f93c31c3abc1685ec560aec16f37414",
+      "bytes": 27837,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/static/mic_device_picker.js",
+      "sha256": "6552de389bd7538c8ad51729c73e927c6b0f8f297c5f48f688e9aaf1da4b9364",
+      "bytes": 21509,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/static/mic_processor.js",
+      "sha256": "2da1b2ac95a6bd6dd63aab11246eaa051af50ebb61152b417030ba7c5d171adb",
+      "bytes": 41043,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/static/mic_profiles.js",
+      "sha256": "38661aa57d6c7e59afeaade0360b1f80c33c3d29aab660cfc808d78a86b27c17",
+      "bytes": 20289,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/static/program_audio_runtime.js",
+      "sha256": "3257031eb8a3e3667e30df48f51972fe820479ec76f7c6c75be6b07ee7bf36b2",
+      "bytes": 11730,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/static/stage.html",
+      "sha256": "6bf1c3ba0ed5f218203cb7c2e661d47c6443eb9b676d2680adcb9d67c6abb15c",
+      "bytes": 45302,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/static/tts.js",
+      "sha256": "3a1dd8fc940c5a655a237794c9f038b750204134922bcaf610af4084577cc44d",
+      "bytes": 5333,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/static/world.html",
+      "sha256": "629449566dc327a22f57648b8dc248c705ca9ea8c08cda2b1825c3bed8abd461",
+      "bytes": 76628,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/static/ws.js",
+      "sha256": "f0354f92ae7148e2c782fae7c74e5a8e9a66e158469ce0fce9db7109089546ff",
+      "bytes": 1804,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/tests/test_audio_room_policy_node.js",
+      "sha256": "fcfe67b04d23d703f9e89b8d07750695c1ee8e457e5d7f226d15ea291c01fa61",
+      "bytes": 1630,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/tests/test_blackbox_real_http.py",
+      "sha256": "271b551118411036e256250e1dc9f92dab10814abec0e84fd3bd4e02f4e855a5",
+      "bytes": 3254,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/tests/test_capture_browser_contracts_node.js",
+      "sha256": "038d1ce7d667b5630675b8f7945e20596c6ef8c9fb0e2387c63a31758ec96aa5",
+      "bytes": 2952,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/tests/test_communications_capture.py",
+      "sha256": "c1d6ffb01965f8a006d6cf5deb2e1d218de6b31b24a88e4ab1145a56215b6f12",
+      "bytes": 5492,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/tests/test_communications_host_contracts.py",
+      "sha256": "d0b03986bbfd7a0760113c5009183339651b2fef6cb8eecd14edb18f055d9f77",
+      "bytes": 5892,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "communications/tests/test_requested_partner_turns.py",
+      "sha256": "c12c9439289ce9b2cbaf09db018afd7dedbf81ba09151fd11539283b1b390bb5",
+      "bytes": 3592,
+      "origin": "PubCast_Communications_Core_Implementation_Checkpoint_2026-10-20.zip"
+    },
+    {
+      "path": "segmented/modules/segmented_capture.py",
+      "sha256": "e86055c275051d0a90a1333e1cbf2b5d06443eeec403171ef678b37391a7d227",
+      "bytes": 44759,
+      "origin": "PubCast_Segmented_Capture_2026-10-20.zip"
+    },
+    {
+      "path": "segmented/modules/range_preservation.py",
+      "sha256": "e08c566c684704071f50c75a49694516fd6478804889e312dfc4d07a47260e81",
+      "bytes": 27892,
+      "origin": "PubCast_Segmented_Capture_2026-10-20.zip"
+    },
+    {
+      "path": "segmented/tests/test_segmented_capture_and_preservation.py",
+      "sha256": "781329aec833b366e1cc0989af46c29a2b221c9ae867bb17bbc30394c8d54242",
+      "bytes": 17790,
+      "origin": "PubCast_Segmented_Capture_2026-10-20.zip"
+    },
+    {
+      "path": "segmented/SEGMENTED_CAPTURE_AND_RANGE_PRESERVATION_HANDOFF_2026-10-20.md",
+      "sha256": "7ae95026b0cc0a0eb676e778c064ca150cdd2492f23c6606b55c488b2232b85f",
+      "bytes": 9229,
+      "origin": "PubCast_Segmented_Capture_2026-10-20.zip"
+    },
+    {
+      "path": "menus/retrieved/pubcast_core_menu/PubCast_Menu_Work_GitHub_Recovery_2026-10-18.zip",
+      "sha256": "c19549efb8a044014f8e6a1d6da6b53f55b6e1c0c6849a197a8505d76ebf4055",
+      "bytes": 1940662,
+      "origin": "PubCast_Menu_Settings_ALL_RECOVERED_2026-10-18.zip",
+      "archive_note": "Compiled caches removed; authored source preserved. Original archive remains in saved files."
+    },
+    {
+      "path": "menus/retrieved/pubcast_core_menu/PubCast_Foresight_THREE_PATH_REVIEW_AND_REVISED_WORK_HANDOFF_2026-10-14.md",
+      "sha256": "40b3246af45a8e50bb9a55ce37796ae0c656c4dcbe5e14cb4c29351de1f05088",
+      "bytes": 7686,
+      "origin": "PubCast_Menu_Settings_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "menus/README_FIRST_PubCast_Recovery_2026-10-18.md",
+      "sha256": "06f89663f599384f0834809a9a64af4abbb5b626aab58202aba567eaf2e13660",
+      "bytes": 4631,
+      "origin": "PubCast_Menu_Settings_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "menus/PubCast_Avatar_Menu_Recovery_Index_and_Claude_Handoff_2026-10-18.md",
+      "sha256": "6b6beacecf9b4e0c2dd45b16c99f49f2903ef52dcd98741cd216ab17737ad335",
+      "bytes": 13900,
+      "origin": "PubCast_Menu_Settings_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/Avatar_Creator_Source_Correction_2026-10-15.zip",
+      "sha256": "317a052b650a1d97351e7a786dfa649df7a7027d67c350a448a44dfee1d38fbc",
+      "bytes": 17168,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/PubWorld_Golden_Avatar.png",
+      "sha256": "7e643abcec070ec22f9200bed61cca64eded180ac076268fddf166238aa6a13f",
+      "bytes": 2332337,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/PubCast_Avatar_Gate2_InProgress_2026-10-15.zip",
+      "sha256": "a05ba1d6c2154aceca3adec7934900021f4793360b028aaacf20659c1fb93e67",
+      "bytes": 64866,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/PubCast_Avatar_Offline_Viewer_Launchable_2026-10-15.zip",
+      "sha256": "efc5ec02ddcb32078abd1698bba480a35b51cf3c4e97fddf10c50c86fc8752a3",
+      "bytes": 229495,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/PubCast_Avatar_Gate2_Functional_Controls_2026-10-15.zip",
+      "sha256": "21f2a6da559779164b7fec6dc9100ffd010f4232c89ac9a014aff30e2872aabc",
+      "bytes": 66194,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/avatar_skeleton_system.py",
+      "sha256": "2cb60b981258d1e449bf0b8e5dc6829e949b01c18c97ef5bab38834bd8c84e2d",
+      "bytes": 13441,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/PubCast_Avatar_Offline_GLBDiagnostic_2026-10-15.zip",
+      "sha256": "dea196ac4328b9acda31317b66f96404a26963a3b02ef56327bf79008e99886d",
+      "bytes": 223005,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/PubCast_Avatar_Studio_Validated_Source_2026-10-15.zip",
+      "sha256": "a5b4ce792523299f0a5c42dc30cdcaa72948faffe647722979bb663227fedab1",
+      "bytes": 158627,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/animation--walking-with-skin-glb.zip",
+      "sha256": "7575d3fa2817773ea0f9de8f3c4131000733dda77fe9bcdc8fb724b19bdb7184",
+      "bytes": 6471935,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/Sheila.glb",
+      "sha256": "ab3715d20d720a898981b4d91b7b5d14c44a09a9b407aeec838952c161dd1aa0",
+      "bytes": 120952,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/pubworld_avatar.png",
+      "sha256": "4108a4e0ba5d3a979649c108f39bb6574465452b94ccf25640fb1e631c1dd41f",
+      "bytes": 383843,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/avatar_studio_bridge.py",
+      "sha256": "8809c374f8dd1336c2f5c9493befad7fc7b7b18252b625bf65c1f517ea01cbb9",
+      "bytes": 7902,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/walking-girl.glb",
+      "sha256": "67313cd99ebdea08d7d90039f94ec9d494749dc6abd6b77c5ee21d367e1cbfcd",
+      "bytes": 887640,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/pubcast_avatar_studio_corrected.zip",
+      "sha256": "0bf98ce347e78816021b8ebdb87eed99d28f01afe114bf44042b869f143104c8",
+      "bytes": 12918,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/Lena_Hart_Rigged_3D_Avatar_2026-10-15.zip",
+      "sha256": "31788032b397eabaff1db6feeb4a37e77607b7afc8e9230cad71f400a494eb2d",
+      "bytes": 670867,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/avatar_performer.py",
+      "sha256": "d5cb23ea6a2cafeaf2017969a9cfc9f3311fcb6cacc2a2c86a60daeb79349f4c",
+      "bytes": 43449,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/PubCast_Avatar_Gate2_Continued_2026-10-15.zip",
+      "sha256": "a0499cee85ed80508da25235c2d093e3eca43fde34bbd86e3dfb4666d696e941",
+      "bytes": 68634,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/avatar.py",
+      "sha256": "8963d8cb61c346a9097e52e7d30c0da19facdbcfbc367ae969d08311503139f1",
+      "bytes": 9752,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/avatar_assets.py",
+      "sha256": "d1f4ceec27a6d72ccc10655704aa152ced52c98457e11b894e8b6e274d320fb0",
+      "bytes": 2697,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/PubCast_Avatar_Gate1_Source_Audit_2026-10-15.zip",
+      "sha256": "fa746cdb43cb87721cd6a2a7545df310191a81aab4dce51eb565bb0385d2511a",
+      "bytes": 60249,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/Lena_Hart_Avatar.glb",
+      "sha256": "86d9f32dccd914a50cb5d41f4cadd8386c2bf9dfb0ca61b644b1e9e219fd36c1",
+      "bytes": 523160,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/PubCast_Avatar_Continued_Source_Models_2026-10-15.zip",
+      "sha256": "dd69a592040be3b3ee13f60624ba455727f6e340c1bddad73cf1c8bcfe614763",
+      "bytes": 157707,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/animation__walking_with_skin_glb.glb",
+      "sha256": "babf0e6ca5fd23acabc9365917b95045290356cab88e08bd2ace790d4538e8d3",
+      "bytes": 4012816,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/PubCast_Avatar_Offline_Viewer_Working_Source_2026-10-15.zip",
+      "sha256": "b0bd2f69e75432227f5f6768c487293a77b9669d155e554b41a109509220087d",
+      "bytes": 228613,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/PubCast_Avatar_Integration_Tests_2026-10-15.zip",
+      "sha256": "ada6da8f91f2daaa4373f804bc1b70a7d051890b3a8c3354a3d537303ba6c950",
+      "bytes": 160847,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/Lena_Reconstruction_V2.glb",
+      "sha256": "832b077cfd68f99391720803668d1d5ea3b6d39ad11dc8e2227035499d05c9cc",
+      "bytes": 369588,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/Lena_Hart_Reference_Volume_STATIC.glb",
+      "sha256": "51c30469758c99ffa38e2d8e5f59d2c70f173d2630cdaf66bb8fa54f4caab945",
+      "bytes": 1155872,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/standard_walk.glb",
+      "sha256": "a9ba2e652c039c1f5e9c0e1108732ff16ad18e4a7c9b0e8dec9888bed988b5a8",
+      "bytes": 2299888,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/avatar_system_raw.py",
+      "sha256": "3388451dcb5175072226078b95bf68b7119b333a6038f625724107a46135f30a",
+      "bytes": 29987,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/avatar_motion.py",
+      "sha256": "fa6b02daa598621511a5477de2a877744b6aa3f9308a1fa2714d29f527129557",
+      "bytes": 572,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/Reaching reach/PubWorld_Golden_Avatar.png",
+      "sha256": "7e643abcec070ec22f9200bed61cca64eded180ac076268fddf166238aa6a13f",
+      "bytes": 2332337,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/Reaching reach/Neon Spirit Orb Avatar.png",
+      "sha256": "111f3f9d578fd89d3684bd2d5708862b258c1b37797e37f3658cf984e1a6f8f2",
+      "bytes": 2136233,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/PubCast_Avatar_Engine_Source_Integration_2026-10-15.zip",
+      "sha256": "2569fa5c4d88b4a99ed0a2cd106406904f513e8a028faba541dd5e2391ebd843",
+      "bytes": 3355,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip",
+      "archive_note": "Compiled caches removed; authored source preserved. Original archive remains in saved files."
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/ethereal_avatar_generator.py",
+      "sha256": "157cf74d2b1254d1f63fb79dbaa91789abeeaf91f4606c1a5e4fe80b7f5b2866",
+      "bytes": 18331,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_extra/sir_purfluous_digital_director.zip",
+      "sha256": "31ae6f55745d085c3b01f1537669fa95cd238ee89851ef642893f9b539838465",
+      "bytes": 3595,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip",
+      "archive_note": "Compiled caches removed; authored source preserved. Original archive remains in saved files."
+    },
+    {
+      "path": "avatars/retrieved/avatar_extra/sir_purfluous_bot(1).zip",
+      "sha256": "2e83440857a613bcda76c274364a82fa5bd16df2459e27dbda615a0fd83502b2",
+      "bytes": 23121,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_extra/PUBCAST_SHEILA_RIG_ADAPTER_AUDIT.json",
+      "sha256": "aa081b735a100c6094a79a22ebb75769094b29209c7cb43d785d606cba5749a0",
+      "bytes": 38950,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_extra/Lena_Hart_Mesh_Front_Preview.png",
+      "sha256": "f49e4d6fe922bcc8083da068356f4c2147e8eac99876ffe7b2e19e4b7cad9943",
+      "bytes": 34330,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_extra/pubcast_rig_adapter.py",
+      "sha256": "6c5b82ec6a57239b8a8f14df9023332d43362eaa9fb295ee45a27c974db0019c",
+      "bytes": 2922,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_extra/Lena_Hart_Cosmetic_Pass1_Review.zip",
+      "sha256": "6bd91cace498ba4652e62ba3f9146c6a99732335796ae5b950ccf22aec8de0d6",
+      "bytes": 958116,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_extra/Lena_Reference_Comparison_Pass1.png",
+      "sha256": "8012f5559d28b0516d59b9d266c28f19ab8d76deb643690f97f045426dc8b7fb",
+      "bytes": 209395,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_extra/Lena_Hart_Rigged_3D_Avatar_2026-10-15.zip",
+      "sha256": "31788032b397eabaff1db6feeb4a37e77607b7afc8e9230cad71f400a494eb2d",
+      "bytes": 670867,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_extra/SHEILA_MOVING_RIG_PROOF.html",
+      "sha256": "3719d167f09d63f96ae0c2334cd2083772c7c19c84d98dd307c2d4cb9fe15749",
+      "bytes": 165154,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_extra/sir_purfluous_bot.zip",
+      "sha256": "7acdfb9e41ffa21295a4f0975ea8da0d8428a846660cb097ecb475918e85ad03",
+      "bytes": 7000,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_extra/Lena_Hart_Mesh_Front_Preview(1).png",
+      "sha256": "f49e4d6fe922bcc8083da068356f4c2147e8eac99876ffe7b2e19e4b7cad9943",
+      "bytes": 34330,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_extra/Lena_Hart_Second_Pass_Checked_2026-10-15.zip",
+      "sha256": "1e771e62c5b8d11d33275b32dc31f2c42a05f874e47b7dc9a2c895253300f94d",
+      "bytes": 670618,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_extra/Lena_Official_TRELLIS_Multiview_Integration.zip",
+      "sha256": "f7beb39c946ed0c05f6f11505d27e766a428239d4da35d534957f4fddb4df2c3",
+      "bytes": 1687419,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_extra/PUBCAST_SHEILA_RIG_ADAPTER_AUDIT(1).json",
+      "sha256": "aa081b735a100c6094a79a22ebb75769094b29209c7cb43d785d606cba5749a0",
+      "bytes": 38950,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_extra/Lena_Reconstruction_Executable_Experiment.zip",
+      "sha256": "c0a441a0234252fb01315d18e5a2dfaebfaab70de539c2e36d56a6d16618c5e6",
+      "bytes": 3903182,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/README_FIRST_PubCast_Recovery_2026-10-18.md",
+      "sha256": "06f89663f599384f0834809a9a64af4abbb5b626aab58202aba567eaf2e13660",
+      "bytes": 4631,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/PubCast_Avatar_Menu_Recovery_Index_and_Claude_Handoff_2026-10-18.md",
+      "sha256": "6b6beacecf9b4e0c2dd45b16c99f49f2903ef52dcd98741cd216ab17737ad335",
+      "bytes": 13900,
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "workbench/WORK_SESSION_HANDOFF_2026-10-14_NEXT.md",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "7b092f5833606139acff152796b047445c03a999f3b24c3b166d689ba034ee78",
+      "bytes": 3814
+    },
+    {
+      "path": "workbench/CONTINUOUS_RUN_CHECKPOINT_2026-10-14.md",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "fff7d9977e7d4b7eec8cb30d7ef64f4e0a6428ff655b0023688d0b585c3e4abb",
+      "bytes": 1475
+    },
+    {
+      "path": "workbench/AGENT_RUN_HANDOFF_2026-10-14_CONTINUED.md",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "513e1332d2b18b882cc2568bc9e66e175386c9bf24f60679095ebea91214d66c",
+      "bytes": 3017
+    },
+    {
+      "path": "workbench/CHECK_WORKBENCH_WINDOWS.bat",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "9bddc22b990f596b5b9c8829d5506425032a48ced8c5e4935e2452ac9c76167f",
+      "bytes": 700
+    },
+    {
+      "path": "workbench/requirements.txt",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "53985956f620c1cb11af2077049499f2243a6e4cc39fd6bbb15d4060eb2a75d2",
+      "bytes": 1331
+    },
+    {
+      "path": "workbench/WORKBENCH_AGENT_CHECKPOINT_2026-10-14.md",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "c38cd43a0f4e02af399e897315f41990d207d16b34cdfae51a2ca8506ec500dd",
+      "bytes": 2117
+    },
+    {
+      "path": "workbench/WORKBENCH_READINESS_2026-10-14.md",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "6de0fdb10cc05d808de0c21adf0e121365432aa38c8f78b27b0cd3e39e8f8f0a",
+      "bytes": 2490
+    },
+    {
+      "path": "workbench/main.py",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "813417edc03ada454339e764804189f9f87e4be7e684cac9407fa6b6309cb9e5",
+      "bytes": 204628
+    },
+    {
+      "path": "workbench/AGENT_RUN_HANDOFF_2026-10-14_FOLLOWUP.md",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "1eaaeeddeec85dbec19ab95f9d3e649316efecceceb1668fbfc31d8908510b5e",
+      "bytes": 2311
+    },
+    {
+      "path": "workbench/requirements-dev.txt",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "275506d75d62697d2780d1ae712cfb1ddfc7184f426ecccf818d74354488762c",
+      "bytes": 240
+    },
+    {
+      "path": "workbench/run_reach.py",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "7c88cbadef9b42e7205be98d2b3fff55296d3233d11e18ed864103d939a75e18",
+      "bytes": 4531
+    },
+    {
+      "path": "workbench/AGENT_RUN_HANDOFF_2026-10-14.md",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "adc51c39ce122192a82502c0b6f086b12e4db20375d5efb3341a12a22e3dbe34",
+      "bytes": 3046
+    },
+    {
+      "path": "workbench/AGENT_RUN_HANDOFF_2I_WIRING_2026-10-14.md",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "8cb89bbbee3f96ee82107a315bfa73cf88a9ef783bb704e152f6164ada15c686",
+      "bytes": 2237
+    },
+    {
+      "path": "workbench/tests/test_foresight_workbench_acceptance.py",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "9b048b633a34d351bc7e4ea2ea92f58e967d486bbda86fd0e5f1b88c37fa2721",
+      "bytes": 4292
+    },
+    {
+      "path": "workbench/tests/test_workbench_preflight.py",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "ff9c5219170fd6a9033033e1344152f96ce1018aec6d61a5cada98e4b0995013",
+      "bytes": 637
+    },
+    {
+      "path": "workbench/tests/test_foresight_frames.py",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "50ed056333a84ef5b2b516988d49a94a1378a222be4782941cef0ec09c08f2a3",
+      "bytes": 23158
+    },
+    {
+      "path": "workbench/tests/test_foresight_8787_wiring.py",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "8d0511310a59d94eacf0bec423f186821233663797f646763824c097d439fd52",
+      "bytes": 2787
+    },
+    {
+      "path": "workbench/tests/test_writers_room_real_http.py",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "05eb7b669ccc158558f64f104788afa0f82a7001d606087690d9b6b7463c4e4c",
+      "bytes": 3176
+    },
+    {
+      "path": "workbench/tests/test_foresight_front_door.py",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "9bcb3100a3878365be266715f0040fd3f3ad6c0b3bc7243768b270004a9ba339",
+      "bytes": 5589
+    },
+    {
+      "path": "workbench/modules/foresight_sidecar.py",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "230fa0b58abd727bc5ec044ac76cd3be58189ae068dbf236e50da159bef432d4",
+      "bytes": 4328
+    },
+    {
+      "path": "workbench/modules/bots.py",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "13019db4c07cd6456b08714dc92c52bc5e66c04e6ae3e94d793cb2348763027b",
+      "bytes": 24080
+    },
+    {
+      "path": "workbench/static/foresight_chain.js",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "28fabdeed62c61a89edc619407f785b1d92249638494b8b5e35e2f6a9ca0c731",
+      "bytes": 60799
+    },
+    {
+      "path": "workbench/static/foresight_counter.html",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "e54e18d92d741f41c048b5bc861651016ec59b0eeada374644033a6e27483a9d",
+      "bytes": 27765
+    },
+    {
+      "path": "workbench/static/foresight_counter.js",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "292b1a31008ae221eca9ae6915afb73995ad05a716563e5f345eba9b4d6fa396",
+      "bytes": 74627
+    },
+    {
+      "path": "workbench/static/login.html",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "a7da23d52073f403907ceda0a3c82993b0bc44e0fba0b3b83d788fa7b2f911d8",
+      "bytes": 9360
+    },
+    {
+      "path": "workbench/static/foresight_programs.js",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "d8a3665a12413dbce14a54f0379191f24247cabf443975de21c9c9f5646a3a18",
+      "bytes": 32441
+    },
+    {
+      "path": "workbench/tools/workbench_preflight.py",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "5535f5a4570733e64ee0ec1ef5ae9778f9763aacbb7a72121e50e8a592ce399c",
+      "bytes": 4166
+    },
+    {
+      "path": "workbench/2i/writers-room-v22.html",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "a9e276773a44e229c60f812e953be14786798aba81d5fe2936ad41c9af3dfc4a",
+      "bytes": 112891
+    },
+    {
+      "path": "workbench/.github/workflows/foresight-workbench.yml",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "f849a82a60f7b87da747d3d8fe95fe877fcc48183a5f8d8128fde9bd00e7e2b7",
+      "bytes": 2936
+    },
+    {
+      "path": "workbench/tools/foresight_checks/check_workbench_browser.py",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "b177bbf6162da13d8703b5ba8c414ac24ecdb4a84ac497e5a053f59bfef6e024",
+      "bytes": 2356
+    },
+    {
+      "path": "workbench/tools/foresight_checks/check_counter_page.py",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "aeb23f6aac05f71dda703d7bc3ec4858eeff3552e538ad455d257a90adbe662e",
+      "bytes": 11259
+    },
+    {
+      "path": "workbench/2i/2i-assets/reach.js",
+      "origin": "PubCast_Foresight_Real_HTTP_and_Browser_CI_Checkpoint_2026-10-14.zip",
+      "sha256": "4a9610151a3c87d2b385ff4bd0f668bf0cf6f3b7932297242bf4b6e1316a9262",
+      "bytes": 27391
+    }
+  ],
+  "excluded_runtime_or_cache_files": [
+    {
+      "path": "retrieved/avatar_catalog/walking-girl.glb.openai-download-59db37c90a4b4d3f919ffa4ad94023b6",
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "retrieved/avatar_catalog/avatar_skeleton_system.cpython-312.pyc",
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "retrieved/avatar_catalog/avatar.cpython-312.pyc",
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "retrieved/avatar_catalog/avatar_performer.cpython-312.pyc",
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "retrieved/avatar_catalog/avatar_assets.cpython-312.pyc",
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "retrieved/avatar_catalog/Reaching reach/Neon Spirit Orb Avatar.png.openai-download-a157f949a749435b93461e5e8773f487",
+      "origin": "PubCast_Avatar_Work_ALL_RECOVERED_2026-10-18.zip"
+    },
+    {
+      "path": "avatars/retrieved/avatar_catalog/PubCast_Avatar_Engine_Source_Integration_2026-10-15.zip!pubcast_avatar_rebuild/reconstruction/upstream_photo_to_mesh/__pycache__/mesh_units.cpython-313.pyc",
+      "reason": "compiled cache"
+    },
+    {
+      "path": "avatars/retrieved/avatar_extra/sir_purfluous_digital_director.zip!sir_purfluous/__pycache__/test_sir_purfluous.cpython-313.pyc",
+      "reason": "compiled cache"
+    },
+    {
+      "path": "avatars/retrieved/avatar_extra/sir_purfluous_digital_director.zip!sir_purfluous/__pycache__/sir_purfluous.cpython-313.pyc",
+      "reason": "compiled cache"
+    },
+    {
+      "path": "menus/retrieved/pubcast_core_menu/PubCast_Menu_Work_GitHub_Recovery_2026-10-18.zip!pubcast_menu_recovery/prime_assembled_archive/foresight/__pycache__/polygon_shape_library.cpython-312.pyc",
+      "reason": "compiled cache"
+    },
+    {
+      "path": "menus/retrieved/pubcast_core_menu/PubCast_Menu_Work_GitHub_Recovery_2026-10-18.zip!pubcast_menu_recovery/prime_assembled_archive/foresight/__pycache__/test_polygon_shape_library.cpython-312.pyc",
+      "reason": "compiled cache"
+    },
+    {
+      "path": "menus/retrieved/pubcast_core_menu/PubCast_Menu_Work_GitHub_Recovery_2026-10-18.zip!pubcast_menu_recovery/prime_assembled_archive/foresight/__pycache__/test_polygonal_suite.cpython-312.pyc",
+      "reason": "compiled cache"
+    },
+    {
+      "path": "menus/retrieved/pubcast_core_menu/PubCast_Menu_Work_GitHub_Recovery_2026-10-18.zip!pubcast_menu_recovery/prime_assembled_archive/foresight/__pycache__/test_comprehensive_wiring_audit.cpython-312.pyc",
+      "reason": "compiled cache"
+    },
+    {
+      "path": "menus/retrieved/pubcast_core_menu/PubCast_Menu_Work_GitHub_Recovery_2026-10-18.zip!pubcast_menu_recovery/prime_assembled_archive/foresight/__pycache__/polygonal_tray_engine.cpython-312.pyc",
+      "reason": "compiled cache"
+    }
+  ]
+}

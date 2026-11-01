@@ -1,0 +1,16 @@
+{
+  "dependencies": {
+    "@docx-editor.dev/core": "2.32.0",
+    "@docx-editor.dev/fonts": "2.32.0",
+    "cmu-pronouncing-dictionary": "3.0.0",
+    "esbuild": "0.25.12",
+    "wordnet-db": "3.1.14"
+  },
+  "private": true,
+  "type": "module",
+  "description": "Pinned evaluation and build dependencies for the 2i offline document engine.",
+  "scripts": {
+    "build": "node build.mjs",
+    "check:language": "node check-language.mjs"
+  }
+}

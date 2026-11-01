@@ -1,0 +1,117 @@
+/* Responsive phone edition. Artwork bytes and desktop coordinates stay intact. */
+body[data-reach-view="phone"] { overflow:hidden!important; height:var(--phone-height,100dvh); }
+body[data-reach-view="phone"] .app-shell {
+  position:relative; inset:auto; width:100%; max-width:620px; height:100%; min-height:0;
+  margin:0 auto; transform:none; background:#151009; overflow:hidden;
+}
+body[data-reach-view="phone"] .app-shell > :not(#phoneRoom) { display:none!important; }
+#phoneRoom { display:flex; flex-direction:column; height:100%; min-height:0; color:#efdfbd; font:16px/1.5 Georgia,serif; }
+#phoneRoom * { box-sizing:border-box; min-width:0; }
+#phoneRoom [hidden] { display:none!important; }
+#phoneRoom button,body[data-reach-view="phone"] .modal button,body[data-reach-view="phone"] .hm-btn {
+  min-height:48px; min-width:48px; touch-action:manipulation; cursor:pointer;
+}
+#phoneRoom button,#phoneRoom [data-hotspot] {
+  position:static!important; inset:auto!important; width:auto!important; height:auto!important;
+  display:block; margin:0; padding:9px 12px!important; border:1px solid #8c713f;
+  border-radius:6px; background:linear-gradient(#322919,#20190e); box-shadow:inset 0 1px #d3a76333;
+  color:#f4e4be; font:15px/1.35 Georgia,serif; letter-spacing:0; text-transform:none; white-space:normal;
+}
+#phoneRoom button:hover { background:#44331a; }
+#phoneRoom button:disabled { opacity:.5; cursor:not-allowed; }
+#phoneRoom button:focus-visible { outline:3px solid #f1c76f; outline-offset:-3px; }
+#phoneRoom .phone-row { display:flex; align-items:center; gap:8px; }
+#phoneRoom .phone-row > button { flex:1; }
+#phoneHeader {
+  flex-shrink:0; padding:calc(10px + env(safe-area-inset-top)) 12px 10px;
+  border-bottom:3px double #917142; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  background:linear-gradient(90deg,#100b06e8,#191009b8),url('writers-room-art.webp') center top/1344px 896px;
+}
+#phoneBrand { flex:1; }
+#phoneBrandSmall { display:block; color:#c0a06b; font:9px/1.6 system-ui,sans-serif; letter-spacing:.18em; }
+#phoneBrandTitle { font:19px/1.3 Georgia,serif; color:#f2d8a1; }
+#phoneHeaderActions button { font-size:12px; padding:8px!important; }
+#phoneTabs { flex-shrink:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); padding:8px 10px; gap:8px; background:#100c07; }
+#phoneTabs button[aria-selected="true"] { background:linear-gradient(#664b22,#402e14); border-color:#d5b16b; color:#fff0c7; }
+#phoneViews { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:4px 10px 16px; scroll-padding-bottom:16px; }
+#phoneRoom [role="tabpanel"] { display:flex; flex-direction:column; gap:12px; }
+#phoneRoom h2,#phoneRoom h3 { margin:4px 0 0; color:#dfc18b; font:20px/1.4 Georgia,serif; }
+#phoneRoom h3 { font-size:17px; }
+#phoneWriteTools { display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr)); }
+#phoneNotebook {
+  position:relative; padding:22px 22px 24px 47px; border-radius:10px; overflow:hidden;
+  /* Reuse the supplied notebook area, with its rings and worn page edges. */
+  background:url('writers-room-art.webp') 51% 61%/187.2% 121.4%;
+  box-shadow:0 5px 16px #0008; color:#302714;
+}
+#phoneRoom #photoTitle { position:static; width:100%; height:auto; padding:0 0 16px; border-radius:0; }
+#phoneRoom #photoChapterName { font:17px/1.4 Georgia,serif; }
+#phoneRoom #photoManuscriptTitle { display:block; width:100%!important; border-width:1px 0; border-radius:0; background:#eddfb9; color:#302714; font:italic 21px/1.3 Georgia,serif; }
+#phoneRoom #manuscriptZone { position:relative; inset:auto!important; width:100%!important; height:47vh!important; height:47dvh!important; min-height:250px; padding:0!important; background:linear-gradient(100deg,#eddfb9,#ecdcb6); }
+#phoneRoom .solo-textarea,#phoneRoom .m-line { font:18px/1.7 Georgia,serif; color:#302714; }
+#phoneRoom .solo-textarea { min-height:100%; padding:3px 2px!important; }
+#phoneRoom #manuscriptLines { height:100%; }
+#phoneRoom .m-line { min-height:31px; padding:2px; }
+#phoneRoom #draftZone { position:relative; inset:auto; width:100%; height:auto; min-height:150px; padding:10px 0 0; margin-top:10px; }
+#phoneRoom .draft-area { font:18px/1.6 Georgia,serif; min-height:140px; width:100%; }
+#phoneRoom .reading-line { font:17px/1.6 Georgia,serif; }
+#phoneRoom #photoSceneCount { position:static; inset:auto; width:auto; height:auto; flex:1; font-size:12px; line-height:1.4; background:transparent; }
+#phoneWriteActions { flex-wrap:wrap; }
+#phoneRoom #lockSceneBtn::before { display:none; }
+#phoneRoom #photoProgress { position:static; width:100%; height:auto; padding:12px; border:1px solid #624b27; border-radius:6px; font-size:14px; }
+#phoneRoom #photoWordGoal { display:inline-block; font-size:14px; padding:4px 8px!important; }
+#phoneRoom #photoProgress .photo-progress-row { align-items:center; gap:8px; }
+#phoneRoom #photoConnection { position:static; width:auto; height:auto; flex:0 1 90px; font:13px/1.5 Georgia,serif; background:none; }
+#phoneRoom #partnerSelect { position:static; width:100%; height:auto; flex:1; }
+#phoneRoom #partnerSelect,#phoneRoom #chatInput,#phoneRoom #refSearchInput {
+  inset:auto!important; width:100%!important; height:auto!important; min-height:48px;
+  padding:10px!important; border:1px solid #8c713f; border-radius:6px; background:#19140e; color:#f3e2bf; font:16px/1.5 Georgia,serif;
+}
+#phoneRoom #chatLog { position:relative; inset:auto!important; width:100%!important; height:40vh!important; height:40dvh!important; flex:none; min-height:210px; padding:10px; border:1px solid #65512d; border-radius:6px; }
+#phoneRoom .chat-msg { font:16px/1.6 Georgia,serif; padding:10px; margin-right:12px; overflow-wrap:anywhere; }
+#phoneRoom .chat-msg.you { margin:0 0 0 12px; }
+#phoneRoom .chat-msg .who { font-size:11px; margin-bottom:5px; }
+#phoneRoom .chat-msg.notice { font:14px/1.6 Georgia,serif; }
+#phoneRoom #chatInput,#phoneRoom #refSearchInput { position:static; flex:1 1 0; }
+#phoneRoom #chatSendBtn,#phoneRoom #photoSearch { flex:0 0 auto; margin:0; }
+#phoneRoom #photoSuggestionText { position:static; inset:auto!important; width:100%!important; height:auto!important; min-height:100px; max-height:280px; padding:12px; border:1px solid #65512d; border-radius:6px; font:italic 17px/1.6 Georgia,serif; }
+#phoneRoom #photoIdeas { position:static; inset:auto!important; width:100%!important; height:auto!important; max-height:240px; }
+#phoneRoom #photoIdeas button { width:100%!important; text-align:left; }
+#phoneRoom #photoIdeas .photo-empty { font-size:15px; }
+#phoneCollections,#phoneRefFilters { display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr)); }
+#phoneRoom #photoRefFilters .active { background:#53401f; border-color:#deb973; }
+#phoneRoom #refListContainer { position:static; inset:auto!important; width:100%!important; height:auto!important; min-height:120px; overflow:visible; }
+#phoneRoom .ref-item { padding:12px; min-height:60px; }
+#phoneRoom .ref-name { font:17px/1.5 Georgia,serif; overflow-wrap:anywhere; }
+#phoneRoom .ref-meta { font-size:13px; }
+#phoneRoom #refViewer { position:fixed; inset:80px 12px 120px; width:auto; height:auto; overflow:auto; padding:14px; border:2px solid #806237; border-radius:6px; z-index:60; }
+#phoneRoom #refViewer .ref-viewer-header { flex-wrap:wrap; gap:8px; }
+#phoneRoom #refViewer .ref-title { color:#302714; }
+#phoneRoom #refViewerBody { font:18px/1.6 Georgia,serif; color:#302714; }
+#phoneFooter { flex-shrink:0; padding:6px 10px calc(6px + env(safe-area-inset-bottom)); border-top:3px double #917142; background:#151009; }
+#phoneRoom #saveIndicator { display:block; position:static; max-width:none; border:0; background:none; margin-bottom:5px; padding:0; color:#e5d0a7; font:12px/1.4 system-ui,sans-serif; overflow-wrap:anywhere; }
+#phoneRoom #saveBtn { background:linear-gradient(#3b4828,#253019); border-color:#a5ac72; }
+#phoneFooterActions > button { font-size:14px; padding:8px!important; }
+#phoneDeskChoice { justify-content:space-between; margin-top:4px; }
+#phoneRoom #phoneDesktop { flex:0 1 auto; border:0; background:none; box-shadow:none; padding:4px 0!important; font:12px/1.4 Georgia,serif; text-decoration:underline; }
+#phoneEdition { color:#b19b76; font:9px/1.4 system-ui,sans-serif; letter-spacing:.12em; }
+body[data-reach-view="phone"] .hamburger-menu { top:calc(68px + env(safe-area-inset-top)); right:8px; width:min(94vw,360px); max-height:calc(var(--phone-height,100dvh) - 90px); overflow:auto; }
+body[data-reach-view="phone"] .hm-btn { font-size:15px; padding:12px; }
+body[data-reach-view="phone"] .modal { width:calc(100vw - 24px); max-width:500px; max-height:calc(var(--phone-height,100dvh) - 32px); padding:18px; }
+body[data-reach-view="phone"] .modal input,body[data-reach-view="phone"] .modal select,body[data-reach-view="phone"] .modal textarea { font-size:16px; min-height:48px; }
+body[data-reach-view="phone"] .modal-actions { flex-wrap:wrap; }
+@media(max-width:350px) {
+  #phoneBrandTitle { font-size:17px; }
+  #phoneNotebook { padding-left:38px; padding-right:17px; }
+  #phoneHeaderActions { gap:4px!important; }
+  #phoneHeaderActions button { padding:6px!important; }
+}
+@media(max-height:540px) {
+  #phoneHeader { padding-top:4px; padding-bottom:4px; }
+  #phoneBrandSmall,#phoneDeskChoice { display:none!important; }
+  #phoneTabs { padding-top:4px; padding-bottom:4px; }
+}
+
+#phoneRoom #worldRoomSection { width:100%;max-height:none;overflow:visible; }
+#phoneRoom #worldRoomSection .world-chat-widget {height:340px;max-height:60dvh;}
+#phoneRoom #worldRoomSection [data-world-messages] {min-height:100px;}

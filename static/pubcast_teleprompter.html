@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PubCast Teleprompter v1 Codex 20260420</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --panel: #111111;
+    --border: #2a2a2a;
+    --text: #d3d3d3;
+    --muted: #757575;
+    --accent: #ff4444;
+    --accent-soft: #ff7a5c;
+    --line-font-size: 28px;
+    --line-height: 1.75;
+    --active-scale: 1.15;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+
+  body {
+    background:
+      radial-gradient(circle at top, rgba(255, 100, 72, 0.10), transparent 28%),
+      linear-gradient(180deg, #080808 0%, #0d0d0d 100%);
+    color: var(--text);
+    font-family: Georgia, serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 12px;
+  }
+
+  .tp-shell {
+    width: min(100%, 980px);
+    min-height: min(92vh, 760px);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
+  }
+
+  .tab-row {
+    display: flex;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    flex: 1;
+    min-height: 48px;
+    padding: 12px 10px;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .tab.active { color: var(--text); border-bottom: 2px solid var(--accent); }
+  .tab[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+  .panel { display: none; min-height: 0; }
+  .panel.active { display: flex; }
+
+  .setup-panel {
+    flex: 1;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .setup-copy, .setup-label, .rx-field span {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .restore-banner {
+    display: none;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 122, 92, 0.32);
+    background: rgba(255, 122, 92, 0.08);
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .restore-banner.active { display: flex; }
+  .restore-copy { font-size: 12px; color: #f1c2b4; }
+
+  textarea {
+    width: 100%;
+    min-height: 220px;
+    resize: vertical;
+    border-radius: 12px;
+    border: 1px solid #303030;
+    background: var(--panel);
+    color: var(--text);
+    padding: 14px;
+    font: inherit;
+    font-size: 15px;
+    line-height: 1.6;
+    outline: none;
+  }
+
+  textarea::placeholder { color: #555555; }
+
+  .button-row, .ctrl-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .ctrl-btn, .start-btn, .restore-btn {
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 10px;
+    border: 1px solid #363636;
+    background: #1a1a1a;
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  }
+
+  .ctrl-btn:hover, .start-btn:hover, .restore-btn:hover { background: #252525; }
+  .ctrl-btn:active, .start-btn:active, .restore-btn:active { transform: translateY(1px); }
+  .start-btn { background: var(--accent); border-color: var(--accent); color: #ffffff; }
+  .restore-btn.secondary { background: transparent; }
+  .ctrl-btn.active { background: var(--accent); border-color: var(--accent); color: #ffffff; }
+
+  .ctrl-btn.listening {
+    background: #b91313;
+    border-color: var(--accent-soft);
+    color: #ffffff;
+    animation: pulse 1.2s infinite;
+  }
+
+  .ctrl-btn[disabled], .start-btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+  .prompt-panel {
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .tp-screen {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    isolation: isolate;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 20%),
+      radial-gradient(circle at center, rgba(255, 255, 255, 0.04), transparent 60%);
+  }
+
+  .tp-mask-top, .tp-mask-bot {
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  .tp-mask-top {
+    top: 0;
+    height: 120px;
+    background: linear-gradient(180deg, rgba(10, 10, 10, 0.98), rgba(10, 10, 10, 0));
+  }
+
+  .tp-mask-bot {
+    bottom: 0;
+    height: 120px;
+    background: linear-gradient(0deg, rgba(10, 10, 10, 0.98), rgba(10, 10, 10, 0));
+  }
+
+  .tp-focus-band {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 26%;
+    transform: translateY(-50%);
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.00) 0%,
+      rgba(255, 255, 255, 0.03) 18%,
+      rgba(255, 255, 255, 0.08) 50%,
+      rgba(255, 255, 255, 0.03) 82%,
+      rgba(255, 255, 255, 0.00) 100%
+    );
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .tp-cursor-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255, 68, 68, 0.7), transparent);
+    z-index: 4;
+    pointer-events: none;
+  }
+
+  .tp-text-stage {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  .tp-text-wrap {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    padding: 0 clamp(18px, 4vw, 42px);
+    transition: transform 0.45s cubic-bezier(0.18, 0.72, 0.22, 1);
+    will-change: transform;
+  }
+
+  .tp-line {
+    font-size: var(--line-font-size);
+    line-height: var(--line-height);
+    color: rgba(255, 255, 255, 0.32);
+    padding: 6px 0;
+    transform-origin: center center;
+    transition:
+      transform 0.42s cubic-bezier(0.18, 0.72, 0.22, 1),
+      color 0.42s ease,
+      filter 0.42s ease,
+      opacity 0.42s ease,
+      letter-spacing 0.42s ease;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    filter: brightness(0.72);
+  }
+
+  .tp-line[data-distance="0"] {
+    color: #ffffff;
+    filter: brightness(1.18);
+    transform: scale(var(--active-scale));
+    letter-spacing: 0.01em;
+  }
+
+  .tp-line[data-distance="1"],
+  .tp-line[data-distance="-1"] {
+    color: rgba(255, 255, 255, 0.88);
+    filter: brightness(1.04);
+    transform: scale(1.07);
+  }
+
+  .tp-line[data-distance="2"],
+  .tp-line[data-distance="-2"] {
+    color: rgba(255, 255, 255, 0.68);
+    filter: brightness(0.92);
+    transform: scale(1.01);
+  }
+
+  .tp-line[data-entering="true"] { animation: lineRise 0.45s cubic-bezier(0.18, 0.72, 0.22, 1); }
+  .tp-line[data-exiting="true"] { animation: lineDeflate 0.42s ease-out; }
+
+  @keyframes lineRise {
+    from { transform: translateY(14px) scale(1); filter: brightness(0.68); opacity: 0.35; }
+    to { transform: translateY(0) scale(1); filter: brightness(0.82); opacity: 1; }
+  }
+
+  @keyframes lineDeflate {
+    from { opacity: 1; }
+    to { opacity: 0.28; transform: scale(0.98); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+
+  .tp-controls {
+    padding: 14px 16px 16px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 24%), var(--panel);
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .tp-status {
+    min-height: 18px;
+    font-size: 12px;
+    text-align: center;
+    color: var(--muted);
+  }
+
+  .tp-status.on { color: #ff9f83; }
+  .tp-status.error { color: #ff7d7d; }
+  .tp-status.ok { color: #99d9ac; }
+
+  .ctrl-label {
+    width: 72px;
+    color: var(--muted);
+    font-size: 12px;
+    flex: 0 0 auto;
+  }
+
+  .ctrl-val {
+    width: 58px;
+    text-align: right;
+    color: var(--muted);
+    font-size: 12px;
+    flex: 0 0 auto;
+  }
+
+  input[type="range"] { flex: 1; accent-color: var(--accent); min-width: 120px; }
+
+  .rx-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .rx-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .rx-field input {
+    width: 100%;
+    min-height: 44px;
+    border-radius: 10px;
+    border: 1px solid #303030;
+    background: var(--panel);
+    color: var(--text);
+    padding: 10px 12px;
+    font: inherit;
+  }
+
+  .rx-preview {
+    min-height: 120px;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid #2d2d2d;
+    background: var(--panel);
+    font-size: clamp(22px, 3vw, 30px);
+    line-height: 1.7;
+    color: #ffffff;
+  }
+
+  .mirror-enabled .tp-text-stage,
+  .mirror-enabled .tp-mask-top,
+  .mirror-enabled .tp-mask-bot,
+  .mirror-enabled .tp-focus-band,
+  .mirror-enabled .tp-cursor-line { transform: scaleX(-1); }
+
+  .empty-hint {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+    font-size: 16px;
+    color: #7d7d7d;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Round 1: mobile/cross-browser sizing and overflow protection. */
+  @media (max-width: 768px) {
+    body { padding: 8px; align-items: stretch; }
+    .tp-shell { min-height: calc(100vh - 16px); border-radius: 14px; }
+    .setup-panel, .tp-controls { padding-left: 14px; padding-right: 14px; }
+    .tp-line { line-height: 1.6; }
+  }
+
+  @media (max-width: 414px) {
+    :root { --line-font-size: 22px; }
+    .button-row, .ctrl-row { gap: 8px; }
+    .ctrl-label { width: 64px; }
+    .rx-grid { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 375px) {
+    :root { --line-font-size: 20px; }
+    .tab { font-size: 11px; padding-left: 8px; padding-right: 8px; }
+    textarea { min-height: 190px; font-size: 14px; }
+  }
+</style>
+  <script src="/static/reach_auth.js"></script>
+</head>
+<body>
+<div class="tp-shell" id="shell">
+  <div class="tab-row" role="tablist" aria-label="PubCast teleprompter panels">
+    <button class="tab active" id="tab-script" type="button" onclick="showTab('script')">Script</button>
+    <button class="tab" id="tab-prompt" type="button" onclick="showTab('prompt')" disabled>Teleprompter</button>
+    <button class="tab" id="tab-rx" type="button" onclick="showTab('rx')">Rx Vision</button>
+  </div>
+
+  <section id="panel-script" class="panel setup-panel active" aria-labelledby="tab-script">
+    <div class="restore-banner" id="restoreBanner">
+      <div class="restore-copy" id="restoreCopy">A saved script is available.</div>
+      <div class="button-row">
+        <button class="restore-btn" type="button" id="restoreAcceptBtn">Restore</button>
+        <button class="restore-btn secondary" type="button" id="restoreDeclineBtn">Start fresh</button>
+      </div>
+    </div>
+    <div class="setup-copy">
+      Paste or type your script below. Each non-empty line becomes a teleprompter line.
+    </div>
+    <label class="visually-hidden" for="scriptInput">Script input</label>
+    <textarea id="scriptInput" placeholder="Your script goes here. Each line becomes one teleprompter line."></textarea>
+    <div class="button-row">
+      <button class="start-btn" type="button" id="loadBtn" onclick="loadScript()">Load into teleprompter</button>
+      <button class="ctrl-btn" type="button" id="clearBtn" onclick="clearScriptInput()">Clear</button>
+    </div>
+    <div class="setup-copy" id="storageNotice"></div>
+  </section>
+
+  <section id="panel-prompt" class="panel prompt-panel" aria-labelledby="tab-prompt">
+    <div class="tp-screen" id="screen">
+      <div class="tp-mask-top"></div>
+      <div class="tp-mask-bot"></div>
+      <div class="tp-focus-band"></div>
+      <div class="tp-cursor-line"></div>
+      <div class="empty-hint" id="emptyHint">Load a script to begin.</div>
+      <div class="tp-text-stage">
+        <div class="tp-text-wrap" id="textWrap"></div>
+      </div>
+    </div>
+    <div class="tp-controls">
+      <div class="tp-status" id="statusTxt">Voice tracking off.</div>
+      <div class="ctrl-row">
+        <button class="ctrl-btn" type="button" id="rewindBtn">Rewind</button>
+        <button class="ctrl-btn" type="button" id="prevBtn">Up</button>
+        <button class="ctrl-btn" type="button" id="playBtn">Play Auto</button>
+        <button class="ctrl-btn" type="button" id="nextBtn">Down</button>
+        <button class="ctrl-btn" type="button" id="voiceBtn">Voice</button>
+        <button class="ctrl-btn" type="button" id="mirrorBtn">Mirror</button>
+        <button class="ctrl-btn" type="button" onclick="showTab('script')">Edit</button>
+      </div>
+      <div class="ctrl-row">
+        <span class="ctrl-label">Speed</span>
+        <input type="range" min="1" max="10" value="4" id="speedSlider" />
+        <span class="ctrl-val" id="speedVal">4</span>
+      </div>
+      <div class="ctrl-row">
+        <span class="ctrl-label">Font size</span>
+        <input type="range" min="16" max="48" value="28" id="fontSlider" />
+        <span class="ctrl-val" id="fontVal">28px</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="panel-rx" class="panel setup-panel" aria-labelledby="tab-rx">
+    <div class="setup-copy">
+      Enter your prescription to compensate text rendering for your vision.
+    </div>
+    <div class="rx-grid">
+      <label class="rx-field">
+        <span>Sphere (SPH)</span>
+        <input type="number" id="rxSph" step="0.25" placeholder="-1.50" />
+      </label>
+      <label class="rx-field">
+        <span>Cylinder (CYL)</span>
+        <input type="number" id="rxCyl" step="0.25" placeholder="-0.75" />
+      </label>
+      <label class="rx-field">
+        <span>Axis</span>
+        <input type="number" id="rxAxis" min="0" max="180" placeholder="90" />
+      </label>
+    </div>
+    <div class="button-row">
+      <button class="start-btn" type="button" onclick="applyRx()">Apply vision correction</button>
+    </div>
+    <div class="setup-copy" id="rxStatus">No correction applied.</div>
+    <div class="rx-preview" id="rxPreview">The quick brown fox jumps over the lazy dog.</div>
+  </section>
+</div>
+
+<script>
+  "use strict";
+
+  const STORAGE_KEYS = {
+    script: "pubcast_tp_script_v1_codex_20260420",
+    line: "pubcast_tp_line_v1_codex_20260420",
+    mirror: "pubcast_tp_mirror_v1_codex_20260420"
+  };
+
+  const VOICE_STATE = {
+    IDLE: "IDLE",
+    REQUESTING: "REQUESTING",
+    ACTIVE: "ACTIVE",
+    ERROR: "ERROR",
+    STOPPED: "STOPPED"
+  };
+
+  const appState = {
+    lines: [],
+    currentLine: 0,
+    isPlaying: false,
+    autoTimer: null,
+    speed: 4,
+    fontSize: 28,
+    voiceState: VOICE_STATE.IDLE,
+    recognition: null,
+    supportsSpeech: Boolean(window.SpeechRecognition || window.webkitSpeechRecognition),
+    manualVoiceStop: false,
+    lastRestartAt: 0,
+    restartCooldownMs: 2000,
+    recentTranscript: "",
+    storageAvailable: {
+      local: storageUsable("localStorage"),
+      session: storageUsable("sessionStorage")
+    },
+    saveTimer: null,
+    controlLockUntil: 0,
+    wasPlayingBeforeHide: false,
+    wasVoiceBeforeHide: false,
+    previousWindow: [],
+    isMirrorMode: false
+  };
+
+  const dom = {
+    shell: document.getElementById("shell"),
+    scriptInput: document.getElementById("scriptInput"),
+    textWrap: document.getElementById("textWrap"),
+    screen: document.getElementById("screen"),
+    emptyHint: document.getElementById("emptyHint"),
+    statusTxt: document.getElementById("statusTxt"),
+    playBtn: document.getElementById("playBtn"),
+    voiceBtn: document.getElementById("voiceBtn"),
+    mirrorBtn: document.getElementById("mirrorBtn"),
+    speedSlider: document.getElementById("speedSlider"),
+    speedVal: document.getElementById("speedVal"),
+    fontSlider: document.getElementById("fontSlider"),
+    fontVal: document.getElementById("fontVal"),
+    storageNotice: document.getElementById("storageNotice"),
+    restoreBanner: document.getElementById("restoreBanner"),
+    restoreCopy: document.getElementById("restoreCopy"),
+    restoreAcceptBtn: document.getElementById("restoreAcceptBtn"),
+    restoreDeclineBtn: document.getElementById("restoreDeclineBtn"),
+    tabPrompt: document.getElementById("tab-prompt"),
+    rxPreview: document.getElementById("rxPreview"),
+    rxStatus: document.getElementById("rxStatus")
+  };
+
+  init();
+
+  function init() {
+    // Round 1: browser feature messaging and storage notices.
+    if (!appState.supportsSpeech) {
+      setStatus("Speech recognition not supported in this browser. Manual controls remain available.", "error");
+    }
+    if (!appState.storageAvailable.local) {
+      dom.storageNotice.textContent = "Local script save is unavailable in this browser context. The teleprompter will still work.";
+    } else {
+      dom.storageNotice.textContent = "Script changes save automatically every 500 ms.";
+    }
+
+    bindControls();
+    restoreMirrorPreference();
+    checkSavedScript();
+    seedSampleScript();
+    applyFont(appState.fontSize);
+
+    // Round 6: clean shutdown and visibility handling.
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", cleanupRuntime);
+    window.addEventListener("resize", debounce(() => {
+      if (appState.lines.length) {
+        renderWindow();
+      }
+    }, 80));
+  }
+
+  function bindControls() {
+    dom.scriptInput.addEventListener("input", () => {
+      queueScriptSave();
+      if (!dom.scriptInput.value.trim()) {
+        disablePromptTab();
+      }
+    });
+
+    dom.restoreAcceptBtn.addEventListener("click", () => restoreSavedScript(true));
+    dom.restoreDeclineBtn.addEventListener("click", () => restoreSavedScript(false));
+
+    dom.speedSlider.addEventListener("input", () => updateSpeed(dom.speedSlider.value));
+    dom.fontSlider.addEventListener("input", () => updateFont(dom.fontSlider.value));
+
+    bindDebouncedButton("rewindBtn", () => scrollToLine(0));
+    bindDebouncedButton("prevBtn", () => scrollToLine(appState.currentLine - 1));
+    bindDebouncedButton("nextBtn", () => scrollToLine(appState.currentLine + 1));
+    bindDebouncedButton("playBtn", togglePlay);
+    bindDebouncedButton("voiceBtn", toggleVoice);
+    bindDebouncedButton("mirrorBtn", toggleMirrorMode);
+  }
+
+  function bindDebouncedButton(id, handler) {
+    const button = document.getElementById(id);
+    button.addEventListener("click", () => {
+      const now = Date.now();
+      if (now < appState.controlLockUntil) {
+        return;
+      }
+      appState.controlLockUntil = now + 120;
+      handler();
+    });
+  }
+
+  function storageUsable(storageName) {
+    try {
+      const storage = window[storageName];
+      const key = "__pubcast_tp_probe__";
+      storage.setItem(key, "1");
+      storage.removeItem(key);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function getStorage(kind) {
+    return kind === "session" ? window.sessionStorage : window.localStorage;
+  }
+
+  function safeGet(kind, key) {
+    if (!appState.storageAvailable[kind]) {
+      return null;
+    }
+    try {
+      return getStorage(kind).getItem(key);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function safeSet(kind, key, value) {
+    if (!appState.storageAvailable[kind]) {
+      return false;
+    }
+    try {
+      getStorage(kind).setItem(key, value);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function safeRemove(kind, key) {
+    if (!appState.storageAvailable[kind]) {
+      return;
+    }
+    try {
+      getStorage(kind).removeItem(key);
+    } catch (error) {
+      return;
+    }
+  }
+
+  function checkSavedScript() {
+    const savedScript = safeGet("local", STORAGE_KEYS.script);
+    if (!savedScript || !savedScript.trim()) {
+      return;
+    }
+    const savedLine = safeGet("session", STORAGE_KEYS.line);
+    dom.restoreCopy.textContent = savedLine
+      ? "A saved script and prompt position are available."
+      : "A saved script is available.";
+    dom.restoreBanner.classList.add("active");
+  }
+
+  function restoreSavedScript(shouldRestore) {
+    dom.restoreBanner.classList.remove("active");
+    if (!shouldRestore) {
+      safeRemove("session", STORAGE_KEYS.line);
+      return;
+    }
+
+    const savedScript = safeGet("local", STORAGE_KEYS.script);
+    if (!savedScript) {
+      return;
+    }
+
+    dom.scriptInput.value = savedScript;
+    loadScript(true);
+
+    const savedLine = parseInt(safeGet("session", STORAGE_KEYS.line), 10);
+    if (!Number.isNaN(savedLine)) {
+      scrollToLine(savedLine, { preserveDirection: true });
+    }
+
+    setStatus("Saved script restored.", "ok");
+  }
+
+  function restoreMirrorPreference() {
+    const mirrorValue = safeGet("local", STORAGE_KEYS.mirror);
+    appState.isMirrorMode = mirrorValue === "1";
+    syncMirrorMode();
+  }
+
+  function seedSampleScript() {
+    if (dom.scriptInput.value.trim()) {
+      return;
+    }
+    dom.scriptInput.value = [
+      "Welcome to PubCast. This is a sample script to demonstrate the voice-tracking teleprompter.",
+      "Speak naturally and the text will follow your voice automatically.",
+      "You can pause at any time and pick up exactly where you left off.",
+      "The system listens for phrases and keeps the script locked to where you are.",
+      "Use the controls below to adjust speed, font size, or take manual control at any time.",
+      "This is the future of broadcast production."
+    ].join("\n");
+  }
+
+  function queueScriptSave() {
+    if (!appState.storageAvailable.local) {
+      return;
+    }
+    clearTimeout(appState.saveTimer);
+    // Round 5: 500 ms debounced script persistence.
+    appState.saveTimer = window.setTimeout(() => {
+      safeSet("local", STORAGE_KEYS.script, dom.scriptInput.value);
+    }, 500);
+  }
+
+  function showTab(tabName) {
+    const tabs = ["script", "prompt", "rx"];
+    tabs.forEach((name) => {
+      document.getElementById("panel-" + name).classList.remove("active");
+      document.getElementById("tab-" + name).classList.remove("active");
+    });
+
+    if (tabName === "prompt" && dom.tabPrompt.disabled) {
+      setStatus("Load a script before opening the teleprompter.", "error");
+      return;
+    }
+
+    document.getElementById("panel-" + tabName).classList.add("active");
+    document.getElementById("tab-" + tabName).classList.add("active");
+  }
+
+  function disablePromptTab() {
+    dom.tabPrompt.disabled = true;
+    if (document.getElementById("panel-prompt").classList.contains("active")) {
+      showTab("script");
+    }
+  }
+
+  function enablePromptTab() {
+    dom.tabPrompt.disabled = false;
+  }
+
+  function clearScriptInput() {
+    dom.scriptInput.value = "";
+    queueScriptSave();
+    appState.lines = [];
+    appState.currentLine = 0;
+    stopAuto();
+    setVoiceState(VOICE_STATE.STOPPED, "Voice tracking off.");
+    renderWindow();
+    disablePromptTab();
+    setStatus("Script cleared. Add content to enable the teleprompter.", "error");
+  }
+
+  function loadScript(isRestore) {
+    const parsedLines = parseScript(dom.scriptInput.value);
+    // Round 6: empty script is blocked and teleprompter tab stays disabled.
+    if (!parsedLines.length) {
+      disablePromptTab();
+      setStatus("Add at least one line before loading the teleprompter.", "error");
+      return;
+    }
+
+    appState.lines = parsedLines;
+    appState.currentLine = 0;
+    enablePromptTab();
+    renderWindow();
+    showTab("prompt");
+
+    if (isRestore) {
+      return;
+    }
+
+    safeSet("session", STORAGE_KEYS.line, "0");
+    setStatus(parsedLines.length === 1 ? "Single-line script loaded." : "Script loaded.", "ok");
+  }
+
+  function parseScript(raw) {
+    const normalized = raw.replace(/\r\n/g, "\n");
+    return normalized
+      .split("\n")
+      .map((line) => sanitizeLine(line))
+      .filter((line) => line.length > 0);
+  }
+
+  function sanitizeLine(line) {
+    // Round 6: sanitize text before rendering and preserve special characters safely via textContent.
+    return line
+      .replace(/\u0000/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function computeWindow() {
+    const before = 4;
+    const after = 5;
+    const total = appState.lines.length;
+    let start = Math.max(0, appState.currentLine - before);
+    let end = Math.min(total, start + 10);
+    if ((end - start) < 10) {
+      start = Math.max(0, end - 10);
+    }
+    return { start, end };
+  }
+
+  function renderWindow() {
+    const wrap = dom.textWrap;
+    wrap.innerHTML = "";
+
+    if (!appState.lines.length) {
+      dom.emptyHint.style.display = "flex";
+      wrap.style.transform = "translateY(0)";
+      return;
+    }
+
+    dom.emptyHint.style.display = "none";
+
+    const windowRange = computeWindow();
+    const currentWindow = [];
+    for (let index = windowRange.start; index < windowRange.end; index += 1) {
+      currentWindow.push(index);
+    }
+
+    const previousSet = new Set(appState.previousWindow);
+    currentWindow.forEach((lineIndex) => {
+      const line = document.createElement("div");
+      const distance = lineIndex - appState.currentLine;
+      line.className = "tp-line";
+      line.id = "line-" + lineIndex;
+      line.dataset.distance = String(distance);
+      line.textContent = appState.lines[lineIndex];
+      if (!previousSet.has(lineIndex) && distance > 0) {
+        line.dataset.entering = "true";
+      }
+      wrap.appendChild(line);
+    });
+
+    requestAnimationFrame(positionWindow);
+    appState.previousWindow = currentWindow;
+  }
+
+  function positionWindow() {
+    const activeLine = document.getElementById("line-" + appState.currentLine);
+    if (!activeLine) {
+      return;
+    }
+    const screenHeight = dom.screen.clientHeight;
+    const activeTop = activeLine.offsetTop;
+    const activeHeight = activeLine.offsetHeight;
+    const offset = activeTop - (screenHeight / 2) + (activeHeight / 2);
+    dom.textWrap.style.transform = "translateY(" + (-offset) + "px)";
+    applyRxToLines();
+  }
+
+  function scrollToLine(targetIndex, options) {
+    if (!appState.lines.length) {
+      return;
+    }
+
+    const nextIndex = clamp(targetIndex, 0, appState.lines.length - 1);
+    appState.currentLine = nextIndex;
+    renderWindow();
+    safeSet("session", STORAGE_KEYS.line, String(appState.currentLine));
+
+    if (!options || !options.preserveDirection) {
+      appState.recentTranscript = "";
+    }
+  }
+
+  function togglePlay() {
+    if (!appState.lines.length) {
+      setStatus("Load a script before starting auto scroll.", "error");
+      return;
+    }
+
+    appState.isPlaying = !appState.isPlaying;
+    if (appState.isPlaying) {
+      dom.playBtn.classList.add("active");
+      dom.playBtn.textContent = "Pause";
+      startAuto();
+      setStatus("Auto scroll running.", "ok");
+    } else {
+      stopAuto();
+      setStatus("Auto scroll paused.", "");
+    }
+  }
+
+  function startAuto() {
+    stopAutoTimerOnly();
+    const interval = Math.max(500, Math.round(6000 / appState.speed));
+    appState.autoTimer = window.setInterval(() => {
+      if (appState.currentLine >= appState.lines.length - 1) {
+        appState.isPlaying = false;
+        dom.playBtn.classList.remove("active");
+        dom.playBtn.textContent = "Play Auto";
+        stopAutoTimerOnly();
+        setStatus("End of script reached.", "ok");
+        return;
+      }
+      scrollToLine(appState.currentLine + 1, { preserveDirection: true });
+    }, interval);
+  }
+
+  function stopAuto() {
+    appState.isPlaying = false;
+    dom.playBtn.classList.remove("active");
+    dom.playBtn.textContent = "Play Auto";
+    stopAutoTimerOnly();
+  }
+
+  function stopAutoTimerOnly() {
+    if (appState.autoTimer) {
+      window.clearInterval(appState.autoTimer);
+      appState.autoTimer = null;
+    }
+  }
+
+  function updateSpeed(value) {
+    appState.speed = parseInt(value, 10);
+    dom.speedVal.textContent = String(appState.speed);
+    if (appState.isPlaying) {
+      startAuto();
+    }
+  }
+
+  function updateFont(value) {
+    appState.fontSize = parseInt(value, 10);
+    applyFont(appState.fontSize);
+    renderWindow();
+  }
+
+  function applyFont(size) {
+    document.documentElement.style.setProperty("--line-font-size", size + "px");
+    dom.fontVal.textContent = size + "px";
+    dom.fontSlider.value = String(size);
+  }
+
+  function toggleMirrorMode() {
+    appState.isMirrorMode = !appState.isMirrorMode;
+    syncMirrorMode();
+    safeSet("local", STORAGE_KEYS.mirror, appState.isMirrorMode ? "1" : "0");
+  }
+
+  function syncMirrorMode() {
+    dom.shell.classList.toggle("mirror-enabled", appState.isMirrorMode);
+    dom.mirrorBtn.classList.toggle("active", appState.isMirrorMode);
+    dom.mirrorBtn.textContent = appState.isMirrorMode ? "Mirror On" : "Mirror";
+  }
+
+  function toggleVoice() {
+    if (!appState.lines.length) {
+      setStatus("Load a script before starting voice tracking.", "error");
+      return;
+    }
+    if (!appState.supportsSpeech) {
+      setStatus("Speech recognition not supported in this browser.", "error");
+      return;
+    }
+    if (appState.voiceState === VOICE_STATE.ACTIVE || appState.voiceState === VOICE_STATE.REQUESTING) {
+      appState.manualVoiceStop = true;
+      stopVoiceRecognition();
+      setVoiceState(VOICE_STATE.STOPPED, "Voice tracking stopped by user.");
+      return;
+    }
+    startVoiceRecognition();
+  }
+
+  function startVoiceRecognition() {
+    const SpeechCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechCtor) {
+      setVoiceState(VOICE_STATE.ERROR, "Speech recognition is not available in this browser.");
+      return;
+    }
+
+    appState.manualVoiceStop = false;
+    setVoiceState(VOICE_STATE.REQUESTING, "Requesting microphone access...");
+
+    try {
+      const recognition = new SpeechCtor();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      // Round 2: explicit recognition state machine with controlled restart behavior.
+      recognition.onstart = () => {
+        appState.lastRestartAt = Date.now();
+        setVoiceState(VOICE_STATE.ACTIVE, "Voice tracking active. Speak your script.");
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = "";
+        for (let index = event.resultIndex; index < event.results.length; index += 1) {
+          transcript += " " + event.results[index][0].transcript;
+        }
+        handleTranscript(transcript);
+      };
+
+      recognition.onerror = (event) => {
+        const message = mapSpeechError(event.error);
+        appState.manualVoiceStop = true;
+        stopVoiceRecognition(false);
+        setVoiceState(VOICE_STATE.ERROR, message);
+      };
+
+      recognition.onend = () => {
+        if (appState.manualVoiceStop || document.hidden) {
+          return;
+        }
+        if (appState.voiceState === VOICE_STATE.ERROR || appState.voiceState === VOICE_STATE.STOPPED) {
+          return;
+        }
+        const now = Date.now();
+        if ((now - appState.lastRestartAt) < appState.restartCooldownMs) {
+          window.setTimeout(() => {
+            if (!appState.manualVoiceStop && !document.hidden) {
+              startVoiceRecognition();
+            }
+          }, appState.restartCooldownMs - (now - appState.lastRestartAt));
+          return;
+        }
+        startVoiceRecognition();
+      };
+
+      appState.recognition = recognition;
+      recognition.start();
+    } catch (error) {
+      setVoiceState(VOICE_STATE.ERROR, "Microphone initialization failed.");
+    }
+  }
+
+  function stopVoiceRecognition(markStopped) {
+    if (markStopped === undefined) {
+      markStopped = true;
+    }
+    const recognition = appState.recognition;
+    appState.recognition = null;
+    if (recognition) {
+      try {
+        recognition.onstart = null;
+        recognition.onresult = null;
+        recognition.onerror = null;
+        recognition.onend = null;
+        recognition.stop();
+      } catch (error) {
+        // Round 6: swallow shutdown noise only after explicit cleanup handling.
+      }
+    }
+    if (markStopped) {
+      setVoiceState(VOICE_STATE.STOPPED, "Voice tracking stopped.");
+    }
+  }
+
+  function setVoiceState(nextState, message) {
+    appState.voiceState = nextState;
+    dom.voiceBtn.classList.remove("active", "listening");
+
+    if (nextState === VOICE_STATE.ACTIVE || nextState === VOICE_STATE.REQUESTING) {
+      dom.voiceBtn.classList.add(nextState === VOICE_STATE.ACTIVE ? "listening" : "active");
+    }
+
+    dom.voiceBtn.textContent = nextState === VOICE_STATE.ACTIVE ? "Listening" : "Voice";
+
+    if (nextState === VOICE_STATE.ERROR) {
+      setStatus(message, "error");
+    } else if (nextState === VOICE_STATE.ACTIVE || nextState === VOICE_STATE.REQUESTING) {
+      setStatus(message, "on");
+    } else if (nextState === VOICE_STATE.STOPPED) {
+      setStatus(message, "");
+    } else {
+      setStatus(message || "Voice tracking off.", "");
+    }
+  }
+
+  function mapSpeechError(errorCode) {
+    if (errorCode === "not-allowed" || errorCode === "service-not-allowed") {
+      return "Microphone permission denied. Voice tracking will not restart until you turn it on again.";
+    }
+    if (errorCode === "audio-capture") {
+      return "No microphone was found. Check your input device and try again.";
+    }
+    if (errorCode === "network") {
+      return "Speech recognition network error. Voice tracking stopped cleanly.";
+    }
+    if (errorCode === "no-speech") {
+      return "No speech detected. Voice tracking stopped cleanly.";
+    }
+    return "Speech recognition error: " + errorCode + ".";
+  }
+
+  function handleTranscript(transcript) {
+    const normalized = normalizeTranscript(transcript);
+    if (!normalized) {
+      return;
+    }
+    appState.recentTranscript = normalized;
+    matchVoiceToScript(normalized);
+  }
+
+  function normalizeTranscript(text) {
+    // Round 3: remove filler words and normalize noisy input before matching.
+    return text
+      .toLowerCase()
+      .replace(/[^\w\s']/g, " ")
+      .split(/\s+/)
+      .filter((token) => token && !["um", "uh", "like", "you", "know"].includes(token))
+      .slice(-18)
+      .join(" ")
+      .trim();
+  }
+
+  function matchVoiceToScript(transcript) {
+    if (!appState.lines.length || !transcript) {
+      return;
+    }
+
+    const transcriptTokens = transcript.split(/\s+/).slice(-10);
+    const transcriptTail = transcriptTokens.join(" ");
+    let bestLine = appState.currentLine;
+    let bestScore = 0;
+    const searchStart = appState.currentLine;
+    const searchEnd = Math.min(appState.lines.length - 1, appState.currentLine + 3);
+
+    for (let index = searchStart; index <= searchEnd; index += 1) {
+      const candidate = normalizeTranscript(appState.lines[index]);
+      const candidateTokens = candidate.split(/\s+/).slice(0, 12).join(" ");
+      const similarity = normalizedSimilarity(transcriptTail, candidateTokens);
+      const phraseBonus = candidate.includes(transcriptTokens[transcriptTokens.length - 1] || "") ? 0.06 : 0;
+      const score = similarity + phraseBonus;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestLine = index;
+      }
+    }
+
+    // Round 3: confidence gate, no backward jumps, and max advance of 3 lines.
+    if (bestLine > appState.currentLine && bestScore >= 0.68) {
+      scrollToLine(bestLine, { preserveDirection: true });
+      setStatus("Voice tracking matched line " + (bestLine + 1) + " at " + Math.round(bestScore * 100) + "% confidence.", "on");
+    }
+  }
+
+  function normalizedSimilarity(a, b) {
+    if (!a || !b) {
+      return 0;
+    }
+    const distance = levenshteinDistance(a, b);
+    const maxLength = Math.max(a.length, b.length);
+    if (!maxLength) {
+      return 1;
+    }
+    return 1 - (distance / maxLength);
+  }
+
+  function levenshteinDistance(a, b) {
+    const rows = a.length + 1;
+    const cols = b.length + 1;
+    const matrix = new Array(rows);
+    for (let row = 0; row < rows; row += 1) {
+      matrix[row] = new Array(cols);
+      matrix[row][0] = row;
+    }
+    for (let col = 0; col < cols; col += 1) {
+      matrix[0][col] = col;
+    }
+
+    for (let row = 1; row < rows; row += 1) {
+      for (let col = 1; col < cols; col += 1) {
+        const cost = a[row - 1] === b[col - 1] ? 0 : 1;
+        matrix[row][col] = Math.min(
+          matrix[row - 1][col] + 1,
+          matrix[row][col - 1] + 1,
+          matrix[row - 1][col - 1] + cost
+        );
+      }
+    }
+    return matrix[rows - 1][cols - 1];
+  }
+
+  function applyRx() {
+    const sph = parseFloat(document.getElementById("rxSph").value) || 0;
+    const cyl = parseFloat(document.getElementById("rxCyl").value) || 0;
+    const axis = parseFloat(document.getElementById("rxAxis").value) || 0;
+
+    if (sph === 0 && cyl === 0) {
+      dom.rxPreview.style.filter = "none";
+      dom.rxPreview.style.textShadow = "none";
+      dom.rxStatus.textContent = "No correction applied.";
+      applyRxToLines();
+      return;
+    }
+
+    const blurAmount = Math.min(Math.abs(sph) * 0.15, 1.2);
+    const cylBlur = Math.abs(cyl) * 0.1;
+    const angleRad = (axis * Math.PI) / 180;
+    const dx = Math.round(Math.cos(angleRad) * cylBlur * 3);
+    const dy = Math.round(Math.sin(angleRad) * cylBlur * 3);
+    const filter = blurAmount > 0 ? "blur(" + blurAmount.toFixed(2) + "px)" : "none";
+    const shadow = cyl !== 0
+      ? dx + "px " + dy + "px " + (cylBlur * 2).toFixed(1) + "px rgba(255,255,255,0.35), " +
+        (-dx) + "px " + (-dy) + "px " + (cylBlur * 2).toFixed(1) + "px rgba(255,255,255,0.35)"
+      : "none";
+
+    dom.rxPreview.style.filter = filter;
+    dom.rxPreview.style.textShadow = shadow;
+    dom.rxStatus.textContent = "Correction applied - SPH " + formatSigned(sph) + ", CYL " + formatSigned(cyl) + ", Axis " + axis + " degrees.";
+    applyRxToLines();
+  }
+
+  function applyRxToLines() {
+    document.querySelectorAll(".tp-line").forEach((line) => {
+      line.style.filter = mergeFilter(line.dataset.distance, dom.rxPreview.style.filter);
+      line.style.textShadow = dom.rxPreview.style.textShadow;
+    });
+  }
+
+  function mergeFilter(distanceValue, rxFilter) {
+    const distance = Number(distanceValue);
+    let brightness = "brightness(0.72)";
+    if (distance === 0) {
+      brightness = "brightness(1.18)";
+    } else if (Math.abs(distance) === 1) {
+      brightness = "brightness(1.04)";
+    } else if (Math.abs(distance) === 2) {
+      brightness = "brightness(0.92)";
+    }
+    return rxFilter && rxFilter !== "none" ? brightness + " " + rxFilter : brightness;
+  }
+
+  function formatSigned(value) {
+    return (value > 0 ? "+" : "") + value;
+  }
+
+  function setStatus(message, kind) {
+    dom.statusTxt.textContent = message;
+    dom.statusTxt.classList.remove("on", "error", "ok");
+    if (kind) {
+      dom.statusTxt.classList.add(kind);
+    }
+  }
+
+  function handleVisibilityChange() {
+    if (document.hidden) {
+      appState.wasPlayingBeforeHide = appState.isPlaying;
+      appState.wasVoiceBeforeHide = appState.voiceState === VOICE_STATE.ACTIVE || appState.voiceState === VOICE_STATE.REQUESTING;
+      if (appState.isPlaying) {
+        stopAuto();
+      }
+      if (appState.wasVoiceBeforeHide) {
+        appState.manualVoiceStop = false;
+        stopVoiceRecognition(false);
+        setVoiceState(VOICE_STATE.STOPPED, "Voice tracking paused while the tab is hidden.");
+      }
+      return;
+    }
+
+    if (appState.wasPlayingBeforeHide) {
+      appState.isPlaying = true;
+      dom.playBtn.classList.add("active");
+      dom.playBtn.textContent = "Pause";
+      startAuto();
+    }
+
+    if (appState.wasVoiceBeforeHide && appState.supportsSpeech) {
+      startVoiceRecognition();
+    }
+  }
+
+  function cleanupRuntime() {
+    clearTimeout(appState.saveTimer);
+    stopAutoTimerOnly();
+    stopVoiceRecognition(false);
+  }
+
+  function debounce(handler, delay) {
+    let timer = null;
+    return function debounced() {
+      const args = arguments;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => handler.apply(null, args), delay);
+    };
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foresight — CARE and EQ</title><script src="/static/reach_auth.js"></script>
+<style>
+:root{color-scheme:dark;--bg:#0c1114;--panel:#182126;--gold:#d6ac6c;--muted:#a6a9a7;--line:#655038}
+*{box-sizing:border-box}body{margin:0;padding:20px;font:14px/1.5 system-ui,sans-serif;background:var(--bg);color:#f1e7d5}
+h1{margin:0 0 5px;font:26px Georgia,serif;color:var(--gold)}p{color:var(--muted)}
+article{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:16px;margin:15px 0}
+button{background:#30291d;border:1px solid var(--gold);color:#f9e7c7;padding:9px 14px;margin:3px 5px 3px 0;border-radius:6px;cursor:pointer}
+button:disabled{opacity:.45;cursor:default}#active{font-weight:700}#active.on{color:#90d99f}#active.off{color:#ddb98e}
+small{color:var(--muted)}.error{color:#ffb1a7}pre{max-height:170px;overflow:auto;white-space:pre-wrap;font:12px/1.45 ui-monospace,monospace;color:#d6d3c3}
+input,textarea{display:block;width:100%;background:#0b1114;color:#f1e7d5;border:1px solid #61543d;border-radius:6px;padding:8px;font:inherit;margin:6px 0}
+label{display:block;margin-top:10px}a{color:#eed09b}
+</style></head><body>
+<h1>CARE / EQ</h1><p>One shared CARE coordinator for Alex and the Jeremy Bridge. Little Mode is explicit and owner-only. The original Little One protocol remains a distinct, optional part of the system.</p>
+<article><h2>Session</h2><p>Status: <span id="active">Checking…</span></p>
+<button id="activate" type="button">Activate Little Mode</button><button id="deactivate" type="button">Return to Ordinary</button><button id="refresh" type="button">Refresh</button>
+<p><small>While activated, Alex-facing text passes through the Baby Ambiguator before the care-facing response. Say <strong>parachute</strong> in that chat to exit immediately. This does not intercept every PubCast chat room.</small></p></article>
+<article><h2>EQ observation</h2><label>What was observed?<textarea id="observation" rows="3" maxlength="1500" placeholder="Direct observation; no diagnosis or assumptions"></textarea></label>
+<label>Hypothesis, if any<input id="hypothesis" maxlength="400" placeholder="Optional interpretation to evaluate"></label>
+<label>Outcome<input id="outcome" maxlength="400" placeholder="Optional observed outcome"></label><button id="record" type="button">Record Observation</button></article>
+<article><h2>Observation history</h2><button id="events" type="button">Show Recent Events</button><pre id="log">No events requested.</pre></article>
+<p id="feedback" role="status" aria-live="polite"></p>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+async function call(path,options={}){
+ const result=await fetch('/api/alex/care/'+path,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});
+ const body=await result.json().catch(()=>({}));
+ if(!result.ok)throw Error(typeof body.detail==='string'?body.detail:'HTTP '+result.status);
+ return body;
+}
+function report(e){$('feedback').textContent=e.message||String(e);$('feedback').className='error'}
+async function refresh(){
+ try{const data=await call('status'); const active=data.active===true||data.mode==='baby';
+ $('active').textContent=active?'Little Mode active':'Ordinary';$('active').className=active?'on':'off';
+ $('activate').disabled=active;$('deactivate').disabled=!active;$('feedback').textContent='';}
+ catch(e){$('active').textContent='Unavailable';report(e)}
+}
+$('activate').onclick=async()=>{try{await call('activate',{method:'POST'});await refresh()}catch(e){report(e)}};
+$('deactivate').onclick=async()=>{try{await call('deactivate',{method:'POST'});await refresh()}catch(e){report(e)}};
+$('refresh').onclick=refresh;
+$('record').onclick=async()=>{try{const observed=$('observation').value.trim();if(!observed)throw Error('Describe an observation before recording it');
+ await call('observe',{method:'POST',body:JSON.stringify({kind:'owner_observation',observed:{note:observed},hypothesis:$('hypothesis').value.trim()||null,alternatives:[],outcome:$('outcome').value.trim()||null})});
+ $('feedback').textContent='Observation recorded';$('feedback').className='';$('observation').value='';}
+ catch(e){report(e)}};
+$('events').onclick=async()=>{try{$('log').textContent=JSON.stringify(await call('events'),null,2)}catch(e){report(e)}};
+(async()=>{try{if(window.ReachAuth){const session=await window.ReachAuth.requireSession('/foresight');if(session===null)return;}await refresh();}catch(e){report(e)}})();
+</script></body></html>

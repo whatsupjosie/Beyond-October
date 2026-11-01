@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PubCast · General Chat</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0d11;--panel:#12151b;--line:#2b303a;--text:#e7e9ee;--muted:#969daa;--accent:#d0a35d}
+*{box-sizing:border-box}html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,sans-serif}
+body{display:grid;grid-template-rows:auto 1fr auto;overflow:hidden}button,input,textarea,select{font:inherit;color:inherit;background:#0d1015;border:1px solid var(--line);border-radius:6px}button{cursor:pointer;padding:.55rem .8rem}button:hover{border-color:var(--accent)}button:disabled{opacity:.45;cursor:not-allowed}
+header{display:flex;gap:.6rem;align-items:center;padding:.65rem .8rem;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}header strong{margin-right:auto}#saved{font-size:.8rem;color:var(--muted)}
+main{min-height:0;display:grid;grid-template-columns:240px 1fr}.side{border-right:1px solid var(--line);padding:.75rem;overflow:auto;background:var(--panel)}.side input{width:100%;padding:.55rem}.side button{width:100%;margin-top:.45rem;text-align:left}.side h2{font-size:.75rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+#transcript{overflow:auto;padding:1.2rem;outline:none;user-select:text;-webkit-user-select:text}.message{max-width:850px;margin:0 auto 1.4rem;user-select:text;-webkit-user-select:text}.speaker{font-weight:700;color:var(--accent);margin-bottom:.25rem}.exact{white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text}.plain .message{margin-bottom:1rem}.plain .speaker{color:inherit}.plain .speaker::after{content:':'}.plain .exact{margin-top:.15rem}
+footer{display:grid;grid-template-columns:140px 1fr auto;gap:.55rem;padding:.65rem .8rem;border-top:1px solid var(--line);background:var(--panel)}footer input,footer textarea{padding:.6rem}footer textarea{resize:none;min-height:58px;max-height:150px}#notice{position:fixed;right:.8rem;bottom:5.5rem;background:#171b22;border:1px solid var(--line);padding:.55rem .75rem;border-radius:6px;display:none;max-width:min(420px,90vw)}
+@media(max-width:720px){main{grid-template-columns:1fr}.side{display:none}header{padding:.5rem}.mobile-menu .side{display:block;position:fixed;z-index:5;inset:52px 20% 72px 0;border:1px solid var(--line)}footer{grid-template-columns:1fr auto}footer input{grid-column:1/-1}#transcript{padding:.8rem}.message{margin-bottom:1.1rem}}
+</style>
+  <script src="/static/reach_auth.js"></script>
+</head>
+<body>
+<header>
+  <button id="menu" aria-label="Menu">☰</button><strong>PubCast · General Chat</strong>
+  <button id="new">New</button><button id="plain">Plain document</button>
+  <button id="downloadTxt">TXT</button><button id="downloadZip">ZIP</button><button id="saveAllRaw">Save All Raw</button><button id="saveAllZip">Save All ZIP</button><span id="saved">Not opened</span>
+</header>
+<main id="layout">
+  <aside class="side">
+    <h2>Search archive</h2><input id="search" placeholder="Exact words or phrase"><button id="searchBtn">Search</button>
+    <div id="results"></div><h2>Conversations</h2><div id="conversations"></div>
+  </aside>
+  <article id="transcript" tabindex="0" aria-label="Conversation transcript"></article>
+</main>
+<footer>
+  <div id="mode" aria-label="Chat mode">AI chat</div>
+  <textarea id="message" spellcheck="true" autocorrect="on" placeholder="Write a message… Ctrl+Enter to send"></textarea>
+  <button id="commit">Send</button>
+</footer>
+<div id="notice"></div>
+<script>
+const $=id=>document.getElementById(id);let cid=null;let plain=false;const clientId=localStorage.getItem('pubcast.clientId')||'josie';
+const headers={'Content-Type':'application/json','X-Client-Id':clientId,'X-Dev-Role':'guest'};
+function note(text){$('notice').textContent=text;$('notice').style.display='block';clearTimeout(note.t);note.t=setTimeout(()=>$('notice').style.display='none',2600)}
+async function api(url,opts={}){const r=await fetch(url,{...opts,headers:{...headers,...(opts.headers||{})}});if(!r.ok){let d;try{d=await r.json()}catch{d={detail:r.statusText}}const e=new Error(typeof d.detail==='string'?d.detail:`HTTP ${r.status}`);e.payload=d;e.status=r.status;throw e}return r}
+function portalIdentity(id,title){try{if(window.parent!==window)window.parent.postMessage({type:'foresight:portal-conversation',conversationId:id||null,title:title||'Chat'},'*')}catch(e){}}
+function render(c){portalIdentity(c.conversation_id,c.title||'Chat');$('transcript').replaceChildren();for(const m of c.messages){const wrap=document.createElement('section');wrap.className='message';const who=document.createElement('div');who.className='speaker';who.textContent=m.speaker;const text=document.createElement('div');text.className='exact';text.textContent=m.exact_text;wrap.append(who,text);$('transcript').append(wrap)}$('transcript').classList.toggle('plain',plain);$('saved').textContent=`Saved · ${c.messages.length} messages`;}
+async function refreshList(){const d=await (await api('/api/conversations')).json();$('conversations').replaceChildren();for(const c of d.conversations){const b=document.createElement('button');b.textContent=`${c.title} (${c.message_count})`;b.onclick=()=>{if(window.parent!==window&&c.conversation_id!==cid)window.parent.postMessage({type:'foresight:open-conversation',conversationId:c.conversation_id,title:c.title},'*');else openConversation(c.conversation_id)};$('conversations').append(b)}return d.conversations||[]}
+async function openConversation(id){const d=await (await api(`/api/conversations/${id}`)).json();cid=id;render(d.conversation);document.body.classList.remove('mobile-menu')}
+async function newConversation(titleOverride=null){const title=titleOverride||(prompt('Conversation title','General Chat')||'General Chat');const d=await (await api('/api/conversations',{method:'POST',body:JSON.stringify({title})})).json();cid=d.conversation_id;await openConversation(cid);await refreshList();$('message').focus()}
+async function commit(){if(!cid)await newConversation();if(!cid)return;const exact=$('message').value;if(!exact.trim())return;$('commit').disabled=true;$('saved').textContent='Saving user message…';try{await api(`/api/conversations/${cid}/turns`,{method:'POST',body:JSON.stringify({exact_text:exact})});$('message').value='';await openConversation(cid);await refreshList()}catch(e){if(e.payload?.user_saved){$('message').value='';$('saved').textContent='User message saved · AI unavailable';await openConversation(cid);await refreshList();note(`Your message is saved. AI reply failed: ${e.message}`)}else{$('saved').textContent='Send failed';note(e.message)}}finally{$('commit').disabled=false}}
+async function search(){const q=$('search').value;if(!q.trim())return;try{const d=await (await api(`/api/conversations/search?q=${encodeURIComponent(q)}`)).json();$('results').replaceChildren();for(const m of d.results){const b=document.createElement('button');b.textContent=`${m.speaker}: ${m.exact_text.slice(0,70)}`;b.onclick=()=>openConversation(m.conversation_id);$('results').append(b)}if(!d.results.length)note('No matches')}catch(e){note(e.message)}}
+async function saveAll(format){try{const r=await api(`/api/conversations/exports/all/${format}`,{method:'POST'});if(format==='zip'){const blob=await r.blob();const disposition=r.headers.get('content-disposition')||'';const match=disposition.match(/filename="?([^";]+)"?/i);const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=match?.[1]||'PubCast_Conversation_Library.zip';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);note('Verified conversation library ZIP downloaded')}else{const d=await r.json();note(`Saved ${d.conversation_count} conversations as raw files · ${d.export_name}`)}}catch(e){note(`Save All failed: ${e.message}`)}}
+async function download(format){if(!cid){note('Open a conversation first');return}try{const r=await api(`/api/conversations/${cid}/exports/${format}`,{method:'POST'});const blob=await r.blob();const disposition=r.headers.get('content-disposition')||'';const match=disposition.match(/filename="?([^";]+)"?/i);const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=match?.[1]||`PubCast_Chat.${format}`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);note(`${format.toUpperCase()} downloaded`)}catch(e){note(e.message)}}
+$('new').onclick=()=>{if(window.parent!==window){window.parent.postMessage({type:'foresight:new-chat'},'*')}else newConversation()};$('commit').onclick=commit;$('searchBtn').onclick=search;$('downloadTxt').onclick=()=>download('txt');$('downloadZip').onclick=()=>download('zip');$('saveAllRaw').onclick=()=>saveAll('raw');$('saveAllZip').onclick=()=>saveAll('zip');$('plain').onclick=()=>{plain=!plain;$('transcript').classList.toggle('plain',plain);$('plain').textContent=plain?'Conversation view':'Plain document'};$('menu').onclick=()=>document.body.classList.toggle('mobile-menu');
+$('message').addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='Enter'){e.preventDefault();commit()}});
+$('transcript').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='a'){e.preventDefault();const range=document.createRange();range.selectNodeContents($('transcript'));const selection=getSelection();selection.removeAllRanges();selection.addRange(range)}});
+async function bootConversationPortal(){
+  try{
+    const conversations=await refreshList();
+    const q=new URLSearchParams(location.search);
+    const requested=q.get('conversation');
+    if(requested){await openConversation(requested);return}
+    if(q.get('role')==='world'){
+      const world=conversations.find(c=>String(c.title||'').toLowerCase()==='world chat');
+      if(world)await openConversation(world.conversation_id);else await newConversation('World Chat');
+      return;
+    }
+    if(q.get('role')==='new'){await newConversation('New Chat')}
+  }catch(e){note(e.message)}
+}
+bootConversationPortal();
+</script>
+</body>
+</html>

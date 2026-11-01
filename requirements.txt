@@ -1,0 +1,53 @@
+# PubCast Reach — canonical runtime dependencies
+# Install: pip install -r requirements.txt
+#
+# For Architect (local GGUF inference), also run:
+#   pip install -r requirements-architect.txt
+
+# Core framework — keep this minor line pinned; route-introspection and included-
+# router behavior are regression-tested against FastAPI 0.115.x / Starlette 0.41.x.
+fastapi>=0.115.0,<0.116.0
+uvicorn[standard]>=0.27.0,<1.0
+starlette>=0.41.0,<0.42.0
+pydantic>=2.0,<3.0
+
+# HTTP / structured logging
+httpx[socks]>=0.27.0,<1.0
+structlog>=24.1.0,<26.0
+
+# WebSocket client used by avatar performer / renderer bridges
+websockets>=12.0,<18.0
+
+# HTML / forms / database
+jinja2>=3.1.0,<4.0
+python-multipart>=0.0.7
+aiosqlite>=0.19.0
+
+# Numeric / system metrics
+numpy>=1.26.0,<3.0
+# pubpartner/memory_store.py imports scikit-learn unguarded (TF-IDF memory scoring),
+# and pubpartner/__init__.py imports memory_store, so it is a hard runtime dependency.
+scikit-learn>=1.4,<2.0
+psutil>=5.9,<8.0
+
+# POSIX shared-memory fast path. Native Windows intentionally skips this and
+# bridge_bulletproof falls back to its filesystem transport.
+posix_ipc>=1.1.1; sys_platform != "win32"
+
+# Auth / encrypted local credentials
+bcrypt>=5.0.0,<6.0
+cryptography>=48.0.1,<49.0
+
+# Optional cloud LLM providers (install only when used)
+# openai>=1.12.0
+# google-generativeai
+# anthropic>=0.20.0
+
+# Optional: Alex memory backup to Google Drive via the API (only if ALEX_BACKUP_DRIVE_FOLDER_ID is set)
+# google-api-python-client
+# google-auth
+# google-auth-oauthlib
+
+# Local non-destructive document working copies in Foresight
+openpyxl>=3.1.5,<4
+pypdf>=5.0,<7

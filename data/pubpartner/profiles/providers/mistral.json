@@ -1,0 +1,11 @@
+{
+  "provider": "mistral",
+  "model": "",
+  "fixes": [
+    "trim_boilerplate",
+    "simple_syntax",
+    "preserve_alex_voice"
+  ],
+  "created_at": 1792024059.0220964,
+  "updated_at": 1792024059.0220964
+}

@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  pubcast:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - PUBCAST_HOST=0.0.0.0
+      - PUBCAST_PORT=8000
+      - PUBCAST_DEBUG=0
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=gemma3:1b
+      - PUBCAST_ARCHITECT_MODEL=/app/models/google_gemma-3-1b-it-Q6_K.gguf
+      - PUBCAST_PERF_PROFILE=medium
+      # Piper/Larynx can run on the host machine or another container.
+      - PUBCAST_LARYNX_HOST=host.docker.internal
+      - PUBCAST_LARYNX_PORT=5002
+    volumes:
+      - pubcast-data:/app/data
+      - pubcast-assets:/app/assets
+      - ./models:/app/models
+    depends_on:
+      - ollama
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  pubcast-data:
+  pubcast-assets:
+  ollama-models:

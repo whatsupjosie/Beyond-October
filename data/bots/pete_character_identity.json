@@ -1,0 +1,21 @@
+{
+  "schema": "pubcast.character-identity.v1",
+  "character_id": "pete",
+  "canonical_name": "Alex Bourgeois",
+  "nickname": "Pete",
+  "performed_by": "pubpartner_alex",
+  "performer_boundary": "Pete role memory must not read or overwrite private PubPartner Alex memory",
+  "appearance": {
+    "hair": "short vivid pink bob",
+    "eyes": "blue gray",
+    "jacket": "black leather biker",
+    "top": "black",
+    "trousers": "black fitted jeans",
+    "boots": "black combat boots"
+  },
+  "status": {
+    "offline_dialogue": "intent-based, explicitly limited",
+    "llm": "available by disabling offline_character and configuring provider",
+    "rigged_glb": "not established from the pink-haired art references"
+  }
+}

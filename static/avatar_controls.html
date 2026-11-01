@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PubCast — Avatar Controls</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0a0c12;color:#e8dfc8;font-family:Georgia,serif;font-size:13px;overflow:hidden}
+body{display:grid;grid-template-rows:1fr auto;height:100vh}
+#stage-wrap{position:relative;overflow:hidden;background:#090c14}
+canvas{width:100%;height:100%;display:block;cursor:crosshair}
+#target-dot{position:absolute;width:16px;height:16px;border:2px solid #d4a843;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);display:none;animation:pulse 1s ease-out forwards}
+@keyframes pulse{0%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(2.5)}}
+#controls{background:#0f1420;border-top:1px solid #2a3050;display:grid;grid-template-columns:auto 1fr auto;align-items:stretch}
+#arrow-pad{display:grid;grid-template-columns:repeat(3,36px);grid-template-rows:repeat(3,36px);gap:2px;padding:8px}
+.arrow-btn{background:#141926;border:1px solid #2a3050;color:#d4a843;font-size:14px;cursor:pointer;border-radius:3px;display:flex;align-items:center;justify-content:center;user-select:none;transition:background .1s,border-color .1s}
+.arrow-btn:active,.arrow-btn.pressed{background:#1a2035;border-color:#d4a843}
+.arrow-btn.center{color:#7a7060;font-size:10px;letter-spacing:1px;cursor:default}
+#action-panel{padding:6px 10px;overflow-x:auto;display:flex;align-items:center;gap:6px;border-left:1px solid #2a3050;border-right:1px solid #2a3050}
+.cat-group{display:flex;flex-direction:column;gap:4px;min-width:fit-content}
+.cat-label{font-size:9px;letter-spacing:2px;color:#8e6336;text-transform:uppercase}
+.cat-actions{display:flex;gap:4px}
+.action-btn{padding:4px 10px;background:transparent;border:1px solid #2a3050;color:#a0905a;cursor:pointer;font-family:Georgia,serif;font-size:11px;border-radius:3px;white-space:nowrap;transition:all .15s}
+.action-btn:hover{border-color:#d4a843;color:#f2cf93;background:#1a1208}
+#right-panel{padding:8px 10px;display:flex;flex-direction:column;gap:6px;min-width:140px}
+select,input[type=text]{background:#0a0c12;border:1px solid #2a3050;color:#e8dfc8;padding:4px 6px;font-family:Georgia,serif;font-size:12px;border-radius:3px;width:100%}
+#status{font-size:10px;color:#7a7060;letter-spacing:1px}
+#action-label{font-size:11px;color:#d4a843;text-align:right}
+</style>
+</head>
+<body>
+
+<div id="stage-wrap">
+  <canvas id="stage"></canvas>
+  <div id="target-dot"></div>
+</div>
+
+<div id="controls">
+  <div id="arrow-pad">
+    <div></div>
+    <div class="arrow-btn" id="btn-up"    data-dir="up">▲</div>
+    <div></div>
+    <div class="arrow-btn" id="btn-left"  data-dir="left">◀</div>
+    <div class="arrow-btn center">move</div>
+    <div class="arrow-btn" id="btn-right" data-dir="right">▶</div>
+    <div></div>
+    <div class="arrow-btn" id="btn-down"  data-dir="down">▼</div>
+    <div></div>
+  </div>
+  <div id="action-panel"></div>
+  <div id="right-panel">
+    <div>
+      <div style="font-size:9px;letter-spacing:2px;color:#8e6336;text-transform:uppercase;margin-bottom:3px">Avatar</div>
+      <select id="avatar-select">
+        <option value="manny">Manny</option>
+        <option value="sheila">Sheila</option>
+        <option value="josie">Josie</option>
+        <option value="pete">Pete</option>
+      </select>
+    </div>
+    <div>
+      <div style="font-size:9px;letter-spacing:2px;color:#8e6336;text-transform:uppercase;margin-bottom:3px">Room</div>
+      <input type="text" id="room-input" value="studio">
+    </div>
+    <div id="action-label">idle</div>
+    <div id="status">connecting…</div>
+  </div>
+</div>
+
+<script src="/static/reach_auth.js"></script>
+<script>
+// ── Constants ────────────────────────────────────────────────────────────────
+const STEP         = 0.22;    // world units per keypress
+const TURN         = 12;      // degrees per keypress
+const AVATAR_R     = 0.28;    // collision radius
+const WORLD_BOUND  = 2.9;     // hard room boundary (square)
+const BOUNCE_DAMP  = 0.3;     // velocity kept after bounce
+const HIT_FRAMES   = 8;       // frames to flash red on collision
+
+// ── Static obstacles (studio layout) ─────────────────────────────────────────
+// type: 'circle' | 'rect'
+// circle: {x, z, r}
+// rect:   {x, z, w, d, label}   — x,z = centre; w=width(x), d=depth(z)
+const OBSTACLES = [
+  // Walls — four invisible barriers just inside world boundary
+  // (handled separately in resolveWall)
+
+  // Director's console desk
+  {type:'rect',  x: 0,    z:-2.2, w:1.8, d:0.5, label:'Console',   color:'#2a3050'},
+  // Camera tripod left
+  {type:'circle',x:-1.8,  z:-0.8, r:0.22, label:'Cam A',           color:'#1a2535'},
+  // Camera tripod right
+  {type:'circle',x: 1.8,  z:-0.8, r:0.22, label:'Cam B',           color:'#1a2535'},
+  // Studio monitor pillar
+  {type:'circle',x:-2.2,  z: 0.5, r:0.30, label:'Pillar',          color:'#1e1a14'},
+  {type:'circle',x: 2.2,  z: 0.5, r:0.30, label:'Pillar',          color:'#1e1a14'},
+  // Couch/sofa
+  {type:'rect',  x: 0,    z: 1.8, w:1.4, d:0.55, label:'Sofa',     color:'#1e1a2a'},
+  // Coffee table
+  {type:'rect',  x: 0,    z: 1.1, w:0.7, d:0.4,  label:'Table',    color:'#1a1810'},
+  // Side chair left
+  {type:'circle',x:-1.0,  z: 1.9, r:0.28, label:'Chair',           color:'#1a1a2a'},
+  // Side chair right
+  {type:'circle',x: 1.0,  z: 1.9, r:0.28, label:'Chair',           color:'#1a1a2a'},
+];
+
+// ── State ────────────────────────────────────────────────────────────────────
+let pos    = [0, 0, 0];   // [x, y, z]  y always 0
+let yaw    = 0;            // degrees — 0 = facing -Z (camera direction)
+let hitTimer = 0;          // frames remaining for collision flash
+let currentAction = 'idle';
+let socket;
+let otherAvatars = {};     // id → {position, rotation} from WebSocket frames
+
+// ── WebSocket ─────────────────────────────────────────────────────────────────
+function connect() {
+  const room  = document.getElementById('room-input').value || 'studio';
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  socket = new WebSocket(window.ReachAuth.websocketURL(`/ws/room/${encodeURIComponent(room)}`));
+  socket.onopen  = () => setStatus('connected');
+  socket.onclose = () => { setStatus('reconnecting…'); setTimeout(connect, 2000); };
+  socket.onmessage = ev => {
+    try {
+      const msg = JSON.parse(ev.data);
+      if (msg.type === 'choreo_frame' && msg.payload?.avatars) {
+        const myId = avatarId();
+        otherAvatars = {};
+        for (const a of msg.payload.avatars) {
+          if (a.id === myId) {
+            pos = a.position || pos;
+            yaw = (a.rotation?.[1] || 0) * 180 / Math.PI;
+          } else {
+            otherAvatars[a.id] = a;
+          }
+        }
+        draw();
+      }
+    } catch {}
+  };
+}
+document.getElementById('room-input').addEventListener('change', () => { if(socket) socket.close(); connect(); });
+
+function avatarId() { return document.getElementById('avatar-select').value; }
+function setStatus(s) { document.getElementById('status').textContent = s; }
+function setActionLabel(s) { document.getElementById('action-label').textContent = s; }
+
+// ── Collision ─────────────────────────────────────────────────────────────────
+
+function resolveWall(nx, nz) {
+  // Hard boundary — push back inside and damp
+  let bounced = false;
+  if (nx >  WORLD_BOUND) { nx =  WORLD_BOUND; bounced = true; }
+  if (nx < -WORLD_BOUND) { nx = -WORLD_BOUND; bounced = true; }
+  if (nz >  WORLD_BOUND) { nz =  WORLD_BOUND; bounced = true; }
+  if (nz < -WORLD_BOUND) { nz = -WORLD_BOUND; bounced = true; }
+  return {nx, nz, bounced};
+}
+
+function resolveObstacles(nx, nz) {
+  let bounced = false;
+  for (const obs of OBSTACLES) {
+    if (obs.type === 'circle') {
+      const dx = nx - obs.x;
+      const dz = nz - obs.z;
+      const dist = Math.hypot(dx, dz);
+      const minDist = AVATAR_R + obs.r;
+      if (dist < minDist && dist > 0.001) {
+        // Push avatar out along the collision normal
+        const nx2 = obs.x + (dx / dist) * minDist;
+        const nz2 = obs.z + (dz / dist) * minDist;
+        nx = nx2; nz = nz2; bounced = true;
+      }
+    } else if (obs.type === 'rect') {
+      // AABB — find closest point on rectangle to avatar centre
+      const hw = obs.w / 2, hd = obs.d / 2;
+      const clampX = Math.max(obs.x - hw, Math.min(obs.x + hw, nx));
+      const clampZ = Math.max(obs.z - hd, Math.min(obs.z + hd, nz));
+      const dx = nx - clampX, dz = nz - clampZ;
+      const dist = Math.hypot(dx, dz);
+      if (dist < AVATAR_R && dist > 0.001) {
+        const push = AVATAR_R - dist;
+        nx += (dx / dist) * push;
+        nz += (dz / dist) * push;
+        bounced = true;
+      } else if (dist === 0) {
+        // Dead centre — push out by smallest axis
+        const ox = Math.abs(nx - obs.x) - hw;
+        const oz = Math.abs(nz - obs.z) - hd;
+        if (ox > oz) { nx += (nx > obs.x ? 1 : -1) * (AVATAR_R - ox); }
+        else          { nz += (nz > obs.z ? 1 : -1) * (AVATAR_R - oz); }
+        bounced = true;
+      }
+    }
+  }
+  return {nx, nz, bounced};
+}
+
+function resolveAvatars(nx, nz) {
+  let bounced = false;
+  for (const other of Object.values(otherAvatars)) {
+    const op = other.position || [0,0,0];
+    const dx = nx - op[0], dz = nz - op[2];
+    const dist = Math.hypot(dx, dz);
+    const minDist = AVATAR_R * 2;
+    if (dist < minDist && dist > 0.001) {
+      const push = minDist - dist;
+      nx += (dx / dist) * push * 0.5;
+      nz += (dz / dist) * push * 0.5;
+      bounced = true;
+    }
+  }
+  return {nx, nz, bounced};
+}
+
+function resolveAll(nx, nz) {
+  // Layer them: obstacles first, then walls, then avatar-avatar
+  let r;
+  r = resolveObstacles(nx, nz); nx = r.nx; nz = r.nz;
+  r = resolveWall(nx, nz);      nx = r.nx; nz = r.nz;
+  r = resolveAvatars(nx, nz);   nx = r.nx; nz = r.nz;
+  // Second pass — obstacles again after avatar push
+  r = resolveObstacles(nx, nz); nx = r.nx; nz = r.nz;
+  r = resolveWall(nx, nz);      nx = r.nx; nz = r.nz;
+  const bounced = (nx !== pos[0] || nz !== pos[2]);
+  return {nx, nz, bounced};
+}
+
+// ── Movement ──────────────────────────────────────────────────────────────────
+function yawRad() { return yaw * Math.PI / 180; }
+
+function move(dir) {
+  let nx = pos[0], nz = pos[2];
+  let turned = false;
+  switch(dir) {
+    case 'up':    nx += Math.sin(yawRad()) * STEP; nz -= Math.cos(yawRad()) * STEP; break;
+    case 'down':  nx -= Math.sin(yawRad()) * STEP; nz += Math.cos(yawRad()) * STEP; break;
+    case 'left':  yaw -= TURN; turned = true; break;
+    case 'right': yaw += TURN; turned = true; break;
+  }
+
+  if (!turned) {
+    const r = resolveAll(nx, nz);
+    nx = r.nx; nz = r.nz;
+    if (r.bounced) { hitTimer = HIT_FRAMES; setStatus('blocked'); }
+    else           { setStatus('connected'); }
+    pos[0] = nx; pos[2] = nz;
+  }
+
+  sendMove();
+  setActionLabel(dir === 'up' || dir === 'down' ? 'walk' : 'turn');
+}
+
+async function sendMove() {
+  const id   = avatarId();
+  const room = document.getElementById('room-input').value || 'studio';
+  await fetch('/api/choreo/start', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      room, tick_hz: 30,
+      avatars: [{id, position:[...pos], rotation:[0, yawRad(), 0]}],
+      steps: [{
+        avatar_id: id,
+        animation_type: 'walk',
+        start_time: 0,
+        duration: 0.25,
+        target_position: [...pos],
+        target_rotation: [0, yawRad(), 0],
+        target_skeleton: {}
+      }]
+    })
+  }).catch(()=>{});
+  draw();
+}
+
+// ── Click-to-move ─────────────────────────────────────────────────────────────
+const canvas = document.getElementById('stage');
+const dot    = document.getElementById('target-dot');
+
+canvas.addEventListener('click', e => {
+  const rect  = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const cx = (e.clientX - rect.left)  * scaleX;
+  const cy = (e.clientY - rect.top)   * scaleY;
+  const scale = 80;
+  let wx = (cx - canvas.width  / 2) / scale;
+  let wz = -(cy - canvas.height / 2) / scale;
+
+  // Resolve destination through collision
+  const r = resolveAll(wx, wz);
+  wx = r.nx; wz = r.nz;
+
+  // Show ripple at canvas coords corresponding to resolved position
+  const rx = canvas.width  / 2 + wx * scale;
+  const ry = canvas.height / 2 - wz * scale;
+  const cssX = rx / scaleX;
+  const cssY = ry / scaleY;
+  dot.style.left = cssX + 'px';
+  dot.style.top  = cssY + 'px';
+  dot.style.display = 'block';
+  dot.style.animation = 'none';
+  void dot.offsetWidth;
+  dot.style.animation = '';
+  setTimeout(() => dot.style.display = 'none', 1000);
+
+  const targetYaw = Math.atan2(wx - pos[0], -(wz - pos[2]));
+  const dist = Math.hypot(wx - pos[0], wz - pos[2]);
+  const dur  = Math.max(0.3, dist / 1.5);
+  pos = [wx, 0, wz];
+  yaw = targetYaw * 180 / Math.PI;
+
+  fetch('/api/choreo/start', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      room: document.getElementById('room-input').value || 'studio',
+      tick_hz: 30,
+      avatars:[{id: avatarId(), position:[0,0,0]}],
+      steps:[{
+        avatar_id: avatarId(),
+        animation_type:'walk',
+        start_time:0, duration:dur,
+        target_position:[...pos],
+        target_rotation:[0,targetYaw,0],
+        target_skeleton:{}
+      }]
+    })
+  }).catch(()=>{});
+
+  setActionLabel(`→ (${wx.toFixed(1)}, ${wz.toFixed(1)})`);
+  draw();
+});
+
+// ── Action cue ────────────────────────────────────────────────────────────────
+async function cueAction(id, label) {
+  currentAction = id;
+  setActionLabel(label);
+  await fetch('/api/choreo/cue', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      room: document.getElementById('room-input').value || 'studio',
+      avatar_id: avatarId(), action: id, intensity: 1.0
+    })
+  }).catch(()=>{});
+}
+
+// ── Load actions ──────────────────────────────────────────────────────────────
+const SHOW_CATS = ['locomotion','pose','interaction','gesture','feminine','emotional','wardrobe'];
+
+async function loadActions() {
+  try {
+    const res  = await fetch('/api/choreo/actions');
+    const data = await res.json();
+    buildActionPanel(data.actions || {});
+  } catch { setStatus('actions unavailable'); }
+}
+
+function buildActionPanel(actions) {
+  const panel = document.getElementById('action-panel');
+  panel.innerHTML = '';
+  const bycat = {};
+  for (const [id,a] of Object.entries(actions)) {
+    if (!SHOW_CATS.includes(a.category)) continue;
+    (bycat[a.category] = bycat[a.category] || []).push({id,...a});
+  }
+  for (const cat of SHOW_CATS) {
+    const items = bycat[cat];
+    if (!items?.length) continue;
+    const g = document.createElement('div');
+    g.className = 'cat-group';
+    g.innerHTML = `<div class="cat-label">${cat}</div><div class="cat-actions"></div>`;
+    const row = g.querySelector('.cat-actions');
+    for (const a of items) {
+      const btn = document.createElement('button');
+      btn.className = 'action-btn';
+      btn.textContent = a.label;
+      if (a.gender === 'feminine') btn.style.borderColor = '#601040';
+      btn.onclick = () => cueAction(a.id, a.label);
+      row.appendChild(btn);
+    }
+    panel.appendChild(g);
+  }
+}
+
+// ── Canvas rendering ──────────────────────────────────────────────────────────
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  const wrap = document.getElementById('stage-wrap');
+  canvas.width  = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+}
+window.addEventListener('resize', () => { resize(); draw(); });
+resize();
+
+function worldToCanvas(x, z) {
+  return [canvas.width/2 + x*80, canvas.height/2 - z*80];
+}
+
+function drawObstacles() {
+  for (const obs of OBSTACLES) {
+    ctx.save();
+    ctx.fillStyle   = obs.color || '#1a1a2a';
+    ctx.strokeStyle = '#2a3050';
+    ctx.lineWidth   = 1;
+    if (obs.type === 'circle') {
+      const [cx,cy] = worldToCanvas(obs.x, obs.z);
+      ctx.beginPath();
+      ctx.arc(cx, cy, obs.r * 80, 0, Math.PI*2);
+      ctx.fill(); ctx.stroke();
+      if (obs.label) {
+        ctx.font = '9px Georgia';
+        ctx.fillStyle = '#7a7060';
+        ctx.textAlign = 'center';
+        ctx.fillText(obs.label, cx, cy + obs.r*80 + 10);
+      }
+    } else {
+      const [cx,cy] = worldToCanvas(obs.x, obs.z);
+      const pw = obs.w * 80, pd = obs.d * 80;
+      ctx.beginPath();
+      ctx.rect(cx - pw/2, cy - pd/2, pw, pd);
+      ctx.fill(); ctx.stroke();
+      if (obs.label) {
+        ctx.font = '9px Georgia';
+        ctx.fillStyle = '#7a7060';
+        ctx.textAlign = 'center';
+        ctx.fillText(obs.label, cx, cy + pd/2 + 11);
+      }
+    }
+    ctx.restore();
+  }
+}
+
+function drawWallIndicators() {
+  // Pulse the boundary red when avatar is near a wall
+  const nearWall =
+    Math.abs(pos[0]) > WORLD_BOUND - 0.3 ||
+    Math.abs(pos[2]) > WORLD_BOUND - 0.3;
+  if (nearWall || hitTimer > 0) {
+    ctx.save();
+    ctx.strokeStyle = `rgba(192,57,43,${Math.min(0.6, hitTimer/HIT_FRAMES + 0.2)})`;
+    ctx.lineWidth = 6;
+    ctx.strokeRect(3, 3, canvas.width-6, canvas.height-6);
+    ctx.restore();
+  }
+  if (hitTimer > 0) hitTimer--;
+}
+
+function drawOtherAvatars() {
+  for (const [id, other] of Object.entries(otherAvatars)) {
+    const op  = other.position || [0,0,0];
+    const oy  = ((other.rotation?.[1] || 0) * 180 / Math.PI) * Math.PI / 180;
+    const [cx,cy] = worldToCanvas(op[0], op[2]);
+    const s = 40;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(oy);
+    ctx.strokeStyle = '#4a8080';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0,-s*.6); ctx.lineTo(0,s*.4); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0,-s*.8,s*.18,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-s*.35,-s*.2); ctx.lineTo(s*.35,-s*.2); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0,s*.4); ctx.lineTo(-s*.2,s*.85);
+    ctx.moveTo(0,s*.4); ctx.lineTo(s*.2,s*.85);
+    ctx.stroke();
+    ctx.rotate(-oy);
+    ctx.font = '10px Georgia';
+    ctx.fillStyle = '#4a8080';
+    ctx.textAlign = 'center';
+    ctx.fillText(id, 0, s*1.05);
+    ctx.restore();
+  }
+}
+
+function drawMyAvatar() {
+  const [cx,cy] = worldToCanvas(pos[0], pos[2]);
+  const rad = yawRad();
+  const s = 46;
+  const isHit = hitTimer > 0;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rad);
+  ctx.strokeStyle = isHit ? '#c0392b' : '#d4a843';
+  ctx.lineWidth = isHit ? 4 : 3;
+  // Shadow/collision circle
+  ctx.beginPath();
+  ctx.arc(0, s*.4, AVATAR_R*80*0.45, 0, Math.PI*2);
+  ctx.strokeStyle = isHit ? 'rgba(192,57,43,0.5)' : 'rgba(212,168,67,0.18)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  // Body
+  ctx.strokeStyle = isHit ? '#c0392b' : '#d4a843';
+  ctx.lineWidth = isHit ? 4 : 3;
+  ctx.beginPath(); ctx.moveTo(0,-s*.6); ctx.lineTo(0,s*.4); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0,-s*.8,s*.18,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-s*.38,-s*.2); ctx.lineTo(s*.38,-s*.2); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0,s*.4); ctx.lineTo(-s*.22,s*.88);
+  ctx.moveTo(0,s*.4); ctx.lineTo(s*.22,s*.88);
+  ctx.stroke();
+  // Direction spike
+  ctx.strokeStyle = isHit ? '#e05040' : '#f2cf93';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0,-s*.8); ctx.lineTo(0,-s*1.1); ctx.stroke();
+  // Name
+  ctx.rotate(-rad);
+  ctx.font = '11px Georgia';
+  ctx.fillStyle = isHit ? '#c0392b' : '#d4a843';
+  ctx.textAlign = 'center';
+  ctx.fillText(avatarId(), 0, s*1.12);
+  ctx.restore();
+}
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  for (let x=0;x<=canvas.width;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke();}
+  for (let y=0;y<=canvas.height;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}
+
+  // Centre cross
+  ctx.strokeStyle='rgba(212,168,67,0.12)';
+  ctx.beginPath();ctx.moveTo(canvas.width/2,0);ctx.lineTo(canvas.width/2,canvas.height);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,canvas.height/2);ctx.lineTo(canvas.width,canvas.height/2);ctx.stroke();
+
+  drawObstacles();
+  drawOtherAvatars();
+  drawMyAvatar();
+  drawWallIndicators();
+}
+
+// ── Keyboard ──────────────────────────────────────────────────────────────────
+const KEY_MAP = {
+  ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',
+  w:'up',s:'down',a:'left',d:'right',
+  W:'up',S:'down',A:'left',D:'right',
+};
+const held = new Set();
+
+document.addEventListener('keydown', e => {
+  const dir = KEY_MAP[e.key];
+  if (!dir) return;
+  e.preventDefault();
+  if (held.has(dir)) return;
+  held.add(dir);
+  document.getElementById(`btn-${dir}`)?.classList.add('pressed');
+  move(dir);
+});
+document.addEventListener('keyup', e => {
+  const dir = KEY_MAP[e.key];
+  if (!dir) return;
+  held.delete(dir);
+  document.getElementById(`btn-${dir}`)?.classList.remove('pressed');
+  if (!held.size) setActionLabel(currentAction);
+});
+document.querySelectorAll('.arrow-btn[data-dir]').forEach(b =>
+  b.addEventListener('click', () => move(b.dataset.dir))
+);
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+connect();
+loadActions();
+draw();
+</script>
+</body>
+</html>

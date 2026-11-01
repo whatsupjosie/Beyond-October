@@ -1,0 +1,26 @@
+{
+  "furniture": {
+    "standard": [],
+    "fancy": []
+  },
+  "home_structure": {
+    "standard": [],
+    "fancy": []
+  },
+  "rooms": {
+    "standard": [],
+    "fancy": []
+  },
+  "outdoor": {
+    "standard": [],
+    "fancy": []
+  },
+  "vehicles": {
+    "standard": [],
+    "fancy": []
+  },
+  "props": {
+    "standard": [],
+    "fancy": []
+  }
+}

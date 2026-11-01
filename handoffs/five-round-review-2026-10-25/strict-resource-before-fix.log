@@ -1,0 +1,94 @@
+........................................................................ [  5%]
+........................................................................ [ 10%]
+........................................................................ [ 15%]
+........................................................................ [ 20%]
+........................................................................ [ 25%]
+........................................................................ [ 30%]
+........................................................................ [ 35%]
+........................................................................ [ 40%]
+........................................................................ [ 46%]
+........................................................................ [ 51%]
+........................................................................ [ 56%]
+........................................................................ [ 61%]
+........................................................................ [ 66%]
+........................................................................ [ 71%]
+........................................................................ [ 76%]
+........................................................................ [ 81%]
+....................................................E................... [ 86%]
+........................................................................ [ 92%]
+.............................................................s.......... [ 97%]
+........................................                                 [100%]
+==================================== ERRORS ====================================
+_____ ERROR at setup of test_ndi_does_not_report_connected_without_backend _____
+  + Exception Group Traceback (most recent call last):
+  |   File "/workspace/scratch/9771830e3533/five-round-venv/lib/python3.12/site-packages/_pytest/runner.py", line 361, in from_call
+  |     result: TResult | None = func()
+  |                              ^^^^^^
+  |   File "/workspace/scratch/9771830e3533/five-round-venv/lib/python3.12/site-packages/_pytest/runner.py", line 250, in <lambda>
+  |     lambda: runtest_hook(item=item, **kwds),
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/workspace/scratch/9771830e3533/five-round-venv/lib/python3.12/site-packages/pluggy/_caller.py", line 197, in __call__
+  |     return self._hookexec(
+  |            ^^^^^^^^^^^^^^^
+  |   File "/workspace/scratch/9771830e3533/five-round-venv/lib/python3.12/site-packages/pluggy/_manager.py", line 183, in _hookexec
+  |     return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/workspace/scratch/9771830e3533/five-round-venv/lib/python3.12/site-packages/pluggy/_execution.py", line 195, in _multicall
+  |     raise exception
+  |   File "/workspace/scratch/9771830e3533/five-round-venv/lib/python3.12/site-packages/pluggy/_execution.py", line 167, in _multicall
+  |     teardown.throw(exception)
+  |   File "/workspace/scratch/9771830e3533/five-round-venv/lib/python3.12/site-packages/_pytest/logging.py", line 858, in pytest_runtest_setup
+  |     yield
+  |   File "/workspace/scratch/9771830e3533/five-round-venv/lib/python3.12/site-packages/pluggy/_execution.py", line 167, in _multicall
+  |     teardown.throw(exception)
+  |   File "/workspace/scratch/9771830e3533/five-round-venv/lib/python3.12/site-packages/_pytest/capture.py", line 895, in pytest_runtest_setup
+  |     return (yield)
+  |             ^^^^^
+  |   File "/workspace/scratch/9771830e3533/five-round-venv/lib/python3.12/site-packages/pluggy/_execution.py", line 147, in _multicall
+  |     res = hook_impl.function(*args)
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/workspace/scratch/9771830e3533/five-round-venv/lib/python3.12/site-packages/_pytest/unraisableexception.py", line 178, in pytest_runtest_setup
+  |     collect_unraisable(item.config)
+  |   File "/workspace/scratch/9771830e3533/five-round-venv/lib/python3.12/site-packages/_pytest/unraisableexception.py", line 81, in collect_unraisable
+  |     raise ExceptionGroup("multiple unraisable exception warnings", errors)
+  | ExceptionGroup: multiple unraisable exception warnings (2 sub-exceptions)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "/workspace/scratch/9771830e3533/five-round-venv/lib/python3.12/site-packages/_pytest/stash.py", line 108, in __delitem__
+    |     del self._storage[key]
+    |         ~~~~~~~~~~~~~^^^^^
+    | ResourceWarning: unclosed file <_io.BufferedReader name=65>
+    | 
+    | The above exception was the direct cause of the following exception:
+    | 
+    | Traceback (most recent call last):
+    |   File "/workspace/scratch/9771830e3533/five-round-venv/lib/python3.12/site-packages/_pytest/unraisableexception.py", line 67, in collect_unraisable
+    |     warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+    | pytest.PytestUnraisableExceptionWarning: Exception ignored in: <_io.FileIO name=65 mode='rb' closefd=True>
+    | Enable tracemalloc to get traceback where the object was allocated.
+    | See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    +---------------- 2 ----------------
+    | Traceback (most recent call last):
+    |   File "/workspace/scratch/9771830e3533/five-round-venv/lib/python3.12/site-packages/_pytest/stash.py", line 108, in __delitem__
+    |     del self._storage[key]
+    |         ~~~~~~~~~~~~~^^^^^
+    | ResourceWarning: unclosed file <_io.BufferedReader name=63>
+    | 
+    | The above exception was the direct cause of the following exception:
+    | 
+    | Traceback (most recent call last):
+    |   File "/workspace/scratch/9771830e3533/five-round-venv/lib/python3.12/site-packages/_pytest/unraisableexception.py", line 67, in collect_unraisable
+    |     warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+    | pytest.PytestUnraisableExceptionWarning: Exception ignored in: <_io.FileIO name=63 mode='rb' closefd=True>
+    | Enable tracemalloc to get traceback where the object was allocated.
+    | See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    +------------------------------------
+=========================== short test summary info ============================
+SKIPPED [1] tests/alex_little_one/test_public_baby_role.py:8: Alex Little One research protocol tests require ENABLE_ALEX_LITTLE_ONE=true.
+SKIPPED [1] tests/test_foresight_airgapped_ui.py:16: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] tests/test_foresight_counter_workspaces.py:18: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] tests/test_foresight_file_workspace.py:15: Optional browser verification requires Playwright
+SKIPPED [1] tests/test_public_baby_role.py:5: Moved to tests/alex_little_one/test_public_baby_role.py. Set ENABLE_ALEX_LITTLE_ONE=true to run the research protocol tests.
+SKIPPED [1] tests/world_chat_integration/test_browser_widget_local.py:27: could not import 'bs4': No module named 'bs4'
+ERROR tests/test_round4_runtime_truth.py::test_ndi_does_not_report_connected_without_backend
+1406 passed, 6 skipped, 1 error in 110.43s (0:01:50)

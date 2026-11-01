@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PubCast AI — Launch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#060810;--surface:rgba(255,255,255,0.03);--border:rgba(255,255,255,0.06);
+  --accent:#00e0ff;--gold:#c9a84c;--ok:#00cc88;--warn:#f0a500;--danger:#e03e3e;
+  --text:#b8bdd0;--bright:#dde0ec;--muted:#4a5068;--faint:#1e2235;
+  --font:'Syne',system-ui,sans-serif;--mono:'Space Mono',monospace;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased}
+
+/* Starfield bg */
+#stars{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.star{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--d,3s) ease-in-out infinite var(--dl,0s)}
+@keyframes twinkle{0%,100%{opacity:var(--min,.1)}50%{opacity:var(--max,.7)}}
+
+/* Scan line */
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.04) 3px,rgba(0,0,0,0.04) 4px);pointer-events:none;z-index:1}
+
+/* Layout */
+#app{position:relative;z-index:2;height:100vh;display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:1fr 380px;gap:0}
+#header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:58px;border-bottom:1px solid var(--border);background:rgba(6,8,16,0.9);backdrop-filter:blur(12px)}
+#main-panel{grid-row:2;grid-column:1;padding:28px 24px 28px 28px;overflow-y:auto;display:flex;flex-direction:column;gap:20px}
+#side-panel{grid-row:2;grid-column:2;border-left:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+#footer{grid-column:1/-1;height:46px;border-top:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:16px;background:rgba(6,8,16,0.9);backdrop-filter:blur(12px)}
+
+/* Logo */
+.logo{font-size:1.1rem;font-weight:800;letter-spacing:0.14em;text-transform:uppercase}
+.logo em{color:var(--accent);font-style:normal}
+.logo span{color:var(--gold)}
+
+/* ON BUTTON */
+#btn-on{
+  width:120px;height:120px;border-radius:50%;
+  border:3px solid rgba(0,224,255,0.25);
+  background:radial-gradient(circle at 40% 35%,rgba(0,224,255,0.18),rgba(0,224,255,0.04) 70%);
+  color:var(--accent);font-family:var(--font);font-weight:800;font-size:1.1rem;
+  letter-spacing:0.2em;text-transform:uppercase;cursor:pointer;
+  position:relative;transition:all 0.3s;
+  box-shadow:0 0 40px rgba(0,224,255,0.08),inset 0 0 30px rgba(0,224,255,0.04);
+}
+#btn-on::before{
+  content:'';position:absolute;inset:-8px;border-radius:50%;
+  border:1px solid rgba(0,224,255,0.1);
+  animation:ring-pulse 2.4s ease-in-out infinite;
+}
+#btn-on::after{
+  content:'';position:absolute;inset:-18px;border-radius:50%;
+  border:1px solid rgba(0,224,255,0.05);
+  animation:ring-pulse 2.4s ease-in-out infinite 0.6s;
+}
+@keyframes ring-pulse{0%,100%{transform:scale(1);opacity:0.6}50%{transform:scale(1.04);opacity:0.2}}
+#btn-on:hover{
+  border-color:rgba(0,224,255,0.6);
+  box-shadow:0 0 60px rgba(0,224,255,0.25),0 0 100px rgba(0,224,255,0.1),inset 0 0 40px rgba(0,224,255,0.1);
+  background:radial-gradient(circle at 40% 35%,rgba(0,224,255,0.28),rgba(0,224,255,0.08) 70%);
+  color:#fff;
+}
+#btn-on:active{transform:scale(0.96)}
+#btn-on.live{
+  border-color:rgba(0,204,136,0.6);
+  background:radial-gradient(circle at 40% 35%,rgba(0,204,136,0.18),rgba(0,204,136,0.04) 70%);
+  color:var(--ok);
+  box-shadow:0 0 60px rgba(0,204,136,0.2),inset 0 0 30px rgba(0,204,136,0.06);
+  animation:live-pulse 2s ease-in-out infinite;
+}
+@keyframes live-pulse{0%,100%{box-shadow:0 0 40px rgba(0,204,136,0.2),inset 0 0 20px rgba(0,204,136,0.04)}50%{box-shadow:0 0 80px rgba(0,204,136,0.35),inset 0 0 40px rgba(0,204,136,0.1)}}
+
+/* Launch center */
+#launch-center{display:flex;flex-direction:column;align-items:center;gap:18px;padding:32px;background:var(--surface);border:1px solid var(--border);border-radius:16px}
+#launch-label{font-size:0.72rem;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted)}
+#launch-status{font-size:0.85rem;color:var(--muted);letter-spacing:0.08em;min-height:20px;text-align:center}
+#launch-timer{font-family:var(--mono);font-size:1.6rem;color:var(--gold);letter-spacing:0.12em;min-height:40px;display:flex;align-items:center}
+
+/* Health grid */
+.health-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.health-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:5px;transition:border-color 0.3s}
+.health-card.ok{border-color:rgba(0,204,136,0.2)}
+.health-card.warn{border-color:rgba(240,165,0,0.2)}
+.health-card.error{border-color:rgba(224,62,62,0.2)}
+.health-card.checking{border-color:rgba(0,224,255,0.1)}
+.hc-label{font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)}
+.hc-value{font-size:1.1rem;font-weight:800;letter-spacing:0.05em}
+.hc-value.ok{color:var(--ok)}.hc-value.warn{color:var(--warn)}.hc-value.error{color:var(--danger)}.hc-value.accent{color:var(--accent)}.hc-value.gold{color:var(--gold)}
+.hc-sub{font-size:0.7rem;color:var(--muted)}
+
+/* Checklist */
+.checklist{display:flex;flex-direction:column;gap:8px}
+.check-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);font-size:0.82rem;transition:all 0.25s}
+.check-row.pass{border-color:rgba(0,204,136,0.2);background:rgba(0,204,136,0.04)}
+.check-row.fail{border-color:rgba(224,62,62,0.2);background:rgba(224,62,62,0.04)}
+.check-row.warn{border-color:rgba(240,165,0,0.2);background:rgba(240,165,0,0.04)}
+.check-row.pending{opacity:0.5}
+.check-icon{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;font-weight:700}
+.check-icon.pass{background:rgba(0,204,136,0.15);color:var(--ok)}
+.check-icon.fail{background:rgba(224,62,62,0.15);color:var(--danger)}
+.check-icon.warn{background:rgba(240,165,0,0.15);color:var(--warn)}
+.check-icon.pending{background:rgba(255,255,255,0.06);color:var(--muted)}
+.check-name{flex:1;color:var(--bright)}
+.check-detail{font-size:0.72rem;color:var(--muted)}
+
+/* Side panel sections */
+.side-section{border-bottom:1px solid var(--border);padding:16px}
+.side-title{font-size:0.7rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+
+/* Provider rows */
+.prov-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--faint);font-size:12px}
+.prov-name{flex:1;color:var(--text);text-transform:capitalize}
+.prov-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+.prov-dot.ok{color:var(--ok)}.prov-dot.off{color:var(--muted)}
+.prov-key{font-size:10px;color:var(--muted)}
+
+/* Log */
+#log{font-family:var(--mono);font-size:11px;display:flex;flex-direction:column;gap:1px;padding:8px 12px;overflow-y:auto;max-height:180px}
+.log-line{display:flex;gap:8px;padding:2px 0}
+.log-ts{color:rgba(0,224,255,0.3);flex-shrink:0}
+.log-lvl{width:36px;text-align:right;flex-shrink:0}
+.log-lvl.ok{color:var(--ok)}.log-lvl.warn{color:var(--warn)}.log-lvl.err{color:var(--danger)}.log-lvl.info{color:var(--accent)}
+.log-msg{color:var(--text)}
+
+/* Nav buttons in footer */
+.nav-pill{background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:var(--font);font-size:0.75rem;font-weight:700;letter-spacing:0.08em;padding:5px 14px;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:all 0.15s;display:inline-flex;align-items:center;gap:5px}
+.nav-pill:hover{background:rgba(0,224,255,0.06);border-color:rgba(0,224,255,0.2);color:var(--accent)}
+
+/* WS indicator */
+#ws-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;margin-right:4px;transition:background 0.3s}
+#ws-dot.ok{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+#ws-dot.err{background:var(--danger)}
+
+/* Countdown */
+#countdown-ring{position:relative;display:flex;align-items:center;justify-content:center}
+#countdown-ring svg{position:absolute;top:0;left:0;transform:rotate(-90deg)}
+#countdown-ring circle{fill:none;stroke:rgba(0,224,255,0.12);stroke-width:3}
+#countdown-progress{fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round;stroke-dasharray:340;stroke-dashoffset:340;transition:stroke-dashoffset 0.5s linear}
+
+/* Session timer */
+#rec-timer{font-family:var(--mono);font-size:0.78rem;color:var(--danger);display:none;letter-spacing:0.1em}
+#rec-timer.live{display:block;animation:rec-blink 1.2s step-start infinite}
+@keyframes rec-blink{50%{opacity:0.4}}
+</style>
+</head>
+<body>
+
+<!-- Stars -->
+<div id="stars"></div>
+
+<div id="app">
+
+  <!-- HEADER -->
+  <header id="header">
+    <div class="logo">Pub<em>Cast</em><span>: AI</span></div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)">
+      <span id="ws-dot"></span>
+      <span id="ws-label">Connecting…</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span id="rec-timer">● REC 00:00</span>
+      <span style="font-size:11px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase" id="server-version">v2.0</span>
+    </div>
+  </header>
+
+  <!-- MAIN PANEL -->
+  <div id="main-panel">
+
+    <!-- Launch center + health row -->
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start">
+
+      <!-- Launch button -->
+      <div id="launch-center">
+        <div class="health-card" style="width:260px;align-items:center;gap:0">
+          <div id="launch-label">System Status</div>
+          <div style="margin:18px 0" id="countdown-ring">
+            <svg width="140" height="140" viewBox="0 0 140 140">
+              <circle cx="70" cy="70" r="54"/>
+              <circle id="countdown-progress" cx="70" cy="70" r="54"/>
+            </svg>
+            <button id="btn-on">ON AIR</button>
+          </div>
+          <div id="launch-status">Checking systems…</div>
+          <div id="launch-timer"></div>
+        </div>
+      </div>
+
+      <!-- Health grid -->
+      <div>
+        <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">System Health</div>
+        <div class="health-grid" id="health-grid">
+          <!-- populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Pre-flight checklist -->
+    <div>
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Pre-flight Checklist</div>
+      <div class="checklist" id="checklist"></div>
+    </div>
+
+  </div>
+
+  <!-- SIDE PANEL -->
+  <div id="side-panel">
+
+    <div class="side-section">
+      <div class="side-title">AI Providers</div>
+      <div id="provider-list"></div>
+      <a href="/byok" style="display:inline-flex;align-items:center;gap:5px;margin-top:10px;font-size:11px;color:var(--accent);text-decoration:none;letter-spacing:0.08em;text-transform:uppercase">
+        + Manage Keys →
+      </a>
+    </div>
+
+    <div class="side-section">
+      <div class="side-title">Quick Actions</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button onclick="runPreflight()" style="background:rgba(0,224,255,0.06);border:1px solid rgba(0,224,255,0.15);color:var(--accent);border-radius:6px;padding:7px 12px;cursor:pointer;font-family:var(--font);font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;text-align:left">
+          ▶ Run Preflight Sequence
+        </button>
+        <button onclick="window.location='/control'" style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 12px;cursor:pointer;font-family:var(--font);font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;text-align:left">
+          ⚡ Open Control Room
+        </button>
+        <button onclick="window.location='/studio'" style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 12px;cursor:pointer;font-family:var(--font);font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;text-align:left">
+          🎛 Studio Control
+        </button>
+        <button onclick="window.location='/byok'" style="background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 12px;cursor:pointer;font-family:var(--font);font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;text-align:left">
+          🔑 BYOK Keys
+        </button>
+      </div>
+    </div>
+
+    <div class="side-section" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+      <div class="side-title">Live Log</div>
+      <div id="log"></div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer id="footer">
+    <a href="/" class="nav-pill">← Lobby</a>
+    <a href="/control" class="nav-pill">Control</a>
+    <a href="/studio" class="nav-pill">Studio</a>
+    <a href="/stage" class="nav-pill">Stage 3D</a><a href="/world" class="nav-pill">World</a><a href="/walk" class="nav-pill">Bella Faux Pas</a>
+    <a href="/dressing" class="nav-pill">Dressing</a>
+    <a href="/analytics" class="nav-pill">Analytics</a>
+    <a href="/byok" class="nav-pill" style="margin-left:auto;border-color:rgba(201,168,76,0.25);color:var(--gold)">BYOK 🔑</a>
+  </footer>
+
+</div>
+
+<script src="/static/reach_auth.js"></script>
+<script>
+// ── Stars ──────────────────────────────────────────────────────────────────
+(function(){
+  const c = document.getElementById('stars');
+  for(let i=0;i<120;i++){
+    const s=document.createElement('div');
+    s.className='star';
+    const sz = Math.random()*2+0.5;
+    s.style.cssText=`
+      left:${Math.random()*100}%;top:${Math.random()*100}%;
+      width:${sz}px;height:${sz}px;
+      --d:${2+Math.random()*5}s;--dl:${Math.random()*4}s;
+      --min:${0.05+Math.random()*0.1};--max:${0.3+Math.random()*0.6};
+    `;
+    c.appendChild(s);
+  }
+})();
+
+// ── State ──────────────────────────────────────────────────────────────────
+let _health       = {};
+let _wsConnected  = false;
+let _isLive       = false;
+let _sessionId    = null;
+let _recStart     = null;
+let _recInterval  = null;
+let _checks       = [];
+
+// ── Logging ────────────────────────────────────────────────────────────────
+function log(msg, level='info') {
+  const el = document.getElementById('log');
+  const now = new Date().toTimeString().slice(0,8);
+  const line = document.createElement('div');
+  line.className='log-line';
+  line.innerHTML=`<span class="log-ts">${now}</span><span class="log-lvl ${level}">${level.toUpperCase()}</span><span class="log-msg">${msg}</span>`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+  if(el.children.length>100) el.removeChild(el.firstChild);
+}
+
+// ── WebSocket ──────────────────────────────────────────────────────────────
+function connectWS() {
+  const proto = location.protocol==='https:'?'wss':'ws';
+  const ws = new WebSocket(window.ReachAuth.websocketURL('/ws/launch'));
+  const dot = document.getElementById('ws-dot');
+  const lbl = document.getElementById('ws-label');
+
+  ws.onopen = () => {
+    _wsConnected=true;
+    dot.className='ok'; lbl.textContent='Connected';
+    log('WebSocket connected','ok');
+    loadHealth();
+  };
+  ws.onclose = () => {
+    _wsConnected=false;
+    dot.className='err'; lbl.textContent='Disconnected — retrying…';
+    log('WebSocket disconnected','warn');
+    setTimeout(connectWS,3000);
+  };
+  ws.onmessage = (e) => {
+    try { handleEvent(JSON.parse(e.data)); } catch(_){}
+  };
+  ws.onerror = () => ws.close();
+  return ws;
+}
+
+function handleEvent(ev) {
+  if(ev.type==='recording_start') {
+    _isLive=true; _sessionId=ev.payload?.session_id; _recStart=Date.now();
+    startRecTimer();
+    document.getElementById('btn-on').classList.add('live');
+    document.getElementById('launch-status').textContent='● LIVE — broadcast active';
+    document.getElementById('launch-status').style.color='var(--ok)';
+    log(`Recording started: ${_sessionId}`,'ok');
+  }
+  if(ev.type==='recording_stop') {
+    _isLive=false; stopRecTimer();
+    document.getElementById('btn-on').classList.remove('live');
+    document.getElementById('launch-status').textContent='Ready to go live';
+    document.getElementById('launch-status').style.color='';
+    log('Recording stopped','info');
+  }
+  if(ev.type==='production_state') buildChecklist();
+  if(ev.type==='camera_cut') log(`Camera cut → ${ev.payload?.new_program}`,'info');
+  if(ev.type==='lighting_update') log(`Lighting: ${ev.payload?.preset_id||ev.preset_id}`,'info');
+}
+
+// ── REC Timer ──────────────────────────────────────────────────────────────
+function fmt(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=Math.floor(s%60);return h?`${h}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`}
+function startRecTimer(){
+  const el=document.getElementById('rec-timer');
+  el.classList.add('live');
+  _recInterval=setInterval(()=>{
+    el.textContent=`● REC ${fmt(Math.floor((Date.now()-_recStart)/1000))}`;
+  },1000);
+}
+function stopRecTimer(){
+  clearInterval(_recInterval);
+  document.getElementById('rec-timer').classList.remove('live');
+}
+
+// ── Health check ───────────────────────────────────────────────────────────
+async function loadHealth() {
+  try {
+    const r = await fetch('/api/health');
+    _health = await r.json();
+    renderHealth(_health);
+    renderProviders(_health.ai_providers||{});
+    buildChecklist();
+    log('Health check complete','ok');
+  } catch(e) {
+    log('Health check failed: '+e.message,'err');
+  }
+}
+
+function renderHealth(h) {
+  const cards = [
+    { label:'Status',   value: h.status==='ok'?'Online':'Offline', cls:h.status==='ok'?'ok':'error', sub:'API server' },
+    { label:'Cameras',  value: h.cameras?.count??'—',    cls:'accent',  sub:`Program: ${h.cameras?.program||'none'}` },
+    { label:'Active Rec', value: h.recording?.active_sessions??0, cls: h.recording?.active_sessions>0?'ok':'muted', sub:'sessions' },
+    { label:'WS Rooms', value: Object.keys(h.ws_rooms||{}).length, cls:'gold', sub:`${Object.values(h.ws_rooms||{}).reduce((a,b)=>a+b,0)} connected` },
+    { label:'Rust Bridge', value: '—', cls:'accent', sub:'Animation crate' },
+    { label:'BYOK',     value: '—',    cls:'accent', sub:'Loading…' },
+  ];
+
+  // Check performer status
+  fetch('/api/performer/status').then(r=>r.json()).then(d=>{
+    const el = document.querySelector('[data-hc="rust"]');
+    if(el){
+      el.querySelector('.hc-value').textContent = d.running?'Connected':'Standby';
+      el.querySelector('.hc-value').className = 'hc-value '+(d.running?'ok':'warn');
+      el.querySelector('.hc-sub').textContent = d.running?`${d.count||0} avatars`:'ws://localhost:8765';
+    }
+  }).catch(()=>{});
+
+  fetch('/api/byok/models',{headers:{'x-user-id':'host'}}).then(r=>r.json()).then(d=>{
+    const el = document.querySelector('[data-hc="byok"]');
+    if(el){
+      const n=(d.models||[]).length;
+      el.querySelector('.hc-value').textContent = n;
+      el.querySelector('.hc-value').className='hc-value '+(n>0?'ok':'muted');
+      el.querySelector('.hc-sub').textContent = n>0?'keys registered':'no keys yet';
+    }
+  }).catch(()=>{});
+
+  const grid = document.getElementById('health-grid');
+  grid.innerHTML = cards.map((c,i)=>`
+    <div class="health-card ${c.cls}" ${i===4?'data-hc="rust"':i===5?'data-hc="byok"':''}>
+      <div class="hc-label">${c.label}</div>
+      <div class="hc-value ${c.cls}">${c.value}</div>
+      <div class="hc-sub">${c.sub}</div>
+    </div>
+  `).join('');
+}
+
+function renderProviders(prov) {
+  const envProviders = prov;
+  // Build list
+  const all = ['openai','anthropic','gemini','mistral','groq','ollama'];
+  document.getElementById('provider-list').innerHTML = all.map(p=>`
+    <div class="prov-row">
+      <span class="prov-dot ${envProviders[p]||p==='ollama'?'ok':'off'}"></span>
+      <span class="prov-name">${p}</span>
+      <span class="prov-key">${envProviders[p]?'env key':p==='ollama'?'local (free)':'not set'}</span>
+    </div>
+  `).join('');
+}
+
+// ── Pre-flight checklist ───────────────────────────────────────────────────
+function buildChecklist() {
+  const h = _health;
+  const checks = [
+    {
+      name: 'API Server',
+      pass: h.status==='ok',
+      detail: h.status==='ok' ? 'FastAPI responding' : 'Server not responding',
+    },
+    {
+      name: 'WebSocket Hub',
+      pass: _wsConnected,
+      detail: _wsConnected ? 'Connected' : 'Not connected',
+    },
+    {
+      name: 'Camera Sources',
+      pass: (h.cameras?.count||0) > 0,
+      detail: `${h.cameras?.count||0} sources · Program: ${h.cameras?.program||'none'}`,
+    },
+    {
+      name: 'Program Camera',
+      pass: !!h.cameras?.program,
+      detail: h.cameras?.program ? `Active: ${h.cameras.program}` : 'No camera on program',
+      warn: !h.cameras?.program,
+    },
+    {
+      name: 'AI Provider',
+      pass: Object.values(h.ai_providers||{}).some(Boolean),
+      detail: Object.values(h.ai_providers||{}).some(Boolean)
+        ? 'At least one provider keyed'
+        : 'No API keys — BYOK or Ollama only',
+      warn: !Object.values(h.ai_providers||{}).some(Boolean),
+    },
+    {
+      name: 'Rust Animation Bridge',
+      pass: null,  // async check below
+      detail: 'Checking…',
+      pending: true,
+    },
+  ];
+
+  // Async: check rust bridge
+  fetch('/api/performer/status').then(r=>r.json()).then(d=>{
+    const idx = checks.findIndex(c=>c.name==='Rust Animation Bridge');
+    checks[idx].pass = d.running;
+    checks[idx].detail = d.running ? `Connected · ${d.count||0} avatars` : 'Not running — optional, fallback mode active';
+    checks[idx].pending = false;
+    checks[idx].warn = !d.running;
+    renderChecklist(checks);
+  }).catch(()=>{
+    const idx = checks.findIndex(c=>c.name==='Rust Animation Bridge');
+    checks[idx].pass = false; checks[idx].pending=false; checks[idx].warn=true;
+    checks[idx].detail = 'Not running (start with ./start_pubcast.sh)';
+    renderChecklist(checks);
+  });
+
+  renderChecklist(checks);
+  _checks = checks;
+
+  // Update launch button text
+  const allCritical = checks.filter(c=>!c.warn&&!c.pending).every(c=>c.pass);
+  const status = document.getElementById('launch-status');
+  if(_isLive) {
+    status.textContent='● LIVE — broadcast active';
+    status.style.color='var(--ok)';
+  } else if(allCritical) {
+    status.textContent='All systems ready';
+    status.style.color='var(--ok)';
+  } else {
+    const failing = checks.filter(c=>!c.pass&&!c.warn&&!c.pending);
+    status.textContent = failing.length ? `${failing.length} check${failing.length>1?'s':''} failing` : 'Ready with warnings';
+    status.style.color = failing.length ? 'var(--danger)' : 'var(--warn)';
+  }
+}
+
+function renderChecklist(checks) {
+  document.getElementById('checklist').innerHTML = checks.map(c=>{
+    const state = c.pending?'pending':c.pass?'pass':c.warn?'warn':'fail';
+    const icon  = c.pending?'…':c.pass?'✓':c.warn?'⚠':'✗';
+    return `<div class="check-row ${state}">
+      <div class="check-icon ${state}">${icon}</div>
+      <div class="check-name">${c.name}</div>
+      <div class="check-detail">${c.detail}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── ON BUTTON ──────────────────────────────────────────────────────────────
+async function handleOnButton() {
+  if(_isLive) {
+    // Stop the broadcast
+    if(_sessionId) {
+      try{
+        await fetch(`/api/recording/sessions/${_sessionId}/stop`,{method:'POST'});
+        log('Broadcast stopped','warn');
+      }catch(e){log('Stop failed: '+e.message,'err')}
+    }
+  } else {
+    // Start — run preflight first if not done
+    await goLive();
+  }
+}
+
+async function goLive() {
+  const btn    = document.getElementById('btn-on');
+  const status = document.getElementById('launch-status');
+  const timer  = document.getElementById('launch-timer');
+  const prog   = document.getElementById('countdown-progress');
+  const CIRCUMFERENCE = 340;
+
+  // 5-second countdown
+  btn.disabled = true;
+  log('Initiating launch sequence…','info');
+
+  for(let i=5;i>=1;i--){
+    timer.textContent = i;
+    prog.style.strokeDashoffset = CIRCUMFERENCE * (1 - (5-i+1)/5);
+    status.textContent = `Launching in ${i}…`;
+    status.style.color = 'var(--warn)';
+    log(`T-${i}`,'info');
+    await new Promise(r=>setTimeout(r,1000));
+  }
+
+  prog.style.strokeDashoffset = '0';
+  timer.textContent = '';
+
+  // Start recording session
+  try {
+    const cams = await fetch('/api/cameras').then(r=>r.json());
+    const sources = (cams.sources||[]).map(s=>s.source_id).slice(0,4);
+    const res = await fetch('/api/recording/sessions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({sources,profile_id:'1080p30',operator:'host'}),
+    });
+    const d = await res.json();
+    _sessionId = d.session?.session_id;
+    // Activate
+    if(_sessionId) {
+      await fetch(`/api/recording/sessions/${_sessionId}/activate`,{method:'POST'});
+    }
+    _isLive=true;
+    _recStart=Date.now();
+    startRecTimer();
+    btn.classList.add('live');
+    btn.disabled=false;
+    status.textContent='● LIVE — broadcast active';
+    status.style.color='var(--ok)';
+    log('🔴 LIVE — broadcast started','ok');
+  } catch(e) {
+    btn.disabled=false;
+    prog.style.strokeDashoffset=CIRCUMFERENCE;
+    status.textContent='Launch failed: '+e.message;
+    status.style.color='var(--danger)';
+    log('Launch failed: '+e.message,'err');
+  }
+}
+
+document.getElementById('btn-on').addEventListener('click', handleOnButton);
+
+// ── Preflight ──────────────────────────────────────────────────────────────
+async function runPreflight() {
+  log('Running studio preflight…','info');
+  try{
+    const r = await fetch('/api/studio/preflight',{method:'POST'});
+    const d = await r.json();
+    log(d.ok?'✓ Preflight passed':'✗ Preflight failed: '+d.state, d.ok?'ok':'warn');
+    buildChecklist();
+  }catch(e){log('Preflight error: '+e.message,'err')}
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+connectWS();
+loadHealth();
+setInterval(loadHealth, 20000);
+</script>
+</body>
+</html>

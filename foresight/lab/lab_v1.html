@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foresight Tray Lab</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#2c1a10;font-family:Inter,ui-sans-serif,system-ui,"Segoe UI",sans-serif}
+  #gl{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;display:block}
+  #ui{position:fixed;inset:0;z-index:1;pointer-events:none}
+  .tray{position:absolute;pointer-events:auto;display:flex;flex-direction:column;color:#f1e3c6}
+  .tray[data-ink=dark]{color:#2a2219}
+  .tray .head{height:34px;flex:0 0 34px;display:flex;align-items:center;gap:8px;cursor:grab;user-select:none;
+    font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;text-shadow:0 1px 2px rgba(0,0,0,.45)}
+  .tray[data-ink=dark] .head{text-shadow:0 1px 0 rgba(255,255,255,.6)}
+  .tray .head:active{cursor:grabbing}
+  .tray .body{flex:1;min-height:0;margin:0 0 0 0;border-radius:10px;overflow:hidden;position:relative;
+    background:rgba(6,6,10,.42);box-shadow:inset 0 1px 0 rgba(255,255,255,.08), inset 0 0 0 1px rgba(255,255,255,.06)}
+  .tray[data-ink=dark] .body{background:rgba(255,255,255,.36);box-shadow:inset 0 1px 0 rgba(255,255,255,.6), inset 0 0 0 1px rgba(80,60,30,.12)}
+  .body video{width:100%;height:100%;object-fit:cover;display:block}
+  .pad{padding:14px 16px;font-size:13px;line-height:1.5}
+  .bubble{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:8px 11px;margin:0 0 10px;max-width:78%}
+  .tray[data-ink=dark] .bubble{background:rgba(255,255,255,.5);border-color:rgba(120,90,40,.18)}
+  .bubble.me{margin-left:auto;background:rgba(214,169,87,.18)}
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:12px}
+  .tile{aspect-ratio:3/4;border-radius:10px;background:linear-gradient(160deg,#5a3a20,#1a0f08);box-shadow:0 0 0 1px rgba(255,255,255,.12)}
+  .tile:nth-child(2){background:linear-gradient(160deg,#21324f,#0b1020)} .tile:nth-child(3){background:linear-gradient(160deg,#4a2c13,#120904)}
+  .tile:nth-child(4){background:linear-gradient(160deg,#e6dcc6,#b7a27c)}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px}
+  .tool{height:56px;border-radius:10px;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);display:grid;place-items:center;font-size:11px}
+  .row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:12px}
+  .row b{color:#9fd59a;font-weight:600}
+  .bar-ui{position:fixed;left:84px;top:13px;z-index:2;display:flex;gap:4px;align-items:center;font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+  .bar-ui .brand{font-family:Georgia,serif;letter-spacing:.12em;font-size:16px;margin-right:22px;color:#3a2a14}
+  .bar-ui button{background:none;border:0;padding:6px 10px;border-radius:8px;font:inherit;color:#3a2e22;font-weight:600;cursor:pointer}
+  .bar-ui button:hover{background:rgba(60,40,20,.10)}
+  .bar-ui button.on{background:rgba(60,40,20,.16)}
+  .blade-label{position:fixed;z-index:2;transform-origin:0 50%;font-size:11px;font-weight:600;letter-spacing:.05em;color:#2b2016;
+    text-shadow:0 1px 0 rgba(255,255,255,.6);pointer-events:none;white-space:nowrap}
+  .stat{position:fixed;right:14px;bottom:10px;z-index:2;font:11px ui-monospace,monospace;color:#e8d6b4;text-shadow:0 1px 2px #000}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="ui"></div>
+<div class="bar-ui"><span class="brand">FORESIGHT</span>
+  <button data-theme="walnut" class="on">Walnut bench</button><button data-theme="pearl">Pearl marble</button><button data-theme="indigo">Indigo stone</button>
+</div>
+<div class="stat" id="stat"></div>
+<script src="../../static/foresight_shapes.js"></script>
+<script src="../../static/foresight_gl.js"></script>
+<script>
+'use strict';
+const S = ForesightShapes, M = ForesightGL.MAT;
+const canvas = document.getElementById('gl'), ui = document.getElementById('ui');
+const G = new ForesightGL(canvas);
+let theme = new URLSearchParams(location.search).get('theme') || 'walnut';
+
+const LIGHT_INK = new Set([M.PARCHMENT, M.NACRE, M.PEARL_GLASS, M.MARBLE_WHITE, M.PEARL]);
+const GLOW = {amber:[1.0,0.62,0.25,0.55], violet:[0.65,0.35,1.0,0.6], blue:[0.30,0.55,1.0,0.5], warm:[1.0,0.85,0.6,0.35],
+              green:[0.25,0.9,0.55,0.45], red:[1.0,0.3,0.25,0.5], pearl:[0.9,0.9,1.0,0.35], none:[0,0,0,0]};
+const LOOKS = {
+  walnut:{preview:[M.GOLD,M.GLASS_SMOKE,'amber'], chat:[M.ROSE_GOLD,M.GLASS_AMETHYST,'violet'], files:[M.SILVER,M.GLASS_SAPPHIRE,'blue'],
+          output:[M.GOLD,M.PARCHMENT,'warm'], tools:[M.GOLD,M.EMERALD_ENAMEL,'green'], status:[M.ROSE_GOLD,M.GLASS_BURGUNDY,'red'], memory:[M.CHAMPAGNE,M.NACRE,'pearl']},
+  pearl:{preview:[M.SILVER,M.GLASS_SMOKE,'pearl'], chat:[M.CHAMPAGNE,M.PEARL_GLASS,'pearl'], files:[M.CHAMPAGNE,M.PEARL_GLASS,'pearl'],
+          output:[M.ROSE_GOLD,M.PEARL_GLASS,'warm'], tools:[M.SILVER,M.PEARL_GLASS,'pearl'], status:[M.GOLD,M.EMERALD_ENAMEL,'green'], memory:[M.CHAMPAGNE,M.NACRE,'pearl']},
+  indigo:{preview:[M.GOLD,M.GLASS_SMOKE,'amber'], chat:[M.ROSE_GOLD,M.GLASS_AMETHYST,'violet'], files:[M.SILVER,M.GLASS_SAPPHIRE,'blue'],
+          output:[M.GOLD,M.PARCHMENT,'warm'], tools:[M.GOLD,M.GLASS_EMERALD,'green'], status:[M.COPPER,M.GLASS_BURGUNDY,'red'], memory:[M.CHAMPAGNE,M.MARBLE_WHITE,'pearl']},
+};
+const SPECS = [
+  {id:'preview', title:'Live Preview', family:'heptagon', w:620, h:349, x:640, y:300, html:'<video src="sample.webm" autoplay muted loop playsinline></video>'},
+  {id:'chat', title:'Conversation', family:'hexagon', w:300, h:380, x:200, y:560,
+    html:'<div class="pad"><div class="bubble">Ready when you are.</div><div class="bubble me">Lay the trays out on the bench.</div><div class="bubble">Done — they make room for each other.</div></div>'},
+  {id:'files', title:'Project Files', family:'trapezoid', w:560, h:200, x:690, y:700, html:'<div class="tiles"><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div></div>'},
+  {id:'output', title:'Work Output', family:'pentagon', w:300, h:300, x:1220, y:330,
+    html:'<div class="pad"><b>Social post</b><br>1080 × 1350 · PNG<br><br>A warm, inviting post for the evening crowd.</div>'},
+  {id:'tools', title:'Tools', family:'rhombus', w:250, h:220, x:1230, y:740, html:'<div class="grid"><div class="tool">Image</div><div class="tool">Design</div><div class="tool">Copy</div><div class="tool">Resize</div><div class="tool">Grade</div><div class="tool">Mock</div></div>'},
+  {id:'status', title:'System Status', family:'octagon', w:300, h:170, x:1220, y:110,
+    html:'<div class="pad"><div class="row"><span>AI agent</span><b>Active</b></div><div class="row"><span>Engine</span><b>Active</b></div><div class="row"><span>Backup</span><span>2 min ago</span></div></div>'},
+];
+const trays = SPECS.map(s => { const t = S.makeTray(s.id, s.family, s.x, s.y, s.w, s.h); t.spec = s; return t; });
+
+// ---- DOM for trays ----
+for(const t of trays){
+  const el = document.createElement('div'); el.className = 'tray';
+  el.innerHTML = '<div class="head"></div><div class="body">'+t.spec.html+'</div>';
+  el.querySelector('.head').textContent = t.spec.title;
+  ui.appendChild(el); t.el = el;
+  el.querySelector('.head').addEventListener('pointerdown', e => startDrag(e, t));
+}
+
+// ---- lantern, fan blades and the system bar: obstacles the trays morph around ----
+function hull(pts){
+  pts = pts.slice().sort((a,b)=>a[0]-b[0] || a[1]-b[1]);
+  const cr = (o,a,b) => (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0]);
+  const lo = [], up = [];
+  for(const p of pts){ while(lo.length>=2 && cr(lo[lo.length-2], lo[lo.length-1], p) <= 0) lo.pop(); lo.push(p); }
+  for(const p of pts.slice().reverse()){ while(up.length>=2 && cr(up[up.length-2], up[up.length-1], p) <= 0) up.pop(); up.push(p); }
+  return S.geom.orient(lo.slice(0,-1).concat(up.slice(0,-1)));
+}
+function circlePts(c, r, n){ return Array.from({length:n}, (_,i) => [c[0]+Math.cos(i/n*Math.PI*2)*r, c[1]+Math.sin(i/n*Math.PI*2)*r]); }
+const PIVOT = [62, 112];
+const BLADES = ['New Project','Open Project','Import Media','Save Project','Export Output','Share Project','Settings'];
+function bladePoly(i, n){
+  const a = (2 + i*(92/(n-1))) * Math.PI/180, dir = [Math.cos(a), Math.sin(a)];
+  const c1 = [PIVOT[0]+dir[0]*34, PIVOT[1]+dir[1]*34], c2 = [PIVOT[0]+dir[0]*190, PIVOT[1]+dir[1]*190];
+  return {q: hull(circlePts(c1, 9, 18).concat(circlePts(c2, 25, 30))), angle:a};
+}
+function lanternPoly(){
+  const pts = [[PIVOT[0]-30, PIVOT[1]+40], [PIVOT[0]+30, PIVOT[1]+40]];
+  for(let i=0;i<=16;i++){ const a = Math.PI + i/16*Math.PI; pts.push([PIVOT[0]+Math.cos(a)*30, PIVOT[1]-6+Math.sin(a)*38]); }
+  return hull(pts);
+}
+function barPoly(W){ return S.geom.orient([[22,10],[W-22,10],[W-8,32],[W-22,54],[22,54],[8,32]]); }
+
+const bladeLabels = BLADES.map(txt => { const s = document.createElement('div'); s.className = 'blade-label'; s.textContent = txt; document.body.appendChild(s); return s; });
+
+// ---- drag ----
+let drag = null, dirty = true;
+function startDrag(e, t){
+  e.preventDefault(); t.pinned = true;
+  drag = {t, dx: e.clientX - t.cx, dy: e.clientY - t.cy, tx: t.cx, ty: t.cy};
+  const move = ev => { drag.tx = ev.clientX - drag.dx; drag.ty = ev.clientY - drag.dy; dirty = true; };
+  const up = () => { t.pinned = false; drag = null; dirty = true; removeEventListener('pointermove', move); removeEventListener('pointerup', up); };
+  addEventListener('pointermove', move); addEventListener('pointerup', up);
+}
+
+// ---- frame ----
+let settle = 60;
+function frame(){
+  const W = innerWidth, H = innerHeight;
+  const bounds = {x0:0, y0:64, x1:W, y1:H};
+  const blades = BLADES.map((_, i) => bladePoly(i, BLADES.length));
+  const lantern = lanternPoly();
+  const obstacles = [{poly: hull(blades.flatMap(b => b.q).concat(lantern))}];
+  if(dirty || drag || settle > 0){
+    if(drag){
+      const save = trays.map(t => [t.cx, t.cy]);
+      drag.t.cx = drag.tx; drag.t.cy = drag.ty;
+      const r = S.solve(trays, bounds, obstacles, 4);
+      const easing = S.breathe(trays);
+      if(!r.valid && !easing){ trays.forEach((t,i) => { t.cx = save[i][0]; t.cy = save[i][1]; }); S.solve(trays, bounds, obstacles, 2); }
+      settle = 30;
+    } else {
+      const r = S.solve(trays, bounds, obstacles, 4);
+      const easing = S.breathe(trays);
+      settle = (r.moved > 0.2 || easing) ? 30 : settle - 1;
+    }
+    layoutDOM();
+    render(blades, lantern, W);
+    dirty = false;
+  }
+  requestAnimationFrame(frame);
+}
+function layoutDOM(){
+  for(const t of trays){
+    const el = t.el, x0 = t.cx - t.a, y0 = t.cy - t.b;
+    Object.assign(el.style, {left:x0+'px', top:y0+'px', width:(2*t.a)+'px', height:(2*t.b)+'px', clipPath:S.contentClipPath(t)});
+    const look = LOOKS[theme][t.id]; el.dataset.ink = LIGHT_INK.has(look[1]) ? 'dark' : 'light';
+    const span = S.spanAt(t, y0 + 17);
+    const head = el.querySelector('.head');
+    if(span){ head.style.paddingLeft = Math.max(12, span[0] - x0 + 6)+'px'; head.style.paddingRight = Math.max(12, x0 + 2*t.a - span[1] + 6)+'px'; }
+  }
+}
+function render(blades, lantern, W){
+  const items = [];
+  items.push({q: barPoly(W), r:10, rim:7, rimMat: theme==='pearl' ? M.CHAMPAGNE : M.SILVER, floorMat: theme==='pearl' ? M.CHAMPAGNE : M.SILVER, height:6, seed:2, glow:[0,0,0,0], inlay:true});
+  blades.forEach((b, i) => {
+    items.push({q:b.q, r:4, rim:5, rimMat:M.CHAMPAGNE, floorMat:M.PEARL, height:5, seed:30+i, glow:[1,0.9,0.75,0.12]});
+    const lab = bladeLabels[i]; const a = b.angle;
+    lab.style.left = (PIVOT[0] + Math.cos(a)*64)+'px'; lab.style.top = (PIVOT[1] + Math.sin(a)*64 - 7)+'px';
+    lab.style.transform = 'rotate('+a+'rad)';
+  });
+  items.push({q: lantern, r:6, rim:7, rimMat:M.BRASS, floorMat:M.TORTOISE, height:9, seed:9, glow:[1,0.6,0.2,0.8], emissive:[1.0,0.52,0.16,0.7]});
+  for(const t of trays){
+    const look = LOOKS[theme][t.id];
+    items.push({q:t.q, r:t.r, rim:t.rim, pad:S.FLOOR_PAD, rimMat:look[0], floorMat:look[1], glow:GLOW[look[2]], focus: t.pinned ? 1 : 0,
+      content:[t.cx-t.a, t.cy-t.b, t.cx+t.a, t.cy+t.b], seed: 5 + trays.indexOf(t)*3, height:12, inlay:true, center:[t.cx, t.cy]});
+  }
+  G.draw(items);
+  document.getElementById('stat').textContent = trays.map(t => t.id+' '+t.family+' '+t.poly.length+'v '+Math.round(t.coverage*100)+'%').join('  ·  ');
+}
+document.querySelectorAll('.bar-ui [data-theme]').forEach(b => b.addEventListener('click', () => setTheme(b.dataset.theme)));
+function setTheme(name){ theme = name; G.setTheme(name); document.querySelectorAll('.bar-ui [data-theme]').forEach(b => b.classList.toggle('on', b.dataset.theme === name)); dirty = true; }
+addEventListener('resize', () => { dirty = true; });
+setTheme(theme);
+const ONCE = new URLSearchParams(location.search).has('once');
+// Screenshot mode: settle the layout without drawing, then draw a single frame.
+window.__lab_once = () => {
+  const W = innerWidth, H = innerHeight, bounds = {x0:0, y0:64, x1:W, y1:H};
+  const blades = BLADES.map((_, i) => bladePoly(i, BLADES.length)), lantern = lanternPoly();
+  const obstacles = [{poly: hull(blades.flatMap(b => b.q).concat(lantern))}];
+  for(let k=0;k<400;k++){ const r = S.solve(trays, bounds, obstacles, 4); const e = S.breathe(trays); if(r.valid && !e && r.moved < 0.05) break; }
+  layoutDOM();
+  const t0 = performance.now(); render(blades, lantern, W); G.gl.finish();
+  return Math.round(performance.now() - t0);
+};
+function __ctx(){ const W = innerWidth, H = innerHeight; const blades = BLADES.map((_, i) => bladePoly(i, BLADES.length)), lantern = lanternPoly();
+  return {W, bounds:{x0:0, y0:64, x1:W, y1:H}, blades, lantern, obstacles:[{poly: hull(blades.flatMap(b => b.q).concat(lantern))}]}; }
+window.__solveOnce = () => { const c = __ctx(); const r = S.solve(trays, c.bounds, c.obstacles, 4); r.easing = S.breathe(trays); return r; };
+window.__drawOnce = () => { const c = __ctx(); for(let k=0;k<60;k++){ const r = S.solve(trays, c.bounds, c.obstacles, 4); const e = S.breathe(trays); if(r.valid && !e && r.moved < 0.05) break; } layoutDOM(); render(c.blades, c.lantern, c.W); };
+window.__lab = {trays, S, setTheme, drag:(id, x, y) => { const t = trays.find(t=>t.id===id); t.pinned = true; drag = {t, dx:0, dy:0, tx:x, ty:y}; }, release:() => { if(drag){ drag.t.pinned = false; drag = null; dirty = true; } }};
+if(!ONCE) requestAnimationFrame(frame);
+</script>
+</body>
+</html>

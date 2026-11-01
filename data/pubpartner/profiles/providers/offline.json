@@ -1,0 +1,10 @@
+{
+  "provider": "offline",
+  "model": "offline-rule-v1",
+  "fixes": [
+    "simple_syntax",
+    "no_fake_capabilities"
+  ],
+  "created_at": 1792024059.021862,
+  "updated_at": 1792024059.021862
+}

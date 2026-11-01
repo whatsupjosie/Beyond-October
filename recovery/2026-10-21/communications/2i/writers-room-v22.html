@@ -1,0 +1,2701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Shared Reach session: embedded 2i uses the same authenticated API identity as Foresight. -->
+<script src="/static/reach_auth.js"></script>
+<title>Pubcast 2i — Writer's Room</title>
+<link rel="stylesheet" href="/2i-assets/reach.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=Cinzel+Decorative:wght@400;700&display=swap');
+
+/* ═══════════════════════════════════════════════════════════════
+   DESIGN TOKENS
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --ivory:#f9f4e6; --ivory-deep:#efe4cc; --ivory-glow:#fffbf0;
+  --gold:#cda349; --gold-bright:#eecf83; --gold-deep:#93701f;
+  --gold-glow:rgba(238,207,131,0.45); --gold-dim:rgba(205,163,73,0.18);
+  --ink:#231f18; --pencil:#4a4032; --pencil-soft:#7c7160;
+  --mahogany:#3a2013; --mahogany-deep:#1b0f09;
+  --leather:#2c1608; --leather-seam:rgba(0,0,0,0.28);
+  --velvet:#2e6b52; --velvet-glow:rgba(46,107,82,0.38);
+  --parchment:#ecdfc3; --parchment-soft:#c3b391;
+  --danger:#a24a3a; --danger-glow:rgba(162,74,58,0.3);
+  --paper:#f6ecd5; --paper-aged:#f1e4c8; --paper-line:rgba(160,140,110,0.22);
+  --margin-red:rgba(180,60,50,0.28);
+  --glass-border:rgba(205,163,73,0.32);
+  --frame-shadow:0 22px 46px -20px rgba(0,0,0,.85),
+    inset 0 2px 0 rgba(255,225,150,.18),
+    inset 0 -4px 8px rgba(0,0,0,.72);
+  /* Per-pane text zoom. Set at runtime by loadZoom()/adjustZoom() in JS.
+     Font-size only — nothing that reads these variables may also be a
+     button, icon, or layout dimension. */
+  --zoom-manuscript:1; --zoom-chat:1; --zoom-ref:1;
+}
+*, *::before, *::after { box-sizing:border-box; }
+html, body {
+  height:100%; margin:0; overflow:hidden;
+  font-family:'Cormorant Garamond',serif;
+  color:var(--parchment);
+  background:
+    radial-gradient(ellipse 55% 32% at 50% 0%, rgba(238,207,131,0.10), transparent 62%),
+    radial-gradient(ellipse 45% 30% at 12% 105%, rgba(46,107,82,0.07), transparent 60%),
+    linear-gradient(165deg, #2c190f 0%, #1d1009 55%, #130a05 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LAYOUT SHELL
+   ═══════════════════════════════════════════════════════════════ */
+.app-shell {
+  display:grid;
+  grid-template-rows: 42px 1fr 32px;
+  height:100vh;
+}
+
+/* --- TOP BAR --- */
+.top-bar {
+  display:flex; align-items:center; gap:12px;
+  padding:0 16px;
+  background:linear-gradient(180deg, rgba(44,22,8,0.95), rgba(27,15,9,0.98));
+  border-bottom:1px solid rgba(205,163,73,0.25);
+  box-shadow:0 2px 12px rgba(0,0,0,0.5);
+  z-index:20;
+}
+.top-logo {
+  font-family:'Cinzel Decorative',serif;
+  font-size:14px; font-weight:700;
+  color:var(--gold-bright);
+  text-shadow:0 1px 3px rgba(0,0,0,0.6), 0 0 12px rgba(238,207,131,0.15);
+  white-space:nowrap;
+  letter-spacing:0.04em;
+}
+.top-logo small {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:9px; font-weight:400;
+  color:var(--parchment-soft);
+  display:block; margin-top:-2px;
+  letter-spacing:0.08em;
+}
+.top-tabs {
+  display:flex; gap:2px;
+  margin:0 auto;
+  background:rgba(0,0,0,0.25);
+  border-radius:6px; padding:3px;
+}
+.top-tab {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
+  padding:5px 14px; border-radius:4px;
+  border:none; cursor:pointer;
+  color:var(--parchment-soft);
+  background:transparent;
+  transition:all 0.15s ease;
+  box-shadow:none;
+}
+.top-tab:hover { color:var(--parchment); background:rgba(205,163,73,0.12); }
+.top-tab.active {
+  color:var(--gold-bright);
+  background:rgba(205,163,73,0.22);
+  box-shadow:inset 0 0 0 1px rgba(205,163,73,0.3);
+}
+.top-right {
+  display:flex; align-items:center; gap:10px;
+  margin-left:auto;
+}
+.mode-badge {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:9px; letter-spacing:0.1em; text-transform:uppercase;
+  padding:4px 10px; border-radius:4px;
+  border:1px solid var(--glass-border);
+  cursor:pointer;
+  transition:all 0.15s ease;
+}
+.mode-badge.write {
+  color:#bff2c8; border-color:rgba(46,107,82,0.5);
+  background:rgba(46,107,82,0.15);
+}
+.mode-badge.collab {
+  color:var(--gold-bright); border-color:var(--glass-border);
+  background:rgba(205,163,73,0.12);
+}
+.top-icon-btn {
+  width:28px; height:28px; border-radius:50%;
+  border:1px solid rgba(205,163,73,0.25);
+  background:rgba(0,0,0,0.2);
+  color:var(--parchment-soft);
+  font-size:13px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all 0.15s ease;
+  padding:0;
+  box-shadow:none;
+}
+.top-icon-btn:hover { border-color:var(--gold); color:var(--gold-bright); background:rgba(205,163,73,0.12); }
+
+/* --- MAIN AREA --- */
+.main-area {
+  display:grid;
+  grid-template-columns: 280px 1fr;
+  min-height:0; overflow:hidden;
+  gap:0;
+}
+.main-area.sidebar-hidden { grid-template-columns: 0px 1fr; }
+.main-area.sidebar-hidden .sidebar { display:none; }
+
+/* --- LEFT SIDEBAR --- */
+.sidebar {
+  display:flex; flex-direction:column;
+  background:linear-gradient(180deg, rgba(44,22,8,0.92), rgba(20,11,6,0.96));
+  border-right:1px solid rgba(205,163,73,0.18);
+  overflow:hidden; min-height:0;
+}
+.sidebar-section {
+  display:flex; flex-direction:column;
+  border-bottom:1px solid rgba(205,163,73,0.12);
+  min-height:0;
+}
+.sidebar-section.collapsed > :not(.section-header) { display:none; }
+.section-header {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase;
+  color:var(--gold);
+  padding:10px 14px 8px;
+  display:flex; align-items:center; gap:8px;
+  cursor:pointer;
+  user-select:none;
+  border:none; background:none; width:100%; text-align:left;
+  box-shadow:none;
+}
+.section-header::before {
+  content:''; width:5px; height:5px; border-radius:50%;
+  background:var(--gold);
+  box-shadow:0 0 6px rgba(238,207,131,0.6);
+  flex-shrink:0;
+}
+.section-header .collapse-arrow {
+  margin-left:auto; font-size:8px; color:var(--parchment-soft);
+  transition:transform 0.2s ease;
+}
+.sidebar-section.collapsed .collapse-arrow { transform:rotate(-90deg); }
+.section-body { padding:0 14px 12px; display:flex; flex-direction:column; gap:8px; }
+
+/* Manuscript control */
+.mc-row {
+  display:flex; justify-content:space-between; align-items:center;
+  font-family:'IBM Plex Mono',monospace; font-size:10px;
+  color:var(--parchment-soft);
+}
+.mc-progress {
+  width:100%; height:6px; border-radius:3px;
+  background:rgba(0,0,0,0.3);
+  border:1px solid rgba(205,163,73,0.15);
+  overflow:hidden;
+}
+.mc-progress-fill {
+  height:100%; border-radius:2px;
+  background:linear-gradient(90deg, var(--gold-deep), var(--gold-bright));
+  transition:width 0.3s ease;
+}
+.mc-btn-row { display:flex; gap:6px; }
+.mc-btn {
+  flex:1; font-family:'IBM Plex Mono',monospace;
+  font-size:9.5px; letter-spacing:0.04em;
+  padding:7px 8px; border-radius:5px;
+  cursor:pointer;
+  border:1px solid rgba(205,163,73,0.25);
+  background:linear-gradient(160deg, rgba(255,255,255,0.04), rgba(0,0,0,0.15));
+  color:var(--parchment);
+  box-shadow:0 2px 4px rgba(0,0,0,0.3);
+  transition:all 0.12s ease;
+  text-transform:uppercase;
+}
+.mc-btn:hover:not(:disabled) {
+  border-color:var(--gold);
+  background:rgba(205,163,73,0.12);
+  box-shadow:0 2px 8px rgba(0,0,0,0.4), 0 0 8px rgba(238,207,131,0.12);
+}
+.mc-btn:disabled { opacity:0.35; cursor:default; }
+.mc-btn.primary {
+  background:linear-gradient(155deg, rgba(255,255,255,0.5), transparent 28%),
+    linear-gradient(160deg, #fffdf3, #eee1c8 48%, #cdbb98);
+  color:#684b18;
+  border-color:rgba(100,70,35,0.7);
+  box-shadow:0 3px 6px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.9);
+}
+.mc-btn.primary:hover:not(:disabled) {
+  filter:brightness(1.08);
+  box-shadow:0 4px 10px rgba(0,0,0,0.5), 0 0 12px rgba(238,207,131,0.2);
+}
+.mc-btn.danger { border-color:var(--danger); color:#f2c0bf; }
+
+/* Reference archive */
+.ref-search {
+  display:flex; gap:4px;
+}
+.ref-search input {
+  flex:1; padding:6px 8px; border-radius:5px;
+  border:1px solid rgba(205,163,73,0.18);
+  background:rgba(0,0,0,0.2);
+  color:var(--parchment);
+  font-family:'IBM Plex Mono',monospace; font-size:11px;
+  outline:none;
+}
+.ref-search input:focus { border-color:var(--gold); }
+.ref-search button {
+  width:30px; flex:0 0 30px; padding:0; font-size:12px;
+  border-radius:5px;
+}
+.ref-tabs {
+  display:flex; gap:2px;
+}
+.ref-tab {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:9px; letter-spacing:0.06em; text-transform:uppercase;
+  padding:4px 8px; border-radius:3px;
+  border:none; cursor:pointer;
+  color:var(--parchment-soft); background:transparent;
+  box-shadow:none;
+}
+.ref-tab:hover { color:var(--parchment); }
+.ref-tab.active { color:var(--gold-bright); background:rgba(205,163,73,0.18); }
+.ref-list-container {
+  flex:1; overflow-y:auto; min-height:0;
+  display:flex; flex-direction:column; gap:4px;
+}
+.ref-item {
+  display:flex; align-items:flex-start; gap:8px;
+  padding:8px; border-radius:5px;
+  background:rgba(0,0,0,0.12);
+  border:1px solid transparent;
+  cursor:pointer;
+  transition:all 0.12s ease;
+}
+.ref-item:hover {
+  border-color:rgba(205,163,73,0.3);
+  background:rgba(205,163,73,0.06);
+}
+.ref-icon {
+  width:24px; height:24px; border-radius:4px;
+  background:rgba(205,163,73,0.12);
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; flex-shrink:0;
+  color:var(--gold);
+  margin-top:2px;
+}
+.ref-meta {
+  flex:1; min-width:0;
+}
+.ref-meta .ref-name {
+  font-family:'Cormorant Garamond',serif;
+  font-size:13px; color:var(--parchment);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.ref-meta .ref-type {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:9px; color:var(--parchment-soft);
+}
+.ref-meta .ref-date {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:8.5px; color:var(--parchment-soft);
+  opacity:0.7;
+}
+.ref-actions { display:flex; gap:4px; flex-shrink:0; margin-top:2px; }
+.ref-action-btn {
+  width:22px; height:22px; border-radius:3px;
+  border:1px solid rgba(205,163,73,0.15);
+  background:transparent; color:var(--parchment-soft);
+  font-size:10px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  padding:0; box-shadow:none;
+}
+.ref-action-btn:hover { border-color:var(--gold); color:var(--gold-bright); }
+
+/* Chat pane */
+.chat-section { flex:1; min-height:0; }
+.chat-section .section-body { flex:1; min-height:0; display:flex; flex-direction:column; }
+.chat-log {
+  flex:1; overflow-y:auto; min-height:0;
+  display:flex; flex-direction:column; gap:6px;
+  padding-right:4px;
+}
+.chat-msg {
+  font-size:calc(13px * var(--zoom-chat, 1)); line-height:1.45;
+  padding:7px 10px; border-radius:8px;
+  max-width:92%;
+}
+.chat-msg.pp {
+  background:rgba(0,0,0,0.22); border:1px solid rgba(0,0,0,0.15);
+  align-self:flex-start; color:var(--parchment);
+}
+.chat-msg.you {
+  background:rgba(46,107,82,0.2); border:1px solid var(--velvet-glow);
+  align-self:flex-end; color:var(--parchment);
+}
+.chat-msg .who {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:0.65em; text-transform:uppercase; letter-spacing:0.06em;
+  color:var(--parchment-soft); display:block; margin-bottom:2px;
+}
+.chat-msg.thinking { opacity:0.5; font-style:italic; }
+.chat-input-row {
+  display:flex; gap:4px; margin-top:6px; flex-shrink:0;
+}
+.chat-input-row input {
+  flex:1; font-family:'Cormorant Garamond',serif;
+  font-size:calc(13px * var(--zoom-chat, 1)); padding:7px 9px;
+  color:var(--parchment);
+  border:1px solid rgba(205,163,73,0.18);
+  border-radius:6px; background:rgba(0,0,0,0.2);
+  outline:none;
+}
+.chat-input-row input:focus { border-color:var(--gold); }
+.chat-mic-btn {
+  width:28px; flex:0 0 28px; padding:0; font-size:12px;
+  border-radius:6px;
+}
+.chat-mic-btn.listening {
+  background:linear-gradient(160deg,#c94747,#8a2c2c) !important;
+  color:#fff !important;
+  animation:micPulse 1s ease-in-out infinite;
+}
+@keyframes micPulse { 0%,100%{box-shadow:0 0 0 0 rgba(201,71,71,.5)} 50%{box-shadow:0 0 0 5px rgba(201,71,71,0)} }
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTEBOOK
+   ═══════════════════════════════════════════════════════════════ */
+.notebook-frame {
+  position:relative;
+  display:flex;
+  min-height:0; overflow:hidden;
+  background:
+    radial-gradient(ellipse at 50% 4%, rgba(255,220,145,0.10), transparent 34%),
+    radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.3), transparent 48%),
+    linear-gradient(180deg, #2a160d, #160b06 82%);
+  border-left:3px solid transparent;
+  border-image:linear-gradient(180deg, #e4bd68, #6d4a16 18%, #261609 52%, #c49a48 82%, #5b3d12) 1;
+  box-shadow:inset 0 18px 35px rgba(255,215,135,.03), inset 0 -30px 45px rgba(0,0,0,.4);
+}
+#lanternCanvas {
+  position:absolute; inset:0; width:100%; height:100%;
+  pointer-events:none; z-index:0;
+}
+
+.notebook-inner {
+  position:relative; z-index:1;
+  display:flex; flex:1; min-height:0; min-width:0;
+  margin:8px 8px 8px 0;
+}
+
+/* Spiral spine */
+.spiral-spine {
+  flex:0 0 52px;
+  position:relative;
+  background:linear-gradient(90deg, #090604, #21150d 12%, #0d0805 27%, #24170e 52%, #090604 76%, #1b1009);
+  box-shadow:inset -8px 0 10px -8px rgba(0,0,0,.9), inset 6px 0 8px -8px rgba(238,207,131,.15);
+  overflow:hidden;
+}
+.spiral-spine canvas { width:100%; height:100%; display:block; }
+
+/* Page sheets */
+.page-sheets {
+  flex:1; min-width:0; min-height:0;
+  display:flex; flex-direction:column;
+  overflow:hidden;
+  border-radius:0 6px 6px 0;
+  box-shadow:inset -10px 0 16px -14px rgba(0,0,0,.6), inset 0 2px 0 rgba(255,255,255,.6);
+  position:relative;
+}
+
+/* Manuscript zone (locked/committed text) */
+.manuscript-zone {
+  background:var(--paper);
+  flex:0 0 auto; max-height:45vh;
+  overflow-y:auto;
+  position:relative;
+  padding:0;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),
+    inset -6px 0 12px rgba(120,84,30,.10),
+    inset 0 -6px 12px rgba(90,60,20,.07);
+}
+.manuscript-zone .zone-label-row {
+  position:sticky; top:0; z-index:5;
+  display:flex; align-items:center; justify-content:flex-end; gap:10px;
+  padding:4px 14px;
+  background:linear-gradient(180deg, var(--paper), rgba(246,236,213,0.9));
+}
+.manuscript-zone .zone-label {
+  font-family:'IBM Plex Mono',monospace; font-size:8px;
+  letter-spacing:0.12em; color:var(--gold-deep); text-transform:uppercase;
+}
+
+/* Solo mode */
+.page-sheets.solo-mode .manuscript-zone { flex:1; max-height:none; }
+.page-sheets.solo-mode .tortoise-seam { display:none; }
+.page-sheets.solo-mode .draft-zone { display:none; }
+.page-sheets.solo-mode .solo-editor { display:flex; }
+.page-sheets.solo-mode .manuscript-lines { display:none; }
+
+.solo-editor {
+  display:none; flex:1; flex-direction:row;
+  min-height:0;
+}
+.line-numbers {
+  flex:0 0 44px;
+  padding:6px 0;
+  text-align:right;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  /* Line pitch must match .solo-textarea's actual line-box height
+     (font-size × line-height), not this gutter's own smaller glyph
+     size, or the numbers drift off their lines — worse at every zoom
+     step away from 100%. Pre-existing at 1x (18.6px vs 24px); fixed
+     here rather than carried forward. 2.00208 = (15.5 * 1.55) / 12 —
+     precomputed because calc() division must be by a plain <number>,
+     never by another length (verified: dividing by 12px directly
+     left the expression unresolved and the declaration invalid). */
+  line-height:calc(2.00208 * var(--zoom-manuscript, 1));
+  color:rgba(147,112,31,0.4);
+  user-select:none;
+  overflow-y:auto; overflow-x:hidden;
+  scrollbar-width:none;
+  border-right:1px solid var(--margin-red);
+  padding-right:8px;
+}
+.line-numbers::-webkit-scrollbar { display:none; }
+.solo-textarea {
+  flex:1; resize:none; border:none; outline:none;
+  font-family:'Cormorant Garamond',serif;
+  font-size:calc(15.5px * var(--zoom-manuscript, 1)); line-height:1.55;
+  color:var(--ink);
+  background:transparent;
+  padding:6px 24px 40px 14px;
+  overflow-y:auto;
+}
+
+/* Manuscript lines (co-writing committed) */
+.manuscript-lines {
+  padding:4px 0;
+}
+.m-line {
+  font-family:'Cormorant Garamond',serif;
+  font-size:calc(15px * var(--zoom-manuscript, 1)); line-height:1.5;
+  color:var(--ink);
+  padding:1px 24px 1px 58px;
+  cursor:pointer;
+  position:relative;
+  transition:background 0.1s ease;
+  display:flex; align-items:baseline;
+}
+.m-line:hover { background:rgba(147,112,31,0.06); }
+.m-line.selected { background:rgba(205,163,73,0.18); box-shadow:inset 3px 0 0 var(--gold); }
+.m-line.locked::after {
+  content:'🔒'; position:absolute; right:8px; top:50%; transform:translateY(-50%);
+  font-size:10px; opacity:0.4;
+}
+.m-line .line-num {
+  position:absolute; left:8px;
+  font-family:'IBM Plex Mono',monospace; font-size:11px;
+  color:rgba(147,112,31,0.35);
+  width:36px; text-align:right;
+  user-select:none;
+}
+.m-line-edit textarea {
+  width:100%; font-family:'Cormorant Garamond',serif;
+  font-size:calc(15px * var(--zoom-manuscript, 1)); line-height:1.5; color:var(--ink);
+  background:rgba(255,255,255,0.5);
+  border:1px solid var(--gold-deep); border-radius:4px;
+  padding:3px 6px; resize:vertical; outline:none;
+}
+.chapter-heading {
+  font-family:'Cinzel Decorative',serif;
+  font-size:20px; text-align:center;
+  color:var(--ink); padding:18px 24px 6px;
+  letter-spacing:0.04em;
+}
+.chapter-subtitle {
+  font-family:'Cormorant Garamond',serif;
+  font-style:italic; font-size:16px;
+  text-align:center; color:var(--pencil);
+  padding:0 24px 12px;
+}
+.chapter-divider {
+  text-align:center; padding:2px 0 10px;
+  color:var(--gold-deep); font-size:14px;
+  letter-spacing:0.3em;
+  opacity:0.5;
+}
+
+/* Tortoise seam divider */
+.tortoise-seam {
+  height:8px; flex-shrink:0;
+  background:linear-gradient(90deg, #8a5a22, #c49a48, #8a5a22);
+  box-shadow:
+    inset 0 2px 2px rgba(255,255,255,0.4),
+    inset 0 -2px 3px rgba(0,0,0,0.5),
+    0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Draft zone (co-writing buffer) */
+.draft-zone {
+  background:var(--paper-aged);
+  flex:1; min-height:0; overflow-y:auto;
+  position:relative;
+  padding:0;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8),
+    inset -6px 0 12px rgba(120,84,30,.10);
+  scroll-behavior:smooth;
+}
+.reading-line {
+  font-family:'Kalam',cursive;
+  font-size:16px; line-height:1.45;
+  color:var(--pencil);
+  padding:6px 24px 6px 58px;
+  background:rgba(205,163,73,0.12);
+  border-left:3px solid var(--gold);
+  margin:0 0 4px;
+  position:relative;
+}
+.reading-line.reaction { border-left-color:var(--velvet); background:rgba(46,107,82,0.08); }
+.draft-area {
+  display:block; width:100%; min-height:100px;
+  resize:none; border:none; outline:none; overflow-y:auto;
+  font-family:'Kalam',cursive;
+  font-size:calc(16px * var(--zoom-manuscript, 1)); line-height:1.5;
+  color:var(--pencil);
+  background:transparent;
+  padding:4px 24px 30px 58px;
+  text-shadow:0 .25px 0 rgba(0,0,0,.18);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BOTTOM STATUS BAR
+   ═══════════════════════════════════════════════════════════════ */
+.status-bar {
+  display:flex; align-items:center; gap:12px;
+  padding:0 16px;
+  background:linear-gradient(180deg, rgba(27,15,9,0.96), rgba(20,11,6,0.98));
+  border-top:1px solid rgba(205,163,73,0.18);
+  font-family:'IBM Plex Mono',monospace; font-size:10px;
+  color:var(--parchment-soft);
+  z-index:20;
+}
+.status-dot {
+  width:6px; height:6px; border-radius:50%;
+  background:var(--parchment-soft);
+}
+.status-dot.playing { background:var(--velvet); box-shadow:0 0 6px rgba(46,107,82,0.8); }
+.status-dot.paused { background:var(--gold); box-shadow:0 0 6px rgba(238,207,131,0.6); }
+.status-sep { color:rgba(205,163,73,0.25); }
+.llm-pill {
+  padding:2px 8px; border-radius:999px;
+  border:1px solid var(--glass-border);
+  cursor:pointer; font-size:9px;
+  transition:all 0.12s ease;
+}
+.llm-pill.ok { color:#bff2c8; border-color:#4c9a63; }
+.llm-pill.err { color:#f2c0bf; border-color:#9a4c4c; }
+.status-right {
+  margin-left:auto;
+  display:flex; align-items:center; gap:10px;
+}
+.playback-controls {
+  display:flex; align-items:center; gap:4px;
+}
+.pb-btn {
+  width:24px; height:24px; border-radius:4px;
+  border:1px solid rgba(205,163,73,0.2);
+  background:transparent; color:var(--parchment-soft);
+  font-size:10px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  padding:0; box-shadow:none;
+  transition:all 0.12s ease;
+}
+.pb-btn:hover { border-color:var(--gold); color:var(--gold-bright); }
+.pb-btn.active { background:rgba(46,107,82,0.2); border-color:var(--velvet); color:#bff2c8; }
+.speed-slider {
+  width:50px; height:3px;
+  accent-color:var(--gold);
+}
+.save-btn {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:9.5px; letter-spacing:0.06em; text-transform:uppercase;
+  padding:4px 12px; border-radius:4px;
+  border:1px solid rgba(205,163,73,0.3);
+  background:rgba(205,163,73,0.1);
+  color:var(--gold-bright);
+  cursor:pointer;
+  box-shadow:none;
+  transition:all 0.12s ease;
+}
+.save-btn:hover { background:rgba(205,163,73,0.2); border-color:var(--gold); }
+
+/* ═══════════════════════════════════════════════════════════════
+   MODALS
+   ═══════════════════════════════════════════════════════════════ */
+.modal-backdrop {
+  position:fixed; inset:0;
+  background:rgba(10,6,3,0.65);
+  z-index:100;
+  display:none; align-items:center; justify-content:center;
+}
+.modal-backdrop.open { display:flex; }
+.modal {
+  width:min(460px, 92vw); max-height:86vh; overflow:auto;
+  padding:18px; border-radius:10px;
+  background:linear-gradient(160deg, #432516, #1c0e08 88%);
+  border:1px solid rgba(205,163,73,0.35);
+  box-shadow:0 24px 48px -18px rgba(0,0,0,.9);
+  color:var(--parchment);
+}
+.modal-title {
+  font-family:'IBM Plex Mono',monospace; font-size:10px;
+  letter-spacing:0.1em; text-transform:uppercase;
+  color:var(--gold); margin-bottom:12px;
+  display:flex; align-items:center; gap:6px;
+}
+.modal-title::before {
+  content:''; width:5px; height:5px; border-radius:50%;
+  background:var(--gold); box-shadow:0 0 6px rgba(238,207,131,0.6);
+}
+.modal-body { display:flex; flex-direction:column; gap:6px; }
+.modal-body label {
+  font-family:'IBM Plex Mono',monospace; font-size:10px;
+  color:var(--parchment-soft); margin-top:6px;
+}
+.modal-body select, .modal-body input[type=text], .modal-body input[type=password], .modal-body input[type=number] {
+  width:100%; padding:7px 9px; border-radius:5px;
+  border:1px solid var(--glass-border);
+  background:rgba(0,0,0,0.25); color:var(--parchment);
+  font-family:'IBM Plex Mono',monospace; font-size:11px;
+  outline:none;
+}
+.modal-body select:focus, .modal-body input:focus { border-color:var(--gold); }
+.modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
+.modal-actions button { font-size:11px; padding:6px 14px; }
+.test-result {
+  margin-top:8px; font-family:'IBM Plex Mono',monospace;
+  font-size:11px; min-height:14px;
+}
+.test-result.ok { color:#bff2c8; }
+.test-result.err { color:#f2c0bf; }
+.llm-fields { display:none; flex-direction:column; gap:4px; }
+.llm-fields.active { display:flex; }
+
+/* Context menu */
+.context-menu {
+  position:fixed; z-index:200;
+  padding:5px; border-radius:8px;
+  background:linear-gradient(160deg,#432516,#1c0e08 88%);
+  border:1px solid rgba(205,163,73,0.35);
+  box-shadow:0 10px 24px -6px rgba(0,0,0,0.7);
+  display:none;
+  min-width:160px;
+}
+.context-menu.open { display:block; }
+.ctx-btn {
+  display:block; width:100%; text-align:left;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px; padding:7px 12px;
+  background:transparent; border:none; color:var(--parchment);
+  cursor:pointer; border-radius:4px;
+  box-shadow:none;
+}
+.ctx-btn:hover { background:rgba(205,163,73,0.15); }
+.ctx-sep { height:1px; background:rgba(205,163,73,0.12); margin:3px 8px; }
+
+/* Ref viewer overlay */
+.ref-viewer {
+  position:absolute; inset:0; z-index:10;
+  background:var(--paper);
+  display:none; flex-direction:column;
+}
+.ref-viewer.open { display:flex; }
+.ref-viewer-header {
+  display:flex; align-items:center; gap:8px;
+  padding:8px 14px;
+  border-bottom:1px solid rgba(147,112,31,0.15);
+  background:linear-gradient(180deg, var(--paper), var(--paper-aged));
+}
+.ref-viewer-header .ref-back-btn {
+  font-size:11px; padding:4px 10px; border-radius:4px;
+  border:1px solid rgba(147,112,31,0.3);
+  background:transparent; color:var(--pencil);
+  cursor:pointer; box-shadow:none;
+}
+.ref-viewer-header .ref-title {
+  font-family:'IBM Plex Mono',monospace; font-size:10px;
+  color:var(--pencil-soft);
+}
+.ref-viewer-body {
+  flex:1; overflow-y:auto; padding:12px 24px;
+  font-family:'Cormorant Garamond',serif;
+  font-size:calc(15px * var(--zoom-ref, 1)); line-height:1.6;
+  color:var(--ink);
+  white-space:pre-wrap;
+}
+
+/* Hamburger menu */
+.hamburger-menu {
+  position:fixed; top:46px; right:12px; z-index:90;
+  min-width:220px; padding:6px;
+  background:linear-gradient(160deg,#432516,#1c0e08 88%);
+  border:1px solid rgba(205,163,73,0.35);
+  border-radius:8px;
+  box-shadow:0 16px 32px -12px rgba(0,0,0,.9);
+  display:none;
+}
+.hamburger-menu.open { display:block; }
+.hm-btn {
+  display:flex; align-items:center; gap:8px; width:100%;
+  text-align:left; padding:7px 12px; border-radius:5px;
+  font-family:'IBM Plex Mono',monospace; font-size:11px;
+  background:transparent; border:none; color:var(--parchment);
+  cursor:pointer; box-shadow:none;
+}
+.hm-btn:hover { background:rgba(205,163,73,0.12); }
+.hm-btn .hm-icon { width:18px; text-align:center; font-size:12px; }
+.hm-sep { height:1px; background:rgba(205,163,73,0.12); margin:4px 12px; }
+.hm-toggle::after {
+  content:'Off'; margin-left:auto;
+  font-size:8.5px; padding:2px 6px; border-radius:999px;
+  background:rgba(255,255,255,0.06); color:var(--parchment-soft);
+}
+.hm-toggle.on::after {
+  content:'On'; background:rgba(205,163,73,0.25); color:var(--gold-bright);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width:7px; height:7px; }
+::-webkit-scrollbar-track { background:rgba(0,0,0,.12); }
+::-webkit-scrollbar-thumb {
+  background:linear-gradient(180deg,#5a3d15,#cda349,#6b4a18);
+  border-radius:8px; border:1.5px solid transparent; background-clip:padding-box;
+}
+
+/* Utilities */
+.hidden { display:none !important; }
+
+/* ── PUBPARTNER INTELLIGENCE ─────────────────────────────────────── */
+.pp-status { font-size:10px; letter-spacing:.04em; padding:3px 6px;
+             border-radius:3px; margin-bottom:6px; }
+.pp-status.ok  { color:var(--gold); background:rgba(205,163,73,.10); }
+.pp-status.off { color:var(--parchment-soft); background:rgba(0,0,0,.18); }
+.pp-flag { display:flex; align-items:flex-start; gap:6px; font-size:11px;
+           line-height:1.35; padding:5px 6px; margin-bottom:4px;
+           border-left:2px solid var(--parchment-soft);
+           background:rgba(0,0,0,.16); border-radius:0 3px 3px 0; }
+.pp-flag.pp-attention { border-left-color:var(--gold); }
+.pp-flag.pp-concern   { border-left-color:var(--danger); }
+.pp-flag-msg { flex:1; }
+.pp-flag-x { background:none; border:none; color:var(--parchment-soft);
+             cursor:pointer; font-size:10px; padding:0 2px; line-height:1; }
+.pp-flag-x:hover { color:var(--parchment); }
+.pp-cast-head { font-size:9px; letter-spacing:.12em; text-transform:uppercase;
+                color:var(--parchment-soft); margin:8px 0 3px; }
+.pp-cast-row { font-size:11px; padding:2px 0; display:flex;
+               align-items:center; gap:5px; }
+.pp-dot { width:4px; height:4px; border-radius:50%;
+          background:var(--parchment-soft); flex:0 0 auto; }
+.pp-dot.pp-user { background:var(--gold); }
+.pp-aka { color:var(--parchment-soft); font-size:10px; }
+
+/* ── per-pane text zoom control ───────────────────────────────────────
+   Fixed dimensions always — these buttons never grow. They change one
+   of --zoom-manuscript / --zoom-chat / --zoom-ref, nothing else. */
+.zoom-ctrl { display:flex; align-items:center; gap:3px; flex-shrink:0; }
+.zoom-btn {
+  width:19px; height:19px; flex:0 0 19px; padding:0;
+  font-family:'IBM Plex Mono',monospace; font-size:11px; line-height:1;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:4px; cursor:pointer; user-select:none;
+  border:1px solid rgba(205,163,73,0.25);
+  background:linear-gradient(160deg, rgba(255,255,255,0.04), rgba(0,0,0,0.15));
+  color:var(--parchment-soft);
+  transition:border-color 0.12s ease, color 0.12s ease;
+}
+.zoom-btn:hover { border-color:var(--gold); color:var(--gold-bright); }
+.zoom-btn:active { transform:translateY(1px); }
+.zoom-pct {
+  font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.02em;
+  color:var(--parchment-soft); min-width:29px; text-align:center; user-select:none;
+}
+/* On the paper-colored notebook surfaces (zone label, reference viewer)
+   the dark-glass palette above reads muddy — swap to ink/pencil tones. */
+.zoom-ctrl.on-paper .zoom-btn {
+  border-color:rgba(147,112,31,0.3);
+  background:rgba(255,255,255,0.35);
+  color:var(--pencil);
+}
+.zoom-ctrl.on-paper .zoom-btn:hover { border-color:var(--gold-deep); color:var(--ink); }
+.zoom-ctrl.on-paper .zoom-pct { color:var(--pencil-soft); }
+</style>
+<script src="/static/program_audio_runtime.js"></script>
+</head>
+<body>
+<!-- ═══════════════════════════════════════════════════════════════
+     APP SHELL
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="app-shell">
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="top-logo">Writer's Room<small>Pubcast 2i</small></div>
+    <div class="top-tabs">
+      <span class="top-tab active" data-tab="manuscript" aria-current="page">Manuscript</span>
+    </div>
+    <div class="top-right">
+      <button class="mode-badge write" id="modeBadge" title="Toggle between Write (solo) and Collab (co-writing) mode">Write</button>
+      <button class="top-icon-btn" id="shelfBtn" title="My manuscripts">My manuscripts</button>
+      <button class="top-icon-btn" id="sidebarToggle" title="Toggle sidebar">☰</button>
+      <button class="top-icon-btn" id="menuToggle" title="Menu">⚙</button>
+    </div>
+  </div>
+
+  <!-- MAIN AREA -->
+  <div class="main-area" id="mainArea">
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+      <!-- Manuscript Control -->
+      <div class="sidebar-section" id="mcSection">
+        <button class="section-header" onclick="toggleSection('mcSection')">
+          Manuscript Control <span class="collapse-arrow">▼</span>
+        </button>
+        <div class="section-body">
+          <div class="mc-row"><span>Draft Status</span><span id="mcDraftStatus">Active</span></div>
+          <div class="mc-row"><span id="mcWordProgress">0 / — words</span><span id="mcPercent"></span></div>
+          <div class="mc-progress"><div class="mc-progress-fill" id="mcProgressFill" style="width:0"></div></div>
+          <div class="mc-btn-row">
+            <button class="mc-btn primary" id="lockSceneBtn">🔒 Lock scene</button>
+          </div>
+          <div class="mc-btn-row">
+            <button class="mc-btn" id="unlockBtn">🔓 Unlock</button>
+            <button class="mc-btn" id="lockAllBtn">Lock all</button>
+          </div>
+          <div class="mc-btn-row">
+            <button class="mc-btn" id="newChapterBtn">New chapter</button>
+            <button class="mc-btn" id="exportBtn">Export</button>
+          </div>
+          <div class="mc-btn-row" id="collabOnlyControls">
+            <button class="mc-btn primary" id="approveBtn">✓ Commit draft</button>
+            <button class="mc-btn" id="genBtn">⚡ Generate</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reference Archive -->
+      <div class="sidebar-section" id="refSection">
+        <button class="section-header" onclick="toggleSection('refSection')">
+          Reference Archive <span class="collapse-arrow">▼</span>
+        </button>
+        <div class="section-body" style="flex:1; min-height:0;">
+          <div class="ref-search">
+            <input type="text" id="refSearchInput" placeholder="Search documents…" />
+            <button class="mc-btn" style="flex:0 0 28px; padding:0; font-size:11px;" onclick="filterRefs()">🔍</button>
+          </div>
+          <div class="ref-tabs">
+            <button class="ref-tab active" data-filter="all" onclick="setRefFilter(this,'all')">All</button>
+            <button class="ref-tab" data-filter="chapter" onclick="setRefFilter(this,'chapter')">Chapters</button>
+            <button class="ref-tab" data-filter="research" onclick="setRefFilter(this,'research')">Research</button>
+            <button class="ref-tab" data-filter="notes" onclick="setRefFilter(this,'notes')">Notes</button>
+          </div>
+          <div class="ref-list-container" id="refListContainer"></div>
+          <button class="mc-btn" id="addRefBtn" style="flex-shrink:0;">+ Add reference</button>
+        </div>
+      </div>
+
+      <!-- Chat -->
+      <div class="sidebar-section chat-section" id="chatSection">
+        <button class="section-header" onclick="toggleSection('chatSection')">
+          PubPartner — Chat <span class="collapse-arrow">▼</span>
+        </button>
+        <div class="section-body">
+          <label class="partner-label" for="partnerSelect">Conversation partner</label>
+          <select id="partnerSelect" aria-label="Conversation partner"><option value="alex">Alex</option></select>
+          <p id="partnerNote" class="partner-note">Your manuscript and conversation stay together.</p>
+          <div id="ppStatus" class="pp-status off">PubPartner: offline</div>
+          <div id="ppFlags"></div>
+          <div id="ppCast"></div>
+          <div class="zoom-ctrl" style="justify-content:flex-end; margin-bottom:4px;" title="Chat text size">
+            <button class="zoom-btn" onclick="adjustZoom('chat',-1)" title="Smaller text">A−</button>
+            <span class="zoom-pct" id="zoomPctChat">100%</span>
+            <button class="zoom-btn" onclick="adjustZoom('chat',1)" title="Larger text">A+</button>
+          </div>
+          <div class="chat-log" id="chatLog"></div>
+          <div class="chat-input-row">
+            <input id="chatInput" type="text" placeholder="Talk with PubPartner…" />
+            <button class="mc-btn chat-mic-btn" id="chatMicBtn" title="Dictate">🎤</button>
+            <button class="mc-btn primary" id="chatSendBtn" style="flex:0 0 auto; padding:5px 10px;">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTEBOOK -->
+    <div class="notebook-frame" id="notebookFrame">
+      <canvas id="lanternCanvas"></canvas>
+      <div class="notebook-inner">
+        <div class="spiral-spine"><canvas id="spineCanvas"></canvas></div>
+        <div class="page-sheets" id="pageSheets">
+          <!-- Reference viewer overlay -->
+          <div class="ref-viewer" id="refViewer">
+            <div class="ref-viewer-header">
+              <button class="ref-back-btn" onclick="closeRefViewer()">← Back</button>
+              <span class="ref-title" id="refViewerTitle"></span>
+              <div class="zoom-ctrl on-paper" style="margin-left:auto;" title="Reference text size">
+                <button class="zoom-btn" onclick="adjustZoom('ref',-1)" title="Smaller text">A−</button>
+                <span class="zoom-pct" id="zoomPctRef">100%</span>
+                <button class="zoom-btn" onclick="adjustZoom('ref',1)" title="Larger text">A+</button>
+              </div>
+            </div>
+            <div class="ref-viewer-body" id="refViewerBody"></div>
+          </div>
+
+          <!-- Manuscript zone (committed text / solo editor) -->
+          <div class="manuscript-zone" id="manuscriptZone">
+            <div class="zone-label-row">
+              <div class="zoom-ctrl on-paper" title="Manuscript text size">
+                <button class="zoom-btn" onclick="adjustZoom('manuscript',-1)" title="Smaller text">A−</button>
+                <span class="zoom-pct" id="zoomPctManuscript">100%</span>
+                <button class="zoom-btn" onclick="adjustZoom('manuscript',1)" title="Larger text">A+</button>
+              </div>
+              <div class="zone-label" id="zoneLabel">Manuscript</div>
+            </div>
+            <div class="manuscript-lines" id="manuscriptLines"></div>
+            <div class="solo-editor" id="soloEditor">
+              <div class="line-numbers" id="lineNumbers"></div>
+              <textarea class="solo-textarea" id="soloTextarea" placeholder="Begin writing your manuscript…" spellcheck="true"></textarea>
+            </div>
+          </div>
+
+          <!-- Seam -->
+          <div class="tortoise-seam" id="tortoiseSeam"></div>
+
+          <!-- Draft zone (buffer in co-writing) -->
+          <div class="draft-zone" id="draftZone">
+            <div id="readingIndicator"></div>
+            <textarea class="draft-area" id="draftArea" placeholder="Keep writing…" spellcheck="true"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText">idle</span>
+    <span class="status-sep">|</span>
+    <span id="docTitleDisplay" style="cursor:pointer;" title="Click to rename"></span>
+    <span class="status-sep">|</span>
+    <span id="wordCount">0 words</span>
+    <span class="status-sep">|</span>
+    <span id="llmPill" class="llm-pill" title="Click to configure LLM">no LLM</span>
+    <div class="status-right">
+      <div class="playback-controls" id="playbackControls">
+        <button class="pb-btn" id="stopBtn" title="Stop">■</button>
+        <button class="pb-btn" id="playBtn" title="Play/Pause">▶</button>
+        <button class="pb-btn" id="skipBtn" title="Skip">⏭</button>
+        <input type="range" class="speed-slider" id="speedSlider" min="0.5" max="2.5" step="0.25" value="1" title="Read speed" />
+      </div>
+      <span id="saveIndicator" style="font-size:9px; opacity:0.6;">unsaved</span>
+      <button class="save-btn" id="saveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- HAMBURGER MENU -->
+<div class="hamburger-menu" id="hamburgerMenu">
+  <button class="hm-btn" id="hmNewDoc"><span class="hm-icon">📄</span>New document</button>
+  <button class="hm-btn" id="hmOpenDoc"><span class="hm-icon">📂</span>Open document…</button>
+  <button class="hm-btn" id="hmSaveAs"><span class="hm-icon">💾</span>Save as…</button>
+  <button class="hm-btn" id="hmRestoreAutosave"><span class="hm-icon">🔄</span>Restore autosave…</button>
+  <div class="hm-sep"></div>
+  <button class="hm-btn" id="hmFindReplace"><span class="hm-icon">🔍</span>Find &amp; replace</button>
+  <button class="hm-btn" id="hmRenameDoc"><span class="hm-icon">✏️</span>Rename document</button>
+  <div class="hm-sep"></div>
+  <button class="hm-btn" id="hmLLMSettings"><span class="hm-icon">⚙</span>LLM provider…</button>
+  <div class="hm-sep"></div>
+  <button class="hm-btn" id="hmKeyboardHelp"><span class="hm-icon">⌨</span>Keyboard shortcuts</button>
+</div>
+
+<!-- CONTEXT MENU -->
+<div class="context-menu" id="contextMenu">
+  <button class="ctx-btn" id="ctxEdit">Edit line</button>
+  <button class="ctx-btn" id="ctxInsertAbove">Insert line above</button>
+  <button class="ctx-btn" id="ctxInsertBelow">Insert line below</button>
+  <div class="ctx-sep"></div>
+  <button class="ctx-btn" id="ctxLock">Lock line</button>
+  <button class="ctx-btn" id="ctxUnlock">Unlock line</button>
+  <button class="ctx-btn" id="ctxDelete">Delete line</button>
+</div>
+
+<!-- LLM MODAL -->
+<div class="modal-backdrop" id="llmModalBackdrop">
+  <div class="modal">
+    <div class="modal-title">LLM Provider</div>
+    <div class="modal-body">
+      <label>Provider</label>
+      <select id="llmProvider">
+        <option value="claude">Claude (Anthropic API)</option>
+        <option value="openai">OpenAI / OpenAI-compatible</option>
+        <option value="local">Local (Ollama, LM Studio)</option>
+        <option value="pubpartner">PubPartner (local server)</option>
+      </select>
+      <div id="llmFieldsClaude" class="llm-fields">
+        <label>API key</label><input id="llmClaudeKey" type="password" placeholder="sk-ant-…" autocomplete="off" />
+        <label>Model</label><input id="llmClaudeModel" type="text" value="claude-sonnet-4-6" />
+      </div>
+      <div id="llmFieldsOpenai" class="llm-fields">
+        <label>API key</label><input id="llmOpenaiKey" type="password" placeholder="sk-…" autocomplete="off" />
+        <label>Base URL</label><input id="llmOpenaiEndpoint" type="text" value="https://api.openai.com/v1" />
+        <label>Model</label><input id="llmOpenaiModel" type="text" value="gpt-4o-mini" />
+      </div>
+      <div id="llmFieldsLocal" class="llm-fields">
+        <label>Endpoint URL</label><input id="llmLocalEndpoint" type="text" value="http://localhost:11434/v1/chat/completions" />
+        <label>Model</label><input id="llmLocalModel" type="text" value="llama3" />
+      </div>
+      <div class="llm-fields" id="reachModelFields">
+        <label for="reachProvider">AI provider</label><select id="reachProvider"><option value="ollama">Ollama</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="mock">Mock (tests only)</option></select>
+        <label for="reachModel">Model</label><input id="reachModel" type="text" autocomplete="off" />
+        <label for="reachCredential">Credential ID</label><input id="reachCredential" type="text" autocomplete="off" />
+        <label for="reachBaseURL">Provider base URL</label><input id="reachBaseURL" type="text" autocomplete="off" />
+      </div>
+      <div id="llmFieldsPubpartner" class="llm-fields">
+        <label>PubPartner URL</label><input id="llmPPEndpoint" type="text" value="" placeholder="Current Foresight host" />
+        <label>Auth token (if set)</label><input id="llmPPToken" type="password" autocomplete="off" />
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="mc-btn" id="llmTestBtn">Test</button>
+      <button class="mc-btn" id="llmCancelBtn">Cancel</button>
+      <button class="mc-btn primary" id="llmSaveBtn">Save</button>
+    </div>
+    <div id="llmTestResult" class="test-result"></div>
+  </div>
+</div>
+
+<!-- FIND & REPLACE MODAL -->
+<div class="modal-backdrop" id="frModalBackdrop">
+  <div class="modal">
+    <div class="modal-title">Find &amp; Replace</div>
+    <div class="modal-body">
+      <label>Find</label><input id="frFind" type="text" placeholder="text to find…" autocomplete="off" />
+      <label>Replace with</label><input id="frReplace" type="text" placeholder="replacement…" autocomplete="off" />
+    </div>
+    <div class="modal-actions">
+      <button class="mc-btn" id="frCloseBtn">Close</button>
+      <button class="mc-btn primary" id="frReplaceAllBtn">Replace all</button>
+    </div>
+    <div id="frResult" class="test-result"></div>
+  </div>
+</div>
+
+<!-- RENAME MODAL -->
+<div class="modal-backdrop" id="renameModalBackdrop">
+  <div class="modal">
+    <div class="modal-title">Rename Document</div>
+    <div class="modal-body">
+      <label>Title</label><input id="renameInput" type="text" />
+    </div>
+    <div class="modal-actions">
+      <button class="mc-btn" onclick="closeModal('renameModalBackdrop')">Cancel</button>
+      <button class="mc-btn primary" id="renameSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- KEYBOARD SHORTCUTS MODAL -->
+<div class="modal-backdrop" id="kbModalBackdrop">
+  <div class="modal">
+    <div class="modal-title">Keyboard Shortcuts</div>
+    <div class="modal-body" style="font-family:'IBM Plex Mono',monospace; font-size:11px; line-height:2;">
+      <span style="color:var(--gold)">Ctrl+S</span> — Save document<br>
+      <span style="color:var(--gold)">Ctrl+Z</span> — Undo<br>
+      <span style="color:var(--gold)">Ctrl+Y</span> — Redo<br>
+      <span style="color:var(--gold)">Ctrl+F</span> — Find &amp; replace<br>
+      <span style="color:var(--gold)">Ctrl+E</span> — Export manuscript<br>
+      <span style="color:var(--gold)">Ctrl+Enter</span> — Commit draft (collab mode)<br>
+      <span style="color:var(--gold)">Ctrl+G</span> — Generate next (collab mode)<br>
+      <span style="color:var(--gold)">Space</span> — Play/Pause (when draft area unfocused)<br>
+      <span style="color:var(--gold)">Escape</span> — Close menus/modals
+    </div>
+    <div class="modal-actions">
+      <button class="mc-btn primary" onclick="closeModal('kbModalBackdrop')">Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- AUTOSAVE RESTORE MODAL -->
+<div class="modal-backdrop" id="autosaveModalBackdrop">
+  <div class="modal">
+    <div class="modal-title">Restore Autosave</div>
+    <div class="modal-body" id="autosaveList" style="font-family:'IBM Plex Mono',monospace; font-size:11px;">
+      Checking for autosaves…
+    </div>
+    <div class="modal-actions">
+      <button class="mc-btn" onclick="closeModal('autosaveModalBackdrop')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD REFERENCE MODAL -->
+<div class="modal-backdrop" id="addRefModalBackdrop">
+  <div class="modal">
+    <div class="modal-title">Add Reference</div>
+    <div class="modal-body">
+      <label>Name</label><input id="refNameInput" type="text" placeholder="Character profile, chapter outline…" />
+      <label>Type</label>
+      <select id="refTypeInput">
+        <option value="notes">Notes</option>
+        <option value="chapter">Chapter</option>
+        <option value="research">Research</option>
+        <option value="character">Character</option>
+      </select>
+      <label>Content</label>
+      <textarea id="refContentInput" style="width:100%; min-height:120px; padding:8px; border-radius:5px; border:1px solid var(--glass-border); background:rgba(0,0,0,0.25); color:var(--parchment); font-family:'Cormorant Garamond',serif; font-size:13px; resize:vertical; outline:none;" placeholder="Paste or type reference content…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="mc-btn" onclick="closeModal('addRefModalBackdrop')">Cancel</button>
+      <button class="mc-btn primary" id="addRefSaveBtn">Add</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   PUBCAST 2i — WRITER'S ROOM — PRODUCTION BUILD
+   ═══════════════════════════════════════════════════════════════════
+   Single-file application. Two modes:
+     WRITE  — solo word processor for manuscript editing
+     COLLAB — co-writing with AI generation + approval flow
+   
+   All buttons wired. All features functional. No stubs.
+   ═══════════════════════════════════════════════════════════════════ */
+
+// ── LLM ENGINE ─────────────────────────────────────────────────────
+const LLM_KEY = 'pubcast2i_llm_v2';
+function defaultLLM() {
+  return {
+    provider:'claude',
+    claude:  { apiKey:'', model:'claude-sonnet-4-6' },
+    openai:  { apiKey:'', endpoint:'https://api.openai.com/v1', model:'gpt-4o-mini' },
+    local:   { endpoint:'http://localhost:11434/v1/chat/completions', model:'llama3' },
+    pubpartner: { endpoint:location.origin, token:'' }
+  };
+}
+function loadLLM() {
+  try {
+    const raw = localStorage.getItem(LLM_KEY);
+    if (!raw) return defaultLLM();
+    const p = JSON.parse(raw), d = defaultLLM();
+    const m = Object.assign({}, d, p);
+    for (const k of ['claude','openai','local','pubpartner']) m[k] = Object.assign({}, d[k], p[k] || {});
+    // Migrate the stale original-host setting; keep intentionally selected remote hosts.
+    if (/^http:\/\/localhost:8000\/?$/.test(m.pubpartner.endpoint||'')) m.pubpartner.endpoint=location.origin;
+    return m;
+  } catch { return defaultLLM(); }
+}
+function saveLLM(cfg) { try { localStorage.setItem(LLM_KEY, JSON.stringify(cfg)); } catch {} }
+let llmCfg = loadLLM();
+let abortController = null;
+
+const LLM_ADAPTERS = {
+  claude: {
+    label: 'Claude',
+    configured(c) { return !!(c.claude.apiKey?.trim()); },
+    async send(msgs, c, signal) {
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST', signal,
+        headers: {
+          'Content-Type':'application/json',
+          'x-api-key': c.claude.apiKey.trim(),
+          'anthropic-version':'2023-06-01',
+          'anthropic-dangerous-direct-browser-access':'true'
+        },
+        body: JSON.stringify({
+          model: (c.claude.model || 'claude-sonnet-4-6').trim(),
+          max_tokens: 800,
+          messages: msgs
+        })
+      });
+      if (!r.ok) throw new Error(`Claude API ${r.status}: ${(await r.text()).slice(0,200)}`);
+      const d = await r.json();
+      return (d.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+    }
+  },
+  openai: {
+    label: 'OpenAI',
+    configured(c) { return !!(c.openai.apiKey?.trim()); },
+    async send(msgs, c, signal) {
+      const base = (c.openai.endpoint || 'https://api.openai.com/v1').replace(/\/+$/, '');
+      const r = await fetch(base + '/chat/completions', {
+        method:'POST', signal,
+        headers: { 'Content-Type':'application/json', 'Authorization':'Bearer ' + c.openai.apiKey.trim() },
+        body: JSON.stringify({ model: (c.openai.model || 'gpt-4o-mini').trim(), messages: msgs })
+      });
+      if (!r.ok) throw new Error(`OpenAI API ${r.status}`);
+      const d = await r.json();
+      return d.choices?.[0]?.message?.content?.trim() || '';
+    }
+  },
+  local: {
+    label: 'Local LLM',
+    configured(c) { return !!(c.local.endpoint?.trim()); },
+    async send(msgs, c, signal) {
+      const r = await fetch(c.local.endpoint.trim(), {
+        method:'POST', signal,
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ model: (c.local.model || 'llama3').trim(), messages: msgs, stream: false })
+      });
+      if (!r.ok) throw new Error(`Local LLM ${r.status}`);
+      const d = await r.json();
+      return (d.choices?.[0]?.message?.content || d.message?.content || '').trim();
+    }
+  },
+  pubpartner: {
+    label: 'PubPartner',
+    configured(c) { return !!(c.pubpartner.endpoint?.trim()); },
+    async send(msgs, c, signal) {
+      const base = c.pubpartner.endpoint.replace(/\/+$/, '');
+      const headers = { 'Content-Type':'application/json' };
+      if (c.pubpartner.token?.trim()) headers['Authorization'] = 'Bearer ' + c.pubpartner.token.trim();
+      const r = await fetch(base + '/api/pubpartner/turns/live', {
+        method:'POST', signal, headers,
+        body: JSON.stringify({ messages: msgs })
+      });
+      if (!r.ok) throw new Error(`PubPartner ${r.status}`);
+      const d = await r.json();
+      return d.reply || d.content || d.message || JSON.stringify(d);
+    }
+  }
+};
+
+function llmOk() { return LLM_ADAPTERS[llmCfg.provider]?.configured(llmCfg) || false; }
+async function callLLM(msgs) {
+  const a = LLM_ADAPTERS[llmCfg.provider];
+  if (!a || !a.configured(llmCfg)) throw new Error('LLM not configured');
+  abortController = new AbortController();
+  try { return await a.send(msgs, llmCfg, abortController.signal); }
+  finally { abortController = null; }
+}
+function cancelLLM() { if (abortController) { abortController.abort(); abortController = null; } }
+
+// ── CORE STATE ─────────────────────────────────────────────────────
+let coWriting = false;  // false = WRITE mode, true = COLLAB mode
+let committed = [];     // finalized manuscript lines
+let buffer = [];        // draft lines (collab mode)
+let pool = [];          // generated lines waiting to be read
+let pointer = 0;        // next line in pool
+let lockedLines = new Set();
+let reading = null;     // current line being read aloud
+let playing = false;
+let inReaction = false;
+let selectedIdx = null; // selected committed line index
+let editingIdx = null;  // line being edited
+let generating = false;
+let speaking = false;
+let speechToken = 0;
+let documentTitle = 'Untitled Pubcast 2i Document';
+let documentDirty = false;
+let documentHandle = null;
+let chapters = [{ title: 'Chapter One', subtitle: '', startLine: 0 }];
+let chatHistory = [];
+const MAX_CHAT = 20;
+let undoStack = [];
+let redoStack = [];
+const MAX_UNDO = 60;
+let references = []; // { id, name, type, content, date }
+let refIdCounter = 1;
+let refFilter = 'all';
+let reactionTimer = null;
+
+// ── DOM REFS ───────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const pageSheets = $('pageSheets');
+const manuscriptLines = $('manuscriptLines');
+const manuscriptZone = $('manuscriptZone');
+const soloTextarea = $('soloTextarea');
+const lineNumbers = $('lineNumbers');
+const draftArea = $('draftArea');
+const readingIndicator = $('readingIndicator');
+const chatLog = $('chatLog');
+const chatInput = $('chatInput');
+const contextMenu = $('contextMenu');
+
+// ── UNDO / REDO ────────────────────────────────────────────────────
+function snapshot() {
+  undoStack.push({
+    committed: [...committed],
+    buffer: [...buffer],
+    lockedLines: new Set(lockedLines),
+    chapters: JSON.parse(JSON.stringify(chapters))
+  });
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  redoStack = [];
+}
+function undo() {
+  if (!undoStack.length) return;
+  redoStack.push({ committed: [...committed], buffer: [...buffer], lockedLines: new Set(lockedLines), chapters: JSON.parse(JSON.stringify(chapters)) });
+  const s = undoStack.pop();
+  committed = s.committed; buffer = s.buffer; lockedLines = s.lockedLines; chapters = s.chapters;
+  markDirty(); render();
+}
+function redo() {
+  if (!redoStack.length) return;
+  undoStack.push({ committed: [...committed], buffer: [...buffer], lockedLines: new Set(lockedLines), chapters: JSON.parse(JSON.stringify(chapters)) });
+  const s = redoStack.pop();
+  committed = s.committed; buffer = s.buffer; lockedLines = s.lockedLines; chapters = s.chapters;
+  markDirty(); render();
+}
+
+// ── DIRTY / AUTOSAVE ───────────────────────────────────────────────
+let autosaveTimer = null;
+function markDirty() {
+  documentDirty = true;
+  $('saveIndicator').textContent = 'unsaved';
+  if (autosaveTimer) clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(writeAutosave, 3000);
+}
+const AUTOSAVE_DB = 'pubcast2i-autosave-v2';
+function openDB() {
+  return new Promise(res => {
+    const req = indexedDB.open(AUTOSAVE_DB, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('snaps');
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => res(null);
+  });
+}
+async function writeAutosave() {
+  try {
+    const db = await openDB(); if (!db) return;
+    const payload = { title: documentTitle, ts: Date.now(), state: getDocState() };
+    const tx = db.transaction('snaps', 'readwrite');
+    tx.objectStore('snaps').put(payload, 'autosave_' + (Date.now() % 3));
+    tx.oncomplete = () => {};
+  } catch {}
+}
+setInterval(writeAutosave, 5 * 60 * 1000);
+
+async function listAutosaves() {
+  try {
+    const db = await openDB(); if (!db) return [];
+    return new Promise(res => {
+      const tx = db.transaction('snaps', 'readonly');
+      const store = tx.objectStore('snaps');
+      const req = store.getAll();
+      req.onsuccess = () => res((req.result || []).filter(Boolean).sort((a, b) => b.ts - a.ts));
+      req.onerror = () => res([]);
+    });
+  } catch { return []; }
+}
+
+// ── DOCUMENT STATE ─────────────────────────────────────────────────
+function getDocState() {
+  return {
+    committed, buffer, pool, pointer, chapters,
+    lockedLines: [...lockedLines],
+    coWriting, references,
+    // The Reach writing desk owns per-partner conversations. Persist them with
+    // the manuscript rather than silently dropping them on save/restart.
+    ...(typeof partnerId !== 'undefined' ? {
+      partnerId,
+      conversations: {...conversations, [partnerId]: [...chatHistory]},
+      conversationIds: {...conversationIds}
+    } : {})
+  };
+}
+function docPayload() {
+  return { format: '2i-document', version: 4, title: documentTitle, state: getDocState() };
+}
+function loadDocState(state) {
+  committed = state.committed || [];
+  buffer = state.buffer || [];
+  pool = state.pool || [];
+  pointer = state.pointer || 0;
+  chapters = state.chapters || [{ title: 'Chapter One', subtitle: '', startLine: 0 }];
+  lockedLines = new Set(state.lockedLines || []);
+  if (state.coWriting !== undefined) { coWriting = state.coWriting; updateModeUI(); }
+  if (state.references) { references = state.references; refIdCounter = Math.max(1, ...references.map(r => r.id || 0)) + 1; }
+  if (typeof partnerId !== 'undefined') {
+    if (state.partnerId) partnerId = state.partnerId;
+    conversations = state.conversations && typeof state.conversations === 'object' ? state.conversations : {};
+    conversationIds = state.conversationIds && typeof state.conversationIds === 'object' ? state.conversationIds : {};
+    chatHistory = conversations[partnerId] || [];
+    if (typeof restoreConversation === 'function') restoreConversation();
+  }
+  selectedIdx = null; editingIdx = null;
+  undoStack = []; redoStack = [];
+  render();
+}
+
+// ── SAVE / OPEN / EXPORT ───────────────────────────────────────────
+function safeName() { return documentTitle.replace(/[\\/:*?"<>|]/g, '-').trim() || 'Untitled'; }
+async function saveDocument() {
+  if (documentHandle) {
+    try {
+      const w = await documentHandle.createWritable();
+      await w.write(JSON.stringify(docPayload(), null, 2));
+      await w.close();
+      documentDirty = false; $('saveIndicator').textContent = 'saved';
+      return;
+    } catch {}
+  }
+  await saveDocumentAs();
+}
+async function saveDocumentAs() {
+  const payload = docPayload();
+  if ('showSaveFilePicker' in window) {
+    try {
+      const h = await window.showSaveFilePicker({
+        suggestedName: safeName() + '.2i',
+        types: [{ description: '2i Document', accept: { 'application/json': ['.2i'] } }]
+      });
+      const w = await h.createWritable(); await w.write(JSON.stringify(payload, null, 2)); await w.close();
+      documentHandle = h; documentDirty = false; $('saveIndicator').textContent = 'saved';
+      return;
+    } catch {}
+  }
+  // Fallback: download
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = safeName() + '.2i'; a.click(); URL.revokeObjectURL(a.href);
+  documentDirty = false; $('saveIndicator').textContent = 'saved';
+}
+async function openDocument() {
+  if ('showOpenFilePicker' in window) {
+    try {
+      const [h] = await window.showOpenFilePicker({
+        types: [{ description: '2i Document', accept: { 'application/json': ['.2i'] } }]
+      });
+      const file = await h.getFile();
+      const text = await file.text();
+      const doc = JSON.parse(text);
+      if (doc.format !== '2i-document') throw new Error('Not a 2i document');
+      documentTitle = doc.title || 'Untitled';
+      documentHandle = h;
+      loadDocState(doc.state);
+      documentDirty = false; $('saveIndicator').textContent = 'saved';
+      render();
+      return;
+    } catch (e) { if (e.name !== 'AbortError') addChat('pp', '⚠ ' + e.message); return; }
+  }
+  // Fallback: file input
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.2i,.json';
+  inp.onchange = async () => {
+    const file = inp.files[0]; if (!file) return;
+    try {
+      const text = await file.text();
+      const doc = JSON.parse(text);
+      documentTitle = doc.title || 'Untitled';
+      documentHandle = null;
+      loadDocState(doc.state);
+      documentDirty = false; $('saveIndicator').textContent = 'saved';
+      render();
+    } catch (e) { addChat('pp', '⚠ ' + e.message); }
+  };
+  inp.click();
+}
+function exportManuscript() {
+  let md = '# ' + documentTitle + '\n\n';
+  let chIdx = 0;
+  committed.forEach((line, i) => {
+    const ch = chapters.find(c => c.startLine === i);
+    if (ch) { md += '\n## ' + ch.title + (ch.subtitle ? '\n*' + ch.subtitle + '*' : '') + '\n\n'; }
+    md += line + '\n';
+  });
+  if (buffer.length) { md += '\n---\n*Draft:*\n\n' + buffer.join('\n') + '\n'; }
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = safeName() + '.md'; a.click(); URL.revokeObjectURL(a.href);
+}
+function newDocument() {
+  if (documentDirty && !confirm('Discard unsaved changes?')) return;
+  committed = []; buffer = []; pool = []; pointer = 0;
+  lockedLines = new Set(); chapters = [{ title:'Chapter One', subtitle:'', startLine:0 }];
+  selectedIdx = null; editingIdx = null; reading = null;
+  documentTitle = 'Untitled Pubcast 2i Document'; documentHandle = null;
+  documentDirty = false; $('saveIndicator').textContent = 'unsaved';
+  undoStack = []; redoStack = []; chatHistory = [];
+  chatLog.innerHTML = ''; references = [];
+  render();
+}
+
+// ── MODE SWITCHING ─────────────────────────────────────────────────
+function updateModeUI() {
+  const badge = $('modeBadge');
+  if (coWriting) {
+    badge.textContent = 'Collab'; badge.className = 'mode-badge collab';
+    pageSheets.classList.remove('solo-mode');
+    $('collabOnlyControls').classList.remove('hidden');
+    $('playbackControls').classList.remove('hidden');
+    $('zoneLabel').textContent = 'Manuscript — locked';
+  } else {
+    badge.textContent = 'Write'; badge.className = 'mode-badge write';
+    pageSheets.classList.add('solo-mode');
+    $('collabOnlyControls').classList.add('hidden');
+    $('playbackControls').classList.add('hidden');
+    $('zoneLabel').textContent = 'Manuscript';
+  }
+}
+function toggleMode() {
+  if (coWriting && buffer.length) approveBuffer();
+  coWriting = !coWriting;
+  if (!coWriting) {
+    // switching to solo: merge committed into textarea
+    soloTextarea.value = committed.join('\n');
+    stopPlaying();
+  } else {
+    // switching to collab: split textarea back into committed
+    const text = soloTextarea.value;
+    committed = text.split('\n');
+    buffer = [];
+  }
+  updateModeUI(); markDirty(); render();
+}
+$('modeBadge').onclick = toggleMode;
+
+// ── APPROVE / LOCK / UNLOCK / CHAPTERS ─────────────────────────────
+function approveBuffer() {
+  if (!buffer.length) return;
+  snapshot();
+  const approved = buffer.slice();
+  committed.push(...buffer);
+  buffer = []; draftArea.value = '';
+  selectedIdx = null; editingIdx = null;
+  markDirty(); render();
+  closeMenu();
+  approved.forEach(t => { if (ppWasGenerated(t)) ppVoiceSignal('accepted', t); });
+  ppCommit();
+}
+function lockScene() {
+  snapshot();
+  // Lock lines from the last chapter start to end of committed
+  const lastChapter = [...chapters].reverse().find(c => c.startLine <= committed.length - 1);
+  const start = lastChapter ? lastChapter.startLine : 0;
+  for (let i = start; i < committed.length; i++) lockedLines.add(i);
+  markDirty(); render();
+}
+function lockAll() {
+  snapshot();
+  committed.forEach((_, i) => lockedLines.add(i));
+  markDirty(); render();
+}
+function unlockSelected() {
+  if (selectedIdx === null) { addChat('pp', 'Select a line first, then unlock it.'); return; }
+  snapshot();
+  lockedLines.delete(selectedIdx);
+  markDirty(); render();
+}
+function newChapter() {
+  snapshot();
+  const num = chapters.length + 1;
+  const title = prompt('Chapter title:', 'Chapter ' + numberToWord(num));
+  if (!title) return;
+  const sub = prompt('Subtitle (optional):', '') || '';
+  chapters.push({ title, subtitle: sub, startLine: committed.length + buffer.length });
+  markDirty(); render();
+}
+function numberToWord(n) {
+  const w = ['One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve'];
+  return w[n - 1] || String(n);
+}
+
+$('approveBtn').onclick = approveBuffer;
+$('lockSceneBtn').onclick = lockScene;
+$('lockAllBtn').onclick = lockAll;
+$('unlockBtn').onclick = unlockSelected;
+$('newChapterBtn').onclick = newChapter;
+$('exportBtn').onclick = () => { exportManuscript(); closeMenu(); };
+
+// ── AI GENERATION ──────────────────────────────────────────────────
+async function generateMore() {
+  if (generating || !llmOk()) return false;
+  generating = true; $('genBtn').disabled = true;
+  $('statusText').textContent = 'generating…';
+  try {
+    if (PP.online) {
+      try {
+        const lines = await ppGenerate();
+        if (lines.length) {
+          lines.forEach(l => ppMarkGenerated(l));
+          pool = pool.concat(lines);
+          return true;
+        }
+      } catch (e) { console.debug('[2i] falling back to direct LLM:', e.message); }
+    }
+    const context = committed.slice(-8).join('\n') + (buffer.length ? '\n' + buffer.join('\n') : '');
+    const prompt = 'Continue this manuscript with the next 2-4 sentences of prose. Return ONLY the new prose, each sentence on its own line.\n\nContext:\n' + context;
+    const reply = await callLLM([{ role: 'user', content: prompt }]);
+    const lines = reply.split(/\n+/).map(l => l.trim()).filter(Boolean);
+    if (lines.length) { lines.forEach(l => ppMarkGenerated(l)); pool = pool.concat(lines); return true; }
+  } catch (e) {
+    if (e.name !== 'AbortError') addChat('pp', '⚠ Generation failed: ' + e.message);
+  } finally {
+    generating = false; $('genBtn').disabled = false; render();
+  }
+  return false;
+}
+$('genBtn').onclick = () => { if (!playing && !generating) { closeMenu(); tick(); } };
+
+// ── PLAYBACK / TICK ────────────────────────────────────────────────
+async function tick() {
+  if (reading) { buffer.push(reading.text); markDirty(); reading = null; }
+  if (pointer >= pool.length && llmOk() && !generating) {
+    const got = await generateMore();
+    if (!got) { stopPlaying(); render(); return; }
+  }
+  if (pointer < pool.length) {
+    reading = { text: pool[pointer] }; pointer++;
+    markDirty(); render();
+    if (playing) {
+      speechRead(reading.text, () => {
+        if (!playing || !reading) return;
+        inReaction = true; render();
+        reactionTimer = setTimeout(() => { inReaction = false; if (playing) tick(); }, 6000);
+      });
+    }
+  } else { stopPlaying(); }
+  render();
+}
+function startPlaying() {
+  if (playing) return;
+  playing = true; inReaction = false;
+  if (!reading) tick();
+  else speechRead(reading.text, () => {
+    inReaction = true; render();
+    reactionTimer = setTimeout(() => { inReaction = false; tick(); }, 6000);
+  });
+  render();
+}
+function stopPlaying() {
+  cancelSpeech(); cancelLLM();
+  if (reactionTimer) { clearTimeout(reactionTimer); reactionTimer = null; }
+  inReaction = false; playing = false; render();
+}
+
+$('playBtn').onclick = () => playing ? stopPlaying() : startPlaying();
+$('stopBtn').onclick = stopPlaying;
+$('skipBtn').onclick = () => {
+  if (inReaction) { inReaction = false; if (reactionTimer) clearTimeout(reactionTimer); if (playing) tick(); return; }
+  if (playing && reading) { cancelSpeech(); tick(); }
+  else if (!playing) tick();
+};
+
+// ── SPEECH ─────────────────────────────────────────────────────────
+function speechRead(text, done) {
+  if (!('speechSynthesis' in window)) { if (done) done(); return; }
+  const token = ++speechToken;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = parseFloat($('speedSlider').value) || 1;
+  u.onstart = () => { if (token !== speechToken) return; speaking = true; render(); };
+  u.onend = () => { if (token !== speechToken) return; speaking = false; render(); if (done) done(); };
+  u.onerror = () => { if (token !== speechToken) return; speaking = false; render(); if (done) done(); };
+  window.speechSynthesis.speak(u);
+}
+function cancelSpeech() {
+  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  speechToken++; speaking = false;
+}
+
+// ── CHAT ───────────────────────────────────────────────────────────
+function escHtml(s) { return s.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function addChat(who, text, thinking) {
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + (who === 'you' ? 'you' : 'pp') + (thinking ? ' thinking' : '');
+  div.innerHTML = '<span class="who">' + (who === 'you' ? 'You' : 'PubPartner') + '</span>' + escHtml(text);
+  chatLog.appendChild(div);
+  chatLog.scrollTop = chatLog.scrollHeight;
+  return div;
+}
+let chatSending = false;
+async function sendChat() {
+  if (chatSending) return;
+  const v = chatInput.value.trim(); if (!v) return;
+  chatSending = true; addChat('you', v); chatInput.value = '';
+  chatHistory.push({ role: 'user', content: v });
+  if (chatHistory.length > MAX_CHAT * 2) chatHistory = chatHistory.slice(-MAX_CHAT * 2);
+  $('chatSendBtn').disabled = true;
+  const thinkEl = addChat('pp', '…thinking…', true);
+  try {
+    const sys = 'You are PubPartner, a creative writing collaborator. Be concise and helpful.\nManuscript context:\n' + committed.slice(-6).join('\n');
+    const reply = await callLLM([{ role: 'user', content: sys }, ...chatHistory.slice(-MAX_CHAT)]);
+    thinkEl.remove(); addChat('pp', reply || '(empty)');
+    chatHistory.push({ role: 'assistant', content: reply || '' });
+  } catch (e) {
+    thinkEl.remove();
+    if (e.name !== 'AbortError') addChat('pp', '⚠ ' + e.message);
+  } finally { $('chatSendBtn').disabled = false; chatSending = false; }
+}
+$('chatSendBtn').onclick = sendChat;
+chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+
+// Voice input
+const SpeechAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+const micBtn = $('chatMicBtn');
+if (SpeechAPI) {
+  const rec = new SpeechAPI(); rec.interimResults = true;
+  let listening = false, baseText = '';
+  rec.onresult = e => {
+    let t = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript;
+    chatInput.value = (baseText + ' ' + t).trim();
+  };
+  rec.onend = () => { listening = false; micBtn.classList.remove('listening'); };
+  micBtn.onclick = () => {
+    if (listening) { rec.stop(); return; }
+    baseText = chatInput.value.trim(); rec.start(); listening = true; micBtn.classList.add('listening');
+  };
+} else {
+  micBtn.disabled = true; micBtn.title = 'Speech not supported in this browser';
+}
+
+// ── REFERENCE ARCHIVE ──────────────────────────────────────────────
+function addReference(name, type, content) {
+  references.push({ id: refIdCounter++, name, type: type || 'notes', content, date: new Date().toLocaleDateString() });
+  markDirty(); renderRefs();
+}
+function deleteReference(id) {
+  references = references.filter(r => r.id !== id);
+  markDirty(); renderRefs();
+}
+function renderRefs() {
+  const container = $('refListContainer');
+  const search = $('refSearchInput').value.toLowerCase();
+  container.innerHTML = '';
+  const filtered = references.filter(r => {
+    if (refFilter !== 'all' && r.type !== refFilter) return false;
+    if (search && !r.name.toLowerCase().includes(search) && !r.content.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  if (!filtered.length) {
+    container.innerHTML = '<div style="font-size:11px; color:var(--parchment-soft); padding:8px; text-align:center;">No references yet</div>';
+    return;
+  }
+  const icons = { chapter:'📖', research:'🔬', notes:'📝', character:'👤' };
+  filtered.forEach(r => {
+    const el = document.createElement('div'); el.className = 'ref-item';
+    el.innerHTML = `<div class="ref-icon">${icons[r.type] || '📄'}</div>
+      <div class="ref-meta">
+        <div class="ref-name">${escHtml(r.name)}</div>
+        <div class="ref-type">${r.type}</div>
+        <div class="ref-date">${r.date}</div>
+      </div>
+      <div class="ref-actions">
+        <button class="ref-action-btn" title="View" onclick="viewRef(${r.id})">📋</button>
+        <button class="ref-action-btn" title="Delete" onclick="if(confirm('Delete this reference?'))deleteReference(${r.id})">✕</button>
+      </div>`;
+    container.appendChild(el);
+  });
+}
+function viewRef(id) {
+  const r = references.find(x => x.id === id); if (!r) return;
+  $('refViewerTitle').textContent = r.name;
+  $('refViewerBody').textContent = r.content;
+  $('refViewer').classList.add('open');
+}
+function closeRefViewer() { $('refViewer').classList.remove('open'); }
+function setRefFilter(btn, filter) {
+  refFilter = filter;
+  document.querySelectorAll('.ref-tab').forEach(t => t.classList.toggle('active', t.dataset.filter === filter));
+  renderRefs();
+}
+function filterRefs() { renderRefs(); }
+$('refSearchInput').addEventListener('input', renderRefs);
+
+$('addRefBtn').onclick = () => {
+  $('refNameInput').value = '';
+  $('refTypeInput').value = 'notes';
+  $('refContentInput').value = '';
+  openModal('addRefModalBackdrop');
+  setTimeout(() => $('refNameInput').focus(), 100);
+};
+$('addRefSaveBtn').onclick = () => {
+  const name = $('refNameInput').value.trim();
+  if (!name) { $('refNameInput').focus(); return; }
+  addReference(name, $('refTypeInput').value, $('refContentInput').value);
+  closeModal('addRefModalBackdrop');
+};
+
+// ── FIND & REPLACE ─────────────────────────────────────────────────
+$('frReplaceAllBtn').onclick = () => {
+  const find = $('frFind').value;
+  const replace = $('frReplace').value;
+  if (!find || find.length === 0) {
+    $('frResult').textContent = 'Enter text to find.';
+    $('frResult').className = 'test-result err';
+    return;
+  }
+  snapshot();
+  let count = 0;
+  // Replace in committed
+  committed = committed.map(l => {
+    if (l.includes(find)) { count += l.split(find).length - 1; return l.split(find).join(replace); }
+    return l;
+  });
+  // Replace in buffer
+  buffer = buffer.map(l => {
+    if (l.includes(find)) { count += l.split(find).length - 1; return l.split(find).join(replace); }
+    return l;
+  });
+  // Replace in reading
+  if (reading?.text?.includes(find)) {
+    count += reading.text.split(find).length - 1;
+    reading.text = reading.text.split(find).join(replace);
+  }
+  // Replace in solo textarea
+  if (!coWriting) {
+    const val = soloTextarea.value;
+    if (val.includes(find)) {
+      count += val.split(find).length - 1;
+      soloTextarea.value = val.split(find).join(replace);
+      committed = soloTextarea.value.split('\n');
+    }
+  }
+  $('frResult').textContent = count + ' replacement' + (count !== 1 ? 's' : '') + ' made';
+  $('frResult').className = 'test-result ok';
+  markDirty(); render();
+};
+
+// ── CONTEXT MENU ───────────────────────────────────────────────────
+function showContextMenu(e, idx) {
+  e.preventDefault();
+  selectedIdx = idx;
+  const locked = lockedLines.has(idx);
+  $('ctxLock').style.display = locked ? 'none' : '';
+  $('ctxUnlock').style.display = locked ? '' : 'none';
+  contextMenu.classList.add('open');
+  const cmW = contextMenu.offsetWidth || 170;
+  const cmH = contextMenu.offsetHeight || 200;
+  const cx = Math.min(e.clientX, window.innerWidth - cmW - 8);
+  const cy = Math.min(e.clientY, window.innerHeight - cmH - 8);
+  contextMenu.style.left = Math.max(0, cx) + 'px';
+  contextMenu.style.top = Math.max(0, cy) + 'px';
+  render();
+}
+document.addEventListener('click', () => contextMenu.classList.remove('open'));
+
+$('ctxEdit').onclick = () => {
+  if (selectedIdx === null) return;
+  if (lockedLines.has(selectedIdx)) { addChat('pp', 'Unlock the line first.'); return; }
+  editingIdx = selectedIdx; render();
+};
+$('ctxInsertAbove').onclick = () => {
+  if (selectedIdx === null) return;
+  snapshot(); committed.splice(selectedIdx, 0, '');
+  // Shift locked lines
+  const newLocked = new Set();
+  lockedLines.forEach(i => newLocked.add(i >= selectedIdx ? i + 1 : i));
+  lockedLines = newLocked;
+  // Shift chapter startLines
+  chapters.forEach(c => { if (c.startLine >= selectedIdx) c.startLine++; });
+  editingIdx = selectedIdx;
+  markDirty(); render();
+};
+$('ctxInsertBelow').onclick = () => {
+  if (selectedIdx === null) return;
+  const insertAt = selectedIdx + 1;
+  snapshot(); committed.splice(insertAt, 0, '');
+  const newLocked = new Set();
+  lockedLines.forEach(i => newLocked.add(i >= insertAt ? i + 1 : i));
+  lockedLines = newLocked;
+  chapters.forEach(c => { if (c.startLine >= insertAt) c.startLine++; });
+  editingIdx = insertAt; selectedIdx = insertAt;
+  markDirty(); render();
+};
+$('ctxLock').onclick = () => {
+  if (selectedIdx === null) return;
+  snapshot(); lockedLines.add(selectedIdx); markDirty(); render();
+};
+$('ctxUnlock').onclick = () => {
+  if (selectedIdx === null) return;
+  snapshot(); lockedLines.delete(selectedIdx); markDirty(); render();
+};
+$('ctxDelete').onclick = () => {
+  if (selectedIdx === null) return;
+  if (lockedLines.has(selectedIdx)) { addChat('pp', 'Unlock the line before deleting.'); return; }
+  snapshot(); committed.splice(selectedIdx, 1);
+  const newLocked = new Set();
+  lockedLines.forEach(i => { if (i < selectedIdx) newLocked.add(i); else if (i > selectedIdx) newLocked.add(i - 1); });
+  lockedLines = newLocked;
+  chapters.forEach(c => { if (c.startLine > selectedIdx) c.startLine--; });
+  selectedIdx = null; markDirty(); render();
+};
+
+// ── RENDER ──────────────────────────────────────────────────────────
+function render() {
+  // Status
+  $('statusDot').className = 'status-dot ' + (playing ? 'playing' : 'paused');
+  $('statusText').textContent = playing ? (speaking ? 'reading aloud…' : 'reading…') : (generating ? 'generating…' : 'idle');
+  $('playBtn').textContent = playing ? '⏸' : '▶';
+  $('playBtn').classList.toggle('active', playing);
+  $('docTitleDisplay').textContent = documentTitle;
+
+  // Word count
+  let allText;
+  if (coWriting) {
+    allText = committed.join(' ') + ' ' + buffer.join(' ');
+  } else {
+    allText = soloTextarea.value;
+  }
+  const wc = allText.trim().split(/\s+/).filter(Boolean).length;
+  $('wordCount').textContent = wc.toLocaleString() + ' words';
+  $('mcWordProgress').textContent = wc.toLocaleString() + ' words';
+
+  // Manuscript control status
+  const allLocked = committed.length > 0 && committed.every((_, i) => lockedLines.has(i));
+  $('mcDraftStatus').textContent = allLocked ? 'Locked' : 'Active';
+  const targetWc = 50000; // reasonable novel target
+  const pct = Math.min(100, Math.round((wc / targetWc) * 100));
+  $('mcPercent').textContent = pct + '%';
+  $('mcProgressFill').style.width = pct + '%';
+
+  // LLM pill
+  if (llmOk()) {
+    $('llmPill').textContent = LLM_ADAPTERS[llmCfg.provider].label;
+    $('llmPill').className = 'llm-pill ok';
+  } else {
+    $('llmPill').textContent = 'no LLM';
+    $('llmPill').className = 'llm-pill';
+  }
+
+  if (coWriting) {
+    renderManuscriptLines();
+    renderReading();
+    draftArea.value = buffer.join('\n');
+  } else {
+    updateLineNumbers();
+  }
+
+  renderRefs();
+}
+
+function renderManuscriptLines() {
+  manuscriptLines.innerHTML = '';
+  let lineNum = 1;
+  committed.forEach((text, i) => {
+    // Check for chapter heading
+    const ch = chapters.find(c => c.startLine === i);
+    if (ch) {
+      const heading = document.createElement('div'); heading.className = 'chapter-heading';
+      heading.textContent = ch.title; manuscriptLines.appendChild(heading);
+      if (ch.subtitle) {
+        const sub = document.createElement('div'); sub.className = 'chapter-subtitle';
+        sub.textContent = ch.subtitle; manuscriptLines.appendChild(sub);
+      }
+      const divider = document.createElement('div'); divider.className = 'chapter-divider';
+      divider.innerHTML = '✦ ✦ ✦'; manuscriptLines.appendChild(divider);
+    }
+
+    if (editingIdx === i) {
+      // Editing mode
+      const wrap = document.createElement('div'); wrap.className = 'm-line selected';
+      wrap.innerHTML = `<span class="line-num">${lineNum}</span>`;
+      const editDiv = document.createElement('div'); editDiv.className = 'm-line-edit'; editDiv.style.flex = '1';
+      const ta = document.createElement('textarea'); ta.value = text; ta.rows = 2;
+      ta.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault(); snapshot();
+          const before = committed[i];
+          committed[i] = ta.value;
+          editingIdx = null; markDirty(); render();
+          if (before !== ta.value && ppWasGenerated(before)) {
+            ppVoiceSignal('rewritten', before, ta.value);
+            ppForgetGenerated(before);
+          }
+          ppCommit();
+        }
+        if (e.key === 'Escape') { editingIdx = null; render(); }
+      });
+      editDiv.appendChild(ta); wrap.appendChild(editDiv);
+      manuscriptLines.appendChild(wrap);
+      setTimeout(() => ta.focus(), 0);
+    } else {
+      const div = document.createElement('div');
+      div.className = 'm-line' + (selectedIdx === i ? ' selected' : '') + (lockedLines.has(i) ? ' locked' : '');
+      div.innerHTML = `<span class="line-num">${lineNum}</span>${escHtml(text)}`;
+      div.onclick = () => { selectedIdx = (selectedIdx === i) ? null : i; render(); };
+      div.oncontextmenu = e => showContextMenu(e, i);
+      div.ondblclick = () => {
+        if (lockedLines.has(i)) { addChat('pp', 'Unlock the line to edit it.'); return; }
+        editingIdx = i; render();
+      };
+      manuscriptLines.appendChild(div);
+    }
+    lineNum++;
+  });
+
+  // Scroll to bottom
+  manuscriptZone.scrollTop = manuscriptZone.scrollHeight;
+}
+
+function renderReading() {
+  readingIndicator.innerHTML = '';
+  if (reading) {
+    const div = document.createElement('div');
+    div.className = 'reading-line' + (inReaction ? ' reaction' : '');
+    div.textContent = reading.text;
+    // Accept/reject buttons
+    const btns = document.createElement('div');
+    btns.style.cssText = 'display:flex; gap:6px; margin:4px 0 0 55px;';
+    const acceptBtn = document.createElement('button'); acceptBtn.className = 'mc-btn primary';
+    acceptBtn.textContent = '✓ Accept'; acceptBtn.style.cssText = 'padding:3px 10px; font-size:9px;';
+    acceptBtn.onclick = () => { buffer.push(reading.text); reading = null; markDirty(); render(); };
+    const rejectBtn = document.createElement('button'); rejectBtn.className = 'mc-btn danger';
+    rejectBtn.textContent = '✕ Reject'; rejectBtn.style.cssText = 'padding:3px 10px; font-size:9px;';
+    rejectBtn.onclick = () => { ppVoiceSignal('rejected', reading.text); ppForgetGenerated(reading.text); reading = null; render(); };
+    btns.appendChild(acceptBtn); btns.appendChild(rejectBtn);
+    readingIndicator.appendChild(div);
+    if (!playing) readingIndicator.appendChild(btns);
+  }
+}
+
+function updateLineNumbers() {
+  const lines = soloTextarea.value.split('\n');
+  lineNumbers.innerHTML = lines.map((_, i) => (i + 1)).join('<br>');
+}
+
+// Sync solo textarea scroll with line numbers
+soloTextarea.addEventListener('scroll', () => { lineNumbers.scrollTop = soloTextarea.scrollTop; });
+soloTextarea.addEventListener('input', () => {
+  updateLineNumbers();
+  committed = soloTextarea.value.split('\n');
+  markDirty();
+});
+draftArea.addEventListener('input', () => {
+  buffer = draftArea.value.split('\n');
+  markDirty();
+});
+
+// ── LLM MODAL ──────────────────────────────────────────────────────
+function showLLMFields() {
+  const p = $('llmProvider').value;
+  document.querySelectorAll('.llm-fields').forEach(el => el.classList.remove('active'));
+  const map = { claude:'llmFieldsClaude', openai:'llmFieldsOpenai', local:'llmFieldsLocal', pubpartner:'llmFieldsPubpartner' };
+  if (map[p]) $(map[p]).classList.add('active');
+}
+$('llmProvider').onchange = showLLMFields;
+
+function openLLMModal() {
+  $('llmProvider').value = llmCfg.provider;
+  $('llmClaudeKey').value = llmCfg.claude.apiKey || '';
+  $('llmClaudeModel').value = llmCfg.claude.model || '';
+  $('llmOpenaiKey').value = llmCfg.openai.apiKey || '';
+  $('llmOpenaiEndpoint').value = llmCfg.openai.endpoint || '';
+  $('llmOpenaiModel').value = llmCfg.openai.model || '';
+  $('llmLocalEndpoint').value = llmCfg.local.endpoint || '';
+  $('llmLocalModel').value = llmCfg.local.model || '';
+  $('llmPPEndpoint').value = llmCfg.pubpartner.endpoint || '';
+  $('llmPPToken').value = llmCfg.pubpartner.token || '';
+  $('llmTestResult').textContent = '';
+  showLLMFields();
+  openModal('llmModalBackdrop');
+}
+$('llmSaveBtn').onclick = () => {
+  llmCfg = {
+    provider: $('llmProvider').value,
+    claude: { apiKey: $('llmClaudeKey').value, model: $('llmClaudeModel').value },
+    openai: { apiKey: $('llmOpenaiKey').value, endpoint: $('llmOpenaiEndpoint').value, model: $('llmOpenaiModel').value },
+    local: { endpoint: $('llmLocalEndpoint').value, model: $('llmLocalModel').value },
+    pubpartner: { endpoint: $('llmPPEndpoint').value, token: $('llmPPToken').value }
+  };
+  saveLLM(llmCfg); closeModal('llmModalBackdrop'); render();
+};
+$('llmCancelBtn').onclick = () => closeModal('llmModalBackdrop');
+$('llmTestBtn').onclick = async () => {
+  $('llmTestResult').textContent = 'Testing…'; $('llmTestResult').className = 'test-result';
+  // Temporarily apply modal values
+  const tempCfg = {
+    provider: $('llmProvider').value,
+    claude: { apiKey: $('llmClaudeKey').value, model: $('llmClaudeModel').value },
+    openai: { apiKey: $('llmOpenaiKey').value, endpoint: $('llmOpenaiEndpoint').value, model: $('llmOpenaiModel').value },
+    local: { endpoint: $('llmLocalEndpoint').value, model: $('llmLocalModel').value },
+    pubpartner: { endpoint: $('llmPPEndpoint').value, token: $('llmPPToken').value }
+  };
+  const adapter = LLM_ADAPTERS[tempCfg.provider];
+  if (!adapter || !adapter.configured(tempCfg)) {
+    $('llmTestResult').textContent = 'Not configured — fill in the fields above.';
+    $('llmTestResult').className = 'test-result err'; return;
+  }
+  try {
+    const reply = await adapter.send([{ role: 'user', content: 'Say "connected" and nothing else.' }], tempCfg);
+    $('llmTestResult').textContent = '✓ Connected: ' + reply.slice(0, 60);
+    $('llmTestResult').className = 'test-result ok';
+  } catch (e) {
+    $('llmTestResult').textContent = '✕ ' + e.message;
+    $('llmTestResult').className = 'test-result err';
+  }
+};
+$('llmPill').onclick = openLLMModal;
+
+// ── MENUS & MODALS ─────────────────────────────────────────────────
+function openModal(id) { $(id).classList.add('open'); closeMenu(); }
+function closeModal(id) { $(id).classList.remove('open'); }
+function closeMenu() { $('hamburgerMenu').classList.remove('open'); }
+
+// Click backdrop to close any modal
+document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+  backdrop.addEventListener('click', e => {
+    if (e.target === backdrop) backdrop.classList.remove('open');
+  });
+});
+function toggleSection(id) { $(id).classList.toggle('collapsed'); }
+
+$('menuToggle').onclick = e => { e.stopPropagation(); $('hamburgerMenu').classList.toggle('open'); };
+document.addEventListener('click', e => {
+  if (!$('hamburgerMenu').contains(e.target) && e.target !== $('menuToggle')) closeMenu();
+});
+
+$('sidebarToggle').onclick = () => {
+  $('mainArea').classList.toggle('sidebar-hidden');
+};
+
+$('hmNewDoc').onclick = () => { closeMenu(); newDocument(); };
+$('hmOpenDoc').onclick = () => { closeMenu(); openDocument(); };
+$('hmSaveAs').onclick = () => { closeMenu(); saveDocumentAs(); };
+$('hmFindReplace').onclick = () => { $('frResult').textContent = ''; openModal('frModalBackdrop'); };
+$('frCloseBtn').onclick = () => closeModal('frModalBackdrop');
+$('hmLLMSettings').onclick = () => { closeMenu(); openLLMModal(); };
+$('hmKeyboardHelp').onclick = () => { closeMenu(); openModal('kbModalBackdrop'); };
+$('hmRenameDoc').onclick = () => {
+  closeMenu(); $('renameInput').value = documentTitle; openModal('renameModalBackdrop');
+  setTimeout(() => $('renameInput').focus(), 100);
+};
+$('renameSaveBtn').onclick = () => {
+  documentTitle = $('renameInput').value.trim() || 'Untitled';
+  markDirty(); render(); closeModal('renameModalBackdrop');
+};
+$('docTitleDisplay').onclick = () => {
+  $('renameInput').value = documentTitle; openModal('renameModalBackdrop');
+  setTimeout(() => $('renameInput').focus(), 100);
+};
+$('saveBtn').onclick = saveDocument;
+
+// Autosave restore
+$('hmRestoreAutosave').onclick = async () => {
+  closeMenu();
+  const list = await listAutosaves();
+  const container = $('autosaveList');
+  if (!list.length) {
+    container.innerHTML = 'No autosaves found.';
+  } else {
+    container.innerHTML = '';
+    list.forEach((snap, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'mc-btn';
+      btn.style.cssText = 'width:100%; text-align:left; margin:4px 0;';
+      btn.textContent = (snap.title || 'Untitled') + ' — ' + new Date(snap.ts).toLocaleString();
+      btn.onclick = () => {
+        documentTitle = snap.title || 'Untitled';
+        loadDocState(snap.state);
+        closeModal('autosaveModalBackdrop');
+        render();
+      };
+      container.appendChild(btn);
+    });
+  }
+  openModal('autosaveModalBackdrop');
+};
+
+// ── KEYBOARD SHORTCUTS ─────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  // Escape: close modals/menus
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-backdrop.open').forEach(m => m.classList.remove('open'));
+    contextMenu.classList.remove('open');
+    closeMenu();
+    if (editingIdx !== null) { editingIdx = null; render(); }
+    return;
+  }
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 's') { e.preventDefault(); saveDocument(); }
+    if (e.key === 'z') { e.preventDefault(); undo(); }
+    if (e.key === 'y') { e.preventDefault(); redo(); }
+    if (e.key === 'f') { e.preventDefault(); $('frResult').textContent = ''; openModal('frModalBackdrop'); setTimeout(() => $('frFind').focus(), 100); }
+    if (e.key === 'e') { e.preventDefault(); exportManuscript(); }
+    if (e.key === 'Enter' && coWriting) { e.preventDefault(); approveBuffer(); }
+    if (e.key === 'g' && coWriting) { e.preventDefault(); if (!generating) tick(); }
+  }
+});
+
+// ── CANVAS: LANTERN LIGHT ──────────────────────────────────────────
+(function initLantern() {
+  const frame = $('notebookFrame'); if (!frame) return;
+  const canvas = $('lanternCanvas');
+  const ctx = canvas.getContext('2d', { alpha: true });
+  let w = 0, h = 0, mx = 300, my = 100, raf = 0;
+  function resize() {
+    w = frame.clientWidth; h = frame.clientHeight;
+    canvas.width = w; canvas.height = h; draw();
+  }
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    const g = ctx.createRadialGradient(mx, my, 0, mx, my, 380);
+    g.addColorStop(0, 'rgba(238,207,131,0.12)');
+    g.addColorStop(0.35, 'rgba(238,207,131,0.04)');
+    g.addColorStop(0.7, 'rgba(238,207,131,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  }
+  frame.addEventListener('pointermove', e => {
+    const r = frame.getBoundingClientRect();
+    mx = e.clientX - r.left; my = e.clientY - r.top;
+    if (!raf) raf = requestAnimationFrame(() => { draw(); raf = 0; });
+  });
+  window.addEventListener('resize', resize); resize();
+})();
+
+// ── CANVAS: SPIRAL SPINE ───────────────────────────────────────────
+function drawSpine() {
+  const canvas = $('spineCanvas'); if (!canvas) return;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height, cx = W * 0.55, rx = Math.min(18, W * 0.34);
+  const pitch = 22;
+
+  // Background shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillRect(cx - rx - 6, 0, rx * 2 + 12, H);
+
+  for (let i = 0; i < H / pitch + 1; i++) {
+    const y = i * pitch + 6;
+    // Coil shadow
+    ctx.beginPath(); ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 5;
+    ctx.moveTo(cx - rx, y + 2); ctx.lineTo(cx + rx, y + 7);
+    ctx.stroke();
+    // Coil body
+    ctx.beginPath();
+    ctx.strokeStyle = '#bca36f'; ctx.lineWidth = 3.5;
+    ctx.moveTo(cx - rx, y); ctx.lineTo(cx + rx, y + 5);
+    ctx.stroke();
+    // Highlight
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(255,240,200,0.35)'; ctx.lineWidth = 1;
+    ctx.moveTo(cx - rx + 1, y - 1); ctx.lineTo(cx + rx - 1, y + 4);
+    ctx.stroke();
+  }
+}
+window.addEventListener('load', drawSpine);
+window.addEventListener('resize', drawSpine);
+
+// ── INIT ───────────────────────────────────────────────────────────
+function init() {
+  updateModeUI();
+  render();
+  drawSpine();
+
+  // Load any existing autosave notification
+  listAutosaves().then(list => {
+    if (list.length && !committed.length && !soloTextarea.value.trim()) {
+      addChat('pp', 'I found autosaved work. Use Menu → Restore autosave to recover it.');
+    }
+  });
+}
+// ── DRAG & DROP ────────────────────────────────────────────────────
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', async e => {
+  e.preventDefault();
+  const file = e.dataTransfer?.files?.[0];
+  if (!file) return;
+  if (file.name.endsWith('.2i') || file.name.endsWith('.json')) {
+    try {
+      const text = await file.text();
+      const doc = JSON.parse(text);
+      if (doc.format !== '2i-document') { addChat('pp', '⚠ Not a 2i document.'); return; }
+      if (documentDirty && !confirm('Discard unsaved changes?')) return;
+      documentTitle = doc.title || 'Untitled';
+      documentHandle = null;
+      loadDocState(doc.state);
+      documentDirty = false; $('saveIndicator').textContent = 'saved';
+      render();
+      addChat('pp', 'Loaded: ' + documentTitle);
+    } catch (err) { addChat('pp', '⚠ ' + err.message); }
+  } else if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+    // Import as reference
+    try {
+      const text = await file.text();
+      addReference(file.name, 'research', text);
+      addChat('pp', 'Added "' + file.name + '" to Reference Archive.');
+    } catch (err) { addChat('pp', '⚠ ' + err.message); }
+  }
+});
+
+init();
+</script>
+
+<script>
+/* ══ PUBPARTNER MANUSCRIPT INTELLIGENCE ══════════════════════════
+   v21. Additive layer. Every call is fire-and-forget: if
+   PubPartner is unreachable, writing continues exactly as in v20.
+   ═══════════════════════════════════════════════════════════════ */
+const PP = {
+  base: null,              // set from the PubPartner URL field
+  projectId: null,
+  userId: null,
+  online: false,
+  lastCommit: 0,
+  intelligence: null,      // local cache of server-side intelligence
+  inflight: false,
+  pending: false,
+};
+
+/* ── identity ──────────────────────────────────────────────────────── */
+
+function ppIdentity() {
+  let uid = localStorage.getItem('2i_user_id');
+  if (!uid) {
+    uid = 'user_' + Math.random().toString(36).slice(2, 14);
+    localStorage.setItem('2i_user_id', uid);
+  }
+  PP.userId = uid;
+
+  // Project identity follows the document, not the browser session, so
+  // intelligence stays attached to the manuscript across machines.
+  let pid = (typeof docMeta === 'object' && docMeta && docMeta.projectId) || null;
+  if (!pid) {
+    pid = localStorage.getItem('2i_project_' + (docTitle || 'untitled'));
+    if (!pid) {
+      pid = 'proj_' + Math.random().toString(36).slice(2, 14);
+      localStorage.setItem('2i_project_' + (docTitle || 'untitled'), pid);
+    }
+  }
+  PP.projectId = pid;
+  return pid;
+}
+
+function ppBase() {
+  const el = document.getElementById('llmPPEndpoint');
+  const raw = window.location.origin; // 2i manuscript endpoints are served by this PubCast instance
+  if (/localhost:8000/.test(raw) && !/localhost|127\.0\.0\.1/.test(window.location.hostname)) return window.location.origin;
+  return raw.replace(/\/+$/, '');
+}
+
+/* ── chapter segmentation ──────────────────────────────────────────── */
+
+function ppChapters() {
+  // Mirrors 2i's own chapter model: chapters[] hold startLine offsets into
+  // committed[]. A manuscript with no chapter breaks is one chapter.
+  const out = [];
+  if (!chapters.length) {
+    out.push({ index: 0, title: docTitle || 'Untitled', lines: committed.slice() });
+    return out;
+  }
+  const sorted = chapters
+    .map((c, i) => ({ ...c, _i: i }))
+    .sort((a, b) => a.startLine - b.startLine);
+
+  if (sorted[0].startLine > 0) {
+    out.push({ index: 0, title: 'Opening', lines: committed.slice(0, sorted[0].startLine) });
+  }
+  sorted.forEach((ch, i) => {
+    const start = ch.startLine;
+    const end = i + 1 < sorted.length ? sorted[i + 1].startLine : committed.length;
+    out.push({
+      index: out.length,
+      title: ch.title || ('Chapter ' + (i + 1)),
+      lines: committed.slice(start, end),
+    });
+  });
+  return out;
+}
+
+function ppCurrentChapterIndex() {
+  const chs = ppChapters();
+  const pos = committed.length;
+  let acc = 0;
+  for (let i = 0; i < chs.length; i++) {
+    acc += chs[i].lines.length;
+    if (pos <= acc) return i;
+  }
+  return Math.max(0, chs.length - 1);
+}
+
+function ppWordCount() {
+  // v20 computes word count inline in render(); there is no shared helper.
+  // Defining our own avoids reaching into render internals and avoids a
+  // ReferenceError that the commit try/catch would silently swallow,
+  // which would leave PubPartner permanently "offline" for no visible reason.
+  const text = (typeof coWriting !== 'undefined' && coWriting)
+    ? committed.join(' ') + ' ' + buffer.join(' ')
+    : (typeof soloTextarea !== 'undefined' && soloTextarea ? soloTextarea.value : committed.join(' '));
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+/* ── transport ─────────────────────────────────────────────────────── */
+
+async function ppFetch(path, options = {}, timeoutMs = 15000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const r = await fetch(ppBase() + path, {
+      ...options,
+      signal: ctrl.signal,
+      headers: { 'Content-Type': 'application/json', 'X-Client-Id': PP.userId || ppIdentity() && PP.userId, ...(options.headers || {}) },
+    });
+    if (!r.ok) throw new Error('PubPartner ' + r.status);
+    return await r.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* ── commit ────────────────────────────────────────────────────────── */
+
+async function ppCommit({ force = false } = {}) {
+  if (!committed.length) return;
+
+  // Coalesce: one commit in flight at a time. A second request while one
+  // is running sets a flag and re-fires once, instead of queueing a burst
+  // of indexing work behind a fast typist.
+  if (PP.inflight) { PP.pending = true; return; }
+  PP.inflight = true;
+
+  try {
+    ppIdentity();
+    const res = await ppFetch('/api/pubpartner/manuscript/commit', {
+      method: 'POST',
+      body: JSON.stringify({
+        protocol_version: 1,
+        user_id: PP.userId,
+        project_id: PP.projectId,
+        chapters: ppChapters(),
+        force_reindex: force,
+        metadata: { title: docTitle || 'Untitled', words: ppWordCount() },
+      }),
+    }, 30000);
+
+    PP.online = true;
+    PP.lastCommit = Date.now();
+    ppSetStatus(
+      res.chapters_indexed.length
+        ? 'indexed ch ' + res.chapters_indexed.join(', ')
+        : 'up to date'
+    );
+    if (res.chapters_indexed.length) ppLoadIntelligence();
+    if (res.errors && res.errors.length) {
+      console.warn('[2i] commit reported issues:', res.errors);
+    }
+  } catch (e) {
+    PP.online = false;
+    ppSetStatus('offline');
+    console.debug('[2i] commit skipped:', e.message);
+  } finally {
+    PP.inflight = false;
+    if (PP.pending) { PP.pending = false; setTimeout(() => ppCommit(), 400); }
+  }
+}
+
+/* ── intelligence ──────────────────────────────────────────────────── */
+
+async function ppLoadIntelligence() {
+  try {
+    ppIdentity();
+    const res = await ppFetch(
+      '/api/pubpartner/manuscript/' + encodeURIComponent(PP.projectId) + '/intelligence'
+    );
+    PP.intelligence = res;
+    PP.online = true;
+    ppRenderFlags();
+    ppRenderCast();
+  } catch (e) {
+    PP.online = false;
+    console.debug('[2i] intelligence unavailable:', e.message);
+  }
+}
+
+function ppRenderFlags() {
+  const host = document.getElementById('ppFlags');
+  if (!host) return;
+  const flags = (PP.intelligence && PP.intelligence.flags) || [];
+  if (!flags.length) { host.innerHTML = ''; host.style.display = 'none'; return; }
+  host.style.display = '';
+  host.innerHTML = flags.slice(0, 6).map(f =>
+    '<div class="pp-flag pp-' + f.severity + '">' +
+      '<span class="pp-flag-msg">' + escHtml(f.message) + '</span>' +
+      '<button class="pp-flag-x" title="Dismiss" ' +
+              'onclick="ppResolveFlag(\'' + f.flag_id + '\')">✕</button>' +
+    '</div>'
+  ).join('');
+}
+
+function ppRenderCast() {
+  const host = document.getElementById('ppCast');
+  if (!host) return;
+  const ents = (PP.intelligence && PP.intelligence.entities) || {};
+  const chars = ents.character || [];
+  const locs = ents.location || [];
+  if (!chars.length && !locs.length) { host.innerHTML = ''; return; }
+
+  let html = '';
+  if (chars.length) {
+    html += '<div class="pp-cast-head">Characters</div>';
+    html += chars.slice(0, 12).map(c => {
+      const aka = c.aliases && c.aliases.length
+        ? ' <span class="pp-aka">(' + escHtml(c.aliases.slice(0, 2).join(', ')) + ')</span>'
+        : '';
+      const conf = Math.round((c.provenance.confidence || 0) * 100);
+      const userSet = c.provenance.authority === 'user';
+      return '<div class="pp-cast-row" title="' +
+             (userSet ? 'you set this' : 'inferred, ' + conf + '% confidence') + '">' +
+             '<span class="pp-dot' + (userSet ? ' pp-user' : '') + '"></span>' +
+             escHtml(c.name) + aka + '</div>';
+    }).join('');
+  }
+  if (locs.length) {
+    html += '<div class="pp-cast-head">Places</div>';
+    html += locs.slice(0, 8).map(l =>
+      '<div class="pp-cast-row"><span class="pp-dot"></span>' + escHtml(l.name) + '</div>'
+    ).join('');
+  }
+  host.innerHTML = html;
+}
+
+async function ppResolveFlag(flagId) {
+  try {
+    await ppFetch('/api/pubpartner/manuscript/' +
+      encodeURIComponent(PP.projectId) + '/flags/' + encodeURIComponent(flagId) +
+      '/resolve', { method: 'POST' });
+    if (PP.intelligence) {
+      PP.intelligence.flags = PP.intelligence.flags.filter(f => f.flag_id !== flagId);
+      ppRenderFlags();
+    }
+  } catch (e) {
+    addChat('pp', 'Could not dismiss that note: ' + e.message);
+  }
+}
+
+/* ── generation ────────────────────────────────────────────────────── */
+
+async function ppGenerate(instruction) {
+  ppIdentity();
+  const res = await ppFetch('/api/pubpartner/manuscript/generate', {
+    method: 'POST',
+    body: JSON.stringify({
+      user_id: PP.userId,
+      project_id: PP.projectId,
+      context_lines: committed.slice(-8).concat(buffer),
+      current_chapter: ppCurrentChapterIndex(),
+      instruction: instruction || null,
+      max_tokens: 400,
+    }),
+  }, 60000);
+  if (!res.ok) throw new Error(res.error || 'generation returned nothing');
+  return res.lines || [];
+}
+
+/* ── voice signals ─────────────────────────────────────────────────── */
+
+function ppVoiceSignal(type, aiText, humanText) {
+  if (!aiText || !aiText.trim()) return;
+  ppIdentity();
+  // Fire-and-forget by design. A failed signal costs one training sample;
+  // a blocked UI costs the writer their momentum.
+  ppFetch('/api/pubpartner/manuscript/voice-signal', {
+    method: 'POST',
+    body: JSON.stringify({
+      user_id: PP.userId,
+      project_id: PP.projectId,
+      type: type,
+      ai_text: aiText,
+      human_text: humanText || null,
+      chapter_index: ppCurrentChapterIndex(),
+    }),
+  }, 8000).catch(e => console.debug('[2i] voice signal dropped:', e.message));
+}
+
+/* ── status ────────────────────────────────────────────────────────── */
+
+function ppSetStatus(text) {
+  const el = document.getElementById('ppStatus');
+  if (!el) return;
+  el.textContent = 'PubPartner: ' + text;
+  el.className = 'pp-status ' + (PP.online ? 'ok' : 'off');
+}
+
+async function ppHealthCheck() {
+  try {
+    ppIdentity();
+    const res = await ppFetch('/api/pubpartner/manuscript/' +
+      encodeURIComponent(PP.projectId) + '/health', {}, 5000);
+    PP.online = true;
+    ppSetStatus(res.stats.entities + ' known');
+    ppLoadIntelligence();
+  } catch (e) {
+    PP.online = false;
+    ppSetStatus('offline');
+  }
+}
+
+/* ── text zoom (independent per pane) ─────────────────────────────────
+   Three panes — manuscript, chat, reference — each carry their own
+   zoom level. This changes font-size only, via the CSS custom
+   properties declared in :root. Buttons, icons, and layout chrome
+   never read these variables and never resize. Persisted across
+   reloads the same way project/user identity is (localStorage).
+   ────────────────────────────────────────────────────────────────── */
+const ZOOM_MIN = 0.7, ZOOM_MAX = 2.0, ZOOM_STEP = 0.1;
+const ZOOM_VAR = { manuscript: '--zoom-manuscript', chat: '--zoom-chat', ref: '--zoom-ref' };
+const ZOOM_LABEL_ID = { manuscript: 'zoomPctManuscript', chat: 'zoomPctChat', ref: 'zoomPctRef' };
+let zoomState = { manuscript: 1, chat: 1, ref: 1 };
+
+function applyZoom(which) {
+  document.documentElement.style.setProperty(ZOOM_VAR[which], zoomState[which].toFixed(2));
+  const label = $(ZOOM_LABEL_ID[which]);
+  if (label) label.textContent = Math.round(zoomState[which] * 100) + '%';
+}
+
+function adjustZoom(which, direction) {
+  if (!ZOOM_VAR[which]) return;
+  const next = Math.round((zoomState[which] + direction * ZOOM_STEP) * 100) / 100;
+  zoomState[which] = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next));
+  applyZoom(which);
+  try { localStorage.setItem('2i_zoom', JSON.stringify(zoomState)); }
+  catch (e) { /* storage unavailable — zoom still works, just won't persist */ }
+}
+
+function loadZoom() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('2i_zoom') || 'null');
+    if (saved && typeof saved === 'object') {
+      for (const key of Object.keys(zoomState)) {
+        const v = saved[key];
+        if (typeof v === 'number' && v >= ZOOM_MIN && v <= ZOOM_MAX) zoomState[key] = v;
+      }
+    }
+  } catch (e) { /* corrupt or blocked storage — defaults stand */ }
+  Object.keys(zoomState).forEach(applyZoom);
+}
+loadZoom(); // runs synchronously as soon as this second <script> block parses —
+            // block 0's init() already ran by this point, but these are CSS
+            // custom properties on :root, so already-rendered text picks up
+            // the restored zoom immediately, before the first paint.
+
+/* ── boot ──────────────────────────────────────────────────────────── */
+
+window.addEventListener('load', () => {
+  setTimeout(ppHealthCheck, 1200);
+  // Periodic commit catches work that never passed through approveBuffer,
+  // such as a long solo-mode session.
+  setInterval(() => {
+    if (committed.length && Date.now() - PP.lastCommit > 120000) ppCommit();
+  }, 60000);
+});
+
+/* ── generated-line provenance ─────────────────────────────────────
+   A rewrite is only a training signal if the original came from the
+   model. Without this, fixing your own typo would teach the system
+   that its prose was wrong. Session-scoped: an origin fact, not part
+   of the manuscript.
+   ────────────────────────────────────────────────────────────────── */
+
+const PP_GEN = new Set();
+function ppKey(t) { return (t || '').trim(); }
+function ppMarkGenerated(t) { const k = ppKey(t); if (k) PP_GEN.add(k); }
+function ppWasGenerated(t) { return PP_GEN.has(ppKey(t)); }
+function ppForgetGenerated(t) { PP_GEN.delete(ppKey(t)); }
+
+</script>
+<script src="/2i-assets/reach.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+[package]
+name = "pubcast_prime_recovery"
+version     = "2.0.0"
+edition     = "2021"
+description = "PubCast skeletal animation — high-performance Rust renderer backend"
+
+[dependencies]
+crossbeam         = "0.8"
+nalgebra          = { version = "0.33", features = ["serde-serialize"] }
+serde             = { version = "1",    features = ["derive"] }
+serde_json        = "1"
+tracing           = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+thiserror         = "1"
+# WebSocket renderer server (ws_renderer.rs)
+tokio             = { version = "1",    features = ["full"] }
+tokio-tungstenite = "0.23"
+futures-util      = "0.3"
+anyhow            = "1"
+
+[dev-dependencies]
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+
+[profile.release]
+opt-level     = 3
+lto           = "thin"
+codegen-units = 1
+panic         = "abort"

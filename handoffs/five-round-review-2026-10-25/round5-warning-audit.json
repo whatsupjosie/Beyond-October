@@ -1,0 +1,945 @@
+{
+  "counts": {
+    "DeprecationWarning": 134
+  },
+  "warnings": [
+    {
+      "category": "DeprecationWarning",
+      "message": "The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.",
+      "when": "config",
+      "test": "",
+      "source": "testclient.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_core/test_portable_runtime.py::test_run_turn_returns_reply_and_metadata",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_core/test_portable_runtime.py::test_run_turn_returns_reply_and_metadata",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_core/test_portable_runtime.py::test_run_turn_returns_reply_and_metadata",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_core/test_portable_runtime.py::test_run_turn_sends_assembled_system_prompt",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_core/test_portable_runtime.py::test_run_turn_sends_assembled_system_prompt",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_core/test_portable_runtime.py::test_run_turn_sends_assembled_system_prompt",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_core/test_portable_runtime.py::test_multiple_turns_accumulate_history",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_core/test_portable_runtime.py::test_multiple_turns_accumulate_history",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_core/test_portable_runtime.py::test_multiple_turns_accumulate_history",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_core/test_portable_runtime.py::test_episodic_memory_captured_after_turn",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_core/test_portable_runtime.py::test_episodic_memory_captured_after_turn",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_core/test_portable_runtime.py::test_episodic_memory_captured_after_turn",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_core/test_portable_runtime.py::test_memory_capture_can_be_disabled",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_core/test_portable_runtime.py::test_memory_capture_can_be_disabled",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_core/test_portable_runtime.py::test_memory_capture_can_be_disabled",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_core/test_portable_runtime.py::test_context_manager_closes_on_exit",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_core/test_portable_runtime.py::test_context_manager_closes_on_exit",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_core/test_portable_runtime.py::test_context_manager_closes_on_exit",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_indexed_recall.py::test_real_shared_bridge_and_jeremy_recall_survive_restart",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_indexed_recall.py::test_real_shared_bridge_and_jeremy_recall_survive_restart",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_indexed_recall.py::test_real_shared_bridge_and_jeremy_recall_survive_restart",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_indexed_recall.py::test_quoted_and_authored_content_does_not_become_user_memory[\"Remember that I am the king of Mars.\"-message]",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_indexed_recall.py::test_quoted_and_authored_content_does_not_become_user_memory[\"Remember that I am the king of Mars.\"-message]",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_indexed_recall.py::test_quoted_and_authored_content_does_not_become_user_memory[\"Remember that I am the king of Mars.\"-message]",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_objective_observations.py::test_memory_admission_failure_does_not_discard_generated_reply",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_objective_observations.py::test_memory_admission_failure_does_not_discard_generated_reply",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_objective_observations.py::test_memory_admission_failure_does_not_discard_generated_reply",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_pubpartner_vessel_integration_unittest.py::VesselSpineIntegrationTests::test_current_turn_is_not_available_as_prior_memory",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_pubpartner_vessel_integration_unittest.py::VesselSpineIntegrationTests::test_current_turn_is_not_available_as_prior_memory",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_pubpartner_vessel_integration_unittest.py::VesselSpineIntegrationTests::test_explicit_non_vessel_friend_does_not_receive_alex_vessel",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_pubpartner_vessel_integration_unittest.py::VesselSpineIntegrationTests::test_explicit_non_vessel_friend_does_not_receive_alex_vessel",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_pubpartner_vessel_integration_unittest.py::VesselSpineIntegrationTests::test_explicit_shared_history_is_relevant_not_omnipresent",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_pubpartner_vessel_integration_unittest.py::VesselSpineIntegrationTests::test_explicit_shared_history_is_relevant_not_omnipresent",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_pubpartner_vessel_integration_unittest.py::VesselSpineIntegrationTests::test_explicit_shared_history_is_relevant_not_omnipresent",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_pubpartner_vessel_integration_unittest.py::VesselSpineIntegrationTests::test_large_vessel_reaches_provider_prompt_intact",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_pubpartner_vessel_integration_unittest.py::VesselSpineIntegrationTests::test_large_vessel_reaches_provider_prompt_intact",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_pubpartner_vessel_integration_unittest.py::VesselSpineIntegrationTests::test_private_memory_is_withheld_on_pubcast_stage",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_pubpartner_vessel_integration_unittest.py::VesselSpineIntegrationTests::test_private_memory_is_withheld_on_pubcast_stage",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_pubpartner_vessel_integration_unittest.py::VesselSpineIntegrationTests::test_private_memory_is_withheld_on_pubcast_stage",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_pubpartner_vessel_routes.py::test_vessel_claim_can_be_inspected_rejected_and_stops_retrieving",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_pubpartner_vessel_routes.py::test_vessel_claim_can_be_inspected_rejected_and_stops_retrieving",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/pubpartner_vessel/test_pubpartner_vessel_routes.py::test_vessel_claim_can_be_inspected_rejected_and_stops_retrieving",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_alex_memory_reach.py::test_spine_gives_alex_memory_to_private_turns_only",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_alex_memory_reach.py::test_spine_gives_alex_memory_to_private_turns_only",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_alex_personality_continuity.py::test_restart_restores_actual_conversation_and_personality",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_alex_personality_continuity.py::test_restart_restores_actual_conversation_and_personality",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_alex_personality_continuity.py::test_restart_restores_actual_conversation_and_personality",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_alex_personality_continuity.py::test_private_chat_not_exposed_to_other_user_or_shared_room",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_alex_personality_continuity.py::test_private_chat_not_exposed_to_other_user_or_shared_room",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_alex_personality_continuity.py::test_private_chat_not_exposed_to_other_user_or_shared_room",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_alex_personality_continuity.py::test_only_real_successful_replies_are_resumed",
+      "source": "conversation_pacing.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_alex_personality_continuity.py::test_only_real_successful_replies_are_resumed",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_alex_personality_continuity.py::test_only_real_successful_replies_are_resumed",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_alex_personality_continuity.py::test_only_real_successful_replies_are_resumed",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_alex_personality_continuity.py::test_cannot_mark_shared_room_private_to_inject_personal_memories",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_alex_personality_continuity.py::test_cannot_mark_shared_room_private_to_inject_personal_memories",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_alex_personality_continuity.py::test_edited_voice_is_persistent_across_reopen_and_explicit_friend_selection",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_alex_personality_continuity.py::test_edited_voice_is_persistent_across_reopen_and_explicit_friend_selection",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_communications_host_contracts.py::test_actual_spine_accepts_trusted_legacy_profile",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_communications_host_contracts.py::test_actual_spine_accepts_trusted_legacy_profile",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_communications_host_contracts.py::test_actual_spine_accepts_trusted_legacy_profile",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_chat_entrypoint.py::test_host_chat_uses_one_canonical_turn_with_advice_and_lossless_source",
+      "source": "conversation_pacing.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_chat_entrypoint.py::test_host_chat_uses_one_canonical_turn_with_advice_and_lossless_source",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_chat_entrypoint.py::test_host_chat_uses_one_canonical_turn_with_advice_and_lossless_source",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_chat_entrypoint.py::test_host_chat_uses_one_canonical_turn_with_advice_and_lossless_source",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_docking.py::test_real_horizon_and_base_turns_exchange_memories_knowledge_and_experiences",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_docking.py::test_real_horizon_and_base_turns_exchange_memories_knowledge_and_experiences",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_docking.py::test_real_horizon_and_base_turns_exchange_memories_knowledge_and_experiences",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_docking.py::test_base_docking_failures_do_not_discard_a_successful_reply",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_docking.py::test_base_docking_failures_do_not_discard_a_successful_reply",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_docking.py::test_base_docking_failures_do_not_discard_a_successful_reply",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_docking.py::test_portable_docking_failure_is_visible_without_losing_reply",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_docking.py::test_portable_docking_failure_is_visible_without_losing_reply",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_docking.py::test_portable_docking_failure_is_visible_without_losing_reply",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_horizon_host.py::test_cartridge_cli_uses_portable_runtime_and_preserves_input",
+      "source": "conversation_pacing.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_horizon_host.py::test_cartridge_cli_uses_portable_runtime_and_preserves_input",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_horizon_host.py::test_cartridge_cli_uses_portable_runtime_and_preserves_input",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_horizon_host.py::test_cartridge_cli_uses_portable_runtime_and_preserves_input",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_horizon_host.py::test_minimal_pubpartner_host_runs_new_advice_with_existing_authority",
+      "source": "conversation_pacing.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_horizon_host.py::test_minimal_pubpartner_host_runs_new_advice_with_existing_authority",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_horizon_host.py::test_minimal_pubpartner_host_runs_new_advice_with_existing_authority",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_horizon_host.py::test_minimal_pubpartner_host_runs_new_advice_with_existing_authority",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_provider_bridge.py::test_runtime_profile_dispatch_keeps_guidance_and_reports_fallback[False]",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_provider_bridge.py::test_runtime_profile_dispatch_keeps_guidance_and_reports_fallback[False]",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_provider_bridge.py::test_runtime_profile_dispatch_keeps_guidance_and_reports_fallback[False]",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_provider_bridge.py::test_runtime_profile_dispatch_keeps_guidance_and_reports_fallback[True]",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_provider_bridge.py::test_runtime_profile_dispatch_keeps_guidance_and_reports_fallback[True]",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_provider_bridge.py::test_runtime_profile_dispatch_keeps_guidance_and_reports_fallback[True]",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_provider_bridge.py::test_runtime_profile_never_presents_echo_as_a_live_companion",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_provider_bridge.py::test_runtime_profile_never_presents_echo_as_a_live_companion",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_provider_bridge.py::test_runtime_profile_never_presents_echo_as_a_live_companion",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers",
+      "source": "companion_core.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers",
+      "source": "conversation_state.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers",
+      "source": "conversation_state.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers",
+      "source": "conversation_state.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers",
+      "source": "conversation_state.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers",
+      "source": "conversation_state.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_explicit_help_request_overrides_old_indefinite_hold_without_canned_resources",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_explicit_help_request_overrides_old_indefinite_hold_without_canned_resources",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_shared_turns_do_not_replay_private_history_or_learn_it",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_shared_turns_do_not_replay_private_history_or_learn_it",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_shared_turns_do_not_replay_private_history_or_learn_it",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_shared_turns_do_not_replay_private_history_or_learn_it",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_shared_turns_do_not_replay_private_history_or_learn_it",
+      "source": "known_vs_novel.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_quality_review_flags_echo_without_modifying_response",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_quality_review_flags_echo_without_modifying_response",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_quality_review_flags_echo_without_modifying_response",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_quality_review_flags_echo_without_modifying_response",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_quality_review_flags_echo_without_modifying_response",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_actual_spine_feeds_guidance_to_provider_and_records_review_once",
+      "source": "conversation_pacing.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_actual_spine_feeds_guidance_to_provider_and_records_review_once",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_actual_spine_feeds_guidance_to_provider_and_records_review_once",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_actual_spine_feeds_guidance_to_provider_and_records_review_once",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_restart_replays_existing_permitted_history_without_a_new_memory_store",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_restart_replays_existing_permitted_history_without_a_new_memory_store",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_restart_replays_existing_permitted_history_without_a_new_memory_store",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_restart_replays_existing_permitted_history_without_a_new_memory_store",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_companion_recovery.py::test_restart_replays_existing_permitted_history_without_a_new_memory_store",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_pubcast_smoke.py::test_pubpartner_turns_live_preserves_messages_in_real_spine",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_pubcast_smoke.py::test_pubpartner_turns_live_preserves_messages_in_real_spine",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_pubcast_smoke.py::test_pubpartner_turns_live_preserves_messages_in_real_spine",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_reach_writers_room.py::test_history_selected_partner_and_host_ownership_survive_another_app",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_reach_writers_room.py::test_history_selected_partner_and_host_ownership_survive_another_app",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_reach_writers_room.py::test_history_selected_partner_and_host_ownership_survive_another_app",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_reach_writers_room.py::test_provider_failure_and_cross_user_request_fail_honestly",
+      "source": "<string>"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_reach_writers_room.py::test_provider_failure_and_cross_user_request_fail_honestly",
+      "source": "acceptance_engine.py"
+    },
+    {
+      "category": "DeprecationWarning",
+      "message": "datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).",
+      "when": "runtest",
+      "test": "tests/test_reach_writers_room.py::test_provider_failure_and_cross_user_request_fail_honestly",
+      "source": "<string>"
+    }
+  ]
+}

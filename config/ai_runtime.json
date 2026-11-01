@@ -1,0 +1,171 @@
+﻿{
+    "active_profile":  "ollama_gemma3",
+    "default_options":  {
+                            "temperature":  0.7,
+                            "max_tokens":  256,
+                            "context_window":  2048,
+                            "timeout_seconds":  300,
+                            "keep_alive":  "10m"
+                        },
+    "profiles":  {
+                     "ollama_gemma3":  {
+                                           "backend":  "ollama",
+                                           "model":  "gemma3:1b",
+                                           "endpoint":  "http://127.0.0.1:11435",
+                                           "enabled":  true,
+                                           "capabilities":  {
+                                                                "chat":  true,
+                                                                "tts":  false
+                                                            },
+                                           "runtime_options":  {
+                                                                   "temperature":  0.7,
+                                                                   "max_tokens":  256,
+                                                                   "timeout_seconds":  180,
+                                                                   "context_window":  2048,
+                                                                   "keep_alive":  "10m"
+                                                               }
+                                       },
+                     "gemma4_e2b_local":  {
+                                              "backend":  "ollama",
+                                              "model":  "gemma4:e2b",
+                                              "endpoint":  "http://127.0.0.1:11435",
+                                              "enabled":  false,
+                                              "capabilities":  {
+                                                                   "chat":  true,
+                                                                   "tts":  false
+                                                               },
+                                              "runtime_options":  {
+                                                                      "temperature":  0.65,
+                                                                      "max_tokens":  256,
+                                                                      "timeout_seconds":  300
+                                                                  }
+                                          },
+                     "gemma4_e4b_local":  {
+                                              "backend":  "ollama",
+                                              "model":  "gemma4:e4b",
+                                              "endpoint":  "http://127.0.0.1:11435",
+                                              "enabled":  false,
+                                              "capabilities":  {
+                                                                   "chat":  true,
+                                                                   "tts":  false
+                                                               },
+                                              "runtime_options":  {
+                                                                      "temperature":  0.65,
+                                                                      "max_tokens":  320,
+                                                                      "timeout_seconds":  300
+                                                                  }
+                                          },
+                     "local_gguf_http":  {
+                                             "backend":  "local_gguf",
+                                             "model":  "gemma-gguf",
+                                             "endpoint":  "http://127.0.0.1:8080/v1/chat/completions",
+                                             "enabled":  false,
+                                             "capabilities":  {
+                                                                  "chat":  true,
+                                                                  "tts":  false
+                                                              },
+                                             "runtime_options":  {
+                                                                     "temperature":  0.7,
+                                                                     "max_tokens":  256
+                                                                 }
+                                         },
+                     "echo_test":  {
+                                       "backend":  "echo",
+                                       "model":  "echo",
+                                       "enabled":  false,
+                                       "capabilities":  {
+                                                            "chat":  true,
+                                                            "tts":  false
+                                                        },
+                                       "runtime_options":  {
+                                                               "temperature":  0.0,
+                                                               "max_tokens":  128
+                                                           }
+                                   },
+                     "ministral_3b_local":  {
+                                                "backend":  "ollama",
+                                                "model":  "ministral-pubcast:3b",
+                                                "endpoint":  "http://127.0.0.1:11435",
+                                                "enabled":  true,
+                                                "capabilities":  {
+                                                                     "chat":  true,
+                                                                     "tts":  false
+                                                                 },
+                                                "runtime_options":  {
+                                                                        "temperature":  0.68,
+                                                                        "max_tokens":  96,
+                                                                        "timeout_seconds":  300,
+                                                                        "context_window":  2048,
+                                                                        "keep_alive":  "15m"
+                                                                    }
+                                            },
+                     "gemma4_e4b_q4_local":  {
+                                                 "backend":  "ollama",
+                                                 "model":  "gemma4:e4b",
+                                                 "endpoint":  "http://127.0.0.1:11435",
+                                                 "enabled":  false,
+                                                 "capabilities":  {
+                                                                      "chat":  true,
+                                                                      "tts":  false
+                                                                  },
+                                                 "runtime_options":  {
+                                                                         "temperature":  0.62,
+                                                                         "max_tokens":  96,
+                                                                         "timeout_seconds":  420,
+                                                                         "context_window":  4096,
+                                                                         "keep_alive":  "15m"
+                                                                     }
+                                             },
+                     "gemma4_compute_q5_e2b_local":  {
+                                                         "backend":  "ollama",
+                                                         "model":  "gemma4-compute-q5:e2b",
+                                                         "endpoint":  "http://127.0.0.1:11435",
+                                                         "enabled":  true,
+                                                         "capabilities":  {
+                                                                              "chat":  true,
+                                                                              "tts":  false
+                                                                          },
+                                                         "runtime_options":  {
+                                                                                 "temperature":  0.62,
+                                                                                 "max_tokens":  160,
+                                                                                 "timeout_seconds":  300,
+                                                                                 "context_window":  4096,
+                                                                                 "keep_alive":  "20m"
+                                                                             }
+                                                     },
+                     "gemma3_1b_local":  {
+                                             "backend":  "ollama",
+                                             "model":  "gemma3:1b",
+                                             "endpoint":  "http://127.0.0.1:11435",
+                                             "enabled":  true,
+                                             "capabilities":  {
+                                                                  "chat":  true,
+                                                                  "tts":  false
+                                                              },
+                                             "runtime_options":  {
+                                                                     "temperature":  0.58,
+                                                                     "max_tokens":  96,
+                                                                     "timeout_seconds":  180,
+                                                                     "context_window":  2048,
+                                                                     "keep_alive":  "20m"
+                                                                 }
+                                         },
+                     "gemma3_1b_q4_local":  {
+                                                "backend":  "ollama",
+                                                "model":  "google_gemma-3-1b-it-Q4_K_L:latest",
+                                                "endpoint":  "http://127.0.0.1:11435",
+                                                "enabled":  true,
+                                                "capabilities":  {
+                                                                     "chat":  true,
+                                                                     "tts":  false
+                                                                 },
+                                                "runtime_options":  {
+                                                                        "temperature":  0.58,
+                                                                        "max_tokens":  96,
+                                                                        "timeout_seconds":  120,
+                                                                        "context_window":  2048,
+                                                                        "keep_alive":  "20m"
+                                                                    }
+                                            }
+                 }
+}

@@ -1,0 +1,74 @@
+/* PubCast AI — console.css
+   Live system console overlay — appears on all pages using base.html */
+
+:root {
+  --console-bg:     rgba(8, 10, 16, 0.96);
+  --console-border: rgba(0, 224, 255, 0.18);
+  --console-text:   #7ecfdf;
+  --console-info:   #00e0ff;
+  --console-warn:   #f0a500;
+  --console-error:  #e03e3e;
+  --console-ok:     #00cc88;
+  --console-dim:    rgba(0,224,255,0.35);
+}
+
+#pubcast-console {
+  position: fixed;
+  bottom: 52px; /* above basebar */
+  left: 0; right: 0;
+  max-height: 200px;
+  background: var(--console-bg);
+  border-top: 1px solid var(--console-border);
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--console-text);
+  overflow-y: auto;
+  z-index: 800;
+  display: none;
+  padding: 6px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--console-border) transparent;
+}
+#pubcast-console.open { display: block; }
+
+#pubcast-console::-webkit-scrollbar { width: 4px; }
+#pubcast-console::-webkit-scrollbar-track { background: transparent; }
+#pubcast-console::-webkit-scrollbar-thumb { background: var(--console-border); border-radius: 2px; }
+
+.console-line {
+  display: flex;
+  gap: 8px;
+  padding: 1px 12px;
+  border-bottom: 1px solid rgba(0,224,255,0.04);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.console-line:hover { background: rgba(0,224,255,0.04); }
+.console-ts   { color: rgba(0,224,255,0.3); flex-shrink: 0; }
+.console-tag  { flex-shrink: 0; min-width: 52px; text-align: right; }
+.console-tag.info  { color: var(--console-info); }
+.console-tag.warn  { color: var(--console-warn); }
+.console-tag.error { color: var(--console-error); }
+.console-tag.ok    { color: var(--console-ok); }
+.console-tag.ws    { color: #c084fc; }
+.console-body { flex: 1; }
+
+#console-toggle {
+  position: fixed;
+  bottom: 52px;
+  right: 14px;
+  width: 28px; height: 28px;
+  background: rgba(0,224,255,0.06);
+  border: 1px solid var(--console-border);
+  border-radius: 4px;
+  color: var(--console-dim);
+  font-size: 11px;
+  cursor: pointer;
+  z-index: 801;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  font-family: monospace;
+}
+#console-toggle:hover { background: rgba(0,224,255,0.14); color: var(--console-info); }
+#console-toggle.active { background: rgba(0,224,255,0.14); color: var(--console-info); }

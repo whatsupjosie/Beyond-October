@@ -1,0 +1,230 @@
+/workspace/scratch/a8e4fa7e526a/pubcast/.venv/lib/python3.12/site-packages/pytest_asyncio/plugin.py:300: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the "fixture" caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+........................................................................ [  3%]
+........................................................................ [  6%]
+........................................................................ [  9%]
+........................................................................ [ 13%]
+........................................................................ [ 16%]
+........................................................................ [ 19%]
+........................................................................ [ 23%]
+........................................................................ [ 26%]
+........................................................................ [ 29%]
+........................................................................ [ 33%]
+........................................................................ [ 36%]
+........................................................................ [ 39%]
+........................................................................ [ 43%]
+........................................................................ [ 46%]
+........................................................................ [ 49%]
+........................................................................ [ 53%]
+....................................................F................... [ 56%]
+........................................................................ [ 59%]
+........................................................................ [ 63%]
+........................................................................ [ 66%]
+........................................................................ [ 69%]
+........................................................................ [ 73%]
+........................................................................ [ 76%]
+........................................................................ [ 79%]
+........................................................................ [ 83%]
+........................................................................ [ 86%]
+........................................................................ [ 89%]
+........................................................................ [ 93%]
+........................................................................ [ 96%]
+........................................................................ [ 99%]
+.......                                                                  [100%]
+=================================== FAILURES ===================================
+_____ test_python_syntax_check_in_native_editor_without_external_services ______
+
+page = <Page url='http://localhost/test'>
+
+    def test_python_syntax_check_in_native_editor_without_external_services(page):
+        page.evaluate("openFile('test.py','if broken\\n pass')")
+        text = editor(page)
+        text.wait_for()
+        page.wait_for_function(
+            "document.querySelector('#host iframe')?.contentWindow.document.querySelector('[role=status]')?.textContent.includes('ready')"
+        )
+        frame = page.frame_locator("#host iframe")
+        frame.get_by_role("button", name="Check Python", exact=True).click()
+        page.wait_for_function(
+            "document.querySelector('#host iframe')?.contentWindow.document.querySelector('[role=status]')?.textContent.includes('line 1')"
+        )
+        text.fill("print(42)")
+        frame.get_by_role("button", name="Check Python", exact=True).click()
+>       page.wait_for_function(
+            "document.querySelector('#host iframe')?.contentWindow.document.querySelector('[role=status]')?.textContent.includes('not executed')"
+        )
+
+tests/test_foresight_file_workspace.py:382: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11559: in wait_for_function
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:1112: in wait_for_function
+    return await self._main_frame.wait_for_function(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:860: in wait_for_function
+    await self._channel.send("waitForFunction", self._timeout, params)
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f15fb7f0f80>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f15fbadaf20>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        st: List[inspect.FrameInfo] = getattr(
+            task, "__pw_stack__", None
+        ) or inspect.stack(0)
+    
+        parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.wait_for_function: Timeout 30000ms exceeded.
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:559: TimeoutError
+------------------------------ Captured log call -------------------------------
+WARNING  modules.bots:bots.py:475 RePete's speaking provider unavailable; using limited offline dialogue: No API key found for RePete (provider=BotProvider.OPENAI). Either set env var 'OPENAI_API_KEY' or register a key at /byok.
+WARNING  modules.bots:bots.py:475 Sir Purfluous's speaking provider unavailable; using limited offline dialogue: No API key found for Sir Purfluous (provider=BotProvider.ANTHROPIC). Either set env var 'ANTHROPIC_API_KEY' or register a key at /byok.
+WARNING  modules.bots:bots.py:475 RePete's speaking provider unavailable; using limited offline dialogue: No API key found for RePete (provider=BotProvider.OPENAI). Either set env var 'OPENAI_API_KEY' or register a key at /byok.
+WARNING  modules.bots:bots.py:475 Sir Purfluous's speaking provider unavailable; using limited offline dialogue: No API key found for Sir Purfluous (provider=BotProvider.ANTHROPIC). Either set env var 'ANTHROPIC_API_KEY' or register a key at /byok.
+WARNING  modules.bots:bots.py:475 RePete's speaking provider unavailable; using limited offline dialogue: No API key found for RePete (provider=BotProvider.OPENAI). Either set env var 'OPENAI_API_KEY' or register a key at /byok.
+WARNING  modules.bots:bots.py:475 RePete's speaking provider unavailable; using limited offline dialogue: No API key found for RePete (provider=BotProvider.OPENAI). Either set env var 'OPENAI_API_KEY' or register a key at /byok.
+WARNING  modules.bots:bots.py:475 Sir Purfluous's speaking provider unavailable; using limited offline dialogue: No API key found for Sir Purfluous (provider=BotProvider.ANTHROPIC). Either set env var 'ANTHROPIC_API_KEY' or register a key at /byok.
+WARNING  modules.bots:bots.py:303 Requested turn failed for jeremy: No API key found for Jeremy Cricket (provider=BotProvider.ANTHROPIC). Either set env var 'ANTHROPIC_API_KEY' or register a key at /byok.
+WARNING  modules.bots:bots.py:475 RePete's speaking provider unavailable; using limited offline dialogue: No API key found for RePete (provider=BotProvider.OPENAI). Either set env var 'OPENAI_API_KEY' or register a key at /byok.
+WARNING  modules.bots:bots.py:475 Sir Purfluous's speaking provider unavailable; using limited offline dialogue: No API key found for Sir Purfluous (provider=BotProvider.ANTHROPIC). Either set env var 'ANTHROPIC_API_KEY' or register a key at /byok.
+WARNING  modules.bots:bots.py:475 Sir Purfluous's speaking provider unavailable; using limited offline dialogue: No API key found for Sir Purfluous (provider=BotProvider.ANTHROPIC). Either set env var 'ANTHROPIC_API_KEY' or register a key at /byok.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/starlette/testclient.py:40
+  /workspace/scratch/a8e4fa7e526a/pubcast/.venv/lib/python3.12/site-packages/starlette/testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+tests/pubpartner_core/test_portable_runtime.py: 7 warnings
+tests/pubpartner_vessel/test_indexed_recall.py: 4 warnings
+tests/pubpartner_vessel/test_objective_observations.py: 1 warning
+tests/pubpartner_vessel/test_pubpartner_vessel_integration_unittest.py: 9 warnings
+tests/pubpartner_vessel/test_pubpartner_vessel_routes.py: 2 warnings
+tests/test_alex_memory_reach.py: 4 warnings
+tests/test_alex_personality_continuity.py: 12 warnings
+tests/test_communications_host_contracts.py: 1 warning
+tests/test_companion_chat_entrypoint.py: 1 warning
+tests/test_companion_docking.py: 7 warnings
+tests/test_companion_horizon_host.py: 2 warnings
+tests/test_companion_provider_bridge.py: 3 warnings
+tests/test_companion_recovery.py: 9 warnings
+tests/test_pubcast_smoke.py: 1 warning
+tests/test_reach_writers_room.py: 2 warnings
+  <string>:7: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/pubpartner_core/test_portable_runtime.py: 7 warnings
+tests/pubpartner_vessel/test_indexed_recall.py: 4 warnings
+tests/pubpartner_vessel/test_objective_observations.py: 1 warning
+tests/pubpartner_vessel/test_pubpartner_vessel_integration_unittest.py: 9 warnings
+tests/pubpartner_vessel/test_pubpartner_vessel_routes.py: 2 warnings
+tests/test_alex_memory_reach.py: 4 warnings
+tests/test_alex_personality_continuity.py: 12 warnings
+tests/test_communications_host_contracts.py: 1 warning
+tests/test_companion_chat_entrypoint.py: 1 warning
+tests/test_companion_docking.py: 7 warnings
+tests/test_companion_horizon_host.py: 2 warnings
+tests/test_companion_provider_bridge.py: 3 warnings
+tests/test_companion_recovery.py: 9 warnings
+tests/test_pubcast_smoke.py: 1 warning
+tests/test_reach_writers_room.py: 2 warnings
+  /workspace/scratch/a8e4fa7e526a/pubcast/companion_support/acceptance_engine.py:479: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    self.acceptance_history.append((datetime.utcnow(), state))
+
+tests/pubpartner_core/test_portable_runtime.py: 7 warnings
+tests/pubpartner_vessel/test_indexed_recall.py: 3 warnings
+tests/pubpartner_vessel/test_objective_observations.py: 1 warning
+tests/pubpartner_vessel/test_pubpartner_vessel_integration_unittest.py: 2 warnings
+tests/pubpartner_vessel/test_pubpartner_vessel_routes.py: 1 warning
+tests/test_alex_personality_continuity.py: 4 warnings
+tests/test_communications_host_contracts.py: 1 warning
+tests/test_companion_chat_entrypoint.py: 1 warning
+tests/test_companion_docking.py: 5 warnings
+tests/test_companion_horizon_host.py: 2 warnings
+tests/test_companion_provider_bridge.py: 3 warnings
+tests/test_companion_recovery.py: 5 warnings
+tests/test_pubcast_smoke.py: 1 warning
+tests/test_reach_writers_room.py: 2 warnings
+  <string>:4: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/test_alex_personality_continuity.py::test_only_real_successful_replies_are_resumed
+tests/test_companion_chat_entrypoint.py::test_host_chat_uses_one_canonical_turn_with_advice_and_lossless_source
+tests/test_companion_horizon_host.py::test_cartridge_cli_uses_portable_runtime_and_preserves_input
+tests/test_companion_horizon_host.py::test_minimal_pubpartner_host_runs_new_advice_with_existing_authority
+tests/test_companion_recovery.py::test_actual_spine_feeds_guidance_to_provider_and_records_review_once
+  /workspace/scratch/a8e4fa7e526a/pubcast/companion_support/conversation_pacing.py:303: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    self.weight_history.append((datetime.utcnow(), weight))
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+  /workspace/scratch/a8e4fa7e526a/pubcast/modules/wired/companion_core.py:144: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    self.session_started = datetime.utcnow()
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+  <string>:3: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+tests/test_companion_recovery.py::test_shared_turns_do_not_replay_private_history_or_learn_it
+tests/test_companion_recovery.py::test_quality_review_flags_echo_without_modifying_response
+tests/test_companion_recovery.py::test_restart_replays_existing_permitted_history_without_a_new_memory_store
+tests/test_companion_recovery.py::test_restart_replays_existing_permitted_history_without_a_new_memory_store
+  <string>:5: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+  /workspace/scratch/a8e4fa7e526a/pubcast/modules/wired/conversation_state.py:283: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    self.created_at = datetime.utcnow()
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+  /workspace/scratch/a8e4fa7e526a/pubcast/modules/wired/conversation_state.py:312: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    timestamp=datetime.utcnow(),
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+  /workspace/scratch/a8e4fa7e526a/pubcast/modules/wired/conversation_state.py:138: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    self.goal_history.append((datetime.utcnow(), g.description, g.stated))
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+  /workspace/scratch/a8e4fa7e526a/pubcast/modules/wired/conversation_state.py:590: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "timestamp": datetime.utcnow().isoformat(),
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+  /workspace/scratch/a8e4fa7e526a/pubcast/modules/wired/conversation_state.py:97: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    self.dependency_history.append((datetime.utcnow(), dep))
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+  <string>:13: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+tests/test_companion_recovery.py::test_shared_turns_do_not_replay_private_history_or_learn_it
+tests/test_companion_recovery.py::test_quality_review_flags_echo_without_modifying_response
+tests/test_companion_recovery.py::test_restart_replays_existing_permitted_history_without_a_new_memory_store
+tests/test_companion_recovery.py::test_restart_replays_existing_permitted_history_without_a_new_memory_store
+  <string>:6: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+  <string>:8: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/test_companion_recovery.py: 15 warnings
+  /workspace/scratch/a8e4fa7e526a/pubcast/companion_support/known_vs_novel.py:70: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    self.last_seen = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/alex_little_one/test_public_baby_role.py:8: Alex Little One research protocol tests require ENABLE_ALEX_LITTLE_ONE=true.
+SKIPPED [1] tests/test_public_baby_role.py:5: Moved to tests/alex_little_one/test_public_baby_role.py. Set ENABLE_ALEX_LITTLE_ONE=true to run the research protocol tests.
+FAILED tests/test_foresight_file_workspace.py::test_python_syntax_check_in_native_editor_without_external_services
+1 failed, 2166 passed, 2 skipped, 211 warnings in 614.48s (0:10:14)

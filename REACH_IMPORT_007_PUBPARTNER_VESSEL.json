@@ -1,0 +1,8 @@
+{
+  "operation": "additive_import",
+  "source": "FULL_SESSION_HANDOFF.zip / PubPartnerHorizon",
+  "corroboration": "2026-09-10 audit copies of pubpartner_vessel/memory.py and models.py are byte-identical",
+  "destination": ["pubpartner_vessel/", "modules/agency_observation.py", "modules/event_agency.py"],
+  "test_destination": "tests/pubpartner_vessel/",
+  "selection_reason": "complete evidence-governed vessel package and deterministic salience primitive, preserved as their original package boundary"
+}

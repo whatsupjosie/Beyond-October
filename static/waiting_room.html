@@ -1,0 +1,400 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PubCast AI â€” Airlock</title>
+<style>
+:root{
+  --bg:#0a0805;--panel:#12100a;--panel2:#1a1710;
+  --brass:#d4a84b;--brass-dim:#7a5a20;--brass-dark:#2a1f0f;
+  --teal:#6dd6c7;--teal-dark:#004d4d;
+  --oxblood:#4a0000;--cream:#f0e8d8;--cream-dim:#8a8070;
+  --red:#ff3333;--green:#33cc66;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--cream);font-family:Consolas, 'Courier New', monospace;
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background-image:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.6' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 50% 30%,#141210,var(--bg));
+  background-size:300px 300px,100% 100%;
+}
+.airlock{
+  width:100%;max-width:560px;
+  background:var(--panel);
+  border:1px solid var(--brass-dark);
+  padding:0;overflow:hidden;
+  box-shadow:0 16px 60px rgba(0,0,0,0.7);
+}
+.airlock-header{
+  padding:28px 32px 20px;text-align:center;
+  background:linear-gradient(180deg,var(--panel2),var(--panel));
+  border-bottom:2px solid transparent;
+  border-image:linear-gradient(90deg,transparent,var(--brass),transparent) 1;
+}
+.airlock-title{
+  font-family:Georgia, 'Times New Roman', serif;font-size:1.8rem;font-weight:900;
+  letter-spacing:4px;color:var(--brass);
+  text-shadow:0 0 16px rgba(212,168,75,0.3);
+}
+.airlock-sub{
+  font-size:0.6rem;letter-spacing:3px;text-transform:uppercase;
+  color:var(--teal);opacity:0.7;margin-top:4px;
+}
+.airlock-body{padding:24px 32px}
+.host-note{
+  margin-bottom:18px;padding:12px 14px;
+  border-left:2px solid var(--brass);
+  background:rgba(212,168,75,0.06);
+}
+.host-name{
+  font-family:Georgia, 'Times New Roman', serif;font-size:0.62rem;font-weight:700;
+  color:var(--brass);letter-spacing:2px;text-transform:uppercase;
+  margin-bottom:6px;
+}
+.host-line{
+  font-size:0.74rem;line-height:1.55;color:var(--cream);
+}
+
+/* Steps */
+.step{display:none}
+.step.active{display:block}
+
+.step-label{
+  font-family:Georgia, 'Times New Roman', serif;font-size:0.7rem;font-weight:700;
+  letter-spacing:3px;color:var(--brass-dim);margin-bottom:16px;
+  text-transform:uppercase;
+}
+
+/* Consent text */
+.consent-box{
+  background:var(--panel2);border:1px solid var(--brass-dark);
+  padding:16px;max-height:200px;overflow-y:auto;
+  font-size:0.7rem;line-height:1.7;color:var(--cream-dim);
+  margin-bottom:16px;white-space:pre-line;
+}
+
+/* Checkboxes */
+.check-row{
+  display:flex;align-items:center;gap:10px;padding:10px 0;
+  border-bottom:1px solid rgba(212,168,75,0.08);
+}
+.check-row input[type="checkbox"]{
+  width:18px;height:18px;accent-color:var(--teal);cursor:pointer;
+}
+.check-label{font-size:0.75rem;color:var(--cream);cursor:pointer}
+.check-label small{display:block;font-size:0.6rem;color:var(--cream-dim);margin-top:2px}
+
+/* Name/color picker */
+.input-group{margin-bottom:16px}
+.input-label{
+  font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;
+  color:var(--brass-dim);margin-bottom:6px;
+}
+.text-input{
+  width:100%;padding:10px 14px;
+  background:var(--panel2);border:1px solid var(--brass-dark);
+  color:var(--cream);font-family:Consolas, 'Courier New', monospace;font-size:0.85rem;
+  outline:none;
+}
+.text-input:focus{border-color:var(--teal)}
+.text-input::placeholder{color:var(--cream-dim);opacity:0.5}
+
+.color-grid{
+  display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;
+}
+.color-swatch{
+  width:36px;height:36px;border:2px solid var(--brass-dark);
+  cursor:pointer;transition:all 0.15s;
+}
+.color-swatch:hover{border-color:var(--brass);transform:scale(1.1)}
+.color-swatch.selected{border-color:var(--cream);box-shadow:0 0 10px currentColor}
+
+/* Buttons */
+.btn-row{
+  display:flex;gap:8px;margin-top:20px;justify-content:flex-end;
+}
+.btn{
+  padding:10px 24px;border:1px solid var(--brass-dark);
+  background:var(--panel2);color:var(--cream);
+  font-family:Georgia, 'Times New Roman', serif;font-size:0.7rem;font-weight:700;
+  letter-spacing:2px;cursor:pointer;transition:all 0.15s;
+}
+.btn:hover{border-color:var(--brass);background:rgba(212,168,75,0.08)}
+.btn:disabled{opacity:0.3;cursor:not-allowed}
+.btn.primary{
+  border-color:var(--teal);background:rgba(109,214,199,0.08);color:var(--teal);
+}
+.btn.primary:hover{background:rgba(109,214,199,0.15)}
+
+/* Waiting state */
+.waiting-state{text-align:center;padding:32px 0}
+.waiting-spinner{
+  width:40px;height:40px;border:3px solid var(--brass-dark);
+  border-top-color:var(--teal);border-radius:50%;
+  animation:spin 1s linear infinite;margin:0 auto 16px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.waiting-text{
+  font-size:0.8rem;color:var(--cream-dim);letter-spacing:1px;
+}
+.waiting-room-name{
+  font-family:Georgia, 'Times New Roman', serif;font-size:1.1rem;color:var(--brass);
+  margin-top:8px;letter-spacing:2px;
+}
+
+/* Approved */
+.approved-state{text-align:center;padding:32px 0}
+.approved-check{
+  font-size:3rem;color:var(--green);margin-bottom:12px;
+}
+.approved-text{
+  font-family:Georgia, 'Times New Roman', serif;font-size:1.2rem;color:var(--teal);
+  letter-spacing:3px;
+}
+
+/* Footer */
+.airlock-footer{
+  padding:12px 32px;text-align:center;
+  border-top:1px solid rgba(212,168,75,0.08);
+  font-size:0.5rem;color:var(--cream-dim);letter-spacing:1px;
+}
+</style>
+  <script src="/static/reach_auth.js"></script>
+</head>
+<body>
+
+<div class="airlock">
+  <div class="airlock-header">
+    <div class="airlock-title">PUBCAST AI</div>
+    <div class="airlock-sub">â—† airlock â—†</div>
+  </div>
+
+  <div class="airlock-body">
+    <div class="host-note" aria-live="polite">
+      <div class="host-name" id="hostName">Sir Purfluous</div>
+      <div class="host-line" id="hostLine">Welcome to the threshold, Sancho.</div>
+    </div>
+
+    <!-- STEP 1: Terms -->
+    <div class="step active" id="step1">
+      <div class="step-label">â—† Step 1 â€” Terms &amp; Consent â—†</div>
+      <div class="consent-box" id="termsBox">Loading terms...</div>
+      <div class="check-row">
+        <input type="checkbox" id="chkTos">
+        <label class="check-label" for="chkTos">
+          I accept the Terms of Service
+          <small>Required to enter any PubCast room</small>
+        </label>
+      </div>
+      <div class="check-row">
+        <input type="checkbox" id="chkAi">
+        <label class="check-label" for="chkAi">
+          I acknowledge AI participants are present
+          <small>AI characters will interact with you in this session</small>
+        </label>
+      </div>
+      <div class="check-row">
+        <input type="checkbox" id="chkRec">
+        <label class="check-label" for="chkRec">
+          I consent to recording in production areas
+          <small>Private rooms (dressing room) are never recorded</small>
+        </label>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="btnStep1" onclick="nextStep(2)" disabled>CONTINUE</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Identity -->
+    <div class="step" id="step2">
+      <div class="step-label">â—† Step 2 â€” Your Identity â—†</div>
+      <div class="input-group">
+        <div class="input-label">Display Name</div>
+        <input class="text-input" id="nameInput" placeholder="Enter your name..." maxlength="32">
+      </div>
+      <div class="input-group">
+        <div class="input-label">Avatar Color</div>
+        <div class="color-grid" id="colorGrid"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="nextStep(1)">BACK</button>
+        <button class="btn primary" id="btnStep2" onclick="requestEntry()" disabled>ENTER AIRLOCK</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Waiting -->
+    <div class="step" id="step3">
+      <div class="waiting-state">
+        <div class="waiting-spinner"></div>
+        <div class="waiting-text">Waiting for host approval...</div>
+        <div class="waiting-room-name" id="waitingRoomName">STUDIO</div>
+      </div>
+    </div>
+
+    <!-- STEP 4: Approved -->
+    <div class="step" id="step4">
+      <div class="approved-state">
+        <div class="approved-check">âœ“</div>
+        <div class="approved-text">Welcome to PubCast</div>
+        <div class="btn-row" style="justify-content:center;margin-top:20px">
+          <button class="btn primary" onclick="enterRoom()">ENTER STAGE</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="airlock-footer">
+    Rear View Foresight LLC Â· Feic Mo ChroÃ­ Â· Â© 2024â€“2026
+  </div>
+</div>
+
+<script>
+const COLORS = [
+  {name:'Cyan',hex:'#4DC8FF'},{name:'Pink',hex:'#FF4DC8'},
+  {name:'Purple',hex:'#C84DFF'},{name:'Green',hex:'#4DFF4D'},
+  {name:'Yellow',hex:'#FFFF4D'},{name:'White',hex:'#FFFFFF'},
+  {name:'Coral',hex:'#FF6B6B'},{name:'Gold',hex:'#E5C17E'},
+];
+let selectedColor = '#4DC8FF';
+let userId = 'user_' + Math.random().toString(36).slice(2,10);
+let entryId = null;
+const STEP_STATES = {1:'consent', 2:'identity', 3:'pending', 4:'approved'};
+
+async function loadHostLine(state='arrival') {
+  try {
+    const resp = await fetch(`/api/governance/waiting-room/host?state=${encodeURIComponent(state)}`);
+    if (!resp.ok) return;
+    const data = await resp.json();
+    document.getElementById('hostName').textContent = data.display_name || 'Sir Purfluous';
+    document.getElementById('hostLine').textContent = data.line || 'Welcome to the threshold, Sancho.';
+  } catch {}
+}
+
+// Build color grid
+const grid = document.getElementById('colorGrid');
+COLORS.forEach((c,i) => {
+  const div = document.createElement('div');
+  div.className = 'color-swatch' + (i===0?' selected':'');
+  div.style.background = c.hex;
+  div.title = c.name;
+  div.onclick = () => {
+    document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));
+    div.classList.add('selected');
+    selectedColor = c.hex;
+  };
+  grid.appendChild(div);
+});
+
+// Load terms
+fetch('/api/governance/terms').then(r=>r.json()).then(d=>{
+  document.getElementById('termsBox').textContent = d.terms || 'Terms not available.';
+}).catch(()=>{
+  document.getElementById('termsBox').textContent =
+    'PUBCAST AI â€” TERMS OF SERVICE\n\n1. Respect all participants.\n2. AI characters are present.\n3. Some rooms are recorded.\n4. The host may moderate at any time.\n\nBy continuing, you accept these terms.';
+});
+
+// Consent checkboxes enable continue
+['chkTos','chkAi','chkRec'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', ()=>{
+    const all = ['chkTos','chkAi'].every(i=>document.getElementById(i).checked);
+    document.getElementById('btnStep1').disabled = !all;
+  });
+});
+
+// Name enables enter
+document.getElementById('nameInput').addEventListener('input', e=>{
+  document.getElementById('btnStep2').disabled = e.target.value.trim().length < 2;
+});
+
+function nextStep(n) {
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('step'+n).classList.add('active');
+  loadHostLine(STEP_STATES[n] || 'pending');
+}
+
+loadHostLine('arrival');
+
+async function requestEntry() {
+  const name = document.getElementById('nameInput').value.trim();
+  if (name.length < 2) return;
+
+  // Record consents
+  const consents = {
+    tos: document.getElementById('chkTos').checked,
+    ai_disclosure: document.getElementById('chkAi').checked,
+    recording: document.getElementById('chkRec').checked,
+  };
+
+  try {
+    // Send consents
+    for (const [type, granted] of Object.entries(consents)) {
+      await fetch('/api/governance/consent', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({user_id:userId, consent_type:type, granted}),
+      });
+    }
+
+    // Request entry
+    const resp = await fetch('/api/governance/waiting-room/request', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        user_id: userId,
+        display_name: name,
+        target_room: 'studio',
+        consents,
+      }),
+    });
+    const data = await resp.json();
+    entryId = data.entry_id;
+
+    document.getElementById('waitingRoomName').textContent = 'STUDIO';
+    nextStep(3);
+
+    // Poll for approval
+    pollApproval();
+  } catch (err) {
+    alert('Connection error. Please try again.');
+  }
+}
+
+async function pollApproval() {
+  if (!entryId) return;
+  try {
+    const resp = await fetch(`/api/governance/waiting-room/status/${encodeURIComponent(entryId)}`);
+    if (!resp.ok) throw new Error(`Waiting-room status failed: ${resp.status}`);
+    const data = await resp.json();
+    if (data.status === 'approved') {
+      nextStep(4);
+      return;
+    }
+    if (data.status === 'denied') {
+      alert('Entry was not approved. Please contact the host if you think this is a mistake.');
+      return;
+    }
+    window.setTimeout(pollApproval, 1000);
+  } catch (err) {
+    console.error('Waiting-room approval poll failed', err);
+    window.setTimeout(pollApproval, 2000);
+  }
+}
+
+function enterRoom() {
+  // Store identity in sessionStorage and redirect to stage
+  sessionStorage.setItem('pubcast_user', JSON.stringify({
+    user_id: userId,
+    userId,
+    display_name: document.getElementById('nameInput').value.trim(),
+    name: document.getElementById('nameInput').value.trim(),
+    color: selectedColor,
+    entryId,
+  }));
+  if (!sessionStorage.getItem('pubcastSessionId')) sessionStorage.setItem('pubcastSessionId', `session_${Date.now()}`);
+  window.location.href = '/world';
+}
+</script>
+</body>
+</html>

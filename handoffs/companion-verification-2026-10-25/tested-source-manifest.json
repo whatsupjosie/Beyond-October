@@ -1,0 +1,1220 @@
+[
+  {
+    "path": "companion_support/__init__.py",
+    "sha256": "c025abc1c8470f3132524945be87a761170f709b4d6bfb34b0d4bd472ef76738",
+    "git_blob": "08d4d25436f28e2b5b17200b0e170b0635a40521",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "companion_support/acceptance_engine.py",
+    "sha256": "0609c1a858c2c4c2a4b0b7219613fd42fa9ed24a19922e41520c9a280cab23ef",
+    "git_blob": "af3c9a0f8da5882c301fc55a05eba3049936dc7a",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "companion_support/advisory.py",
+    "sha256": "338e7675efcbe56757cb4081fe3f06ae3b271b9ff692a33f6cf4c93fc3d02439",
+    "git_blob": "ded692aa60e4956c249ceac233849dae770f8ef7",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "companion_support/anti_parroting.py",
+    "sha256": "a21cb3fb443222bdf05e76db97d5db4193ef9004a3d48e3bd6b7f48c0637068d",
+    "git_blob": "d76d2b41ac766c41b10cd9253a9daa5596b9f840",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "companion_support/contradiction_tracker.py",
+    "sha256": "75c1edfef0e47816a9c6d64d4ca6223aa170cf69b643a7e6dbde0534159a751f",
+    "git_blob": "5decd32efb48329cfae996c1bdf497a7cb08a2e1",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "companion_support/conversation_pacing.py",
+    "sha256": "577d1f6199e6cb0c36b2f933139605d70c395c50193f592428cd38602cc99347",
+    "git_blob": "80b8a841247ed1d46c3ca2f34c49746d0be4b2a4",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "companion_support/eq_disambiguation_engine.py",
+    "sha256": "24c463500f6e4ddd23ed0ca617c52968586950d44f33d673850d7cf3865db6dc",
+    "git_blob": "474e26183b772633c329c27c2963ac5da565e97b",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "companion_support/known_vs_novel.py",
+    "sha256": "a6102c0c4157c37cc56fe78362bbc210f04413ff3b451a6dab608f01f1a8dfc3",
+    "git_blob": "f6f58cd759e43bb9f77a9f4836a44c0eb06d9705",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "companion_support/observation_engine.py",
+    "sha256": "e7f0a278542712bfb499add2028ecc6e514bfd65db080ef3f86554ee0f090b9e",
+    "git_blob": "bdbb47133bd843e9ed3f931d11abc35e6193cc8c",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "companion_support/safeguards.py",
+    "sha256": "4f5e7075624e4f82c224cd541b353d7d22b3e50924f19f9abcf0b3ff2b93b459",
+    "git_blob": "3efa6bf5b3de32b6b98a10bdc23d4a63d804296c",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "modules/__init__.py",
+    "sha256": "b20476a224dd1c05ced7c0527e709c1715664a014b8fccf24fcebaed9ef6d10c",
+    "git_blob": "641594581710744b4eb2c31a778a07a797f81773",
+    "parent_blob": "641594581710744b4eb2c31a778a07a797f81773",
+    "planned": false
+  },
+  {
+    "path": "modules/affect_context_engine.py",
+    "sha256": "058d5d8567f79dd9514834fef5920621fc96f5faa11cd994cbae5f75b715d90d",
+    "git_blob": "30718ff340e303e3ad78cae43fd60214dd4eef19",
+    "parent_blob": "30718ff340e303e3ad78cae43fd60214dd4eef19",
+    "planned": false
+  },
+  {
+    "path": "modules/affect_dynamics.py",
+    "sha256": "e9c5b748e3407f87fe820bbfbc18318eb478f12ebe35850307ded4e5138bcf19",
+    "git_blob": "af5b04d14f141f99e22b4a7acef6d1a854c8f61d",
+    "parent_blob": "af5b04d14f141f99e22b4a7acef6d1a854c8f61d",
+    "planned": false
+  },
+  {
+    "path": "modules/agency_observation.py",
+    "sha256": "441e133c8bac186e5461292fbe92e81534f506eea416bcb70d0839f6516cfe9d",
+    "git_blob": "c09b9ad5c9d325a199cac815e2a31e11b5e059ff",
+    "parent_blob": "c09b9ad5c9d325a199cac815e2a31e11b5e059ff",
+    "planned": false
+  },
+  {
+    "path": "modules/ai_providers.py",
+    "sha256": "2b2cf98442e553138fef67c8c0c1cc6c9e13d3e3cb1c211caefdb6a97639811e",
+    "git_blob": "964b974b49970f9a3bcaaf82dc7bac5a4c5091c1",
+    "parent_blob": "964b974b49970f9a3bcaaf82dc7bac5a4c5091c1",
+    "planned": false
+  },
+  {
+    "path": "modules/ai_runtime.py",
+    "sha256": "adb8c40f77a0863da030b8514bd5813ef9de54afaf408e868fcb425abc9dcb67",
+    "git_blob": "668f2753d7f91b4b7ed81bb1b719f6769533aad9",
+    "parent_blob": "668f2753d7f91b4b7ed81bb1b719f6769533aad9",
+    "planned": false
+  },
+  {
+    "path": "modules/ai_runtime_slots.py",
+    "sha256": "8caf220a28f31dedea7daea898df18d372abc5c73e087947b219bbcaa87f1cec",
+    "git_blob": "1cb47ab99797ec5e67fd56b71dfdf7c3c4967787",
+    "parent_blob": "1cb47ab99797ec5e67fd56b71dfdf7c3c4967787",
+    "planned": false
+  },
+  {
+    "path": "modules/alex_core.py",
+    "sha256": "60c8be96c55bf201a57fd5114aaeead95444cc75dc097ddb12f2434c5d8b3e1d",
+    "git_blob": "6f4c50a17ffe37208517620d864d0ea699f87880",
+    "parent_blob": "6f4c50a17ffe37208517620d864d0ea699f87880",
+    "planned": false
+  },
+  {
+    "path": "modules/alex_jeremy_bridge.py",
+    "sha256": "55c566afba13c776790d2fa42747c5d66f576752c20e5a92653066dfa6b03e40",
+    "git_blob": "335098c2dba32e6cbdcc0955f52960d3eb0c18a7",
+    "parent_blob": "335098c2dba32e6cbdcc0955f52960d3eb0c18a7",
+    "planned": false
+  },
+  {
+    "path": "modules/alex_routes.py",
+    "sha256": "259c3b3bf7a68a1f14cef3414af729e913d9471c0f087c0ac76c759a20f4f6d7",
+    "git_blob": "a12bf9a22dfffbb27179368200d6b856b093e020",
+    "parent_blob": "a12bf9a22dfffbb27179368200d6b856b093e020",
+    "planned": false
+  },
+  {
+    "path": "modules/auth.py",
+    "sha256": "3cf2dd23f1d9bed34483886ae4167da2112f7fe0ff0cfe7ff5ecdcc1a41608e0",
+    "git_blob": "bc1dffcf2f0a656be8080bb16dc087c8d70fe137",
+    "parent_blob": "bc1dffcf2f0a656be8080bb16dc087c8d70fe137",
+    "planned": false
+  },
+  {
+    "path": "modules/auth_rate_limit.py",
+    "sha256": "91d9acdcb226f14e0e5638011822a582c334fd8ec993b70138792db3d04341b5",
+    "git_blob": "d5b1de81ad789d7b42b96937fba9a7b7f7b695fd",
+    "parent_blob": "d5b1de81ad789d7b42b96937fba9a7b7f7b695fd",
+    "planned": false
+  },
+  {
+    "path": "modules/auth_routes.py",
+    "sha256": "92588ffa3acda2c2623424bac78ab8684f0ff1b6c71c36db7afa3608ea502b26",
+    "git_blob": "b2c360a7bc75072fa8badc6c59aae14f98a71334",
+    "parent_blob": "b2c360a7bc75072fa8badc6c59aae14f98a71334",
+    "planned": false
+  },
+  {
+    "path": "modules/bot_llm_adapter.py",
+    "sha256": "5e77ab9b3cb7f2234efe188bd8ce9aeeabb375dc324ab42d738d9dab8dd300fc",
+    "git_blob": "480d0408b5e935364820c4df1ae4f4e552cadff0",
+    "parent_blob": "480d0408b5e935364820c4df1ae4f4e552cadff0",
+    "planned": false
+  },
+  {
+    "path": "modules/bridge_raw.py",
+    "sha256": "47457b6b5c92ef6ef99477d9af104f439a7fcf87523aefc18dc70f68f61424bf",
+    "git_blob": "99691a2d728007e4708a3cfd3f4d725ef8b1894d",
+    "parent_blob": "99691a2d728007e4708a3cfd3f4d725ef8b1894d",
+    "planned": false
+  },
+  {
+    "path": "modules/byok_manager.py",
+    "sha256": "dbb424ddad07a895ed9615c35d28972a46721cc4d37f8efecefccec855adcc31",
+    "git_blob": "1f6f7c9b68c966dd0931dec004e7f38463d7f7ff",
+    "parent_blob": "1f6f7c9b68c966dd0931dec004e7f38463d7f7ff",
+    "planned": false
+  },
+  {
+    "path": "modules/chat_rooms.py",
+    "sha256": "790f0c395b2b9a485a2a6f3513336ab2ad47159cf5f6eada0ca69f62abefe729",
+    "git_blob": "14bbeb1a35d0d2de6e8a09ff12aa598a261247ad",
+    "parent_blob": "14bbeb1a35d0d2de6e8a09ff12aa598a261247ad",
+    "planned": false
+  },
+  {
+    "path": "modules/circuit_breaker.py",
+    "sha256": "7be40c84283699b0c142f5915aba999a4313bc9c9b52b3a7b596499780065f00",
+    "git_blob": "8b6cf455cc2936e24a769e58142c5bff2b7f7686",
+    "parent_blob": "8b6cf455cc2936e24a769e58142c5bff2b7f7686",
+    "planned": false
+  },
+  {
+    "path": "modules/companion_advisory.py",
+    "sha256": "a112c471fc01df8a60165c4c18197c847fbf1a592919383b09c325c5a934a4d6",
+    "git_blob": "384ecf71ff0aac0d62f9fa74c13f0ff94db706bb",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "modules/credentials.py",
+    "sha256": "0f80389b0e55a332ebe2dc012b644029babe5ac330482e51e7499f2f8dcf94c8",
+    "git_blob": "1f836ac58b36bf2ab120e8edaea797829663fb1f",
+    "parent_blob": "1f836ac58b36bf2ab120e8edaea797829663fb1f",
+    "planned": false
+  },
+  {
+    "path": "modules/dressing_room_security.py",
+    "sha256": "93368ddbb0f8ebe6722187da9bffd1585a8cab7150ed8ff3ccc3a04a2d779613",
+    "git_blob": "1d1f28f40cb98a261ccebb79dc6331409fea0467",
+    "parent_blob": "1d1f28f40cb98a261ccebb79dc6331409fea0467",
+    "planned": false
+  },
+  {
+    "path": "modules/emotional_consultation.py",
+    "sha256": "cca133ebf3a64fdcea9c77e73a46b16a00c8b55ed5ce55f479266804d3e0ecb2",
+    "git_blob": "11e4def87382150a131d4526738a38fb559633cc",
+    "parent_blob": "11e4def87382150a131d4526738a38fb559633cc",
+    "planned": false
+  },
+  {
+    "path": "modules/emotional_orchestrator.py",
+    "sha256": "8013c0421d65ea344589116ab47d1316d298555e3e3618b3748598a3b1e5ee91",
+    "git_blob": "fd349cfe70141aaf902a0191f2211a6d1dc853c8",
+    "parent_blob": "fd349cfe70141aaf902a0191f2211a6d1dc853c8",
+    "planned": false
+  },
+  {
+    "path": "modules/eq_monitoring_recorder.py",
+    "sha256": "9b4a83da7b2d2b9bd7a96e3a51c086ad3f8f2e29259a36fc8fd723f634c62b0b",
+    "git_blob": "9176ee6f290f2dbd145dac49573bfade61cb22c1",
+    "parent_blob": "9176ee6f290f2dbd145dac49573bfade61cb22c1",
+    "planned": false
+  },
+  {
+    "path": "modules/event_agency.py",
+    "sha256": "bb327096a6429be1f145bc18b306c9dda32984aa0919e4849ca9778d05a91d83",
+    "git_blob": "24555c5093d666b9057e10f2197262f9115fd35d",
+    "parent_blob": "24555c5093d666b9057e10f2197262f9115fd35d",
+    "planned": false
+  },
+  {
+    "path": "modules/evo/__init__.py",
+    "sha256": "c6ce8243ac0da46cc96aff8a2eff4f40c2bb158df05b8659f627bad0ddeb542b",
+    "git_blob": "26f73f7c030a5eb7249c731a209a7a844def90e4",
+    "parent_blob": "26f73f7c030a5eb7249c731a209a7a844def90e4",
+    "planned": false
+  },
+  {
+    "path": "modules/evo/arbitration.py",
+    "sha256": "4abd9c745c074d66913482e76cf18f382b7536ee6e9c6db8d8e807b852d3a9bd",
+    "git_blob": "d5021d91bb1527ae0b03ce44928ca4902bceea1d",
+    "parent_blob": "d5021d91bb1527ae0b03ce44928ca4902bceea1d",
+    "planned": false
+  },
+  {
+    "path": "modules/evo/distributed_engine.py",
+    "sha256": "ca741ec074a8cbe5d327928205cb0cca054d5a90a62f1e4e02269a23d61d7a70",
+    "git_blob": "ad8baedfd8f42810cde1277cb5c20235c9969007",
+    "parent_blob": "ad8baedfd8f42810cde1277cb5c20235c9969007",
+    "planned": false
+  },
+  {
+    "path": "modules/evo/epete.py",
+    "sha256": "c68aac6b4442fa3ad192e912487f5557dcbde658c23d3b80b82d95ca54060591",
+    "git_blob": "60e1592acdd63851da20d59c4651a9fe6d3f949c",
+    "parent_blob": "60e1592acdd63851da20d59c4651a9fe6d3f949c",
+    "planned": false
+  },
+  {
+    "path": "modules/evo/event_bus.py",
+    "sha256": "45f491939370998c5a9afcba498765cbe4888fb455fcff39fec6437154337362",
+    "git_blob": "28f0020d3850e358e39c5a0785e1bdfc554ae008",
+    "parent_blob": "28f0020d3850e358e39c5a0785e1bdfc554ae008",
+    "planned": false
+  },
+  {
+    "path": "modules/evo/evo_integration.py",
+    "sha256": "d9751268a91eb85302879713c098102def8c1af9b020746d959dc935bd96236a",
+    "git_blob": "d464ca8002b646727c3e02a4891b8b5ecdbe2822",
+    "parent_blob": "d464ca8002b646727c3e02a4891b8b5ecdbe2822",
+    "planned": false
+  },
+  {
+    "path": "modules/evo/facial_performance.py",
+    "sha256": "361cc7d768d12b53b3c932562dbaaf35bd424d12453a71f46c299a715a12dffa",
+    "git_blob": "8066eebe978e1a689a3d6bb3d037366009d2a310",
+    "parent_blob": "8066eebe978e1a689a3d6bb3d037366009d2a310",
+    "planned": false
+  },
+  {
+    "path": "modules/evo/mutation.py",
+    "sha256": "d033bbc6d81ef795782463b8be55b90e60e462e45f77779a033d9f1751c7058c",
+    "git_blob": "5149cbaee2e56fbec19241d3e681b07f8e06ba89",
+    "parent_blob": "5149cbaee2e56fbec19241d3e681b07f8e06ba89",
+    "planned": false
+  },
+  {
+    "path": "modules/evo/pete.py",
+    "sha256": "8a3edaa2a194a93bb4c8a3539e5c68a432ccdd47c9c689d0d36473d701cecd90",
+    "git_blob": "9d1be2c3c46f2bc502bed1f0b7f0845630ee1840",
+    "parent_blob": "9d1be2c3c46f2bc502bed1f0b7f0845630ee1840",
+    "planned": false
+  },
+  {
+    "path": "modules/evo/prosody_engine.py",
+    "sha256": "ab7b42b18b7b0c6c339be98fba4f5cf2badc8529dc2f3aeac004e768fe787fbd",
+    "git_blob": "e6697fd2e5e4bae4b76efd387f19b19847c7ce39",
+    "parent_blob": "e6697fd2e5e4bae4b76efd387f19b19847c7ce39",
+    "planned": false
+  },
+  {
+    "path": "modules/evo/prosody_semantic_adapter.py",
+    "sha256": "b8e67aca1e364ca858080e252e487007a7841016312da08a0548764bd6bac09e",
+    "git_blob": "d1babb5322c733aa1d9d5d88c770680dd2075ae9",
+    "parent_blob": "d1babb5322c733aa1d9d5d88c770680dd2075ae9",
+    "planned": false
+  },
+  {
+    "path": "modules/evo/semantic_events.py",
+    "sha256": "e09de3c9c96495ed3f64ca8e068d91218b193abc40c5116e298d982d09500014",
+    "git_blob": "7e79a1788a7b2b02b212dfa9c5ba70881274bfd0",
+    "parent_blob": "7e79a1788a7b2b02b212dfa9c5ba70881274bfd0",
+    "planned": false
+  },
+  {
+    "path": "modules/evo/semantic_field.py",
+    "sha256": "5fc2ccc85dc82a3f959e2bdc010a2574449242e1d031bdd90fabc32aca5fd507",
+    "git_blob": "0c1c753513818b76073b875bb8528be29560c034",
+    "parent_blob": "0c1c753513818b76073b875bb8528be29560c034",
+    "planned": false
+  },
+  {
+    "path": "modules/evo/semantic_runtime.py",
+    "sha256": "58e49a9ae68879ce4161925b00dc0b824c3bd8bf6ccaa465de568f102aa18171",
+    "git_blob": "12566b8182a69559231d494a5fd6f014ccadb566",
+    "parent_blob": "12566b8182a69559231d494a5fd6f014ccadb566",
+    "planned": false
+  },
+  {
+    "path": "modules/evo/switchblade_governor.py",
+    "sha256": "b6d3a9f985e975c0ee680944f01cb5256bd5567fa656560df4c9c9ff90a6f9aa",
+    "git_blob": "47043ccb5f390449256786103981163a6a8cf56a",
+    "parent_blob": "47043ccb5f390449256786103981163a6a8cf56a",
+    "planned": false
+  },
+  {
+    "path": "modules/evo/vdi_engine.py",
+    "sha256": "a1328dad491ec47f6948e361aed05439fb41f94ffa302020838060e882bf882a",
+    "git_blob": "40f205638d246f82e6fff4892a70f00a3d67f2d8",
+    "parent_blob": "40f205638d246f82e6fff4892a70f00a3d67f2d8",
+    "planned": false
+  },
+  {
+    "path": "modules/evo/vdi_semantic_adapter.py",
+    "sha256": "acf4dfe7b820182f037367514fd3cfa3164922e03a9810c141ed66028ad01102",
+    "git_blob": "002643b7ae5421a492d191de7968dc1f1c0e9edc",
+    "parent_blob": "002643b7ae5421a492d191de7968dc1f1c0e9edc",
+    "planned": false
+  },
+  {
+    "path": "modules/evo/voice_characters.py",
+    "sha256": "b9a949c81b5d083db65ccfd3d7cb99f763c90b58694562d8eb34f5ab6420bd6d",
+    "git_blob": "73b62f75b8bab5cf50f1136e792f031513cf7827",
+    "parent_blob": "73b62f75b8bab5cf50f1136e792f031513cf7827",
+    "planned": false
+  },
+  {
+    "path": "modules/governance.py",
+    "sha256": "68b9d5292825fa5883f3416054cec76c38aaf468ab4d614ab86ec887ebfe6bb0",
+    "git_blob": "09bd938646c15f1bfa9ed144ce042c1419027424",
+    "parent_blob": "09bd938646c15f1bfa9ed144ce042c1419027424",
+    "planned": false
+  },
+  {
+    "path": "modules/governance_routes.py",
+    "sha256": "b315509ec20acf0727ac11a48c922df5ccab49814fd2135a009af011ceff1409",
+    "git_blob": "3192886ab15c432ad781173dc0879002e0a4d601",
+    "parent_blob": "3192886ab15c432ad781173dc0879002e0a4d601",
+    "planned": false
+  },
+  {
+    "path": "modules/irm.py",
+    "sha256": "df28cc811b621b114f7dad0ec8fdc41965c8611eb65dafe9b515bb923d53a681",
+    "git_blob": "e6a692b8f63be20ffee93ed9ed6ab24b1f51c82d",
+    "parent_blob": "e6a692b8f63be20ffee93ed9ed6ab24b1f51c82d",
+    "planned": false
+  },
+  {
+    "path": "modules/jeremy_cricket.py",
+    "sha256": "d58397c8f94d75307643e4789255d28054de8b86aa6e1de66f567a9fb9a76de6",
+    "git_blob": "b871b84ba4538aeb40b549f58763da44c8df009c",
+    "parent_blob": "b871b84ba4538aeb40b549f58763da44c8df009c",
+    "planned": false
+  },
+  {
+    "path": "modules/limited_exposure.py",
+    "sha256": "c6a7b461df5a67fa07cb7e7995040ca3b6a3a1f3608ef7fb8952827814528284",
+    "git_blob": "3444b754227a254ce4e1dcf4aac031d141697be4",
+    "parent_blob": "3444b754227a254ce4e1dcf4aac031d141697be4",
+    "planned": false
+  },
+  {
+    "path": "modules/llm_framework.py",
+    "sha256": "cb4014bfabd54dbd581747a271d20c72254d9ae14dcbc2cdd017337a0247bcf6",
+    "git_blob": "da5c2390fb9bc16433d6cd9a0adfcaadb7af3fa9",
+    "parent_blob": "da5c2390fb9bc16433d6cd9a0adfcaadb7af3fa9",
+    "planned": false
+  },
+  {
+    "path": "modules/local_model_config.py",
+    "sha256": "2d56c3adf39936637af348dc3e206910d515b081db22cea99c97f843ae30b2f8",
+    "git_blob": "abefec19a450f971e45fa2085cc8b83351fc2364",
+    "parent_blob": "abefec19a450f971e45fa2085cc8b83351fc2364",
+    "planned": false
+  },
+  {
+    "path": "modules/model_registry.py",
+    "sha256": "6a5779ae7063151646de7c5456397738bb3e7245ad41d1dc6f1f55819ef6c209",
+    "git_blob": "983afeba1100e732267cde4c0105264332743d54",
+    "parent_blob": "983afeba1100e732267cde4c0105264332743d54",
+    "planned": false
+  },
+  {
+    "path": "modules/opencode_zen.py",
+    "sha256": "68b322a555e99aeacc7ce589511ec7668bc5ec1d64ddb22339575c35dad4c4a8",
+    "git_blob": "d81a3961ab66eeaafed1db1bfef9fc8cc9669143",
+    "parent_blob": "d81a3961ab66eeaafed1db1bfef9fc8cc9669143",
+    "planned": false
+  },
+  {
+    "path": "modules/persistence.py",
+    "sha256": "b2c9cbf445fc13283f9a934f92cbbc400da977ebfd5b8102bb535b98ffbdb712",
+    "git_blob": "031a1fe2bed0f8d6ecf27df6e2199d15625e39d6",
+    "parent_blob": "031a1fe2bed0f8d6ecf27df6e2199d15625e39d6",
+    "planned": false
+  },
+  {
+    "path": "modules/provider_capabilities.py",
+    "sha256": "03eda65e1c066d23ae09f38f1f58461f3b3c3932108057388f9010ae4eb79bcd",
+    "git_blob": "498c43dbaca48b9c268681047e1d8db479236ddf",
+    "parent_blob": "498c43dbaca48b9c268681047e1d8db479236ddf",
+    "planned": false
+  },
+  {
+    "path": "modules/provider_neutralizer.py",
+    "sha256": "058224fabe5f916ea250f139785d738a4a653c09b310b6e6d8b016a42da4fd7a",
+    "git_blob": "0400f828098e1148d47a956173f005ee5e8cea03",
+    "parent_blob": "0400f828098e1148d47a956173f005ee5e8cea03",
+    "planned": false
+  },
+  {
+    "path": "modules/pub_manager_authority.py",
+    "sha256": "413e8f8353effa3e725a6374479e31580036b86d1c87176bc599a42738c3ca5a",
+    "git_blob": "47b4e7291212a643bde38fc3cf48256385df4453",
+    "parent_blob": "47b4e7291212a643bde38fc3cf48256385df4453",
+    "planned": false
+  },
+  {
+    "path": "modules/pub_manager_decision.py",
+    "sha256": "af063ae8dbfd9c3783837b40dc7d13d2673ac0b79a8b29da360e040b295d53e0",
+    "git_blob": "d7c3238e262f0f0f711e95e6d23057cadb792c36",
+    "parent_blob": "d7c3238e262f0f0f711e95e6d23057cadb792c36",
+    "planned": false
+  },
+  {
+    "path": "modules/pub_partner_chat.py",
+    "sha256": "f4342b09873f7f291fbae8607f767dc56b6471445f786ff352b7f4d1a65c1f7a",
+    "git_blob": "2ec65a4edf51fd1133d497d5d86076be8ee02c26",
+    "parent_blob": "023e421fb066cd6048bf2cc464de2821d3b7f488",
+    "planned": true
+  },
+  {
+    "path": "modules/pubpartner_backup.py",
+    "sha256": "07580f357fdd6943b1497db6235c3ec61ea532081997dd0a691d0f3936b99a1f",
+    "git_blob": "5434285b9e1530672e89367194d1fd61854c68a0",
+    "parent_blob": "5434285b9e1530672e89367194d1fd61854c68a0",
+    "planned": false
+  },
+  {
+    "path": "modules/pubpartner_core.py",
+    "sha256": "b1816696d5c8f0b537fd08e96cadaa377b8058aa569c0d67a3972b8e557e1599",
+    "git_blob": "248f54a4088a1f58e4e1715c8d053a61ea7b9274",
+    "parent_blob": "60daf9d54202ccc1f493726d3472b43140e57aed",
+    "planned": true
+  },
+  {
+    "path": "modules/pubpartner_guidance.py",
+    "sha256": "0d8270fedfe5bb1d5210a5d0f1e5e5793bf91b99b5d6f64ef88bbae92b4c6b40",
+    "git_blob": "9d472863eed00fd89ca81426a434cfee0baf87c3",
+    "parent_blob": "9d472863eed00fd89ca81426a434cfee0baf87c3",
+    "planned": false
+  },
+  {
+    "path": "modules/pubpartner_knowledge.py",
+    "sha256": "7db95ef77616453f2a8de0bd0d1bc5f0f31d06cb638ba4a40ce5dae0df9e6f3a",
+    "git_blob": "8c03679a83422ec6ce2d973d4fff65621b87676a",
+    "parent_blob": "8c03679a83422ec6ce2d973d4fff65621b87676a",
+    "planned": false
+  },
+  {
+    "path": "modules/pubpartner_preflight.py",
+    "sha256": "9d5fb355cb155357426e38d92bbe4d10a00ca30d37b1adc146d413b7fc04ddc1",
+    "git_blob": "01419e3d6538608cb5dfc1972f30c2d24dd8ffd0",
+    "parent_blob": "01419e3d6538608cb5dfc1972f30c2d24dd8ffd0",
+    "planned": false
+  },
+  {
+    "path": "modules/pubpartner_profiles.py",
+    "sha256": "7fa8aa537856a2060aef4ad99251128b5e2051ea9b2efec10120b472d5f041d7",
+    "git_blob": "0bf8aa3dbf73765023f072729a27ce238028fb73",
+    "parent_blob": "0bf8aa3dbf73765023f072729a27ce238028fb73",
+    "planned": false
+  },
+  {
+    "path": "modules/pubpartner_provider.py",
+    "sha256": "12358b07b704be25d31b9a227abd5f3d23656bb20cdc9ed94338d848dc97c72e",
+    "git_blob": "df26f982b02ed71ddb35f877b9cf382d109a420f",
+    "parent_blob": "339e935e68c32f90c7d55285561f4e95066cf7fe",
+    "planned": true
+  },
+  {
+    "path": "modules/pubpartner_rate_limit.py",
+    "sha256": "2efaf854a218096649331fd29632ebea75c5585236ed3a945e7c0c5e8baa3366",
+    "git_blob": "f19fec959ebf17b6e43d588eca8047a33dba4c1d",
+    "parent_blob": "f19fec959ebf17b6e43d588eca8047a33dba4c1d",
+    "planned": false
+  },
+  {
+    "path": "modules/pubpartner_receipts.py",
+    "sha256": "0547eeeeb1275beb8c5c094111347ad478bd13de0c0eb7598235c9fdefc153f6",
+    "git_blob": "737ebdf32a44dbf62e2c3fe39e8bb499f5ebd85c",
+    "parent_blob": "737ebdf32a44dbf62e2c3fe39e8bb499f5ebd85c",
+    "planned": false
+  },
+  {
+    "path": "modules/pubpartner_relationship.py",
+    "sha256": "462bf6076674878e8781c51d911e656094846f82d890573636fed75a32386731",
+    "git_blob": "0bdd5fcb0d34ea898a809f90b1858e2635151663",
+    "parent_blob": "a368553b10aea8ea54f462ddb106827e310ed2c2",
+    "planned": true
+  },
+  {
+    "path": "modules/pubpartner_routes.py",
+    "sha256": "be0517c42ed5371a58f2a0ab82e5f2c54b516d6fe9b75f24943a0e1eb6fce31c",
+    "git_blob": "4d3188a43be213f2f6f37ad6341ff0d29b1c2d2c",
+    "parent_blob": "4d3188a43be213f2f6f37ad6341ff0d29b1c2d2c",
+    "planned": false
+  },
+  {
+    "path": "modules/pubpartner_tokens.py",
+    "sha256": "f04f804b3c6d3175b9e5f0f8ce3ca0053bcff43326e6da29a9b98817611b0b9f",
+    "git_blob": "24bf9b8f122402ea0e32cbf4fe1bd2177358a0a1",
+    "parent_blob": "24bf9b8f122402ea0e32cbf4fe1bd2177358a0a1",
+    "planned": false
+  },
+  {
+    "path": "modules/pubpartner_vessel/__init__.py",
+    "sha256": "b0d3bd62b1b00d06751afee36c22ea5136d2c703dc6fed90de35b61a19f2aa8a",
+    "git_blob": "5f642e927f69fa3304af787b5af2abc574e44844",
+    "parent_blob": "5f642e927f69fa3304af787b5af2abc574e44844",
+    "planned": false
+  },
+  {
+    "path": "modules/pubpartner_vessel/__main__.py",
+    "sha256": "b2060c1dab4612468d9ae1eae548f1a6b11b571796642f0e5f988576c5cf4740",
+    "git_blob": "1dc5ac21f0a6055037e64606622ee72245863975",
+    "parent_blob": "1dc5ac21f0a6055037e64606622ee72245863975",
+    "planned": false
+  },
+  {
+    "path": "modules/pubpartner_vessel/context.py",
+    "sha256": "ec05600c27bfee385d3354019a0f82dc783aec2c9d17376a52bb6aabc6704fd1",
+    "git_blob": "c2946f440089e8e0661672e061ca0720e90a6bd4",
+    "parent_blob": "cf45ee19ada5eaa638bcd0ced2e915f67a7ac54a",
+    "planned": true
+  },
+  {
+    "path": "modules/pubpartner_vessel/errors.py",
+    "sha256": "3dd27811f7f82669b1afbcd04b200ce7f52cf4c47ec17ff09969362fe8db6fa8",
+    "git_blob": "4c57771b080a72ea19dbe0de7b455995d58573db",
+    "parent_blob": "4c57771b080a72ea19dbe0de7b455995d58573db",
+    "planned": false
+  },
+  {
+    "path": "modules/pubpartner_vessel/memory.py",
+    "sha256": "180d0b99f5e23c1e6a6f765b05c38716efb9dd7c2e3aac753155306d48891d69",
+    "git_blob": "716304d3f874349ca5a2ef7928cc0e3af0109d8a",
+    "parent_blob": "448643d642bd164fe868bf134a3e5427e5353949",
+    "planned": true
+  },
+  {
+    "path": "modules/pubpartner_vessel/models.py",
+    "sha256": "55c41ff6f7952a098277cc0d2885abd3cd8b72c6ba4e0d250899e9dc34b00331",
+    "git_blob": "ac0a3814acb27b4b7a389b7826f89e0270ab14a8",
+    "parent_blob": "1b34924a14cb7512d8aafcc167206e59d1754fcd",
+    "planned": true
+  },
+  {
+    "path": "modules/pubpartner_vessel/runtime.py",
+    "sha256": "4df7861bc58be40c5276d1a3ff77f4e8b1e1b0dd2a4592e6179b7043914a638b",
+    "git_blob": "5f65c2da3697e8a7df9b6cff54c68fbb66315541",
+    "parent_blob": "9ed3f224859dd737fffa253c12197d2ee5b4b2bd",
+    "planned": true
+  },
+  {
+    "path": "modules/pubpartner_vessel/schema.py",
+    "sha256": "959042e28e1871d7a06fbb8ae9cd95383435438d2f76163ff22dd677f48836be",
+    "git_blob": "211a6ce42f695386e73bff8c0e8ff97d82da5a83",
+    "parent_blob": "211a6ce42f695386e73bff8c0e8ff97d82da5a83",
+    "planned": false
+  },
+  {
+    "path": "modules/pubpartner_vessel/search.py",
+    "sha256": "c150c1f855730cb418682cfda8232ad06a1ddfaba5cc8bc575820b1696f90761",
+    "git_blob": "92dcbc6aa8fcef54f48055515ce76fdd72505320",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "modules/pubpartner_vessel/store.py",
+    "sha256": "8c1be6b0edf977844320b051a997c1d7b183a37b5e8577b54593455a32111be4",
+    "git_blob": "b7c2c0f0a777fb391af42618ac13ad36bb724458",
+    "parent_blob": "b7c2c0f0a777fb391af42618ac13ad36bb724458",
+    "planned": false
+  },
+  {
+    "path": "modules/pubpartner_voice.py",
+    "sha256": "31103c8c9a076b24b80cd09e938b4512c21fb4616355f1fb6b5bdad025ac8f44",
+    "git_blob": "1c4bcf48cd37e3d8d05db442b7edf13d5f39ab2f",
+    "parent_blob": "1c4bcf48cd37e3d8d05db442b7edf13d5f39ab2f",
+    "planned": false
+  },
+  {
+    "path": "modules/route_security.py",
+    "sha256": "0962374d2c526447fa699ef9cfce4d242d502bfa4432170d77fd9f814859227b",
+    "git_blob": "ab8ffd4ffe1b9e4a59a824c36fcfcd35b2e918a9",
+    "parent_blob": "ab8ffd4ffe1b9e4a59a824c36fcfcd35b2e918a9",
+    "planned": false
+  },
+  {
+    "path": "modules/switchblade_router.py",
+    "sha256": "56de31644586588445dea2a220cbd92a63e36c9c72e3fc0b661102f01c652e7f",
+    "git_blob": "12e3c67c0c0e489ee4a423814c22aa052a997ec3",
+    "parent_blob": "12e3c67c0c0e489ee4a423814c22aa052a997ec3",
+    "planned": false
+  },
+  {
+    "path": "modules/turn_serialization.py",
+    "sha256": "7dc7a08a2d75d7776ac60ac0bf060f8284953c2179269d071593dd0fd40b91fb",
+    "git_blob": "64805f78313ce8bb2cdae2a11dca821c78df7762",
+    "parent_blob": "64805f78313ce8bb2cdae2a11dca821c78df7762",
+    "planned": false
+  },
+  {
+    "path": "modules/userdb.py",
+    "sha256": "965b822d9f94c6dc2ae196190d0a9ade89daa08c4a3f6d1453c425e5615d2034",
+    "git_blob": "c832d4dadd334bb10d68292503e6195af9c1f965",
+    "parent_blob": "c832d4dadd334bb10d68292503e6195af9c1f965",
+    "planned": false
+  },
+  {
+    "path": "modules/wired/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "parent_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "planned": false
+  },
+  {
+    "path": "modules/wired/acceptance_engine.py",
+    "sha256": "e5b66ae65ce06ad901de3dc62b107ddb3121d9024a2d22e0de6094921e11cea6",
+    "git_blob": "1003f5f110bf2c5b76a1e962738c755530a4e1f7",
+    "parent_blob": "af3c9a0f8da5882c301fc55a05eba3049936dc7a",
+    "planned": true
+  },
+  {
+    "path": "modules/wired/anti_parroting.py",
+    "sha256": "dec2152acf7e20d9a2cc28b5fe5de27ea82cf493c1bf9f22cf3308c572366ee7",
+    "git_blob": "e0d0bc32c34a570ef6ea5bc610fbd3a2d1dd8684",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "modules/wired/companion_core.py",
+    "sha256": "db2439f8cce5e38d9068e915bcde62018852a20f4e1ad1a8c605d6dcf2d202a7",
+    "git_blob": "1f720312715a8bde9b99144cfd83d78ef2f77adb",
+    "parent_blob": "c240617b887c477fe31900bb92b0e51547f0aadb",
+    "planned": true
+  },
+  {
+    "path": "modules/wired/companion_runner.py",
+    "sha256": "641596f278652eb7f36df926d162982f3d13ec856f095b7a6694c8cff81f9037",
+    "git_blob": "e240457b713f8d93330fadb5209cda19c7149958",
+    "parent_blob": "ae72d4a3508a0dfe77569428d91191b5dd56f3b1",
+    "planned": true
+  },
+  {
+    "path": "modules/wired/contradiction_tracker.py",
+    "sha256": "4f49a57342cfc5fab74a13eb36cf5cebae7b5083c4a7186803787db7e0906d2b",
+    "git_blob": "339019b94d7245a4dbd90c6974cbab8be208b83f",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "modules/wired/conversation_pacing.py",
+    "sha256": "14d56fe2dd4cdddf333d69ebf45b0e1c1354992d391e2c0366a3a277628d227d",
+    "git_blob": "009edb0606fdae5fcbca7056b9040280f080fdcd",
+    "parent_blob": "80b8a841247ed1d46c3ca2f34c49746d0be4b2a4",
+    "planned": true
+  },
+  {
+    "path": "modules/wired/conversation_state.py",
+    "sha256": "690a4033b6cfa1b9c8c5c6fcbe5794816db7eb95576bf1a6a231350196e2a103",
+    "git_blob": "60381fd56ffe59f9e0bd3ce3e0465efde6d2daa6",
+    "parent_blob": "cd01a3ca6480f40eb425141fa6365e94bd10f092",
+    "planned": true
+  },
+  {
+    "path": "modules/wired/director.py",
+    "sha256": "23d291c318bb8836c5d73612eb38c573621a99ebfdc023374fee7ab431db1972",
+    "git_blob": "9870837c0af37e0d4c00c0fcbb6cff8cc4d9887d",
+    "parent_blob": "e72a58ded899ab9c94bbf727bd57b5ea5ae4f316",
+    "planned": true
+  },
+  {
+    "path": "modules/wired/eq_adaptor.py",
+    "sha256": "1d4e8794ffbd0dd1d82b3b27fe0a512da4b9e36ba9c126b9770455359e1bcab6",
+    "git_blob": "74731d5a5725e65a39fc9d94a6eea3eead8acfbb",
+    "parent_blob": "74731d5a5725e65a39fc9d94a6eea3eead8acfbb",
+    "planned": false
+  },
+  {
+    "path": "modules/wired/eq_card_selector.py",
+    "sha256": "c7375c8adb2e205b35a22cb110fd7f3b392718f4e812674c61f894e9a39e87d5",
+    "git_blob": "e38c3a7d903371675bd4f90966512daebe919185",
+    "parent_blob": "c2ae032f2e9808ad670436314119b4527b4692fe",
+    "planned": true
+  },
+  {
+    "path": "modules/wired/eq_disambiguation_engine.py",
+    "sha256": "dc57800299863ffddb942398e0407fc595e6033e60ce676eca265c8cccb30d0d",
+    "git_blob": "e2cff7ebca211b678148758658990449d11e8bfb",
+    "parent_blob": "474e26183b772633c329c27c2963ac5da565e97b",
+    "planned": true
+  },
+  {
+    "path": "modules/wired/eq_integration_layer.py",
+    "sha256": "c3dc2c7116467bcb918904d0e04882cbba6a20d9ddeaed6b7abb92d06b69f8a5",
+    "git_blob": "1aa384274ebb9f38a82c5ad40e9ed1ebee8ab062",
+    "parent_blob": "217efb2676ff969ff1ad8bcb6ea7efa227294685",
+    "planned": true
+  },
+  {
+    "path": "modules/wired/known_vs_novel.py",
+    "sha256": "def790c2615271b0d46d8042bf0864d9100c253cabcf1134218eb89955896735",
+    "git_blob": "af3367bbdf9f0d064f46175cc9faa7209866f46c",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "modules/wired/meaning_maker.py",
+    "sha256": "afce9eb4961b9b8a2fa28f621af692df4c95a8b5dd5d5d357b4fb4757779842f",
+    "git_blob": "f86c3b586358c83e5edaad28cf598a382d4be60b",
+    "parent_blob": "f86c3b586358c83e5edaad28cf598a382d4be60b",
+    "planned": false
+  },
+  {
+    "path": "modules/wired/observation_engine.py",
+    "sha256": "cace74e4c35b9c368e34c5f759af32265f5202cc005cf1c472f2f0db130c0336",
+    "git_blob": "230d807e5179990fade6fe62f73e61075f4decec",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "modules/wired/pubcast_runtime.py",
+    "sha256": "ccaa8ea2ab9e98b97b0bb28fac9627b2ee410977bb2dc84db5d5a3ceb83d514f",
+    "git_blob": "e3dc57f5cd75dad481a60ddde82f1554e51d332c",
+    "parent_blob": "6a1615ac5f0e6b2bbadf4204a155fa5d555fda79",
+    "planned": true
+  },
+  {
+    "path": "modules/wired/response_composer.py",
+    "sha256": "66a08eaa9193c6df9d9176a629f97978040b97c10e23c9b11f48286e0cdcbf33",
+    "git_blob": "4abf1756ac40791c6aa32ff96d1142810b3a0c9c",
+    "parent_blob": "08565b5a8a457d8141e06df3f00b7b175014491e",
+    "planned": true
+  },
+  {
+    "path": "modules/wired/safeguards.py",
+    "sha256": "10ee7a2feb9cb4754c4c5cda58dc08600b45d471edf3be44a1be2f0fc33796a1",
+    "git_blob": "61454a27f6bb6336c2dad51e38b44c591a64d0ac",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "pubpartner/__init__.py",
+    "sha256": "d5ebde5226d6718d4bc13cfdeb380b12a4ff02a92f2e65619e4c7f2bd3b0a009",
+    "git_blob": "fbda7ea22550b6d124435ff8845388432ba6fac7",
+    "parent_blob": "fbda7ea22550b6d124435ff8845388432ba6fac7",
+    "planned": false
+  },
+  {
+    "path": "pubpartner/cartridge.py",
+    "sha256": "74a0588d568fe74244e961f77f278689f41217d2f594a99d998d938c92335710",
+    "git_blob": "e90b5636f701b0f0db4ee61f13ebb16bef4bc189",
+    "parent_blob": "e90b5636f701b0f0db4ee61f13ebb16bef4bc189",
+    "planned": false
+  },
+  {
+    "path": "pubpartner/cli.py",
+    "sha256": "bf4062aaec107d8c5b6df63fed30e941bc415ce009a07c174980a8cd36174592",
+    "git_blob": "06845ffdb1cea8e7e5e2787a458be39c973e634c",
+    "parent_blob": "3bc35c30ce83f7212a66305c1ccdbc604fb9c069",
+    "planned": true
+  },
+  {
+    "path": "pubpartner/memory_store.py",
+    "sha256": "78e522015a69677f85940a4c6a7dde829224b7c9612411b73e72cecc63924f6c",
+    "git_blob": "5be9000ac321845417546557002d1d967d4cab28",
+    "parent_blob": "484306aa8bf6f56c96ceb5a979e60dfe7c05672b",
+    "planned": true
+  },
+  {
+    "path": "pubpartner/portable_runtime.py",
+    "sha256": "ef5ad3c558a2ab4513d7d923552bbd7a4af90d6d50f2f711de5b6b371bf22080",
+    "git_blob": "c465bf2fffc19045acefc5d8d901aa36f61c9c05",
+    "parent_blob": "d8993c94f2a7d6abfdaa1a81eb838caf8d5dc875",
+    "planned": true
+  },
+  {
+    "path": "pubpartner/prompt_assembler.py",
+    "sha256": "ec01c82da7cb9bbc21aebd7f312f26933088a7e58b27e78b837ed65c02a2d0be",
+    "git_blob": "46e5b1046bf05e9c8aaf89cf23f47fc79c7129ff",
+    "parent_blob": "46e5b1046bf05e9c8aaf89cf23f47fc79c7129ff",
+    "planned": false
+  },
+  {
+    "path": "pubpartner/pubpartner_federation/__init__.py",
+    "sha256": "a9a4aeb405b8a5b95528319478011be1925445b6ad1b495f12b3292fe9e60a6b",
+    "git_blob": "0f3655f16f99586a40215a9947fc62fe2c7491db",
+    "parent_blob": "0f3655f16f99586a40215a9947fc62fe2c7491db",
+    "planned": false
+  },
+  {
+    "path": "pubpartner/pubpartner_federation/docking.py",
+    "sha256": "60d10e3a76d1ab539ff0a86a350a990ef425641b527244cbc1b281844c4d0f3e",
+    "git_blob": "bee5a630d8c5881dcaba6be17eaacf77173a272c",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "pubpartner/pubpartner_federation/engine.py",
+    "sha256": "b8994e8a7a241601732a436a8cb32ac8d3ab841d0c688a4b74cb02946f8c3488",
+    "git_blob": "066173c9fe5607efa5b325b08e1dad601c619b49",
+    "parent_blob": "3848e837472d21cd3bc9fd2984d0e973556d4ead",
+    "planned": true
+  },
+  {
+    "path": "pubpartner/pubpartner_federation/identity.py",
+    "sha256": "dd22fc95b6b0991b3f4e2a6a005c1b3783ac414126c4b9abaab5a32a2877c669",
+    "git_blob": "8556d0d95b7e3868fa50940b1395c7ca85a38615",
+    "parent_blob": "8556d0d95b7e3868fa50940b1395c7ca85a38615",
+    "planned": false
+  },
+  {
+    "path": "pubpartner/pubpartner_federation/memory.py",
+    "sha256": "098e1364c4a3fdc541cde9a02824ec8174b8c39e4cf593079d55e17528ddb1fd",
+    "git_blob": "7b88d69cca9a2368a06937d36f16b215fce4e940",
+    "parent_blob": "7b88d69cca9a2368a06937d36f16b215fce4e940",
+    "planned": false
+  },
+  {
+    "path": "pubpartner/pubpartner_federation/protocol.py",
+    "sha256": "268b2fc1284f3e598c3d8ac516d2d3bab99af4da48629fbf9a340240fe333aff",
+    "git_blob": "d60579b742c0645877b4167ca90646d4deb081ee",
+    "parent_blob": "d60579b742c0645877b4167ca90646d4deb081ee",
+    "planned": false
+  },
+  {
+    "path": "pubpartner/pubpartner_federation/service.py",
+    "sha256": "532ec1cd6ef7216e112ff20a46c635a6ac0e12795aef5df95bb24de6c0a376f3",
+    "git_blob": "88f9980728cfaeacc230e47b4b56138f3a6689f6",
+    "parent_blob": "88f9980728cfaeacc230e47b4b56138f3a6689f6",
+    "planned": false
+  },
+  {
+    "path": "pubpartner/pubpartner_federation/store.py",
+    "sha256": "4186d9cd9c07685ba260e15fe0ef38092417a08cf63fde18698461821cb3ccd7",
+    "git_blob": "d381f99873affedc33275ab79951176fb1fb2585",
+    "parent_blob": "859fcca2a1a9a1c01ff8030592fb05a72a95d66e",
+    "planned": true
+  },
+  {
+    "path": "pubpartner/schema.py",
+    "sha256": "917e61b302a3912cccbaa1ef3d75247ce572c566d9499ac64e21a40dbacfa0d8",
+    "git_blob": "c20f53316d590914582073bdc2826c379f782533",
+    "parent_blob": "c20f53316d590914582073bdc2826c379f782533",
+    "planned": false
+  },
+  {
+    "path": "pubpartner/sequence_controller.py",
+    "sha256": "44c59b95c359d90b64ce0c949b342a7a6b03fb59a52935a57351ca45682d251e",
+    "git_blob": "31a9ff57ccec808cef35be710456f2f9fb223894",
+    "parent_blob": "9aaaeda01a56a2a1d201cdd5418b37cce6c8856e",
+    "planned": true
+  },
+  {
+    "path": "pubpartner/tokenizer.py",
+    "sha256": "8d673330e8d457ec73dca92daa3d789011b685898ab13b40a374f460c70964dc",
+    "git_blob": "df382e5fbeed04899c31716b3df87d8b33701e2a",
+    "parent_blob": "df382e5fbeed04899c31716b3df87d8b33701e2a",
+    "planned": false
+  },
+  {
+    "path": "pubpartner_app.py",
+    "sha256": "da87c0d962c9b3946ef25692af1e56bb6e81fbe6470fc85ad5fd8992f78a6962",
+    "git_blob": "86c698313de22d58f1ca2d5b6a97194bb41e63e9",
+    "parent_blob": "86c698313de22d58f1ca2d5b6a97194bb41e63e9",
+    "planned": false
+  },
+  {
+    "path": "tests/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "parent_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+    "planned": false
+  },
+  {
+    "path": "tests/horizon_ref_pubpartner_app_control_plane_wiring.py",
+    "sha256": "748649fb6399bbe86ef852f57b23d663e36f624ee50ad6ea91e199ea9c89e4e8",
+    "git_blob": "19d809cba2ad78fb11e12163a982540698cdb643",
+    "parent_blob": "19d809cba2ad78fb11e12163a982540698cdb643",
+    "planned": false
+  },
+  {
+    "path": "tests/horizon_ref_pubpartner_live_loop.py",
+    "sha256": "edc463a7c55c611e2ff601ac333df0b4cba8035c7739b84a7cff6479028faa26",
+    "git_blob": "63fb5072e995c45b0d594ca0b611c65f86172daf",
+    "parent_blob": "63fb5072e995c45b0d594ca0b611c65f86172daf",
+    "planned": false
+  },
+  {
+    "path": "tests/horizon_ref_pubpartner_relationship_engine.py",
+    "sha256": "342358cfa29592054aa2b6ecceae50aa28e56f76439d83219d7545fa45bd778f",
+    "git_blob": "00ade1ee64b668b925d279d681150ff1cc08464a",
+    "parent_blob": "00ade1ee64b668b925d279d681150ff1cc08464a",
+    "planned": false
+  },
+  {
+    "path": "tests/horizon_ref_pubpartner_repair4_continuity.py",
+    "sha256": "802db2d95c56a469c3deee311b5cf4f46a26b1c40509642b8b80bb27dab46c48",
+    "git_blob": "2a6943ccd3077406fd8e690ddda9135917b85f12",
+    "parent_blob": "2a6943ccd3077406fd8e690ddda9135917b85f12",
+    "planned": false
+  },
+  {
+    "path": "tests/horizon_ref_pubpartner_spine.py",
+    "sha256": "bc3957bf7d4c70208eb8e9768ddfc11cef98dd057bce445d3097f2117f8bd79e",
+    "git_blob": "6f5f99bb57b45d1209957e4eadc570f573542777",
+    "parent_blob": "6f5f99bb57b45d1209957e4eadc570f573542777",
+    "planned": false
+  },
+  {
+    "path": "tests/pubpartner_core/test_cartridge.py",
+    "sha256": "dc2c66dbe700da8d2506cf4dfbd20d25a7eb75daf509f9a92a29a274ba0b3612",
+    "git_blob": "3abae554231a963b440262014a7e296d144e24d7",
+    "parent_blob": "3abae554231a963b440262014a7e296d144e24d7",
+    "planned": false
+  },
+  {
+    "path": "tests/pubpartner_core/test_memory_store.py",
+    "sha256": "a219454406f523f55748f3da372f5ade156d78f6ab75c27512272e0ebd369829",
+    "git_blob": "818d134db6c90b1f616ea23d59e9cf8cd5867976",
+    "parent_blob": "818d134db6c90b1f616ea23d59e9cf8cd5867976",
+    "planned": false
+  },
+  {
+    "path": "tests/pubpartner_core/test_portable_runtime.py",
+    "sha256": "81cf2de2de20b100cd3db220c2d1039d77694aac05337c49210d5f92228a2c88",
+    "git_blob": "a6c5e482a907a9f06ebc5de8719c5b63bd35917a",
+    "parent_blob": "a6c5e482a907a9f06ebc5de8719c5b63bd35917a",
+    "planned": false
+  },
+  {
+    "path": "tests/pubpartner_core/test_prompt_assembler.py",
+    "sha256": "e0488cb5a66f9529a875a5e8fa6891b355848c562aae7834c78c4c205eddf4af",
+    "git_blob": "1a8b5237823af448f0b5f2a4611a56ce68edfccd",
+    "parent_blob": "1a8b5237823af448f0b5f2a4611a56ce68edfccd",
+    "planned": false
+  },
+  {
+    "path": "tests/pubpartner_core/test_sequence_controller.py",
+    "sha256": "0ca3fbd0960140e620d94af1f4e7c522b082eb0ade19b825f286a52ae9dc1268",
+    "git_blob": "5edd903c01927d8609f2a3fbf79d8ebca5926034",
+    "parent_blob": "5edd903c01927d8609f2a3fbf79d8ebca5926034",
+    "planned": false
+  },
+  {
+    "path": "tests/pubpartner_federation/test_concurrency.py",
+    "sha256": "20fd6996f4239cd2d98b38cd84846d6e9b87807e22477f7b6e00842214a6b5a9",
+    "git_blob": "753de80c9a66615dee1ff63cb3dd617a50e674b2",
+    "parent_blob": "753de80c9a66615dee1ff63cb3dd617a50e674b2",
+    "planned": false
+  },
+  {
+    "path": "tests/pubpartner_federation/test_service.py",
+    "sha256": "38bb33f675925e30a4fe029571e2a2de37e11b90ee719c524a2566c50dbe2386",
+    "git_blob": "e65899568d55520074bc1b0e643111fcbf5db06b",
+    "parent_blob": "e65899568d55520074bc1b0e643111fcbf5db06b",
+    "planned": false
+  },
+  {
+    "path": "tests/pubpartner_federation/test_sync.py",
+    "sha256": "781f9849fe6baec3270371368ee2fca1f08804c116ec53c7bc6ff6b193d5d3df",
+    "git_blob": "20a9a8ab0a892f0140c21dc2286f76622aa69dfb",
+    "parent_blob": "9f467d00783e380e68f527e8a4787837315b58f8",
+    "planned": true
+  },
+  {
+    "path": "tests/pubpartner_vessel/test_agency_observation.py",
+    "sha256": "fc25e22185c0261f4555047731eeb65dac5b622c910dce8ef72fc9a3006bfc1c",
+    "git_blob": "fc88fda94e1a962fcce0de66e6730eeee14b7420",
+    "parent_blob": "fc88fda94e1a962fcce0de66e6730eeee14b7420",
+    "planned": false
+  },
+  {
+    "path": "tests/pubpartner_vessel/test_indexed_recall.py",
+    "sha256": "eb4eb90f296d99fc1cb60a53abed0a22794f45679d5af9ce627adf10d84e96c6",
+    "git_blob": "a7e67b5572f331f86fa15f6b96ee37b6a4986984",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "tests/pubpartner_vessel/test_objective_observations.py",
+    "sha256": "2e78438be1d94a36378435578bd9cfde5d01b3f529ce96ef56ef7d487aca972f",
+    "git_blob": "3d95bc974465e0d375bae9c49c1d2e286dda9397",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "tests/pubpartner_vessel/test_pubpartner_vessel_integration_unittest.py",
+    "sha256": "2000fca3569557f8b65c3ff77821dffc253946736e75815e6303b8d5695e885b",
+    "git_blob": "93807a838b438f4ed7bd05a1784b1737848600a9",
+    "parent_blob": "1f4468cf03b0c66e7ec4d12016c5530d2fda9766",
+    "planned": true
+  },
+  {
+    "path": "tests/pubpartner_vessel/test_pubpartner_vessel_routes.py",
+    "sha256": "617ad229a46a57d5b5eee7193e37e465f517b6f12d3de7b85ea24faaf137e9a2",
+    "git_blob": "5e50fc008fe8525baa8fb88753610737739ea485",
+    "parent_blob": "5e50fc008fe8525baa8fb88753610737739ea485",
+    "planned": false
+  },
+  {
+    "path": "tests/pubpartner_vessel/test_pubpartner_vessel_unittest.py",
+    "sha256": "11df29ef39253c3b84fbeb53fdfa5fceab7dac19b1f5e7b28b78360f7135eb7a",
+    "git_blob": "6945b8db97e477cf64c474967deeb6ef1f421a38",
+    "parent_blob": "60f1060b3c919fea8269e174cc141e53985e2eb8",
+    "planned": true
+  },
+  {
+    "path": "tests/test_affect_dynamics.py",
+    "sha256": "1f236c24b0ecd4148e552d2f8fca33ea9129815f9f52f98013b4882333433473",
+    "git_blob": "4e2558ca93cf7d8bd18ce631808fe6814489f82f",
+    "parent_blob": "4e2558ca93cf7d8bd18ce631808fe6814489f82f",
+    "planned": false
+  },
+  {
+    "path": "tests/test_companion_chat_entrypoint.py",
+    "sha256": "86229cd628f1cb0e716ebafacc37c0c82616ee37c8f7f5e14796bd7d3d927d3f",
+    "git_blob": "364839a5bb89b9ae704c82a31046f5215e8d1354",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "tests/test_companion_docking.py",
+    "sha256": "1d0b299dd91a93fefa79235560a7177654e50c42112e00bfb7d00f9777109235",
+    "git_blob": "9e6e3987f1d684b4afcf789f0a31a165d1388057",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "tests/test_companion_horizon_host.py",
+    "sha256": "0edd07d7e9159d1d00278731d4eced9a1727450dd5edb82eae9e355e061ed0ce",
+    "git_blob": "5fe068910b5b7fdaa1d90451b2e38d04efdab822",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "tests/test_companion_provider_bridge.py",
+    "sha256": "21dd17fe47e579c6e160412c2901cadaf347a46d8ccdbbd19c67368a75766e34",
+    "git_blob": "291bbff61d3a5dfcae4fe80fa41ad158211ff8e5",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "tests/test_companion_recovery.py",
+    "sha256": "d5ed238bbd57e4477704e437269cf29604ee9bfc8eaac519cb6a3a80056c0bbf",
+    "git_blob": "ed262b7dbb1ce0125c9c76d70c29ebe50e213551",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "tests/test_companion_sync_durability.py",
+    "sha256": "2e3dec36cb70bd8fa0e9c64a3cb22c9de24c3df30c2779552bb8df4df11ec5bd",
+    "git_blob": "662c1e3d110196793f106d08ac5884d7c01888fe",
+    "parent_blob": null,
+    "planned": true
+  },
+  {
+    "path": "tests/test_emotional_consultation.py",
+    "sha256": "e38912f93fd45afc4de1b65eb5fdae2f9c1ac86d5bf098a567ca17785ca76d99",
+    "git_blob": "3c8b3eb4705fb43795bbe875886f6620b52abada",
+    "parent_blob": "3c8b3eb4705fb43795bbe875886f6620b52abada",
+    "planned": false
+  },
+  {
+    "path": "tests/test_emotional_orchestrator.py",
+    "sha256": "bf29245c5cd786e3517fabe8e41ca4d772423f3dac272de2328192c2018a5d42",
+    "git_blob": "b50917427af10e6a4f9c0052210b38fb495cb072",
+    "parent_blob": "b50917427af10e6a4f9c0052210b38fb495cb072",
+    "planned": false
+  },
+  {
+    "path": "tests/test_epete_lifecycle_deadlines.py",
+    "sha256": "15290e1adfa7af370fe25c0f996916a109f9012791589e4af97d41fda192bbde",
+    "git_blob": "9d75c5048100ff30cf825e8d1d802ec7a585cbb6",
+    "parent_blob": "9d75c5048100ff30cf825e8d1d802ec7a585cbb6",
+    "planned": false
+  },
+  {
+    "path": "tests/test_eq_transitions.py",
+    "sha256": "bc188065c067557cc2594efda9cfdcd21ffb92975f4edca28b6269bc66d43795",
+    "git_blob": "37157d41afcaf535dbc227d20517b61f2b6d53ad",
+    "parent_blob": "37157d41afcaf535dbc227d20517b61f2b6d53ad",
+    "planned": false
+  },
+  {
+    "path": "tests/test_evo_event_bus.py",
+    "sha256": "59da5f08c98f1475f83776a56edbf0c7924e6750f7eb4d180a6a540f777d0807",
+    "git_blob": "be662e384c68b32c111f9b6e42f46314548f9be5",
+    "parent_blob": "be662e384c68b32c111f9b6e42f46314548f9be5",
+    "planned": false
+  },
+  {
+    "path": "tests/test_evo_october_integration.py",
+    "sha256": "2de6ee53d0e7139382a059d85b6e8ca33e0284092ce5188115b5e32a94b17c42",
+    "git_blob": "5218b54970ff9eeaaf018c566614109576cc2316",
+    "parent_blob": "5218b54970ff9eeaaf018c566614109576cc2316",
+    "planned": false
+  },
+  {
+    "path": "tests/test_evo_orchestrator_semantic_wiring.py",
+    "sha256": "5c8b76f341695e0b22924efb278ed36ccc8ab0144607e3d11f97100f3263e38f",
+    "git_blob": "9820c7b3a2bb5800589aad5fc54af117b5c7d6f5",
+    "parent_blob": "9820c7b3a2bb5800589aad5fc54af117b5c7d6f5",
+    "planned": false
+  },
+  {
+    "path": "tests/test_evo_protocol.py",
+    "sha256": "5cfba725e64bd9daa85f08d52fbd7c41d7da820394be8ff37cc5f4f7b75dfb00",
+    "git_blob": "25f6f23623b6b5a03d2933221ec047a470c5dce9",
+    "parent_blob": "25f6f23623b6b5a03d2933221ec047a470c5dce9",
+    "planned": false
+  },
+  {
+    "path": "tests/test_evo_semantic_prosody_tick.py",
+    "sha256": "15cecd8f1337deeea619cf20aab8fa764c678a7c715a6932bebc11f858574310",
+    "git_blob": "56c022baa597c6d24812cffff46eb79bbed62e0e",
+    "parent_blob": "56c022baa597c6d24812cffff46eb79bbed62e0e",
+    "planned": false
+  },
+  {
+    "path": "tests/test_evo_semantic_runtime.py",
+    "sha256": "a9ae847d4b8d25bc34c877f7a11cc7cf04bdba6d94e2702611765154b19b79b4",
+    "git_blob": "c6c20bfb21239241ca5e6da7ba2ef4e3bfde9724",
+    "parent_blob": "c6c20bfb21239241ca5e6da7ba2ef4e3bfde9724",
+    "planned": false
+  },
+  {
+    "path": "tests/test_evo_semantic_runtime_coordinator.py",
+    "sha256": "0390c899095309c7fe28f9594a50ffee6cf683535a7a46d06c8f017eca5ed789",
+    "git_blob": "0934f93aed3580e4163c10de3693b7bcabcabcc5",
+    "parent_blob": "0934f93aed3580e4163c10de3693b7bcabcabcc5",
+    "planned": false
+  },
+  {
+    "path": "tests/test_prosody_semantic_adapter.py",
+    "sha256": "c251d30880f7431ceedc3bc6382b310abb58e13addd47cf0e5dbc29ae2542f1e",
+    "git_blob": "dbe2341689924baac9cdeb1f87c61f8e0f61c3c6",
+    "parent_blob": "dbe2341689924baac9cdeb1f87c61f8e0f61c3c6",
+    "planned": false
+  },
+  {
+    "path": "tests/test_pub_partner_chat.py",
+    "sha256": "86e4a48ccbe1917451b691d9c45f98d9bbc95e028e8197421b6fd11bd4a75543",
+    "git_blob": "5eb8c522d50b6abfff9ae87e741ca950178bc3f7",
+    "parent_blob": "5eb8c522d50b6abfff9ae87e741ca950178bc3f7",
+    "planned": false
+  },
+  {
+    "path": "tests/test_round9_evo_irm_bridge_contract.py",
+    "sha256": "58bc3053257fb87c137de8fb705ce011f0c645d4e4daac4435d254ae6f502d3e",
+    "git_blob": "a8013477d4f539eb6feb59bb7cf0c43bff9f3f06",
+    "parent_blob": "a8013477d4f539eb6feb59bb7cf0c43bff9f3f06",
+    "planned": false
+  },
+  {
+    "path": "tests/test_vdi_semantic_adapter.py",
+    "sha256": "e493cd885c04cbcda1ac3b0269d1be0de95a6cce24be02c2f7d1bc0b8b5656e1",
+    "git_blob": "ffc32b682e039a7e0a280682f34e090a7a1bc5f1",
+    "parent_blob": "ffc32b682e039a7e0a280682f34e090a7a1bc5f1",
+    "planned": false
+  }
+]

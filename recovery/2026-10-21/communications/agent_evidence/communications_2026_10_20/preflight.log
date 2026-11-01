@@ -1,0 +1,237 @@
+PASS  Packaged run_reach.py
+PASS  Packaged start_reach.py
+PASS  Packaged main.py
+PASS  Packaged static/foresight_counter.html
+PASS  Packaged static/foresight_counter.js
+PASS  Packaged static/foresight_programs.js
+PASS  Packaged static/foresight_shapes.js
+PASS  Packaged static/foresight_chain.js
+PASS  Packaged static/foresight_gl.js
+PASS  Packaged static/reach_auth.js
+PASS  First-run bot config pete
+PASS  First-run bot config jeremy
+PASS  First-run bot config repeat
+PASS  First-run bot config sir_purfluous
+PUBCAST_JWT_SECRET is not set — using a secure process-local secret. Tokens will not survive restart. Launch through run_pubpartner.py for a persistent secret.
+sounddevice unavailable (ModuleNotFoundError: No module named 'sounddevice'). Server-side audio device enumeration disabled; browser-side enumeration is unaffected.
+2026-10-20 03:38:30,934 [WARNING] modules.evo.facial_performance: DeepFace not available — facial analysis in simulation mode
+2026-10-20 03:38:30,934 [WARNING] modules.evo.facial_performance: MediaPipe not available — landmark analysis disabled
+2026-10-20 03:38:31,010 [INFO] modules.sculptor: Sculptor: opencv unavailable (No module named 'cv2') — using fallback palette extractor.
+2026-10-20 03:38:31,060 [WARNING] pubcast: CORS: '*' origin with credentials is not allowed by browsers - allow_credentials forced False. Set PUBCAST_ALLOWED_ORIGINS to specific origin.
+2026-10-20 03:38:31,142 [INFO] pubcast: — PubCast AI v5.6 starting —
+2026-10-20 03:38:31,145 [INFO] pubcast: [1/12] Hub ready | EQ development recorder armed
+2026-10-20 03:38:31,145 [INFO] pubcast.rooms: RoomManager initialised with 14 default rooms
+2026-10-20 03:38:31,145 [INFO] pubcast: [2/12] RoomManager ready — 14 rooms
+2026-10-20 03:38:31,148 [INFO] pubcast: [2b/12] Performance profile active — medium
+2026-10-20 03:38:31,148 [INFO] pubcast: [2c/12] Choreography controller ready — 30.0 Hz | 70 actions | AnimationAuthority wired
+2026-10-20 03:38:31,148 [INFO] pubcast: [2d/12] Lighting engine ready — 36 presets
+2026-10-20 03:38:31,174 [INFO] pubcast.orchestrator: Orchestrator: Studio — OFFLINE (Ollama not running)  (model: ministral-pubcast:3b)
+2026-10-20 03:38:31,174 [INFO] pubcast.orchestrator: Orchestrator: Architect using Ollama wrapper gemma4-compute-q5:e2b
+2026-10-20 03:38:31,174 [INFO] pubcast.orchestrator: Orchestrator: Architect — AVAILABLE  (gemma4-compute-q5:e2b)
+2026-10-20 03:38:31,174 [INFO] pubcast: [3/12] Inference — Studio offline | Architect ready
+2026-10-20 03:38:31,186 [INFO] modules.userdb: userdb: tables ready at /workspace/scratch/e48ad5ab9079/preflightdata/users.db
+2026-10-20 03:38:31,186 [WARNING] modules.userdb: PUBCAST_OWNER_PASSWORD is not set. The owner account will NOT be auto-created. Set PUBCAST_OWNER_PASSWORD before first run.
+2026-10-20 03:38:31,188 [INFO] pubcast: [3a/12] Auth routes + user database ready
+2026-10-20 03:38:31,189 [INFO] AlexAI: Loaded 0 memories from disk
+2026-10-20 03:38:31,189 [INFO] AlexAI: Memory Core initialized for default
+2026-10-20 03:38:31,189 [INFO] AlexAI: 🧠 Alex initialized for default
+2026-10-20 03:38:31,190 [INFO] AlexAI: ⚙️ Prime Directive: Mirror, Not Hammer - Active
+2026-10-20 03:38:31,209 [INFO] pubcast: [3b/12] Alex core + Alex/Jeremy bridge + deterministic Pub Manager control plane ready
+2026-10-20 03:38:31,218 [INFO] pubcast.system_memory: SystemMemory ready at /workspace/scratch/e48ad5ab9079/preflightdata/system/system_memory.db
+2026-10-20 03:38:31,218 [INFO] modules.jeremy_cricket: CricketKeeper ready — 0 character(s) pre-loaded
+2026-10-20 03:38:31,218 [INFO] pubcast: [4/12] CricketKeeper + SystemMemory ready
+2026-10-20 03:38:31,538 [INFO] modules.bots: Loaded 0 bot configurations.
+2026-10-20 03:38:31,538 [INFO] pubcast: [5/12] BotManager ready — 0 bots
+2026-10-20 03:38:31,538 [INFO] pubcast: [5b/12] IRM engine monitor ready
+2026-10-20 03:38:31,538 [INFO] pubcast: [5b/12] AvatarPerformerManager ready — connecting to Rust renderer at ws://localhost:8765 in the background (non-blocking)
+2026-10-20 03:38:31,539 [INFO] pubcast: [5b/12] CredentialStore ready
+2026-10-20 03:38:31,554 [INFO] modules.capture: FFmpegCaptureEngine ready: /usr/bin/ffmpeg
+2026-10-20 03:38:31 [warning  ] CameraManager not available, using standalone mode
+2026-10-20 03:38:31 [info     ] vision_manager_init
+2026-10-20 03:38:31,635 [INFO] pubcast: [6a] Rust camera Stage-1 source ready but transport disabled (set PUBCAST_ENABLE_RUST_CAMERA_CONTROL=1)
+2026-10-20 03:38:31,640 [INFO] pubcast: [6/12] Cameras (8) + Recording (4 profiles) + Switcher + 2.5D Stage + Avatar adapter ready
+2026-10-20 03:38:31,669 [INFO] pubcast: [7/12] Governance ready — bans, freeze, consent, waiting room
+2026-10-20 03:38:31,670 [INFO] pubcast.hotspots: PubWorld hotspot router created — 0 rooms with hotspot data
+2026-10-20 03:38:31,672 [INFO] pubcast: [7b] PubWorld hotspot API ready
+2026-10-20 03:38:31,674 [INFO] pubcast: [7c] Structured production logging ready
+2026-10-20 03:38:31,674 [INFO] pubcast.timeline_routes: Timeline system initialized: /workspace/scratch/e48ad5ab9079/preflightdata/timelines
+2026-10-20 03:38:31,676 [INFO] pubcast: [7d] Timeline automation ready
+2026-10-20 03:38:31,676 [INFO] pubcast.governance.waiting_room: Waiting room initialized (auto_approve=False)
+2026-10-20 03:38:31,677 [INFO] pubcast: [7e] Waiting room / airlock ready
+2026-10-20 03:38:31,697 [INFO] pubcast: [7e2] Chat rooms ready — 13 rooms, 6 roles, DM bypass: host/security/mod | /api/chat/rooms  /ws/chat/{room_id}  /api/chat/dm/request
+2026-10-20 03:38:31,699 [INFO] pubcast.hotspots: Registered handler for action type: transition
+2026-10-20 03:38:31,699 [INFO] pubcast.hotspots: Registered handler for action type: animation
+2026-10-20 03:38:31,699 [INFO] pubcast.hotspots: Registered handler for action type: custom
+2026-10-20 03:38:31,699 [INFO] pubcast: [7f] Hotspot system ready — 0 rooms
+2026-10-20 03:38:31,701 [INFO] pubcast: [7g] Recording pipeline export routes ready
+2026-10-20 03:38:31,704 [INFO] pubcast: [7g2] Audio device + mic routes ready
+2026-10-20 03:38:31,709 [INFO] pubcast: [7g3] Bubble Stack routes ready — /api/bubble-stack
+2026-10-20 03:38:31,709 [INFO] pubcast.universal_memory: UniversalMemorySystem initialised
+2026-10-20 03:38:31,709 [INFO] pubcast.universal_memory: Registered memory bank for pete
+2026-10-20 03:38:31,709 [INFO] pubcast.universal_memory: Registered memory bank for repeat
+2026-10-20 03:38:31,710 [INFO] pubcast.universal_memory: Registered memory bank for sir_purfluous
+2026-10-20 03:38:31,710 [INFO] pubcast.universal_memory: Registered memory bank for jeremy
+2026-10-20 03:38:31,710 [INFO] pubcast.universal_memory: Registered memory bank for default
+2026-10-20 03:38:31,720 [INFO] pubcast.universal_memory: Loaded 0 persisted character memories
+2026-10-20 03:38:31,726 [INFO] pubcast: [7h] Character/story/memory routes ready; loaded 0 persisted memories
+2026-10-20 03:38:31,730 [INFO] pubcast.byok_routes: BYOK routes mounted at /api/byok/...
+2026-10-20 03:38:31,730 [INFO] pubcast: [8/12] BYOK ready — user-supplied API keys enabled
+2026-10-20 03:38:31,731 [INFO] pubcast: [9/12] ThinkingContext mounted — 0 characters
+2026-10-20 03:38:31,732 [INFO] pubcast.ethereal_avatars: EtherealAvatarManager ready — reference skeleton has 57 joints
+2026-10-20 03:38:31,745 [INFO] pubcast: [10/12] Ethereal Avatars ready — 57 joints, 7 colors
+2026-10-20 03:38:31,745 [INFO] pubcast: [10b/12] Avatar Studio bridge ready
+2026-10-20 03:38:31,745 [INFO] modules.evo.epete: [E-Pete] Initialized — Zoidberg concurrency cap: 1
+2026-10-20 03:38:31,745 [INFO] modules.evo.epete: [E-Pete] Alert handler registered
+2026-10-20 03:38:31,745 [INFO] modules.evo.pete: [Pete] Character layer initialized
+2026-10-20 03:38:31,745 [INFO] modules.evo.epete: [E-Pete] EVO Orchestrator registered
+2026-10-20 03:38:31,745 [INFO] modules.evo.evo_integration: [EVO] Orchestrator initialized — character: pete
+2026-10-20 03:38:31,745 [INFO] pubcast: [11/12] EVO Protocol ready — Switchblade + VDI + E-Pete active
+2026-10-20 03:38:31,753 [INFO] pubcast.vault: PubCast Vault initialized at /workspace/scratch/e48ad5ab9079/preflightdata/vault
+2026-10-20 03:38:31,762 [INFO] pubcast: [12/12] Vault ready — OS-level protection active
+2026-10-20 03:38:31,762 [INFO] pubcast: [12b] Doctor — ready
+2026-10-20 03:38:31,763 [INFO] pubcast: [12c] Key recovery ready — vault backup path available
+2026-10-20 03:38:31,763 [INFO] pubcast: [13] PubWorld router ready — /pubworld/ws live broadcast
+2026-10-20 03:38:31,763 [INFO] pubcast: [14] Surface manager ready
+2026-10-20 03:38:31,764 [INFO] pubcast: [15] ConversationOrchestrator ready
+2026-10-20 03:38:31,764 [INFO] jeremy_cricket: 🦗 RoomConductor: Conversation Orchestra Conductor — ready.
+2026-10-20 03:38:31,764 [INFO] jeremy_cricket: 🦗 RoomConductor: CricketKeeper wired
+2026-10-20 03:38:31,764 [INFO] jeremy_cricket: 🦗 RoomConductor: SystemMemory wired
+2026-10-20 03:38:31,764 [INFO] jeremy_cricket: 🦗 RoomConductor registered character: pete
+2026-10-20 03:38:31,764 [INFO] jeremy_cricket: 🦗 RoomConductor registered character: repeat
+2026-10-20 03:38:31,764 [INFO] jeremy_cricket: 🦗 RoomConductor registered character: sir_purfluous
+2026-10-20 03:38:31,764 [INFO] jeremy_cricket: 🦗 RoomConductor registered character: jeremy
+2026-10-20 03:38:31,764 [INFO] jeremy_cricket: 🦗 RoomConductor registered character: default
+2026-10-20 03:38:31,764 [INFO] jeremy_cricket: ✅ RoomConductor ready. 5 character(s) known.
+2026-10-20 03:38:31,764 [INFO] jeremy_cricket: 🫧 RoomConductor: Bubble Stack summary provider wired
+2026-10-20 03:38:31,764 [INFO] pubcast: [15b] RoomConductor (Jeremy Cricket) ready — conducting conversations
+2026-10-20 03:38:31,764 [INFO] pubcast: [INIT] Created default voxel asset library at /workspace/scratch/e48ad5ab9079/preflightdata/voxel_asset_library.json
+2026-10-20 03:38:31,764 [INFO] pubcast.voxel_assets: 📦 Built asset catalog: 4 total assets
+2026-10-20 03:38:31,764 [INFO] pubcast.voxel_assets: ✅ Loaded asset library: /workspace/scratch/e48ad5ab9079/preflightdata/voxel_asset_library.json
+2026-10-20 03:38:31,765 [INFO] pubcast.voxel_assets: 🎨 Voxel Asset Manager initialized: 4 assets
+2026-10-20 03:38:31,765 [INFO] pubcast: [16] Voxel asset manager ready — 4 assets catalogued
+2026-10-20 03:38:31,765 [INFO] pubcast.bridge: 🌉 VoxelBridge v2.0 initialised (SHM: pubcast_bridge_v2)
+2026-10-20 03:38:31,765 [INFO] pubcast: [17] Voxel bridge constructed — activation deferred to runtime owner (BridgeStatus.DISCONNECTED)
+2026-10-20 03:38:31,766 [INFO] pubcast.pete_enhanced: e-PETE internal twin-engine orchestrator initialized
+2026-10-20 03:38:31,766 [INFO] pubcast.pete_enhanced: e-PETE: Initializing internal twin-engine diagnostics...
+2026-10-20 03:38:31,766 [INFO] pubcast.pete_enhanced: e-PETE: Connecting to renderer bridge...
+2026-10-20 03:38:31,766 [INFO] pubcast.bridge: 🌉 VoxelBridge: establishing twin engine connection...
+2026-10-20 03:38:31,766 [WARNING] pubcast.bridge: 🌉 SHM segment not found
+2026-10-20 03:38:31,767 [ERROR] pubcast.bridge: ❌ TCP connection failed: [Errno 111] Connection refused
+2026-10-20 03:38:31,772 [ERROR] pubcast.bridge: 🚨 Bridge using Path C (File System) - severe performance impact
+2026-10-20 03:38:31,772 [INFO] pubcast.bridge: 🌉 Bridge background tasks started
+2026-10-20 03:38:31,772 [WARNING] pubcast.pete_enhanced: e-PETE: bridge fallback path accepted command test; primary bridge not active (status=emergency)
+2026-10-20 03:38:31,772 [INFO] pubcast.pete_enhanced: e-PETE: Setting up Rust renderer WebSocket adapter...
+2026-10-20 03:38:31,780 [INFO] pubcast.bridge: 🌉 Heartbeat started
+2026-10-20 03:38:31,780 [INFO] pubcast.bridge: 🌉 Command processor started
+2026-10-20 03:38:31,780 [INFO] pubcast.bridge: 🌉 Health monitor started
+2026-10-20 03:38:31,781 [INFO] pubcast.performer: PerformerStreamer connected to ws://localhost:8765
+2026-10-20 03:38:31,781 [INFO] pubcast.performer: AvatarPerformerManager started
+2026-10-20 03:38:31,827 [INFO] pubcast.pete_enhanced: e-PETE: Rust renderer WebSocket connected
+2026-10-20 03:38:31,827 [INFO] pubcast.pete_enhanced: e-PETE: Starting internal runtime health monitoring...
+2026-10-20 03:38:31,827 [INFO] pubcast.pete_enhanced: e-PETE: Twin engine monitoring started
+2026-10-20 03:38:31,827 [INFO] pubcast.pete_enhanced: e-PETE: Running bridge/streaming integration check...
+2026-10-20 03:38:31,827 [INFO] pubcast.pete_enhanced: e-PETE: Testing current available renderer pipeline without claiming full WebRTC/SHM...
+2026-10-20 03:38:32,327 [INFO] pubcast.pete_enhanced: e-PETE: renderer transport test passed
+2026-10-20 03:38:32,327 [INFO] pubcast.pete_enhanced: e-PETE: renderer-path latency check passed: 17.0ms
+2026-10-20 03:38:32,327 [INFO] pubcast.pete_enhanced: e-PETE: voxel renderer connected over real Rust WebSocket; full browser WebRTC/SHM remains unavailable.
+2026-10-20 03:38:32,327 [INFO] pubcast: [17a] e-PETE diagnostics active — mode=renderer_websocket_runtime activation=voxel_renderer_connected
+2026-10-20 03:38:32,328 [INFO] pubcast.twin_engine: Twin engine startup complete: degraded
+2026-10-20 03:38:32,333 [INFO] pubcast: [17b] Twin engine service mounted — mode=degraded  /api/twin/status ready
+2026-10-20 03:38:32,333 [INFO] pubcast.camera_boxer: [CameraBoxer] Ready — sacrifice order: ['overhead', 'closeup', 'wide'] | protected: ['main'] | audio: always protected
+2026-10-20 03:38:32,333 [INFO] pubcast.camera_boxer: [CameraBoxer] Started — polling every 0.25s
+2026-10-20 03:38:32,335 [INFO] pubcast: [17c] Camera boxer ready — T1≥65%% T2≥80%% T3≥92%% | audio always protected | /api/boxer/status
+2026-10-20 03:38:32,335 [INFO] pubcast.stt: [STT] Engine configured: medium on cpu (int8)
+2026-10-20 03:38:32,336 [INFO] pubcast: [17d] STT engine ready — Whisper medium on cpu | /api/stt/transcribe
+2026-10-20 03:38:32,336 [INFO] pubcast: [17e] TTS engine ready — 0 voice(s) ready | /api/tts/synthesize
+2026-10-20 03:38:32,336 [INFO] pubcast.studio_control: 🎛️ Studio Control Room initialized
+2026-10-20 03:38:32,336 [INFO] pubcast.voxel_studio_integration: 🔗 Voxel Studio Integration initialized
+2026-10-20 03:38:32,337 [INFO] pubcast: [18a] Voxel studio integration ready
+2026-10-20 03:38:32,337 [INFO] pubcast.studio_websocket: 📡 Studio WebSocket Handler initialized
+2026-10-20 03:38:32,337 [INFO] pubcast: [18] Studio Control ready — preflight + audio matrix active
+2026-10-20 03:38:32,337 [INFO] pubcast.unity_bridge: UnityBridge initialised
+2026-10-20 03:38:32,337 [INFO] pubcast: [19] Unity bridge ready — /unity/ws
+2026-10-20 03:38:32,337 [INFO] pubcast.mocap: 🎭 Mocap Stream Manager initialized
+2026-10-20 03:38:32,337 [INFO] pubcast: [20] MoCap transport ready — Hub broadcast active; optional avatar/render/record hooks report their own capability state
+2026-10-20 03:38:32,337 [INFO] pubcast: — PubCast AI v5.5 ready in 1.2s —
+2026-10-20 03:38:32,337 [INFO] pubcast:     http://0.0.0.0:8000/
+2026-10-20 03:38:32,337 [INFO] pubcast:     Stage:         /static/stage.html
+2026-10-20 03:38:32,337 [INFO] pubcast:     Panoramic:     /static/stage_panoramic.html
+2026-10-20 03:38:32,337 [INFO] pubcast:     Control Room:  /static/control_room.html
+2026-10-20 03:38:32,337 [INFO] pubcast:     Studio Ctrl:   /studio-control
+2026-10-20 03:38:32,337 [INFO] pubcast:     World:         /static/world.html
+2026-10-20 03:38:32,337 [INFO] pubcast:     PubWorld Stage:/pubworld-stage
+2026-10-20 03:38:32,337 [INFO] pubcast:     Builder:       /builder
+2026-10-20 03:38:32,337 [INFO] pubcast:     Map:           /static/map.html
+2026-10-20 03:38:32,337 [INFO] pubcast:     Dressing:      /dressing
+2026-10-20 03:38:32,337 [INFO] pubcast:     Launch:        /launch
+2026-10-20 03:38:32,337 [INFO] pubcast:     Bar:           /bar
+2026-10-20 03:38:32,337 [INFO] pubcast:     Gallery:       /gallery
+2026-10-20 03:38:32,337 [INFO] pubcast:     Analytics:     /analytics
+2026-10-20 03:38:32,337 [INFO] pubcast:     Health:        /health
+2026-10-20 03:38:32,337 [INFO] pubcast:     Doctor:        /static/doctor.html  |  /api/doctor
+2026-10-20 03:38:32,337 [INFO] pubcast:     Lighting Lab:  /static/pubcast_lighting_explorer.html
+2026-10-20 03:38:32,337 [INFO] pubcast:     Voxel API:     /api/voxel/assets  |  /api/voxel/generate
+2026-10-20 03:38:32,337 [INFO] pubcast:     Studio API:    /api/studio/status  |  /api/studio/preflight
+2026-10-20 03:38:32,337 [INFO] pubcast:     Unity WS:      /unity/ws/{client_id}
+2026-10-20 03:38:32,337 [INFO] pubcast:     Studio WS:     /studio/ws
+2026-10-20 03:38:32,337 [INFO] pubcast.timeline_routes: Registered handler for camera
+2026-10-20 03:38:32,338 [INFO] pubcast.timeline_routes: Registered handler for lighting
+2026-10-20 03:38:32,338 [INFO] pubcast.timeline_routes: Registered handler for chat
+2026-10-20 03:38:32,338 [INFO] pubcast.timeline_routes: Registered handler for record
+2026-10-20 03:38:32,338 [INFO] pubcast: [INIT] Timeline event handlers registered
+2026-10-20 03:38:32,338 [INFO] pubcast.hotspots: Registered handler for action type: transition
+2026-10-20 03:38:32,338 [INFO] pubcast: [INIT] Hotspot event handlers registered
+2026-10-20 03:38:32,338 [INFO] pubcast: [INIT] Camera logging enabled
+2026-10-20 03:38:32,356 [INFO] httpx: HTTP Request: GET http://testserver/foresight-counter "HTTP/1.1 200 OK"
+PASS  Reach page /foresight-counter: HTTP 200
+2026-10-20 03:38:32,369 [INFO] httpx: HTTP Request: GET http://testserver/writers-room "HTTP/1.1 200 OK"
+PASS  Reach page /writers-room: HTTP 200
+2026-10-20 03:38:32,373 [INFO] httpx: HTTP Request: GET http://testserver/pubpartner "HTTP/1.1 200 OK"
+PASS  Reach page /pubpartner: HTTP 200
+2026-10-20 03:38:32,377 [INFO] httpx: HTTP Request: GET http://testserver/pub-partner-chat "HTTP/1.1 200 OK"
+PASS  Reach page /pub-partner-chat: HTTP 200
+2026-10-20 03:38:32,381 [INFO] httpx: HTTP Request: GET http://testserver/static/blackbox_client.js "HTTP/1.1 200 OK"
+PASS  Counter asset /static/blackbox_client.js: HTTP 200
+2026-10-20 03:38:32,383 [INFO] httpx: HTTP Request: GET http://testserver/static/foresight.config.js "HTTP/1.1 200 OK"
+PASS  Counter asset /static/foresight.config.js: HTTP 200
+2026-10-20 03:38:32,392 [INFO] httpx: HTTP Request: GET http://testserver/static/foresight_chain.js "HTTP/1.1 200 OK"
+PASS  Counter asset /static/foresight_chain.js: HTTP 200
+2026-10-20 03:38:32,403 [INFO] httpx: HTTP Request: GET http://testserver/static/foresight_counter.js "HTTP/1.1 200 OK"
+PASS  Counter asset /static/foresight_counter.js: HTTP 200
+2026-10-20 03:38:32,425 [INFO] httpx: HTTP Request: GET http://testserver/static/foresight_gl.js "HTTP/1.1 200 OK"
+PASS  Counter asset /static/foresight_gl.js: HTTP 200
+2026-10-20 03:38:32,430 [INFO] httpx: HTTP Request: GET http://testserver/static/foresight_programs.js "HTTP/1.1 200 OK"
+PASS  Counter asset /static/foresight_programs.js: HTTP 200
+2026-10-20 03:38:32,439 [INFO] httpx: HTTP Request: GET http://testserver/static/foresight_shapes.js "HTTP/1.1 200 OK"
+PASS  Counter asset /static/foresight_shapes.js: HTTP 200
+2026-10-20 03:38:32,445 [INFO] httpx: HTTP Request: GET http://testserver/static/reach_auth.js "HTTP/1.1 200 OK"
+PASS  Counter asset /static/reach_auth.js: HTTP 200
+2026-10-20 03:38:32,456 [INFO] httpx: HTTP Request: GET http://testserver/writers-room "HTTP/1.1 200 OK"
+PASS  2i loads Reach persistence and conversation runtime
+PASS  2i loads Reach writing-desk styles
+PASS  2i runtime control shelfBtn
+PASS  2i runtime control partnerSelect
+PASS  2i runtime control partnerNote
+PASS  2i runtime control reachProvider
+PASS  2i runtime control reachModel
+PASS  2i runtime control reachCredential
+PASS  2i runtime control reachBaseURL
+2026-10-20 03:38:32,460 [INFO] httpx: HTTP Request: GET http://testserver/2i-assets/reach.js "HTTP/1.1 200 OK"
+PASS  2i runtime asset /2i-assets/reach.js: HTTP 200
+2026-10-20 03:38:32,463 [INFO] httpx: HTTP Request: GET http://testserver/2i-assets/reach.css "HTTP/1.1 200 OK"
+PASS  2i runtime asset /2i-assets/reach.css: HTTP 200
+PASS  Picker registration twoi
+PASS  Picker registration pubpartner_workspace
+PASS  Picker registration pubpartner_chat
+PASS  Empty Counter on new session
+2026-10-20 03:38:32,463 [INFO] pubcast: — PubCast AI shutting down —
+2026-10-20 03:38:32,463 [INFO] modules.evo.epete: [E-Pete] Stopped
+2026-10-20 03:38:32,464 [INFO] modules.evo.evo_integration: [EVO] Orchestrator stopped
+2026-10-20 03:38:32,464 [INFO] pubcast.pete_enhanced: e-PETE: Shutting down twin engine system...
+2026-10-20 03:38:32,465 [INFO] pubcast.pete_enhanced: e-PETE: twin engine diagnostics shutdown complete.
+2026-10-20 03:38:32,465 [INFO] pubcast.bridge: 🌉 VoxelBridge: closing...
+2026-10-20 03:38:32,465 [INFO] pubcast.bridge: ✅ VoxelBridge closed
+2026-10-20 03:38:32,465 [INFO] jeremy_cricket: 🦗 Jeremy Cricket has taken his final bow.
+2026-10-20 03:38:32,469 [INFO] pubcast: — PubCast AI stopped —
+
+PREFLIGHT PASS: packaged routes and assets respond. Interactive use still needs a browser test.

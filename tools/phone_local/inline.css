@@ -1,0 +1,22 @@
+/* Let the conversation size the preview. Editor textareas retain native scroll. */
+html,body,body[data-reach-view="phone"] { height:auto!important; min-height:0; overflow:visible!important; background:transparent; }
+#reach-phone-inline { position:relative; width:100%; }
+body[data-reach-view="phone"] .app-shell { height:auto; max-width:620px; border:1px solid #886832; border-radius:10px; }
+#phoneRoom { height:auto; }
+#phoneHeader { padding-top:10px; }
+#phoneViews { overflow:visible; flex:none; }
+#phoneRoom #manuscriptZone { height:300px!important; min-height:0; }
+#phoneRoom #chatLog { height:260px!important; min-height:0; }
+#phoneRoom #photoSuggestionText,#phoneRoom #photoIdeas { max-height:none; overflow:visible; }
+#phoneRoom #phoneDesktop,#phoneRoom #phoneEdition,#photoPhoneMenu,#photoFullSizeMenu,#photoHotspotMenu { display:none!important; }
+#phoneDeskChoice { display:none!important; }
+#phoneFooter { padding-bottom:10px; }
+#phoneRoom #photoProgress { display:none; }
+.modal-backdrop,body[data-reach-view="phone"] .modal-backdrop { position:absolute; inset:0; padding:12px; align-items:flex-start; }
+body[data-reach-view="phone"] .modal { width:100%; max-width:500px; max-height:none; margin:0 auto; }
+body[data-reach-view="phone"] .hamburger-menu { position:absolute; top:70px; right:8px; max-height:none; width:min(90%,360px); }
+#phoneRoom #refViewer { position:absolute; inset:0; min-height:300px; }
+#phoneLocalExportText { font:16px/1.5 monospace; }
+#phoneRoom .m-line-edit textarea { font-size:18px; }
+#phoneRoom #photoManuscriptTitle { font-size:20px; }
+#phoneRoom button:focus-visible { outline:revert; outline-offset:revert; }

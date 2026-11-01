@@ -1,0 +1,9 @@
+# Optional Architect / local GGUF dependencies.
+# Do not install by default for the basic PubCast runtime.
+# Use only when enabling the local Architect path.
+
+llama-cpp-python>=0.2.90
+huggingface-hub>=0.24.0
+sentencepiece>=0.2.0
+protobuf>=5.27.0
+numpy>=1.26.0

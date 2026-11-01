@@ -1,0 +1,19 @@
+{
+ "unit": "inches",
+ "note": "Canonical standing heights. Every avatar in the world is sized from these, so the cast stays in proportion in every room. Edit a number here to change it.",
+ "cast": {
+  "sir_purfluous": {
+   "name": "Sir Purfluous",
+   "height_in": 74
+  },
+  "pete": {
+   "name": "Pete",
+   "height_in": 68
+  },
+  "repete": {
+   "name": "RePete",
+   "height_in": 70
+  }
+ },
+ "default_adult_in": 68
+}

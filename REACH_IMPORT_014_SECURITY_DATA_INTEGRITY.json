@@ -1,0 +1,49 @@
+{
+  "operation": "REACH_IMPORT_014_SECURITY_DATA_INTEGRITY",
+  "non_destructive": true,
+  "quality_basis": [
+    "Horizon stronger auth productization",
+    "collision-resistant persistence storage_key",
+    "no fake credential encryption fallback",
+    "canonical BYOK character prompt lookup",
+    "vault integrity errors observable"
+  ],
+  "files": [
+    {
+      "path": "modules/auth.py",
+      "sha256": "7d4ff346d84e2b072d03501a9a5b9a6a0f4ae76b928e38a77ef70a70af7b6086"
+    },
+    {
+      "path": "modules/auth_routes.py",
+      "sha256": "c363da812a6a5997937cd7135d1208eae38724f5b4e56a74625a00a49239a3b5"
+    },
+    {
+      "path": "modules/userdb.py",
+      "sha256": "965b822d9f94c6dc2ae196190d0a9ade89daa08c4a3f6d1453c425e5615d2034"
+    },
+    {
+      "path": "modules/persistence.py",
+      "sha256": "b2c9cbf445fc13283f9a934f92cbbc400da977ebfd5b8102bb535b98ffbdb712"
+    },
+    {
+      "path": "modules/credentials.py",
+      "sha256": "0f80389b0e55a332ebe2dc012b644029babe5ac330482e51e7499f2f8dcf94c8"
+    },
+    {
+      "path": "modules/byok_manager.py",
+      "sha256": "dbb424ddad07a895ed9615c35d28972a46721cc4d37f8efecefccec855adcc31"
+    },
+    {
+      "path": "modules/vault_engine.py",
+      "sha256": "c70299ca3be67d6efeed2a05cb93131224ffbdc4fbd5107b0d4734f9f70b92d6"
+    },
+    {
+      "path": "main.py",
+      "sha256": "a678ce3dbcc5e028eba144758ba6a7899c4d578ae187b1ff99a1048296bd77c7"
+    },
+    {
+      "path": "requirements.txt",
+      "sha256": "4a5b7b2a5cf216c64879db5fd58fc5ee79a24a4756110dc7e0ec7750a7a7df32"
+    }
+  ]
+}

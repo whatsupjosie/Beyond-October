@@ -1,0 +1,32 @@
+{
+  "operation": "apply_consolidation_quality_winners",
+  "files": [
+    {
+      "path": "modules/voxel_webrtc_bridge.py",
+      "sha256": "9ca6fcd8148cd713e4bc2977587e76ee83a52c0f38ad590e99940eac908cb0aa",
+      "functions": 14
+    },
+    {
+      "path": "modules/pubcast_voxel_integration.py",
+      "sha256": "8b56fa1041230d72a4c257005e57a9c74f55dda55c996cb25231e294b8501029",
+      "functions": 5
+    },
+    {
+      "path": "modules/pete_enhanced.py",
+      "sha256": "c69870ca16e60ffae451f2e1dc14cf0ac304cb3f059fa8a1b80a988ba8c7ef81",
+      "functions": 40
+    },
+    {
+      "path": "modules/recording.py",
+      "sha256": "19d41e9d00f070e360596cec459605ca81cf8f97187311a5080086bbe62abef1",
+      "functions": 36
+    },
+    {
+      "path": "modules/room_conductor.py",
+      "sha256": "069ed3b6ece329de61a4df108ed4f33c97a216c56f15214afa3e3d89ae58d66b",
+      "functions": 40
+    }
+  ],
+  "route_security_decision": "KEPT NowCurtsey fix: relaxed mode only binds to X-Client-Id when a real header is present; enforced mode remains strict. Older BD winner regresses relaxed-mode semantics.",
+  "recording_merge": "BreakingDawn 714-line winner plus Horizon _validated_session_id validation, including start/import paths."
+}

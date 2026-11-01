@@ -1,0 +1,31 @@
+{
+ "package": "three",
+ "version": "0.160.0",
+ "source": "npm registry tarball three-0.160.0.tgz (npm pack)",
+ "license": "MIT (LICENSE in this folder; fflate MIT, header in libs/fflate.module.js)",
+ "why": "Offline-first avatar import. Same three.js version the existing avatar pages load from a CDN.",
+ "sha256": {
+  "LICENSE": "852e0e8699169bf9f6fdc6bda3e682d078dcbc738b5d33e74df594721bff271d",
+  "build/three.module.js": "76dea8151bc9352aef3528b4262e249b2604f62543828328db978d060d61a495",
+  "examples/jsm/controls/OrbitControls.js": "5a44a9e86a2a0fb11933eed69bc2cd33c76a496854c1aed6ed776efa87d7b064",
+  "examples/jsm/curves/NURBSCurve.js": "34dee297704432358680934a8d5acae35f05c71aa59ce7a8e97decb0ac38e452",
+  "examples/jsm/curves/NURBSUtils.js": "86bcf4002721854739f6dc7fd185b5eb0540d6b8676feaae6979bb605baac85e",
+  "examples/jsm/exporters/GLTFExporter.js": "f8a6eb87719e68c925fdf445014b5ead49cf779ae14e69c6cc1cb1dd4eae514d",
+  "examples/jsm/libs/fflate.module.js": "5686c3d02432a47d8e31f16cabc2d725bbf4531a3abb37cc6fd00142256e3730",
+  "examples/jsm/loaders/FBXLoader.js": "e8c2a47dffc04ca5699839a6d80fa9140fd9c943f62cea8d074736d7de9c5d98",
+  "examples/jsm/loaders/GLTFLoader.js": "d073b438e6a07e1359741dd5d6c76c953420cc0d4fd84eb1bdde94315540e6a3",
+  "examples/jsm/loaders/MTLLoader.js": "990757029142686fdcbbaded27207234151a9942469a1aa5417842b302565174",
+  "examples/jsm/loaders/OBJLoader.js": "022e0334f837c60506276e136faf3e54b21b20aea672eed4a0c50651d4fc0a5d",
+  "examples/jsm/utils/BufferGeometryUtils.js": "9be041e96308775d00e2695cc607645b9a9b64fd7c0e759dd8f7c00a8d92becb",
+  "examples/jsm/utils/SkeletonUtils.js": "83748c5072a5ce96e9d68d8efda908a1f1a06c0b5fd2618edc3e54a361a8fd5b",
+  "examples/jsm/utils/TextureUtils.js": "1b84a7fde8745dd614f62b6ca8108b592144278c07891a0cbe8cdf8e15796efa"
+ },
+ "added": [
+  {
+   "file": "examples/jsm/utils/SkeletonUtils.js",
+   "date": "2026-10-27",
+   "from": "npm registry three@0.160.0 (same release; GLTFLoader.js, BufferGeometryUtils.js and build/three.module.js are byte-identical to this folder's copies)",
+   "why": "The Bella Faux Pas Studio walker clones rigged GLB avatars (static/world_walk_glb.js)."
+  }
+ ]
+}

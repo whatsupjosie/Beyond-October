@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foresight — The Counter</title>
+<link rel="stylesheet" href="/static/fonts/foresight-fonts.css">
+<script src="/static/reach_auth.js"></script>
+<style>
+  :root{--gold:#d6a957;--cream:#f1e3c6;--ink:#2e2418;--muted:#9a8a70;--ok:#75a968;--bad:#c0503a}
+  html,body{margin:0;height:100%;overflow:hidden;background:#1e140d;font-family:var(--fs-font-body,sans-serif);color:var(--cream)}
+  #gl{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;display:block;touch-action:none}
+  #barArt{position:fixed;left:0;top:0;z-index:1;pointer-events:none}
+
+  /* ---- the system bar: live menus over the bar the renderer draws ---- */
+  .bar-ui{position:fixed;left:84px;right:30px;top:13px;z-index:6;display:flex;gap:2px;align-items:center;font-family:var(--fs-font-display,serif)}
+  .bar-ui .brand{font-weight:700;letter-spacing:.26em;font-size:17px;margin-right:22px;color:#3a2a14;text-shadow:0 1px 0 rgba(255,246,222,.75),0 -1px 0 rgba(60,40,15,.25);user-select:none}
+  .menu{position:relative}
+  .menu-btn{background:none;border:0;padding:6px 11px;border-radius:8px;font:700 12px var(--fs-font-display,serif);letter-spacing:.14em;text-transform:uppercase;color:var(--ink);cursor:pointer}
+  .menu-btn:hover,.menu.open .menu-btn,.menu-btn:focus-visible{background:rgba(60,40,20,.13);outline:none}
+  .menu-list{position:absolute;left:0;top:calc(100% + 8px);min-width:250px;display:none;padding:6px;border-radius:12px;z-index:30;
+    background:linear-gradient(170deg,#2c2118,#140e0a);box-shadow:0 10px 28px rgba(0,0,0,.55),inset 0 0 0 1px rgba(214,169,87,.45)}
+  .menu.open .menu-list{display:block}
+  .menu-item{display:flex;justify-content:space-between;gap:18px;width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:7px 10px;
+    color:var(--cream);font:600 12.5px var(--fs-font-body,sans-serif);cursor:pointer}
+  .menu-item:hover,.menu-item:focus{background:rgba(214,169,87,.16);outline:none}
+  .menu-item[disabled]{opacity:.4;cursor:default;background:none}
+  .menu-item .mi-key{opacity:.55;font-size:11px;white-space:nowrap}
+  .menu-item.on::before{content:'●';margin-right:6px;color:var(--gold)}
+  .menu-sep{border-top:1px solid rgba(214,169,87,.25);margin:5px 6px}
+  .menu-label{padding:6px 10px 3px;font:700 10px var(--fs-font-display,serif);letter-spacing:.18em;text-transform:uppercase;color:#bfa06a}
+  .bar-ui .status{margin-left:auto;display:flex;gap:14px;font:700 10.5px var(--fs-font-display,serif);letter-spacing:.12em;text-transform:uppercase;color:#4a3820;user-select:none}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px;background:#8a7a5c;box-shadow:inset 0 0 0 1px rgba(0,0,0,.3)}
+  .dot.up{background:var(--ok);box-shadow:0 0 6px var(--ok)} .dot.down{background:var(--bad);box-shadow:0 0 6px var(--bad)}
+
+  .hint{position:fixed;left:50%;top:52%;transform:translate(-50%,-50%);z-index:2;text-align:center;font:600 14px/1.6 var(--fs-font-body,sans-serif);
+    color:#f3e2c2;text-shadow:0 1px 3px rgba(0,0,0,.85);pointer-events:none;display:none}
+
+  /* ---- what the programs put inside trays (their own pages bring their own look) ---- */
+  .fp-body{color:var(--cream);font:13px/1.5 var(--fs-font-body,sans-serif)}
+  .fp-panel{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:18px 22px;gap:6px;overflow:auto}
+  .fp-panel h3{margin:0 0 4px;font:700 12.5px var(--fs-font-display,serif);letter-spacing:.2em;text-transform:uppercase;color:#e9c987}
+  .fp-panel p{margin:2px 0;max-width:520px;opacity:.85}
+  .fp-panel code{background:rgba(255,255,255,.08);border-radius:6px;padding:1px 6px;font:12px ui-monospace,monospace}
+  .fp-acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+  .fp-btn{border:0;border-radius:10px;padding:7px 13px;cursor:pointer;font:600 12.5px var(--fs-font-body,sans-serif);background:linear-gradient(180deg,#e2b866,#a8772a);color:#2a1a08}
+  .fp-btn.small{padding:5px 9px;font-size:12px;background:rgba(255,255,255,.08);color:var(--cream)}
+  .fp-btn:hover{filter:brightness(1.08)}
+  .fp-web{position:absolute;inset:0;display:flex;flex-direction:column}
+  .fp-webbar{display:flex;gap:6px;padding:8px 10px;background:rgba(0,0,0,.35)}
+  .fp-addr{flex:1;min-width:0;border:0;border-radius:9px;padding:6px 10px;background:rgba(255,255,255,.08);color:var(--cream);font:12.5px var(--fs-font-body,sans-serif)}
+  .fp-addr:focus{outline:1px solid rgba(214,169,87,.6)}
+  .fp-web iframe{flex:1;border:0;width:100%;background:#fff}
+  .fp-note{padding:4px 10px;font-size:11px;opacity:.6;background:rgba(0,0,0,.35)}
+  .fp-video{position:absolute;inset:0;width:100%;height:100%;background:#000;object-fit:contain}
+  .fp-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#050403}
+  .fp-text{position:absolute;inset:0;margin:0;padding:14px 16px;overflow:auto;white-space:pre-wrap;word-break:break-word;font:12px/1.55 ui-monospace,monospace;color:#e6d8c0;background:#0a0807}
+  .fp-status{position:absolute;inset:0;padding:16px 20px;overflow:auto}
+  .fp-status h3{margin:0 0 2px;font:700 12px var(--fs-font-display,serif);letter-spacing:.2em;text-transform:uppercase;color:#e9c987}
+  .fp-sub{font-size:11px;opacity:.6;margin-bottom:10px}
+  .fp-row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:12.5px}
+  .fp-pill{padding:1px 8px;border-radius:9px;font-size:11px;font-weight:700} .fp-pill.ok{background:rgba(117,169,104,.25);color:#a7d79a} .fp-pill.bad{background:rgba(192,80,58,.25);color:#f0a08c}
+  .fp-err{margin-top:10px;font-size:12px;opacity:.8}
+  .fp-list{display:flex;flex-direction:column;gap:5px;width:100%;max-width:520px;margin-top:10px;text-align:left}
+  .fp-item{display:flex;justify-content:space-between;gap:10px;border:0;border-radius:9px;padding:7px 10px;background:rgba(255,255,255,.06);color:var(--cream);cursor:pointer;font:12.5px var(--fs-font-body,sans-serif)}
+  .fp-item:hover{background:rgba(214,169,87,.16)} .fp-meta{opacity:.6;font-size:11px;white-space:nowrap}
+  .fc-content > iframe{background:#0b0908}
+
+  /* ---- a question with a typed answer (a web address, a video link) ---- */
+  .ask-input{width:100%;box-sizing:border-box;margin-top:10px;border:0;border-radius:10px;padding:9px 12px;background:rgba(255,255,255,.08);color:var(--cream);font:13px var(--fs-font-body,sans-serif)}
+  .ask-input:focus{outline:1px solid rgba(214,169,87,.6)}
+  .ask-error{min-height:16px;margin-top:6px;font-size:12px;color:#f0a08c}
+  .keys{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;font-size:12.5px}
+  .keys kbd{font:600 11.5px ui-monospace,monospace;background:rgba(255,255,255,.08);border-radius:6px;padding:2px 7px;color:#f1e3c6}
+  @media (max-width:860px){ .bar-ui .brand{font-size:13px;margin-right:6px} .menu-btn{padding:6px 6px;font-size:10.5px} .bar-ui .status{display:none} }
+</style>
+</head>
+<body>
+<canvas id="gl" aria-hidden="true"></canvas>
+<svg id="barArt" aria-hidden="true"></svg>
+<div class="bar-ui">
+  <span class="brand">FORESIGHT</span>
+  <nav id="menubar" role="menubar" aria-label="Foresight menus" style="display:flex;gap:2px"></nav>
+  <div class="status" aria-label="Services">
+    <span><span id="dot-pubcast" class="dot"></span>PubCast</span>
+    <span><span id="dot-pubpartner" class="dot"></span>PubPartner</span>
+    <span><span id="dot-2i" class="dot"></span>2i</span>
+  </div>
+</div>
+<div class="hint" id="hint">The Counter is empty.<br>Click <b>+ New</b> on the fan, or File › Open, to put something in a tray.</div>
+
+<script src="/static/foresight.config.js"></script>
+<script src="/static/foresight_shapes.js"></script>
+<script src="/static/foresight_gl.js"></script>
+<script src="/static/foresight_chain.js"></script>
+<script src="/static/foresight_counter.js"></script>
+<script src="/static/foresight_programs.js"></script>
+<script>
+'use strict';
+/* Foresight: the Counter. Every program, room, tool, chat, page, video and file in PubCast opens in a tray on this
+   counter. The trays themselves (moving, denting, squeezing, locking, the fan, the tray menus) are
+   foresight_counter.js; what goes in them is foresight_programs.js; this page adds the system bar, its menus, the
+   service lights, the look of the counter and the keys. */
+const M = ForesightGL.MAT, params = new URLSearchParams(location.search);
+const canvas = document.getElementById('gl'), hintEl = document.getElementById('hint');
+const G = new ForesightGL(canvas);
+G.loadStone('/static/foresight_stone_tigereye.jpg');
+
+// ---------------------------------------------------------------- the look of the counter (View > Counter)
+// Josie's direction: the lantern in the upper left is the main light, minimal ambient, a second light from another
+// side that is not an even fill; frames lit from beneath, parts of them in shadow. Kept per browser.
+const LOOK_KEY = 'foresight.look.v1';
+const LOOK_DEFAULT = {theme: 'tigereye', lantern: true};
+let look = (() => { try{ return Object.assign({}, LOOK_DEFAULT, JSON.parse(localStorage.getItem(LOOK_KEY) || '{}')); }catch(e){ return Object.assign({}, LOOK_DEFAULT); } })();
+if(params.get('theme')) look.theme = params.get('theme');
+if(params.get('lamp') === '0') look.lantern = false;
+function applyLook(){
+  G.lamp = !!look.lantern; G.lampHeight = 0.30;
+  if(G.lamp){ G.exposure = 1.9; G.bloomMix = 0.032; G.setLight2({intensity: 0.6, az: -35, el: 24}); }
+  else { G.exposure = 1.6; G.bloomMix = 0.045; G.setLight2({intensity: 0}); }
+  if(counter) counter.setTheme(look.theme);
+  try{ localStorage.setItem(LOOK_KEY, JSON.stringify(look)); }catch(e){}
+}
+// each kind of content keeps the same frame wherever it opens: [rim metal, glow, frame design 0..8]
+const FRAME = {
+  tigereye: {world_chat:[M.BRONZE,'violet',7], chat:[M.BRONZE,'violet',7], pubpartner_workspace:[M.GOLD,'amber',4], pubpartner_chat:[M.ROSE_GOLD,'ruby',1],
+    twoi:[M.SILVER,'sapphire',8], iteration_wallet:[M.CHAMPAGNE,'citrine',5], care_eq:[M.NACRE,'warm',5], browser:[M.STEEL,'blue',8], video:[M.GOLD,'amber',4],
+    file:[M.NACRE,'warm',5], recordings:[M.COPPER,'teal',3], pubpartner_status:[M.OPAL,'red',2], twoi_status:[M.OPAL,'red',2], room:[M.GOLD,'amber',0],
+    tool:[M.SILVER,'green',6], blank:[M.BRASS,'citrine',6]},
+  nero: {world_chat:[M.COPPER,'teal',1], chat:[M.COPPER,'teal',1], pubpartner_workspace:[M.ROSE_GOLD,'ruby',8], pubpartner_chat:[M.ROSE_GOLD,'ruby',1],
+    twoi:[M.CHAMPAGNE,'sapphire',5], iteration_wallet:[M.BRASS,'citrine',6], care_eq:[M.NACRE,'amethyst',3], browser:[M.CHAMPAGNE,'sapphire',5], video:[M.GOLD,'emerald',0],
+    file:[M.NACRE,'amethyst',3], recordings:[M.COPPER,'teal',1], pubpartner_status:[M.NACRE,'amethyst',3], twoi_status:[M.NACRE,'amethyst',3], room:[M.GOLD,'emerald',0],
+    tool:[M.BRASS,'citrine',6], blank:[M.ROSE_GOLD,'ruby',8]},
+};
+FRAME.indigo = FRAME.tigereye; FRAME.pearl = FRAME.tigereye; FRAME.walnut = FRAME.tigereye;
+function frameLook(t, theme){
+  const set = FRAME[theme] || FRAME.tigereye, c = t.stack[0], p = c && ForesightPrograms.PROGRAMS.find(x => x.id === c.type);
+  if(!c) return null;
+  return set[c.type] || (p && p.group === 'Studio Rooms' ? set.room : p && p.group === 'Production Tools' ? set.tool : null) || null;
+}
+
+// ---------------------------------------------------------------- a question with a typed answer
+let counter = null;
+function ask({title, sub = '', placeholder = '', value = '', validate = null, info = null, okLabel = 'Open', cancel = true}){
+  return new Promise(resolve => {
+    const veil = document.createElement('div'); veil.className = 'fc-veil fc-open';
+    const p = document.createElement('div'); p.className = 'fc-panel'; p.setAttribute('role', 'dialog'); p.setAttribute('aria-label', title);
+    const h = document.createElement('h3'); h.textContent = title; p.appendChild(h);
+    if(sub){ const s = document.createElement('div'); s.textContent = sub; s.style.cssText = 'opacity:.75;font-size:12.5px;max-width:460px'; p.appendChild(s); }
+    let input = null, err = null;
+    if(info) p.appendChild(info);
+    else { input = document.createElement('input'); input.className = 'ask-input'; input.placeholder = placeholder; input.value = value; input.spellcheck = false; input.autocomplete = 'off';
+      err = document.createElement('div'); err.className = 'ask-error'; p.append(input, err); }
+    const row = document.createElement('div'); row.className = 'fc-row';
+    const done = v => { veil.remove(); resolve(v); };
+    const ok = document.createElement('button'); ok.className = 'fc-btn fc-main'; ok.textContent = info ? (okLabel === 'Open' ? 'Close' : okLabel) : okLabel;
+    ok.addEventListener('click', () => { if(!input) return done(true); if(validate){ try{ validate(input.value); }catch(e){ err.textContent = e.message; input.focus(); return; } } done(input.value); });
+    if(cancel || input){ const c = document.createElement('button'); c.className = 'fc-btn'; c.textContent = 'Cancel'; c.addEventListener('click', () => done(null)); row.appendChild(c); }
+    row.appendChild(ok); p.appendChild(row); veil.appendChild(p); document.body.appendChild(veil);
+    veil.addEventListener('pointerdown', e => { if(e.target === veil) done(null); });
+    veil.addEventListener('keydown', e => { if(e.key === 'Escape'){ e.preventDefault(); done(null); } if(e.key === 'Enter' && input){ e.preventDefault(); ok.click(); } });
+    setTimeout(() => (input || ok).focus(), 30);
+  });
+}
+
+// ---------------------------------------------------------------- the counter and its programs
+const programs = ForesightPrograms.create({toast: t => counter && counter.toast(t), ask});
+counter = ForesightCounter.create({canvas, gl: G, provider: programs.provider, theme: look.theme, top: 70,
+  storageKey: params.has('nosave') ? null : 'foresight.counter.v3', looks: frameLook,
+  onEvent: () => { updateHint(); }});
+programs.bind(counter);
+applyLook();
+function updateHint(){ hintEl.style.display = counter.trays.some(t => !t.hidden) ? 'none' : 'block'; }
+
+// ---------------------------------------------------------------- what the menus do
+const sel = () => { const t = counter.selected; return t && !t.hidden ? t : null; };
+const openTrays = () => counter.trays.filter(t => !t.hidden);
+function openBrowser(address){ return programs.open('browser', address ? {address} : {}); }
+function openBlank(){ return counter.open('blank'); }
+function closeSelected(){ const t = sel(); if(t) counter.close(t); else counter.toast('Select a tray first'); }
+function closeAllIntoFan(){ const list = openTrays(); if(!list.length){ counter.toast('No open trays'); return; } list.forEach((t, i) => setTimeout(() => counter.close(t), i*60)); }
+async function clearCountertop(){
+  const list = counter.trays.slice();
+  if(!list.length){ counter.toast('The countertop is already clear'); return; }
+  const info = document.createElement('div');
+  const p = document.createElement('p'); p.style.margin = '0 0 8px'; p.textContent = 'These ' + list.length + ' tray' + (list.length === 1 ? '' : 's') + ' will be closed and removed from the fan. Anything unsaved inside them may be lost.';
+  const ul = document.createElement('ul'); ul.style.cssText = 'margin:0;padding-left:18px;font-size:12px;line-height:1.7;color:#e3cfa9';
+  list.forEach(t => { const li = document.createElement('li'); li.textContent = counter.active(t).title; ul.appendChild(li); });
+  info.append(p, ul);
+  if(await ask({title: 'Clear the countertop', info, okLabel: 'Clear all', cancel: true})) list.forEach(t => counter.discard(t));
+}
+function resetAll(){ counter.trays.filter(t => !t.hidden && !t.locked).forEach(t => counter.reset(t)); counter.toast('Trays going back to their own sizes'); }
+function bringAllBack(){ counter.trays.filter(t => t.parked).forEach((t, i) => setTimeout(() => counter.unpark(t), i*650)); }
+function showShortcuts(){
+  const info = document.createElement('div'); info.className = 'keys';
+  [['Alt + O', 'Open a program, room or tool'], ['Alt + B', 'A web browser tray'], ['Alt + K', 'A blank tray'], ['Alt + I', 'A file from this computer'],
+   ['Alt + N', 'New chat'], ['Alt + W', 'Close the selected tray into the fan'], ['Alt + L', 'Lock or unlock the selected tray'], ['Alt + F', 'Full screen'],
+   ['Double-click a tray\'s name', 'Full screen'], ['Right-click a tray', 'Its menu: reset, lock, import, export, capture, save…'],
+   ['Esc', 'Close a menu or question, or leave full screen']].forEach(([k, d]) => { const a = document.createElement('kbd'); a.textContent = k; const b = document.createElement('span'); b.textContent = d; info.append(a, b); });
+  ask({title: 'Keyboard and mouse', sub: 'Keys work when the counter itself has focus; keys pressed inside a tray go to that program.', info});
+}
+const THEMES = [['tigereye', "Tiger's eye"], ['nero', 'Nero marble'], ['pearl', 'Pearl marble'], ['indigo', 'Indigo stone']];
+function menuModel(){
+  const t = sel(), state = x => x.closed ? ' (in the fan)' : x.parked ? ' (put away)' : '';
+  const windows = counter.trays.map(x => ({label: (x.closed ? '○ ' : x.parked ? '– ' : x === counter.selected ? '● ' : '◦ ') + counter.active(x).title + state(x),
+    run: () => x.closed ? counter.reopen(x) : x.parked ? counter.unpark(x) : counter.select(x)}));
+  return [
+    {name: 'File', items: [
+      {label: 'Open…', key: 'Alt+O', run: () => counter.openPicker(null)},
+      {sep: true},
+      {label: 'New web browser', key: 'Alt+B', run: () => openBrowser()},
+      {label: 'New blank tray', key: 'Alt+K', run: openBlank},
+      {label: 'New chat', key: 'Alt+N', run: () => programs.newChat()},
+      {label: 'A file from this computer…', key: 'Alt+I', run: () => counter.pickFile(null)},
+      {label: 'Video from a link…', run: () => programs.askVideoUrl()},
+      {sep: true},
+      {label: 'Import into this tray…', run: () => counter.openPicker(t), disabled: !t},
+      {label: 'Export this tray', run: () => counter.exportTray(t), disabled: !t},
+      {label: 'Screen capture of this tray', run: () => counter.capture(t), disabled: !t},
+      {sep: true},
+      {label: 'Save the countertop', run: () => counter.save(null)},
+      {label: 'Close this tray into the fan', key: 'Alt+W', run: closeSelected, disabled: !t},
+      {label: 'Close all into the fan', run: closeAllIntoFan, disabled: !openTrays().length},
+      {label: 'Clear the countertop…', run: clearCountertop, disabled: !counter.trays.length},
+    ]},
+    {name: 'View', items: [
+      {label: 'Full screen', key: 'Alt+F', run: () => counter.fullScreen(t), disabled: !t},
+      {label: 'Reload this tray', run: () => programs.reload(counter.active(t)), disabled: !t},
+      {sep: true},
+      {label: t && t.locked ? 'Unlock this tray' : 'Lock this tray', key: 'Alt+L', run: () => counter.lock(t), disabled: !t},
+      {label: counter.trays.every(x => x.hidden || x.locked) ? 'Unlock all trays' : 'Lock all trays', run: () => counter.lockAll(), disabled: !openTrays().length},
+      {label: 'Reset this tray', run: () => counter.reset(t), disabled: !t || t.locked},
+      {label: 'Reset every tray', run: resetAll, disabled: !openTrays().length},
+      {sep: true},
+      {label: 'Put this tray away', run: () => counter.park(t), disabled: !t},
+      {label: 'Bring back all put away', run: bringAllBack, disabled: !counter.trays.some(x => x.parked)},
+      {sep: true},
+      {heading: 'Counter'},
+      ...THEMES.map(([id, label]) => ({label, on: look.theme === id, run: () => { look.theme = id; applyLook(); }})),
+      {label: 'Lantern light', on: look.lantern, run: () => { look.lantern = !look.lantern; applyLook(); counter.toast(look.lantern ? 'Lit by the lantern' : 'Lit by the studio light'); }},
+    ]},
+    {name: 'Window', items: windows.length ? [{heading: 'Trays'}, ...windows] : [{label: 'No trays yet', disabled: true, run: () => {}}]},
+    {name: 'Help', items: [
+      {label: 'Keyboard and mouse', run: showShortcuts},
+      {sep: true},
+      {label: 'PubPartner status', run: () => programs.open('pubpartner_status')},
+      {label: '2i bridge status', run: () => programs.open('twoi_status')},
+      {label: 'Doctor', run: () => programs.open('doctor')},
+    ]},
+  ];
+}
+// ---------------------------------------------------------------- the menu bar
+const bar = document.getElementById('menubar');
+function closeMenus(){ const open = bar.querySelectorAll('.menu.open'); open.forEach(m => { m.classList.remove('open'); m.querySelector('.menu-btn').setAttribute('aria-expanded', 'false'); }); return open.length > 0; }
+function openMenu(wrap, focusFirst){
+  closeMenus();
+  const model = menuModel()[+wrap.dataset.index], list = wrap.querySelector('.menu-list'); list.innerHTML = '';
+  for(const it of model.items){
+    if(it.sep){ const s = document.createElement('div'); s.className = 'menu-sep'; s.setAttribute('role', 'separator'); list.appendChild(s); continue; }
+    if(it.heading){ const h = document.createElement('div'); h.className = 'menu-label'; h.textContent = it.heading; list.appendChild(h); continue; }
+    const b = document.createElement('button'); b.className = 'menu-item' + (it.on ? ' on' : ''); b.setAttribute('role', 'menuitem');
+    const l = document.createElement('span'); l.textContent = it.label; b.appendChild(l);
+    if(it.key){ const k = document.createElement('span'); k.className = 'mi-key'; k.textContent = it.key; b.appendChild(k); }
+    if(it.disabled){ b.disabled = true; b.setAttribute('aria-disabled', 'true'); }
+    b.addEventListener('click', () => { closeMenus(); it.run(); });
+    list.appendChild(b);
+  }
+  wrap.classList.add('open'); wrap.querySelector('.menu-btn').setAttribute('aria-expanded', 'true');
+  if(focusFirst){ const f = list.querySelector('.menu-item:not([disabled])'); if(f) f.focus(); }
+}
+menuModel().forEach((m, i) => {
+  const wrap = document.createElement('div'); wrap.className = 'menu'; wrap.dataset.index = i;
+  const btn = document.createElement('button'); btn.className = 'menu-btn'; btn.textContent = m.name; btn.setAttribute('aria-haspopup', 'true'); btn.setAttribute('aria-expanded', 'false');
+  const list = document.createElement('div'); list.className = 'menu-list'; list.setAttribute('role', 'menu');
+  wrap.append(btn, list); bar.appendChild(wrap);
+  btn.addEventListener('click', e => { e.stopPropagation(); wrap.classList.contains('open') ? closeMenus() : openMenu(wrap, false); });
+  btn.addEventListener('mouseenter', () => { if(bar.querySelector('.menu.open') && !wrap.classList.contains('open')) openMenu(wrap, false); });
+  btn.addEventListener('keydown', e => {
+    if(e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openMenu(wrap, true); }
+    if(e.key === 'ArrowRight' || e.key === 'ArrowLeft'){ e.preventDefault(); const ms = [...bar.children]; ms[(i + (e.key === 'ArrowRight' ? 1 : -1) + ms.length) % ms.length].querySelector('.menu-btn').focus(); }
+  });
+  list.addEventListener('keydown', e => {
+    const items = [...list.querySelectorAll('.menu-item:not([disabled])')], at = items.indexOf(document.activeElement);
+    if(e.key === 'ArrowDown'){ e.preventDefault(); (items[(at + 1) % items.length] || items[0]).focus(); }
+    if(e.key === 'ArrowUp'){ e.preventDefault(); (items[(at - 1 + items.length) % items.length] || items[0]).focus(); }
+    if(e.key === 'ArrowRight' || e.key === 'ArrowLeft'){ e.preventDefault(); const ms = [...bar.children]; openMenu(ms[(i + (e.key === 'ArrowRight' ? 1 : -1) + ms.length) % ms.length], true); }
+    if(e.key === 'Escape'){ e.preventDefault(); closeMenus(); btn.focus(); }
+    if(e.key === 'Tab') closeMenus();
+  });
+});
+addEventListener('pointerdown', e => { if(!e.target.closest('.menu')) closeMenus(); }, true);
+addEventListener('blur', () => closeMenus());
+
+// ---------------------------------------------------------------- keys (only when nothing is being typed here)
+addEventListener('keydown', e => {
+  if(e.key === 'Escape' && closeMenus()){ e.preventDefault(); return; }
+  const typing = e.target && (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName));
+  if(typing || !e.altKey || e.ctrlKey || e.metaKey) return;
+  const t = sel(), map = {o: () => counter.openPicker(null), b: () => openBrowser(), k: openBlank, i: () => counter.pickFile(null), n: () => programs.newChat(),
+    w: closeSelected, l: () => t && counter.lock(t), f: () => t && counter.fullScreen(t)};
+  const fn = map[e.key.toLowerCase()]; if(fn){ e.preventDefault(); fn(); }
+});
+
+// ---------------------------------------------------------------- service lights in the bar
+async function checkDot(id, url){
+  const dot = document.getElementById(id);
+  try{ const res = await fetch(url, {mode: 'cors', cache: 'no-store'}); dot.className = 'dot ' + (res.ok ? 'up' : 'down'); }
+  catch(e){ dot.className = 'dot down'; }
+}
+function refreshDots(){
+  const c = programs.config;
+  checkDot('dot-pubcast', '/health'); checkDot('dot-pubpartner', c.pubpartnerBase + c.pubpartnerStatusPath); checkDot('dot-2i', c.twoIBase + '/health');
+}
+
+// ---------------------------------------------------------------- the bar's Art Deco dressing
+function drawBarArt(){
+  const W = innerWidth, svg = document.getElementById('barArt');
+  svg.setAttribute('width', W); svg.setAttribute('height', 70); svg.setAttribute('viewBox', '0 0 ' + W + ' 70');
+  if(W < 1200){ svg.innerHTML = ''; return; }
+  const cx = W/2 + 120, gold = 'url(#gg)';
+  let o = '<defs><linearGradient id="gg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0c0"/><stop offset=".45" stop-color="#c9973f"/><stop offset="1" stop-color="#6e4a16"/></linearGradient></defs>';
+  const oy = 56, R1 = 15, R2 = 38;
+  for(let i = 0; i <= 10; i++){ const a = Math.PI*(1.08 + 0.84*i/10), c = Math.cos(a), s = Math.sin(a);
+    o += '<line x1="' + (cx + c*R1) + '" y1="' + (oy + s*R1) + '" x2="' + (cx + c*R2) + '" y2="' + (oy + s*R2) + '" stroke="' + gold + '" stroke-width="' + (i%2 ? 2.0 : 3.4) + '" stroke-linecap="round"/>'; }
+  o += '<path d="M' + (cx - R2 - 2) + ' ' + (oy - 3) + ' A' + (R2 + 2) + ' ' + (R2 + 2) + ' 0 0 1 ' + (cx + R2 + 2) + ' ' + (oy - 3) + '" fill="none" stroke="' + gold + '" stroke-width="3" stroke-linecap="round"/>';
+  o += '<path d="M' + (cx - R1) + ' ' + (oy - 1) + ' A' + R1 + ' ' + R1 + ' 0 0 1 ' + (cx + R1) + ' ' + (oy - 1) + '" fill="none" stroke="' + gold + '" stroke-width="2" stroke-linecap="round"/>';
+  svg.innerHTML = o;
+}
+drawBarArt(); addEventListener('resize', drawBarArt);
+
+// ---------------------------------------------------------------- start: signed in first, then the counter
+window.__counter = counter; window.__programs = programs;
+window.__settle = () => counter.settle(300); window.__draw = () => counter.debug.draw();
+async function boot(){
+  try{
+    if(window.ReachAuth){
+      const session = await window.ReachAuth.requireSession('/foresight-counter');
+      if(session === null) return;   // on the way to the sign-in page
+    }
+  }catch(err){
+    hintEl.textContent = 'Reach sign-in is unavailable (' + (err && err.message || err) + '). Check that the Reach server is running, then reload.';
+    hintEl.style.display = 'block';
+    return;
+  }
+  refreshDots(); setInterval(refreshDots, 6000);
+  const saved = params.has('fresh') ? null : (() => { try{ return JSON.parse(localStorage.getItem('foresight.counter.v3') || 'null'); }catch(e){ return null; } })();
+  // A new workspace starts empty. Existing saved workspaces are restored unchanged.
+  if(saved) counter.restore(saved);
+  updateHint();
+  if(!params.has('once')){ counter.settle(120); counter.start(); }
+  setInterval(updateHint, 1000);
+}
+boot();
+</script>
+</body>
+</html>

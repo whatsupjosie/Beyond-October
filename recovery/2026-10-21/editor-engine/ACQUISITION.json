@@ -1,0 +1,30 @@
+{
+  "editor": {
+    "package": "@docx-editor.dev/core",
+    "version": "2.32.0",
+    "license": "Apache-2.0",
+    "source": "https://github.com/eigenpal/docx-editor",
+    "source_commit": "fc28dba928b073c2beddc5672cdc7b42ea3af0f9"
+  },
+  "language_data": [
+    {
+      "package": "cmu-pronouncing-dictionary",
+      "version": "3.0.0",
+      "purpose": "English pronunciations for rhyme and syllable tools; unknown words must be identified."
+    },
+    {
+      "package": "wordnet-db",
+      "version": "3.1.14",
+      "database_version": "3.1",
+      "purpose": "Local English definitions, synonym groups and lexical relations; not a complete usage dictionary."
+    }
+  ],
+  "qualification": {
+    "engine_offline_open_edit_save_reopen": "passed",
+    "fixture_bold_font_size_indent_header_table_margin": "preserved",
+    "external_requests": 0,
+    "pronunciation_entries": 135155,
+    "haiku_count_and_rhyme_fixture": "passed"
+  },
+  "implementation_status": "Downloaded and qualified; rich engine and language tools are not yet connected to the production 2i editor. Existing speech services are candidates for reuse, not newly verified speech output."
+}

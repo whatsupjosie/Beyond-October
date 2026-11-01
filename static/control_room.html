@@ -1,0 +1,395 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PubCast AI â€” Control Room</title>
+<style>
+:root{
+  --red:#ff2222;--green:#22dd66;--brass:#e5c17e;--teal:#6dd6c7;
+  --cream:#f0e8d8;--cream-dim:#8a8070;--crt-green:#33ff99;
+  --gold:#c9a84c;--gold-d:rgba(201,168,76,.3);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#060505;color:var(--cream);font-family:Consolas, 'Courier New', monospace;
+  min-height:100vh;overflow-x:hidden;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+}
+.console-wrap{position:relative;width:100%;max-width:1200px;user-select:none}
+.console-img{width:100%;height:auto;display:block;filter:brightness(1.05) contrast(1.05) saturate(1.1)}
+.hotspot{position:absolute;cursor:pointer;border:none;background:transparent;transition:all .15s ease;z-index:10}
+.hotspot:hover{filter:brightness(1.4);box-shadow:0 0 12px rgba(229,193,126,.4)}
+.hotspot:active{transform:scale(.94);filter:brightness(.8)}
+.hotspot.round{border-radius:50%;background:radial-gradient(circle at 40% 35%,rgba(255,255,255,.08),transparent 60%)}
+.hotspot.round:hover{background:radial-gradient(circle at 40% 35%,rgba(229,193,126,.25),transparent 60%);box-shadow:0 0 8px rgba(229,193,126,.5)}
+.hotspot.rect{border-radius:3px;background:rgba(255,255,255,.02)}
+.hotspot.rect:hover{background:rgba(229,193,126,.1);box-shadow:0 0 10px rgba(229,193,126,.3)}
+.hotspot.pgm-active{box-shadow:0 0 14px rgba(255,34,34,.6),inset 0 0 6px rgba(255,34,34,.3);background:radial-gradient(circle,rgba(255,34,34,.25),transparent 70%)}
+.hotspot.pvw-active{box-shadow:0 0 12px rgba(34,221,102,.5),inset 0 0 5px rgba(34,221,102,.2);background:radial-gradient(circle,rgba(34,221,102,.2),transparent 70%)}
+.hotspot.rec-active{box-shadow:0 0 16px rgba(255,34,34,.7);background:radial-gradient(circle,rgba(255,34,34,.35),transparent 60%);animation:pulse-red .8s infinite}
+@keyframes pulse-red{0%,100%{opacity:1}50%{opacity:.6}}
+.monitor-overlay{position:absolute;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;font-family:Consolas, 'Courier New', monospace;text-shadow:0 0 6px currentColor}
+.mon-text{font-size:clamp(.5rem,1.2vw,.85rem);font-weight:700;opacity:.8}
+.mon-cam{font-size:clamp(.6rem,1.6vw,1rem);font-weight:700;color:var(--cream)}
+.mon-tc{font-size:clamp(.3rem,.7vw,.45rem);color:var(--crt-green);opacity:.5}
+.mon-label{font-family:Georgia, 'Times New Roman', serif;font-size:clamp(.3rem,.7vw,.45rem);font-weight:700;letter-spacing:2px;padding:1px 6px;background:rgba(0,0,0,.6);margin-top:2px}
+.mon-label.pgm{color:var(--red)}.mon-label.pvw{color:var(--green)}.mon-label.chk{color:var(--brass)}
+.live-tag{position:absolute;z-index:20;background:var(--red);color:#fff;font-family:Georgia, 'Times New Roman', serif;font-size:clamp(.3rem,.7vw,.45rem);font-weight:700;letter-spacing:2px;padding:2px 8px;display:none;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.hud-rec{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:100;background:rgba(0,0,0,.85);border:2px solid var(--red);padding:4px 18px;display:none;align-items:center;gap:8px;font-size:clamp(.8rem,2vw,1.2rem);font-weight:700;color:var(--red);letter-spacing:3px;box-shadow:0 0 20px rgba(255,34,34,.3)}
+.hud-rec.on{display:flex}
+.hud-dot{width:10px;height:10px;border-radius:50%;background:var(--red);animation:blink .7s infinite}
+.tooltip{position:absolute;z-index:50;background:rgba(0,0,0,.9);border:1px solid var(--brass);color:var(--cream);font-size:.6rem;letter-spacing:1px;padding:3px 10px;white-space:nowrap;pointer-events:none;display:none;font-family:Consolas, 'Courier New', monospace}
+.hotspot:hover .tooltip{display:block}
+.hk-bar{text-align:center;padding:8px;font-size:.55rem;color:var(--cream-dim);letter-spacing:1px}
+.hk{color:var(--brass);font-weight:700}
+.status-readout{position:absolute;z-index:15;font-size:clamp(.35rem,.65vw,.45rem);color:var(--crt-green);text-shadow:0 0 4px var(--crt-green);line-height:1.4;pointer-events:none}
+#stations-bar{display:flex;gap:6px;justify-content:center;padding:6px 0;flex-wrap:wrap}
+#stations-bar button{background:rgba(201,168,76,.06);border:1px solid var(--gold-d);color:var(--gold);font-family:Georgia, 'Times New Roman', serif;font-size:9px;letter-spacing:2px;padding:5px 14px;cursor:pointer;transition:all .2s}
+#stations-bar button:hover{background:rgba(201,168,76,.15)}
+#stations-bar button.active{background:rgba(201,168,76,.2);border-color:var(--gold);box-shadow:0 0 8px rgba(201,168,76,.3)}
+.hidden{display:none!important}
+.station-panel{background:rgba(10,8,4,.85);border:1px solid var(--gold-d);padding:12px 16px;margin:4px auto;max-width:1200px;font-size:11px;color:var(--cream)}
+.station-panel h3{font-family:Georgia, 'Times New Roman', serif;font-size:11px;letter-spacing:3px;color:var(--gold);margin-bottom:8px}
+.station-panel input,.station-panel textarea,.station-panel select{background:#0d0a06;border:1px solid var(--gold-d);color:var(--cream);font-family:Consolas, 'Courier New', monospace;font-size:11px;padding:4px 8px}
+.station-panel button{background:rgba(201,168,76,.08);border:1px solid var(--gold-d);color:var(--gold);font-size:10px;letter-spacing:2px;padding:4px 12px;cursor:pointer}
+.station-panel button:hover{background:rgba(201,168,76,.2)}
+#rec-status-badge{display:inline-block;padding:2px 10px;font-size:10px;letter-spacing:2px;font-weight:700;border-radius:2px;color:#fff}
+</style>
+  <script src="/static/reach_auth.js"></script>
+</head>
+<body>
+<nav style="position:fixed;top:10px;left:10px;z-index:200;display:flex;gap:6px;flex-wrap:wrap">
+  <a href="/director-switcher" style="background:rgba(0,0,0,.75);border:1px solid var(--brass);color:var(--brass);font-family:Consolas,'Courier New',monospace;font-size:10px;letter-spacing:1px;padding:6px 10px;text-decoration:none">DIRECTOR SWITCHER</a>
+  <a href="/stage" style="background:rgba(0,0,0,.75);border:1px solid var(--brass);color:var(--brass);font-family:Consolas,'Courier New',monospace;font-size:10px;letter-spacing:1px;padding:6px 10px;text-decoration:none">STAGE</a>
+  <a href="./production25d.html" style="background:rgba(0,0,0,.75);border:1px solid var(--brass);color:var(--brass);font-family:Consolas,monospace;font-size:10px;letter-spacing:1px;padding:6px 10px;text-decoration:none">2.5D LIVE STUDIO</a>
+</nav>
+<div class="hud-rec" id="hudRec"><div class="hud-dot"></div><span id="hudTime">00:00:00</span></div>
+<div class="console-wrap" id="consoleWrap">
+  <img class="console-img" src="controlroom.jpg" alt="PubCast Control Room" id="consoleImg" draggable="false">
+  <!-- PROGRAM monitor (large framed, back right wall) -->
+  <div class="monitor-overlay" style="left:60%;top:10%;width:22%;height:28%">
+    <div class="mon-tc" id="pgmTc">00:00:00:00</div>
+    <div class="mon-cam" id="pgmCamText">CAM 1</div>
+    <div class="mon-text" id="pgmFeedText" style="color:var(--cream)">WIDE</div>
+    <div class="mon-label pgm">PROGRAM</div>
+  </div>
+  <div class="live-tag" id="liveTag" style="left:70%;top:11%">â—† LIVE â—†</div>
+  <!-- Small monitor bank -->
+  <div class="monitor-overlay" style="left:60%;top:41%;width:7%;height:10%"><div class="mon-cam" style="font-size:clamp(.4rem,.8vw,.55rem)">1</div></div>
+  <div class="monitor-overlay" style="left:67%;top:41%;width:7%;height:10%"><div class="mon-cam" style="font-size:clamp(.4rem,.8vw,.55rem)">2</div></div>
+  <div class="monitor-overlay" style="left:74%;top:41%;width:7%;height:10%"><div class="mon-cam" style="font-size:clamp(.4rem,.8vw,.55rem)">3</div></div>
+  <div class="monitor-overlay" style="left:60%;top:52%;width:7%;height:10%"><div class="mon-tc" id="pvwTc" style="font-size:clamp(.28rem,.55vw,.38rem);color:var(--crt-green);opacity:.5"></div><div class="mon-cam" id="pvwCamText" style="font-size:clamp(.4rem,.8vw,.55rem)">PVW</div><div class="mon-label pvw">PVW</div></div>
+  <div class="monitor-overlay" style="left:67%;top:52%;width:7%;height:10%"><div class="mon-tc" id="chkTc" style="font-size:clamp(.28rem,.55vw,.38rem);color:var(--crt-green);opacity:.5"></div><div class="mon-cam" id="chkCamText" style="font-size:clamp(.4rem,.8vw,.55rem)">CHK</div><div class="mon-label chk">CHK</div></div>
+  <!-- PGM row (center console) -->
+  <button class="hotspot round" id="pgm1" style="left:38%;top:46%;width:3.5%;height:5%" onclick="setPGM('cam1')"><span class="tooltip" style="bottom:110%;left:50%;transform:translateX(-50%)">CAM 1 â€” WIDE</span></button>
+  <button class="hotspot round" id="pgm2" style="left:42%;top:46%;width:3.5%;height:5%" onclick="setPGM('cam2')"><span class="tooltip" style="bottom:110%;left:50%;transform:translateX(-50%)">CAM 2 â€” TWO-SHOT</span></button>
+  <button class="hotspot round" id="pgm3" style="left:46%;top:46%;width:3.5%;height:5%" onclick="setPGM('cam3')"><span class="tooltip" style="bottom:110%;left:50%;transform:translateX(-50%)">CAM 3 â€” CLOSE</span></button>
+  <button class="hotspot round" id="pgm4" style="left:50%;top:46%;width:3.5%;height:5%" onclick="setPGM('cam4')"><span class="tooltip" style="bottom:110%;left:50%;transform:translateX(-50%)">CAM 4 â€” OVERHEAD</span></button>
+  <button class="hotspot round" id="pgm5" style="left:54%;top:46%;width:3.5%;height:5%" onclick="setPGM('cam5')"><span class="tooltip" style="bottom:110%;left:50%;transform:translateX(-50%)">CAM 5 â€” STAGE</span></button>
+  <!-- PVW row -->
+  <button class="hotspot round" id="pvw1" style="left:38%;top:52%;width:3.5%;height:5%" onclick="setPVW('cam1')"><span class="tooltip" style="top:110%;left:50%;transform:translateX(-50%)">PVW 1</span></button>
+  <button class="hotspot round" id="pvw2" style="left:42%;top:52%;width:3.5%;height:5%" onclick="setPVW('cam2')"><span class="tooltip" style="top:110%;left:50%;transform:translateX(-50%)">PVW 2</span></button>
+  <button class="hotspot round" id="pvw3" style="left:46%;top:52%;width:3.5%;height:5%" onclick="setPVW('cam3')"><span class="tooltip" style="top:110%;left:50%;transform:translateX(-50%)">PVW 3</span></button>
+  <button class="hotspot round" id="pvw4" style="left:50%;top:52%;width:3.5%;height:5%" onclick="setPVW('cam4')"><span class="tooltip" style="top:110%;left:50%;transform:translateX(-50%)">PVW 4</span></button>
+  <button class="hotspot round" id="pvw5" style="left:54%;top:52%;width:3.5%;height:5%" onclick="setPVW('cam5')"><span class="tooltip" style="top:110%;left:50%;transform:translateX(-50%)">PVW 5</span></button>
+  <!-- Transport -->
+  <button class="hotspot rect" id="tCut" style="left:40%;top:58%;width:6%;height:5%" onclick="cut()"><span class="tooltip" style="bottom:110%;left:50%;transform:translateX(-50%)">CUT (SPACE)</span></button>
+  <button class="hotspot rect" id="tRec" style="left:47%;top:58%;width:5%;height:5%" onclick="toggleRec()"><span class="tooltip" style="bottom:110%;left:50%;transform:translateX(-50%)">RECORD (R)</span></button>
+  <button class="hotspot rect" id="tPanic" style="left:53%;top:58%;width:5%;height:5%" onclick="panic()"><span class="tooltip" style="bottom:110%;left:50%;transform:translateX(-50%)">PANIC (ESC)</span></button>
+  <!-- Audio (left console) -->
+  <button class="hotspot round" style="left:22%;top:50%;width:3%;height:4.5%" onclick="cycleAudio(0)"><span class="tooltip" style="right:110%;top:50%;transform:translateY(-50%)">HOST MIC</span></button>
+  <button class="hotspot round" style="left:25.5%;top:50%;width:3%;height:4.5%" onclick="cycleAudio(1)"><span class="tooltip" style="right:110%;top:50%;transform:translateY(-50%)">GUEST 1</span></button>
+  <button class="hotspot round" style="left:22%;top:55.5%;width:3%;height:4.5%" onclick="cycleAudio(2)"><span class="tooltip" style="right:110%;top:50%;transform:translateY(-50%)">GUEST 2</span></button>
+  <button class="hotspot round" style="left:25.5%;top:55.5%;width:3%;height:4.5%" onclick="cycleAudio(3)"><span class="tooltip" style="right:110%;top:50%;transform:translateY(-50%)">MUSIC</span></button>
+  <button class="hotspot round" style="left:23.5%;top:61%;width:3%;height:4.5%" onclick="muteAll()"><span class="tooltip" style="right:110%;top:50%;transform:translateY(-50%)">MUTE ALL (M)</span></button>
+  <!-- Director modes (right of center desk) -->
+  <button class="hotspot round" id="dAuto" style="left:58%;top:48%;width:3%;height:4.5%" onclick="setMode('auto')"><span class="tooltip" style="left:110%;top:50%;transform:translateY(-50%)">AUTO</span></button>
+  <button class="hotspot round" id="dNews" style="left:58%;top:53%;width:3%;height:4.5%" onclick="setMode('news')"><span class="tooltip" style="left:110%;top:50%;transform:translateY(-50%)">NEWS</span></button>
+  <button class="hotspot round" id="dDoc" style="left:58%;top:58%;width:3%;height:4.5%" onclick="setMode('documentary')"><span class="tooltip" style="left:110%;top:50%;transform:translateY(-50%)">DOCUMENTARY</span></button>
+  <button class="hotspot round" id="dCine" style="left:58%;top:63%;width:3%;height:4.5%" onclick="setMode('cinematic')"><span class="tooltip" style="left:110%;top:50%;transform:translateY(-50%)">CINEMATIC</span></button>
+  <button class="hotspot round" id="dMan" style="left:58%;top:68%;width:3%;height:4.5%" onclick="setMode('manual')"><span class="tooltip" style="left:110%;top:50%;transform:translateY(-50%)">MANUAL</span></button>
+  <!-- Presets -->
+  <button class="hotspot round" style="left:33%;top:50%;width:3%;height:4.5%" onclick="firePreset('showOpen')"><span class="tooltip" style="top:110%;left:50%;transform:translateX(-50%)">SHOW OPEN</span></button>
+  <button class="hotspot round" style="left:33%;top:55%;width:3%;height:4.5%" onclick="firePreset('interview')"><span class="tooltip" style="top:110%;left:50%;transform:translateX(-50%)">INTERVIEW</span></button>
+  <button class="hotspot round" style="left:33%;top:60%;width:3%;height:4.5%" onclick="firePreset('wide')"><span class="tooltip" style="top:110%;left:50%;transform:translateX(-50%)">WIDE SHOT</span></button>
+  <button class="hotspot round" style="left:33%;top:65%;width:3%;height:4.5%" onclick="firePreset('showClose')"><span class="tooltip" style="top:110%;left:50%;transform:translateX(-50%)">SHOW CLOSE</span></button>
+  <!-- Studio window -->
+  <button class="hotspot rect" style="left:15%;top:10%;width:33%;height:35%;opacity:0" onclick="window.open('/static/stage.html','_blank')"><span class="tooltip" style="bottom:110%;left:50%;transform:translateX(-50%)">VIEW STUDIO</span></button>
+  <!-- Status readout -->
+  <div class="status-readout" id="statusReadout" style="left:43%;top:63%;width:10%">
+    <div id="srMode">MODE: AUTO</div>
+    <div id="srCam">PGM: CAM 1</div>
+    <div id="srRec">REC: OFF</div>
+  </div>
+</div>
+<div id="stations-bar">
+  <button type="button" id="cameraBank" aria-label="Cycle camera source bank">CAM BANK 1</button>
+  <button data-station="director">DIRECTOR</button>
+  <button data-station="recorder">RECORDER</button>
+  <button data-station="chyron">CHYRON</button>
+  <button data-station="prompter">TELEPROMPTER</button>
+  <button data-station="vtr">VTR</button>
+</div>
+<div id="station-director" class="station-panel hidden"><h3>DIRECTOR / SWITCHER</h3><p style="font-size:10px;color:var(--cream-dim)">Use the console above. Keys: 1â€“5 cameras, SPACE cut, R record, ESC panic, M mute, D cycle modes.</p></div>
+<div id="station-recorder" class="station-panel hidden"><h3>RECORDING</h3><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span id="rec-status-badge" style="background:#555">IDLE</span><span id="rec-active-id" style="font-size:10px;color:var(--cream-dim)"></span><span id="rec-active-timer" style="font-family:'Courier Prime';font-size:13px;color:var(--crt-green)"></span></div><div id="rec-active-panel" style="display:none;margin-top:6px"><button onclick="wsSend({type:'recording_action',action:'pause'})">PAUSE</button> <button onclick="wsSend({type:'recording_action',action:'stop'})">STOP</button></div><div id="rec-storage" style="margin-top:8px;font-size:10px;color:var(--cream-dim)">Storage info loadingâ€¦</div><button id="rec-storage-refresh" style="margin-top:4px">REFRESH</button></div>
+<div id="station-chyron" class="station-panel hidden"><h3>CHYRON / LOWER THIRD</h3><input id="chy-lower" placeholder="Lower third textâ€¦" style="width:100%;margin-bottom:6px"><button id="chy-apply">APPLY</button></div>
+<div id="station-prompter" class="station-panel hidden"><h3>TELEPROMPTER</h3><textarea id="pro-script" rows="4" placeholder="Paste script hereâ€¦" style="width:100%;resize:vertical;margin-bottom:6px"></textarea><div style="display:flex;gap:8px;align-items:center"><button id="pro-start">START</button><button id="pro-stop">STOP</button><label style="font-size:10px">Speed <input id="pro-speed" type="number" min="1" max="20" value="5" style="width:50px"></label></div></div>
+<div id="station-vtr" class="station-panel hidden"><h3>VTR PLAYBACK</h3><input id="vtr-asset" placeholder="Asset path or URLâ€¦" style="width:100%;margin-bottom:6px"><div style="display:flex;gap:8px"><button id="vtr-load">LOAD</button><button id="vtr-play">PLAY</button><button id="vtr-stop">STOP</button></div></div>
+<div class="hk-bar"><span class="hk">1â€“5</span> CAMERAS Â· <span class="hk">SPACE</span> CUT Â· <span class="hk">R</span> REC Â· <span class="hk">ESC</span> PANIC Â· <span class="hk">M</span> MUTE ALL Â· <span class="hk">D</span> DIRECTOR</div>
+<script src="/static/studio_console_hotspots.js"></script>
+<script>
+"use strict";
+const CAMS=[{id:'cam1',n:'1',l:'WIDE',sourceId:'wide_shot'},{id:'cam2',n:'2',l:'TWO-SHOT',sourceId:'medium_shot'},{id:'cam3',n:'3',l:'CLOSE',sourceId:'close_up'},{id:'cam4',n:'4',l:'OVERHEAD',sourceId:'overhead'},{id:'cam5',n:'5',l:'STAGE',sourceId:'cam1_ndi'}];
+const MODES=['auto','news','documentary','cinematic','manual'];
+const MODE_BTN_MAP={auto:'dAuto',news:'dNews',documentary:'dDoc',cinematic:'dCine',manual:'dMan'};
+const studioActions=window.PubCastStudioConsoleHotspots?new window.PubCastStudioConsoleHotspots.StudioConsoleHotspots():null;
+let pgm='cam1',pvw='cam2',isRec=false,recStart=0,mode='auto',ws=null,activeRecordingSessionId='';
+let audioMuted=[false,false,false,false,false];
+let controlBlackout=false,lastPanic=0,lastBlackout=0;
+let cameraBank=0,cameraGroup="",activeSourceList=[],lastSwitcherSnapshot=null;
+function cam(id){return CAMS.find(c=>c.id===id)||null}
+async function syncSwitcherState(snapshot){
+  if(!snapshot||!Array.isArray(snapshot.sources))throw Error("Canonical switcher state unavailable");
+  lastSwitcherSnapshot=snapshot;
+  const activeId=String(snapshot.program||snapshot.preview||"");
+  const prefix=activeId.startsWith("p25d_")&&activeId.lastIndexOf("_")>5
+    ?activeId.slice(0,activeId.lastIndexOf("_")+1):"";
+  if(prefix!==cameraGroup){cameraGroup=prefix;cameraBank=0;}
+  activeSourceList=prefix?snapshot.sources.filter(c=>String(c.id||"").startsWith(prefix)):snapshot.sources;
+  const totalBanks=Math.max(1,Math.ceil(activeSourceList.length/5));
+  cameraBank=Math.min(cameraBank,totalBanks-1);
+  const sources=activeSourceList.slice(cameraBank*5,cameraBank*5+5);
+  const mapped=sources.map((c,i)=>({id:"cam"+(i+1),n:String(cameraBank*5+i+1),
+    l:c.name||c.id,sourceId:c.id}));
+  CAMS.splice(0,CAMS.length,...mapped);
+  const bankBtn=document.getElementById("cameraBank");
+  if(bankBtn)bankBtn.textContent="CAM BANK "+(cameraBank+1)+"/"+totalBanks;
+  const program=CAMS.find(c=>c.sourceId===snapshot.program);
+  const preview=CAMS.find(c=>c.sourceId===snapshot.preview);
+  pgm=program?.id||"external";pvw=preview?.id||"external";
+  updateUI();
+  if(!program&&snapshot.program)document.getElementById("pgmFeedText").textContent="EXTERNAL: "+snapshot.program;
+  if(!preview&&snapshot.preview)document.getElementById("pvwCamText").textContent="EXTERNAL PVW";
+}
+async function sharedSwitcher(path){
+  const response=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"}});
+  if(!response.ok)throw Error(path+" HTTP "+response.status);
+  const payload=await response.json();await syncSwitcherState(payload);
+  return payload;
+}
+async function refreshCanonical(){
+  try{
+    const response=await fetch("/api/switcher/state",{cache:"no-store"});
+    if(!response.ok)throw Error("HTTP "+response.status);
+    await syncSwitcherState(await response.json());
+  }catch(e){const sr=document.getElementById("srCam");if(sr)sr.textContent="SWITCHER UNVERIFIED: "+e.message;}
+}
+async function runStudioAction(actionId,payload={},spec=null){
+  try{
+    if(!studioActions)throw new Error('studio action adapter unavailable');
+    const result=await studioActions.executeConfirmed(actionId,payload,{spec});
+    return result&&result.canceled?null:result;
+  }catch(err){
+    const sr=document.getElementById('srMode');
+    if(sr)sr.textContent='ERR: '+String(err.message||err).slice(0,22).toUpperCase();
+    return null;
+  }
+}
+function updateUI(){
+  CAMS.forEach((c,i)=>{const el=document.getElementById('pgm'+(i+1));if(el)el.className='hotspot round'+(pgm===c.id?' pgm-active':'')});
+  CAMS.forEach((c,i)=>{const el=document.getElementById('pvw'+(i+1));if(el)el.className='hotspot round'+(pvw===c.id?' pvw-active':'')});
+  const pc=CAMS.find(c=>c.id===pgm),vc=CAMS.find(c=>c.id===pvw);
+  document.getElementById('pgmCamText').textContent=pc?'CAM '+pc.n:'BLACK';
+  document.getElementById('pgmFeedText').textContent=controlBlackout?'BLACKOUT CUED':pc?pc.l:'SOURCE UNBOUND';
+  document.getElementById('pvwCamText').textContent=vc?'CAM '+vc.n:'â€”';
+  MODES.forEach(m=>{const el=document.getElementById(MODE_BTN_MAP[m]);if(el)el.className='hotspot round'+(mode===m?' pvw-active':'')});
+  document.getElementById('srMode').textContent='MODE: '+mode.toUpperCase();
+  document.getElementById('srCam').textContent='PGM: '+(pc?'CAM '+pc.n:'BLACK');
+  document.getElementById('srRec').textContent='REC: '+(isRec?'â— ON':'OFF');
+  document.getElementById('tRec').className='hotspot rect'+(isRec?' rec-active':'');
+}
+async function setPGM(id){
+  const source=cam(id);if(!source)return;
+  try{await sharedSwitcher("/api/switcher/cut/"+encodeURIComponent(source.sourceId));}
+  catch(e){document.getElementById("srCam").textContent="PROGRAM FAILED: "+e.message;}
+}
+async function setPVW(id){
+  const source=cam(id);if(!source)return;
+  try{await sharedSwitcher("/api/switcher/preview/"+encodeURIComponent(source.sourceId));}
+  catch(e){document.getElementById("srCam").textContent="PREVIEW FAILED: "+e.message;}
+}
+async function cut(){
+  try{await sharedSwitcher("/api/switcher/cut");}
+  catch(e){document.getElementById("srCam").textContent="CUT FAILED: "+e.message;}
+}
+async function toggleRec(){
+  if(!isRec){
+    const source=cam(pgm);
+    if(!source){document.getElementById("srRec").textContent="REC BLOCKED: NO VERIFIED PROGRAM";return;}
+    const started=await runStudioAction('recording.start',{session_id:`image_console_${Date.now()}`,sources:[source.sourceId],profile_id:'broadcast_mp4',countdown_seconds:0},{safety:'confirm',label:'Start recording'});
+    if(!started||!started.result||!started.result.session_id)return;
+    activeRecordingSessionId=started.result.session_id;isRec=true;recStart=Date.now();
+  }else{
+    const stopped=activeRecordingSessionId?await runStudioAction('recording.stop',{session_id:activeRecordingSessionId},{safety:'confirm',label:'Stop recording'}):null;
+    if(activeRecordingSessionId&&!stopped)return;
+    activeRecordingSessionId='';isRec=false;document.getElementById('hudTime').textContent='00:00:00';
+  }
+  document.getElementById('hudRec').classList.toggle('on',isRec);document.getElementById('liveTag').style.display=isRec?'block':'none';updateUI()
+}
+async function panic(){
+  try{
+    const response=await fetch("/api/production/panic",{method:"POST"});
+    if(!response.ok)throw Error("HTTP "+response.status);
+    const result=await response.json();
+    if(activeRecordingSessionId&&result.sessions_stopped?.includes(activeRecordingSessionId)){
+      isRec=false;document.getElementById("hudRec").classList.remove("on");
+    }
+    if(result.blackout_cued)document.getElementById("pgmFeedText").textContent="PANIC BLACKOUT CUED";
+    document.getElementById("srMode").textContent=result.ok?"PANIC CONFIRMED":"PANIC PARTIAL: "+(result.capture_errors?.length||0)+" ERRORS";
+    if(!result.ok)console.warn("PANIC partial failure",result.capture_errors);
+  }catch(e){document.getElementById("srMode").textContent="PANIC FAILED: "+e.message;}
+}
+async function muteAll(){
+  try{
+    for(const event of [{action:"stop_all"},{action:"set_volume",bus:"master",volume:0}]){
+      const response=await fetch("/api/program-audio/event",{method:"POST",
+        headers:{"Content-Type":"application/json"},body:JSON.stringify(event)});
+      if(!response.ok)throw Error("HTTP "+response.status);
+    }
+    audioMuted=[true,true,true,true,true];
+    document.getElementById("srMode").textContent="PROGRAM AUDIO STOPPED / MASTER 0";
+  }catch(e){document.getElementById("srMode").textContent="MUTE FAILED: "+e.message;}
+}
+async function cycleAudio(i){
+  const bus=["dialogue","music","sfx","vtr","room"][i];
+  if(!bus)return;
+  const next=!audioMuted[i];
+  try{
+    const response=await fetch("/api/program-audio/event",{method:"POST",
+      headers:{"Content-Type":"application/json"},body:JSON.stringify({action:next?"mute":"unmute",bus})});
+    if(!response.ok)throw Error("HTTP "+response.status);
+    const result=await response.json();if(!result.ok)throw Error("Audio command not acknowledged");
+    audioMuted[i]=next;
+    document.getElementById("srMode").textContent=bus.toUpperCase()+" "+(next?"MUTED":"UNMUTED");
+  }catch(e){document.getElementById("srMode").textContent="AUDIO FAILED: "+e.message;}
+}
+function setMode(m){
+  // A WebSocket request is not an ACK. Display pending until a server event confirms.
+  const sr=document.getElementById("srMode");
+  sr.textContent="MODE REQUESTED: "+m.toUpperCase();
+  wsSend({type:'signal',payload:{action:'set_director_mode',mode:m}});
+}
+function firePreset(p){({showOpen:()=>setPGM('cam1'),interview:()=>setPGM('cam2'),wide:()=>setPGM('cam1'),showClose:()=>setPGM('cam1')})[p]?.()}
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+  switch(e.key){case'1':setPGM('cam1');break;case'2':setPGM('cam2');break;case'3':setPGM('cam3');break;case'4':setPGM('cam4');break;case'5':setPGM('cam5');break;case' ':e.preventDefault();cut();break;case'r':case'R':toggleRec();break;case'Escape':panic();break;case'm':case'M':muteAll();break;case'd':case'D':mode=MODES[(MODES.indexOf(mode)+1)%MODES.length];updateUI();break}
+});
+setInterval(()=>{const now=new Date();const tc=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}:${String(Math.floor(now.getMilliseconds()/1000*30)).padStart(2,'0')}`;document.getElementById('pgmTc').textContent=tc;document.getElementById('pvwTc').textContent=tc.slice(0,8);document.getElementById('chkTc').textContent=tc.slice(0,8);if(isRec){const s=Math.floor((Date.now()-recStart)/1000);document.getElementById('hudTime').textContent=`${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor(s%3600/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`}},250);
+// These timecode digits are wall-clock estimates, not recorder synchronization.
+document.getElementById('pgmTc').title='Wall-clock estimate only; not embedded media timecode';
+async function refreshProductionTruth(){
+  try{
+    const response=await fetch("/api/state/production",{cache:"no-store"});
+    if(!response.ok)return;
+    const state=await response.json();
+    const panic=Number(state?.panic_seq)||0, blackout=Number(state?.blackout_seq)||0;
+    if(panic>lastPanic)lastPanic=panic;
+    if(blackout>lastBlackout)lastBlackout=blackout;
+    const next=blackout>panic?state.blackout===true:panic>0;
+    if(controlBlackout!==next){controlBlackout=next;updateUI();}
+  }catch(_){}
+}
+async function refreshAudioTruth(){
+  try{
+    const response=await fetch("/api/program-audio/status",{cache:"no-store"});
+    if(!response.ok)return;
+    const result=await response.json();
+    if(result.ok&&result.status?.buses){
+      const buses=["dialogue","music","sfx","vtr","room"];
+      audioMuted=buses.map(bus=>!!result.status.buses[bus]?.muted);
+    }
+  }catch(_){}
+}
+setInterval(()=>refreshCanonical().catch(()=>{}),1200);
+setInterval(()=>refreshProductionTruth().catch(()=>{}),900);
+setInterval(()=>refreshAudioTruth().catch(()=>{}),3500);
+refreshCanonical();refreshProductionTruth();refreshAudioTruth();
+function connectWS(){try{ws=new WebSocket(window.ReachAuth.websocketURL('/ws/controlroom'));ws.onmessage=e=>{try{const m=JSON.parse(e.data);handleWsEvent(m);if(typeof window.__pubcastStationsHook==='function')window.__pubcastStationsHook(m)}catch{}};ws.onclose=()=>setTimeout(connectWS,3000)}catch{}}
+function handleWsEvent(m){
+  switch(m.type){
+    case 'director_cut':
+      refreshCanonical();
+      break;
+    case 'production_state':
+      if(m.payload?.camera) refreshCanonical();
+      if(m.payload?.on_air !== undefined){ document.getElementById('liveTag').style.display=m.payload.on_air?'block':'none'; }
+      if(m.payload?.mode) { mode=m.payload.mode; updateUI(); }
+      break;
+    case 'production_panic':
+      pgm='black'; isRec=false;
+      document.getElementById('hudRec').classList.remove('on');
+      document.getElementById('liveTag').style.display='none';
+      updateUI();
+      break;
+    case 'lighting_preset':{
+      const badge=document.getElementById('srMode');
+      if(badge) badge.textContent='LX: '+(m.payload?.preset||'').toUpperCase();
+      break;
+    }
+    case 'avatar_camera_directive':{
+      const shot=m.payload?.camera_shot||m.shot||'';
+      const uid=m.payload?.user_id||'';
+      const chk=document.getElementById('chkCamText');
+      if(chk && shot) chk.textContent=shot.toUpperCase()+(uid?' Â· '+uid:'');
+      break;
+    }
+    case 'avatar_action_cue':{
+      const p=m.payload||{};
+      const sr=document.getElementById('srMode');
+      if(sr) sr.textContent=(p.avatar_id||'?')+': '+(p.action||'?');
+      break;
+    }
+    case 'choreo_frame':
+      // Silently consume â€” control room doesn't render skeleton frames
+      break;
+    case 'choreo_start':
+    case 'choreo_complete':
+    case 'choreo_stop':{
+      const sr=document.getElementById('srMode');
+      if(sr) sr.textContent='CHOREO: '+m.type.replace('choreo_','').toUpperCase();
+      break;
+    }
+    case 'user_update':{
+      // Could surface in future presence panel â€” absorb for now
+      break;
+    }
+    case 'recording_started':
+      isRec=true; recStart=Date.now();
+      document.getElementById('hudRec').classList.add('on');
+      document.getElementById('liveTag').style.display='block';
+      updateUI();
+      break;
+    case 'recording_stopped':
+    case 'recording_archived':
+      isRec=false;
+      document.getElementById('hudRec').classList.remove('on');
+      document.getElementById('hudTime').textContent='00:00:00';
+      document.getElementById('liveTag').style.display='none';
+      updateUI();
+      break;
+  }
+}
+function wsSend(d){if(ws&&ws.readyState===1)ws.send(JSON.stringify(d))}
+const bankBtn=document.getElementById("cameraBank");
+if(bankBtn)bankBtn.addEventListener("click",()=>{
+  const count=Math.max(1,Math.ceil(activeSourceList.length/5));
+  cameraBank=(cameraBank+1)%count;
+  if(lastSwitcherSnapshot)syncSwitcherState(lastSwitcherSnapshot);
+});
+updateUI();connectWS();
+</script>
+<script src="control_stations.js"></script>
+</body>
+</html>

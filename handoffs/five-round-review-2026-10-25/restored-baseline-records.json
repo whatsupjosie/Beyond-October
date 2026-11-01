@@ -1,0 +1,16 @@
+{
+  "baseline_files": 1131,
+  "all_present": true,
+  "restored_during_review": 51,
+  "remaining_missing": [],
+  "binary_records": [
+    {
+      "path": "data/pubpartner/vessels/alex.pubpartner",
+      "sha": "96fa66a728d07d5ff43b0d3d7fc17a466765cec1"
+    },
+    {
+      "path": "run3_bridge/pubcast_twin_engine_bundle_v2.zip",
+      "sha": "ef78f7ca59ba4a9a3c2b90c5bbeceb448bc4b208"
+    }
+  ]
+}

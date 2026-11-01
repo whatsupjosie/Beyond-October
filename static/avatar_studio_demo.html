@@ -1,0 +1,123 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PubCast Avatar Studio Demo</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0b0d10; color: #f0f4ff; font-family: Inter, Arial, sans-serif; }
+  #app { display: grid; grid-template-columns: 1fr 340px; height: 100%; }
+  #viewport { position: relative; }
+  canvas { display: block; width: 100%; height: 100%; }
+  #panel { background: rgba(10,12,18,.95); border-left: 1px solid rgba(255,255,255,.08); padding: 16px; overflow: auto; }
+  button, select, input, textarea { width: 100%; margin: 8px 0; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.12); background: #141826; color: #fff; }
+  button { cursor: pointer; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .log { white-space: pre-wrap; font: 12px/1.4 ui-monospace, monospace; color: #9bd; background: #0b1220; padding: 10px; border-radius: 10px; min-height: 180px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="viewport"></div>
+  <div id="panel">
+    <h2>Avatar Studio</h2>
+    <button id="spawnManny">Spawn Manny</button>
+    <button id="spawnSheila">Spawn Sheila</button>
+    <div class="row">
+      <button data-shot="wide">Wide</button>
+      <button data-shot="medium">Medium</button>
+      <button data-shot="close">Close</button>
+      <button data-shot="stage_left">Stage Left</button>
+    </div>
+    <select id="gesture"><option value="idle">Idle</option><option value="agreement">Agreement</option><option value="excitement">Excitement</option><option value="thinking">Thinking</option><option value="welcoming">Welcoming</option></select>
+    <select id="mood"><option value="calm">Calm</option><option value="happy">Happy</option><option value="energetic">Energetic</option><option value="excited">Excited</option><option value="passionate">Passionate</option></select>
+    <textarea id="architectPrompt" rows="6" placeholder="Ask the Studio Architect for blocking, camera, and gesture suggestions."></textarea>
+    <button id="architectRun">Run Studio Architect</button>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+<script src="/static/reach_auth.js"></script>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import { AvatarHumanoidRuntime } from '/static/js/avatar/avatar_humanoid_runtime.js';
+import { requestCameraFollow, requestArchitectPlan } from '/static/js/avatar/avatar_camera_studio.js';
+
+const root = document.getElementById('viewport');
+const log = document.getElementById('log');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(root.clientWidth, root.clientHeight);
+root.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x090b12);
+const camera = new THREE.PerspectiveCamera(55, root.clientWidth / root.clientHeight, 0.1, 100);
+camera.position.set(0, 1.8, 6);
+scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+const key = new THREE.DirectionalLight(0xffffff, 1.2); key.position.set(3, 6, 4); scene.add(key);
+const floor = new THREE.Mesh(new THREE.CircleGeometry(8, 64), new THREE.MeshStandardMaterial({ color: 0x12161f, roughness: 0.92 }));
+floor.rotation.x = -Math.PI / 2; scene.add(floor);
+
+const runtime = new AvatarHumanoidRuntime(scene, { directorCamera: camera });
+const ws = new WebSocket(window.ReachAuth.websocketURL('/ws/default?user_id=studio-demo'));
+ws.onmessage = (ev) => {
+  const msg = JSON.parse(ev.data);
+  if (msg.type === 'skin_color_changed' || msg.type === 'avatar_mood_changed') runtime.updateFromSkin(msg.payload);
+  if (msg.type === 'gesture_triggered') runtime.updateFromSkin({ user_id: msg.payload.user_id, current_gesture: msg.payload.gesture });
+  if (msg.type === 'skeleton_frame') runtime.updateSkeleton(msg.payload.user_id, msg.payload.frame);
+  if (msg.type === 'avatar_slot_updated') runtime.spawn(msg.payload);
+  if (msg.type === 'avatar_camera_directive') { runtime.applyCameraDirective(msg); write('Camera directive: ' + JSON.stringify(msg.camera)); }
+  if (msg.type === 'studio_architect_plan') write('Architect:
+' + msg.result.text);
+};
+
+function write(text) { log.textContent = text + '
+
+' + log.textContent; }
+function send(data) { ws.send(JSON.stringify(data)); }
+
+document.getElementById('spawnManny').onclick = async () => {
+  await fetch('/api/avatars/ethereal/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: 'manny', gender: 'male', neon_color: 'blue' }) });
+  await fetch('/api/avatar-studio/slot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: 'manny', position: [-1.1, 0, 0] }) });
+  runtime.spawn({ user_id: 'manny', position: [-1.1, 0, 0], hex_color: '#4DC8FF' });
+};
+
+document.getElementById('spawnSheila').onclick = async () => {
+  await fetch('/api/avatars/ethereal/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: 'sheila', gender: 'female', neon_color: 'pink' }) });
+  await fetch('/api/avatar-studio/slot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: 'sheila', position: [1.1, 0, 0] }) });
+  runtime.spawn({ user_id: 'sheila', position: [1.1, 0, 0], hex_color: '#FF4DC8' });
+};
+
+document.querySelectorAll('[data-shot]').forEach(btn => btn.onclick = async () => {
+  const shot = btn.dataset.shot;
+  const user = 'manny';
+  const out = await requestCameraFollow(user, shot, 'program');
+  runtime.applyCameraDirective(out.directive);
+});
+
+document.getElementById('gesture').onchange = (e) => send({ type: 'enhanced_gesture', user_id: 'manny', gesture: e.target.value, intensity: 1.8 });
+document.getElementById('mood').onchange = (e) => send({ type: 'avatar_mood_change', user_id: 'manny', mood: e.target.value });
+document.getElementById('architectRun').onclick = async () => {
+  const prompt = document.getElementById('architectPrompt').value.trim();
+  if (!prompt) return;
+  const out = await requestArchitectPlan('default', prompt, 'manny');
+  write(out.plan.result.text);
+};
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  runtime.tick(dt);
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+window.addEventListener('resize', () => {
+  renderer.setSize(root.clientWidth, root.clientHeight);
+  camera.aspect = root.clientWidth / root.clientHeight;
+  camera.updateProjectionMatrix();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,2335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PubCast AI — Panoramic Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+/* ── Reset ─────────────────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --gold:    #d4a84b;
+  --gold-dim: rgba(212,168,75,0.18);
+  --teal:    #6dd6c7;
+  --cream:   #e8dfc8;
+  --ink:     #0d0b09;
+  --amber:   #e5c17e;
+  --warm-mid:#a09070;
+  --red-rec: #ff2222;
+  --purple:  #c078e0;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--ink)}
+body{font-family:'Courier Prime',monospace;color:var(--cream);user-select:none}
+
+/* ── Panoramic viewport ────────────────────────────────────────────────────── */
+#pano-root{
+  position:fixed;inset:0;overflow:hidden;
+  cursor:default;
+}
+
+/* The cylindrical world — all layers live here, positioned via transform */
+#pano-world{
+  position:absolute;
+  /* Sized larger than viewport so rotation has room */
+  width:100%;height:100%;
+  top:0;left:0;
+  transform-origin:center center;
+  will-change:transform;
+}
+
+/* Each panoramic layer is a wide strip that wraps the cylinder */
+/* Width is 360% of viewport — enough for full rotation */
+.pano-layer{
+  position:absolute;
+  top:0;
+  height:100%;
+  /* Default width — overridden per-layer */
+  width:360%;
+  left:-130%;   /* centered by default */
+  will-change:transform;
+  transform-origin:center center;
+}
+
+/* ── Layer 0: Deep sky / distant architecture ─────────────────────────────── */
+/* Paints the far back — barely moves */
+#layer-sky{
+  z-index:0;
+  width:400%;
+  left:-150%;
+  background:
+    /* Distant ceiling cornice gradient */
+    linear-gradient(180deg,
+      #07060402 0%,
+      #0f0c0800 8%,
+      #0f0c08 12%,
+      #131008 40%,
+      #0d0b09 70%,
+      #080604 100%
+    );
+}
+
+/* The actual painted back wall — CSS art since we have no panoramic photo yet */
+/* When a real equirectangular image is available, replace background with: */
+/* background-image: url('/assets/rooms/studio_bg.jpg'); background-size: cover; */
+#layer-architecture{
+  z-index:1;
+  width:380%;
+  left:-140%;
+}
+
+/* ── Layer 1: Structural mid — pillars, arches, wall panels ───────────────── */
+#layer-structure{z-index:2;width:340%;left:-120%}
+
+/* ── Layer 2: Set dressing — monitor bank, lighting rig, equipment ─────────── */
+#layer-midground{z-index:3;width:300%;left:-100%}
+
+/* ── Layer 3: Stage / floor with characters ───────────────────────────────── */
+#layer-stage{z-index:4;width:260%;left:-80%}
+
+/* ── Layer 4: Foreground — desk edge, cables, near equipment ─────────────── */
+#layer-foreground{z-index:5;width:220%;left:-60%}
+
+/* ── Layer 5: Lighting shafts (screen blend) ─────────────────────────────── */
+#layer-lights{z-index:6;width:300%;left:-100%;mix-blend-mode:screen;pointer-events:none}
+
+/* ── SVG panoramic backgrounds ───────────────────────────────────────────── */
+/* These are procedural CSS paintings. Replace with real panoramic images later. */
+
+/* BACK WALL — Belle Époque studio interior, full 360° implied */
+.back-wall-segment{
+  position:absolute;top:0;height:100%;
+  border-left:1px solid rgba(212,168,75,0.04);
+  border-right:1px solid rgba(212,168,75,0.04);
+}
+
+/* Arched wall panels repeating around the room */
+.arch-panel{
+  position:absolute;
+  border-radius:50% 50% 0 0 / 40% 40% 0 0;
+  border-top:1px solid rgba(212,168,75,0.1);
+  border-left:1px solid rgba(212,168,75,0.06);
+  border-right:1px solid rgba(212,168,75,0.06);
+}
+
+/* Monitor wall — the main broadcast control side */
+.monitor-wall{
+  position:absolute;
+  background:linear-gradient(180deg,#0e0b07 0%,#131008 100%);
+  border:1px solid rgba(212,168,75,0.1);
+}
+
+/* Control room glass — looking from stage toward the glass wall */
+.control-glass{
+  position:absolute;
+  background:linear-gradient(180deg,
+    rgba(109,214,199,0.04) 0%,
+    rgba(109,214,199,0.02) 50%,
+    transparent 100%
+  );
+  border:1px solid rgba(109,214,199,0.12);
+  border-bottom:none;
+}
+
+/* ── Character slots — world-space anchored ───────────────────────────────── */
+.char-anchor{
+  position:absolute;
+  bottom:18%;
+  display:flex;flex-direction:column;align-items:center;
+  /* Characters don't move with any layer — they float in world space */
+  transform-origin:bottom center;
+  pointer-events:none;
+  will-change:transform,filter;
+}
+
+.char-figure-pano{
+  position:relative;
+  filter:drop-shadow(0 0 20px var(--char-glow));
+  animation:char-breathe 3.8s ease-in-out infinite;
+}
+@keyframes char-breathe{
+  0%,100%{transform:translateY(0) scale(1)}
+  50%{transform:translateY(-5px) scale(1.008)}
+}
+.char-name-pano{
+  font-family:'Cinzel',serif;font-size:7px;font-weight:700;
+  letter-spacing:3px;color:rgba(212,168,75,0.45);text-transform:uppercase;
+  margin-top:8px;text-shadow:0 0 12px rgba(212,168,75,0.25);
+}
+.char-anchor[data-action="sleep"] .char-name-pano{
+  color:rgba(109,214,199,.6);
+}
+.avatar-props{
+  position:absolute;
+  left:50%;
+  bottom:58px;
+  width:92px;
+  height:74px;
+  transform:translateX(-50%);
+  pointer-events:none;
+}
+.avatar-prop{
+  position:absolute;
+  display:none;
+  border:1px solid rgba(212,168,75,.22);
+  background:rgba(15,12,8,.8);
+  box-shadow:0 0 10px rgba(212,168,75,.2);
+}
+.avatar-prop.on{display:block}
+.avatar-prop.mug{
+  width:13px;height:15px;border-radius:2px 2px 4px 4px;
+  right:10px;bottom:8px;
+}
+.avatar-prop.mug::after{
+  content:"";
+  position:absolute;right:-4px;top:3px;width:4px;height:7px;
+  border:1px solid rgba(212,168,75,.26);border-left:none;border-radius:0 5px 5px 0;
+}
+.avatar-prop.camera{
+  width:24px;height:15px;left:4px;bottom:12px;border-radius:2px;
+}
+.avatar-prop.camera::before{
+  content:"";
+  position:absolute;right:-9px;top:4px;width:10px;height:7px;
+  border:1px solid rgba(212,168,75,.2);border-radius:2px;
+  background:rgba(8,7,5,.8);
+}
+.avatar-prop.console{
+  width:46px;height:15px;left:22px;bottom:0;border-radius:2px;
+  background:linear-gradient(180deg,rgba(26,20,12,.9),rgba(12,10,8,.9));
+}
+.avatar-prop.console::after{
+  content:"";
+  position:absolute;left:7px;right:7px;top:4px;height:2px;
+  background:linear-gradient(90deg,rgba(109,214,199,.65),rgba(212,168,75,.45),rgba(109,214,199,.65));
+}
+.avatar-prop.food{
+  width:14px;height:10px;right:14px;bottom:11px;border-radius:50%;
+}
+.avatar-prop.food::after{
+  content:"";
+  position:absolute;left:-6px;top:2px;width:8px;height:1px;background:rgba(212,168,75,.36);transform:rotate(-24deg);
+}
+.avatar-prop.ladder{
+  width:20px;height:54px;left:-10px;bottom:0;
+  border:none;background:none;box-shadow:none;
+}
+.avatar-prop.ladder::before,.avatar-prop.ladder::after{
+  content:"";position:absolute;top:0;bottom:0;width:2px;background:rgba(212,168,75,.32);
+}
+.avatar-prop.ladder::before{left:0}
+.avatar-prop.ladder::after{right:0}
+.avatar-prop.ladder i{
+  position:absolute;left:2px;right:2px;height:1px;background:rgba(212,168,75,.22);
+}
+.avatar-prop.steering{
+  width:24px;height:24px;left:34px;bottom:7px;border-radius:50%;
+  background:none;border:2px solid rgba(212,168,75,.35);
+}
+.avatar-prop.bike{
+  width:44px;height:18px;left:23px;bottom:0;border:none;background:none;box-shadow:none;
+}
+.avatar-prop.bike::before,.avatar-prop.bike::after{
+  content:"";position:absolute;bottom:0;width:14px;height:14px;border:1px solid rgba(212,168,75,.3);border-radius:50%;
+}
+.avatar-prop.bike::before{left:0}
+.avatar-prop.bike::after{right:0}
+.avatar-prop.coat{
+  width:32px;height:54px;left:29px;bottom:14px;border-radius:10px 10px 18px 18px;
+  background:linear-gradient(180deg,rgba(212,168,75,.25),rgba(90,68,42,.15));
+}
+.avatar-prop.hat{
+  width:26px;height:8px;left:32px;bottom:66px;border-radius:50%;
+}
+.avatar-prop.hat::before{
+  content:"";position:absolute;left:5px;right:5px;bottom:6px;height:8px;border-radius:4px 4px 0 0;
+  background:rgba(16,13,10,.9);border:1px solid rgba(212,168,75,.22);border-bottom:none;
+}
+.avatar-prop.shoes{
+  width:28px;height:8px;left:32px;bottom:-2px;border:none;background:none;box-shadow:none;
+}
+.avatar-prop.shoes::before,.avatar-prop.shoes::after{
+  content:"";position:absolute;width:10px;height:4px;bottom:0;border-radius:5px;
+  background:rgba(22,18,14,.95);border:1px solid rgba(212,168,75,.26);
+}
+.avatar-prop.shoes::before{left:2px}
+.avatar-prop.shoes::after{right:2px}
+.char-foot-glow{
+  position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);
+  width:70px;height:14px;border-radius:50%;
+  background:radial-gradient(ellipse 100% 100% at 50% 50%,
+    var(--char-glow) 0%, transparent 70%);
+  filter:blur(3px);
+  animation:foot-pulse 3.8s ease-in-out infinite;
+}
+@keyframes foot-pulse{0%,100%{opacity:0.5;transform:translateX(-50%) scaleX(1)}50%{opacity:0.9;transform:translateX(-50%) scaleX(1.2)}}
+
+/* ── Depth lighting — shadows + shafts ────────────────────────────────────── */
+.light-shaft-pano{
+  position:absolute;top:0;
+  clip-path:polygon(25% 0%,75% 0%,100% 100%,0% 100%);
+  background:linear-gradient(180deg,rgba(229,193,126,0.06) 0%,transparent 80%);
+  animation:shaft-breathe 4.2s ease-in-out infinite;
+}
+@keyframes shaft-breathe{0%,100%{opacity:0.7}50%{opacity:1}}
+
+/* Floor shadows — implied depth under characters */
+.floor-shadow{
+  position:absolute;bottom:18%;left:50%;transform:translateX(-50%);
+  width:90px;height:20px;border-radius:50%;
+  background:radial-gradient(ellipse 100% 100% at 50% 50%,rgba(0,0,0,0.5) 0%,transparent 70%);
+  filter:blur(4px);
+}
+
+/* ── Ambient light halo — mood driven ─────────────────────────────────────── */
+.ambient-halo-pano{
+  position:absolute;
+  border-radius:50%;
+  pointer-events:none;
+  animation:halo-breathe 4.2s ease-in-out infinite;
+  mix-blend-mode:screen;
+}
+@keyframes halo-breathe{0%,100%{opacity:0.6;transform:translate(-50%,-50%) scale(1)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}}
+
+/* ── Camera roam indicator ─────────────────────────────────────────────────── */
+#roam-indicator{
+  position:fixed;top:50%;right:16px;transform:translateY(-50%);
+  z-index:25;pointer-events:none;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  opacity:0;transition:opacity .4s;
+}
+#roam-indicator.active{opacity:1}
+.roam-arc{
+  width:6px;height:40px;
+  border:1px solid rgba(212,168,75,0.3);
+  border-radius:3px;position:relative;overflow:hidden;
+}
+.roam-thumb{
+  position:absolute;width:4px;height:8px;left:0;
+  background:var(--gold);border-radius:2px;
+  transition:top .05s;
+}
+.roam-label{
+  font-family:'Cinzel',serif;font-size:6px;letter-spacing:2px;
+  color:rgba(212,168,75,0.4);text-transform:uppercase;
+  writing-mode:vertical-rl;
+}
+
+/* ── Vignette + grain ──────────────────────────────────────────────────────── */
+.vignette{
+  position:fixed;inset:0;z-index:15;pointer-events:none;
+  background:radial-gradient(ellipse 85% 75% at 50% 50%,transparent 35%,rgba(0,0,0,0.55) 100%);
+}
+/* Stronger edge vignette for immersive feel */
+.vignette-edge{
+  position:fixed;inset:0;z-index:14;pointer-events:none;
+  background:
+    linear-gradient(90deg,rgba(0,0,0,0.4) 0%,transparent 8%,transparent 92%,rgba(0,0,0,0.4) 100%),
+    linear-gradient(180deg,rgba(0,0,0,0.3) 0%,transparent 10%,transparent 90%,rgba(0,0,0,0.3) 100%);
+}
+.grain{
+  position:fixed;inset:0;z-index:16;pointer-events:none;opacity:0.025;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:128px;animation:grain-shift .5s steps(1) infinite;
+}
+@keyframes grain-shift{0%{background-position:0 0}25%{background-position:10px -5px}50%{background-position:-5px 10px}75%{background-position:5px 5px}}
+
+/* Performance profile static mode */
+body.perf-static .grain{animation:none;opacity:0.012}
+body.perf-static .light-shaft-pano{animation:none;opacity:0.35}
+body.perf-static .ambient-halo-pano{animation:none;opacity:0.6}
+
+/* Mini HUD (studio floor glanceable) */
+.perf-mini-hud{
+  position:fixed;left:12px;bottom:92px;z-index:24;
+  padding:6px 10px;border:1px solid rgba(212,168,75,.28);
+  background:rgba(11,9,7,.74);backdrop-filter:blur(5px);
+  color:var(--amber);font-family:'Cinzel',serif;font-size:.52rem;
+  letter-spacing:1.4px;text-transform:uppercase;
+  display:flex;align-items:center;gap:6px;
+}
+.perf-dot{
+  width:6px;height:6px;border-radius:50%;background:#5ad27a;
+  box-shadow:0 0 6px rgba(90,210,122,.8);
+}
+.perf-dot.low{background:#e16d6d;box-shadow:0 0 6px rgba(225,109,109,.8)}
+.perf-dot.medium{background:#d4a84b;box-shadow:0 0 6px rgba(212,168,75,.8)}
+.perf-dot.high{background:#6dd6c7;box-shadow:0 0 6px rgba(109,214,199,.8)}
+
+/* Full vitals panel (control room style) */
+.perf-vitals{
+  position:fixed;left:12px;bottom:128px;z-index:24;
+  min-width:240px;max-width:320px;
+  padding:10px;border:1px solid rgba(212,168,75,.25);
+  background:rgba(10,8,6,.92);backdrop-filter:blur(7px);
+  color:var(--cream);font-size:.63rem;line-height:1.6;
+  display:none;
+}
+.perf-vitals.on{display:block}
+.perf-vitals h4{
+  margin:0 0 6px;font-family:'Cinzel',serif;font-size:.64rem;
+  letter-spacing:2px;color:var(--amber);
+}
+.perf-vitals .k{color:var(--warm-mid)}
+.perf-vitals .v{color:var(--teal)}
+
+/* Avatar action controls */
+.action-rig{
+  position:fixed;left:12px;top:58px;z-index:24;
+  width:min(440px,calc(100vw - 328px));
+  padding:10px;
+  border:1px solid rgba(212,168,75,.28);
+  background:rgba(10,8,6,.9);
+  backdrop-filter:blur(6px);
+  color:var(--cream);
+  display:flex;flex-direction:column;gap:8px;
+}
+.action-rig h4{
+  margin:0;font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:2px;color:var(--amber);
+}
+.action-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.action-row label{font-size:.56rem;color:var(--warm-mid);letter-spacing:1px}
+.action-row select,.action-row input[type="number"]{
+  background:rgba(255,255,255,.04);border:1px solid rgba(212,168,75,.22);
+  color:var(--cream);padding:4px 6px;font-size:.58rem;font-family:'Courier Prime',monospace;
+}
+.action-row input[type="range"]{accent-color:var(--teal)}
+.action-row .mini{
+  background:rgba(20,14,8,.9);border:1px solid rgba(212,168,75,.26);color:var(--amber);
+  padding:5px 8px;font-size:.54rem;font-family:'Cinzel',serif;letter-spacing:1px;cursor:pointer;
+}
+.action-row .mini:hover{border-color:var(--teal);color:var(--teal)}
+.action-badge{
+  font-size:.5rem;color:rgba(212,168,75,.7);letter-spacing:1px;
+  border:1px solid rgba(212,168,75,.2);padding:2px 6px;background:rgba(255,255,255,.02);
+}
+@media (max-width: 960px){
+  .action-rig{width:calc(100vw - 24px);right:12px}
+}
+
+/* ── UI Chrome — identical to stage.html ──────────────────────────────────── */
+.chat-panel{
+  position:fixed;right:0;top:0;bottom:80px;width:300px;z-index:20;
+  background:rgba(10,8,6,0.88);border-left:1px solid var(--gold-dim);
+  display:flex;flex-direction:column;backdrop-filter:blur(8px);
+}
+.chat-header{
+  padding:10px 14px;border-bottom:1px solid var(--gold-dim);
+  font-family:'Cinzel',serif;font-size:.65rem;font-weight:700;
+  letter-spacing:4px;color:var(--amber);text-transform:uppercase;
+  display:flex;align-items:center;gap:8px;
+}
+.chat-dot{width:5px;height:5px;border-radius:50%;background:var(--teal);box-shadow:0 0 6px var(--teal);animation:led-p 2s ease-in-out infinite}
+@keyframes led-p{0%,100%{opacity:.5}50%{opacity:1}}
+.chat-messages{flex:1;overflow-y:auto;padding:8px 10px;font-size:.72rem;line-height:1.6;scrollbar-width:thin;scrollbar-color:rgba(212,168,75,.2) transparent}
+.chat-msg{margin-bottom:5px}
+.chat-msg .user{color:var(--teal);font-weight:700}
+.chat-msg .bot{color:var(--amber);font-weight:700}
+.chat-msg .text{color:var(--warm-mid)}
+.chat-input-bar{display:flex;gap:4px;padding:8px;border-top:1px solid var(--gold-dim)}
+.chat-input{flex:1;background:rgba(255,255,255,.04);border:1px solid var(--gold-dim);color:var(--cream);padding:7px 10px;font-family:'Courier Prime',monospace;font-size:.72rem;outline:none;transition:border-color .2s}
+.chat-input:focus{border-color:var(--teal)}
+.chat-send{background:var(--gold-dim);border:1px solid rgba(212,168,75,.3);color:var(--amber);padding:7px 12px;cursor:pointer;font-family:'Cinzel',serif;font-size:.58rem;font-weight:700;letter-spacing:1px;transition:background .15s}
+.chat-send:hover{background:rgba(212,168,75,.28)}
+
+.cam-bar{
+  position:fixed;bottom:40px;left:0;right:300px;z-index:20;
+  display:flex;justify-content:center;align-items:center;gap:4px;padding:5px 8px;
+  background:rgba(8,7,5,.88);border-top:1px solid var(--gold-dim);
+}
+.cam-btn{padding:5px 12px;border:1px solid var(--gold-dim);background:rgba(0,0,0,.4);color:var(--warm-mid);font-family:'Cinzel',serif;font-size:.53rem;font-weight:700;letter-spacing:1.5px;cursor:pointer;transition:all .12s;text-transform:uppercase}
+.cam-btn:hover{border-color:var(--amber);color:var(--amber)}
+.cam-btn.active{border-color:var(--red-rec);color:var(--red-rec);background:rgba(255,34,34,.08)}
+.cam-btn.roam-active{border-color:var(--teal);color:var(--teal);background:rgba(109,214,199,.08)}
+
+/* Roam toggle button */
+.roam-btn{
+  padding:5px 12px;border:1px solid rgba(109,214,199,.3);
+  background:rgba(0,0,0,.4);color:rgba(109,214,199,.5);
+  font-family:'Cinzel',serif;font-size:.53rem;font-weight:700;
+  letter-spacing:1.5px;cursor:pointer;transition:all .12s;
+  margin-left:8px;
+}
+.roam-btn:hover,.roam-btn.on{border-color:var(--teal);color:var(--teal);background:rgba(109,214,199,.1)}
+
+.status-bar{
+  position:fixed;bottom:0;left:0;right:0;height:40px;z-index:20;
+  background:rgba(8,7,5,.92);border-top:1px solid var(--gold-dim);
+  display:flex;align-items:center;justify-content:space-between;padding:0 14px;
+  font-size:.62rem;letter-spacing:1.5px;
+}
+.status-left,.status-right{display:flex;gap:14px;align-items:center}
+.rec-indicator{display:flex;align-items:center;gap:5px;color:var(--red-rec)}
+.rec-dot{width:7px;height:7px;border-radius:50%;background:var(--red-rec);display:none}
+.rec-dot.on{display:block;animation:blink .7s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.cam-indicator{color:var(--amber)}
+.room-indicator{color:var(--teal)}
+.rec-btn{background:rgba(255,34,34,.12);border:1px solid rgba(255,34,34,.3);color:var(--red-rec);padding:5px 12px;cursor:pointer;font-family:'Cinzel',serif;font-size:.55rem;font-weight:700;letter-spacing:1px;transition:background .15s}
+.rec-btn:hover,.rec-btn.on{background:rgba(255,34,34,.25)}
+
+/* Stage switcher badge */
+.stage-switcher{
+  position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:25;
+  display:flex;gap:0;
+}
+.stage-switch-btn{
+  background:rgba(10,8,6,.88);border:1px solid var(--gold-dim);
+  padding:4px 12px;font-family:'Cinzel',serif;font-size:.5rem;
+  letter-spacing:2px;color:rgba(212,168,75,.4);cursor:pointer;transition:all .2s;
+  text-decoration:none;display:block;text-align:center;
+}
+.stage-switch-btn:first-child{border-right:none}
+.stage-switch-btn.current{color:var(--amber);border-color:rgba(212,168,75,.4)}
+.stage-switch-btn:hover{color:var(--amber)}
+
+/* Compass — shows current look direction */
+#compass{
+  position:fixed;bottom:90px;right:308px;z-index:22;
+  width:44px;height:44px;
+  border:1px solid var(--gold-dim);border-radius:50%;
+  background:rgba(10,8,6,.8);
+  display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+#compass-needle{
+  width:1px;height:16px;background:var(--red-rec);
+  transform-origin:center bottom;position:absolute;bottom:50%;
+  box-shadow:0 0 4px var(--red-rec);
+}
+#compass-n{
+  font-family:'Cinzel',serif;font-size:7px;color:rgba(212,168,75,.5);
+  letter-spacing:1px;position:absolute;top:4px;
+}
+</style>
+  <script src="/static/reach_auth.js"></script>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     PANORAMIC WORLD
+═══════════════════════════════════════════════════════════════════════════════ -->
+<div id="pano-root">
+<div id="pano-world">
+
+  <!-- ── LAYER 0: Deep sky / distant upper architecture ──────────────────── -->
+  <div class="pano-layer" id="layer-sky"></div>
+
+  <!-- ── LAYER 1: Back wall architecture — full 360° room envelope ─────────
+       CSS-painted until real panoramic images are dropped in.
+       To use a real panoramic image:
+         #layer-architecture { background-image: url('/assets/rooms/studio_bg_far.jpg'); background-size: cover; }
+  ─────────────────────────────────────────────────────────────────────────── -->
+  <div class="pano-layer" id="layer-architecture">
+    <!-- SVG panoramic back wall — Belle Époque studio, full 360° strip -->
+    <svg id="pano-bg-svg" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"
+         preserveAspectRatio="xMidYMid slice" viewBox="0 0 3600 900"
+         style="position:absolute;inset:0;width:100%;height:100%">
+      <defs>
+        <linearGradient id="wallGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#0a0806"/>
+          <stop offset="15%" stop-color="#131008"/>
+          <stop offset="60%" stop-color="#100e08"/>
+          <stop offset="100%" stop-color="#080604"/>
+        </linearGradient>
+        <linearGradient id="archGold" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="rgba(212,168,75,0.15)"/>
+          <stop offset="100%" stop-color="rgba(212,168,75,0.04)"/>
+        </linearGradient>
+        <radialGradient id="sconce1" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="rgba(229,193,126,0.4)"/>
+          <stop offset="60%" stop-color="rgba(229,193,126,0.08)"/>
+          <stop offset="100%" stop-color="transparent"/>
+        </radialGradient>
+        <filter id="glow-soft">
+          <feGaussianBlur stdDeviation="8" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="glow-hard">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Base wall fill -->
+      <rect width="3600" height="900" fill="url(#wallGrad)"/>
+
+      <!-- Cornice line at top -->
+      <rect x="0" y="80" width="3600" height="2" fill="rgba(212,168,75,0.08)"/>
+      <rect x="0" y="88" width="3600" height="1" fill="rgba(212,168,75,0.04)"/>
+
+      <!-- Wainscot line at bottom -->
+      <rect x="0" y="720" width="3600" height="2" fill="rgba(212,168,75,0.07)"/>
+      <rect x="0" y="730" width="3600" height="1" fill="rgba(212,168,75,0.04)"/>
+
+      <!-- Repeating arch panel groups — 8 around the 360° room -->
+      <!-- Each panel: 450px wide, 8 panels = 3600px total -->
+      <!-- FRONT STAGE area: panels 0 (center) -->
+      <!-- BACK / CONTROL ROOM: panels 3-5 -->
+
+      <!-- Panel template macro: arch + pilasters + inner detail -->
+      <!-- Panel 0 — Front center (default camera faces here) -->
+      <g transform="translate(1575,80)">
+        <!-- Pilaster left -->
+        <rect x="0" y="0" width="12" height="640" fill="rgba(212,168,75,0.06)"/>
+        <rect x="1" y="0" width="2" height="640" fill="rgba(212,168,75,0.12)"/>
+        <!-- Pilaster right -->
+        <rect x="438" y="0" width="12" height="640" fill="rgba(212,168,75,0.06)"/>
+        <rect x="447" y="0" width="2" height="640" fill="rgba(212,168,75,0.12)"/>
+        <!-- Arch -->
+        <path d="M 12 640 L 12 240 Q 12 80 225 80 Q 438 80 438 240 L 438 640"
+              fill="none" stroke="rgba(212,168,75,0.12)" stroke-width="1.5"/>
+        <!-- Inner panel -->
+        <path d="M 50 640 L 50 260 Q 50 120 225 120 Q 400 120 400 260 L 400 640"
+              fill="rgba(212,168,75,0.02)" stroke="rgba(212,168,75,0.06)" stroke-width="1"/>
+        <!-- Keystone -->
+        <polygon points="215,76 225,60 235,76" fill="rgba(212,168,75,0.2)" filter="url(#glow-hard)"/>
+        <!-- Wall sconce left -->
+        <ellipse cx="80" cy="350" rx="40" ry="40" fill="url(#sconce1)" filter="url(#glow-soft)"/>
+        <rect x="74" y="340" width="12" height="20" rx="6" fill="rgba(229,193,126,0.5)" filter="url(#glow-hard)"/>
+        <!-- Wall sconce right -->
+        <ellipse cx="370" cy="350" rx="40" ry="40" fill="url(#sconce1)" filter="url(#glow-soft)"/>
+        <rect x="364" y="340" width="12" height="20" rx="6" fill="rgba(229,193,126,0.5)" filter="url(#glow-hard)"/>
+      </g>
+
+      <!-- Panels repeating — simplified for other 7 positions -->
+      <!-- Panel 1 — Stage right -->
+      <g transform="translate(2025,80)" opacity="0.7">
+        <rect x="0" y="0" width="10" height="640" fill="rgba(212,168,75,0.05)"/>
+        <rect x="440" y="0" width="10" height="640" fill="rgba(212,168,75,0.05)"/>
+        <path d="M 10 640 L 10 240 Q 10 80 225 80 Q 440 80 440 240 L 440 640"
+              fill="none" stroke="rgba(212,168,75,0.08)" stroke-width="1"/>
+        <ellipse cx="80" cy="360" rx="30" ry="30" fill="url(#sconce1)" filter="url(#glow-soft)"/>
+        <rect x="75" y="352" width="10" height="16" rx="5" fill="rgba(229,193,126,0.4)" filter="url(#glow-hard)"/>
+        <ellipse cx="370" cy="360" rx="30" ry="30" fill="url(#sconce1)" filter="url(#glow-soft)"/>
+        <rect x="365" y="352" width="10" height="16" rx="5" fill="rgba(229,193,126,0.4)" filter="url(#glow-hard)"/>
+      </g>
+
+      <!-- Panel 2 — Stage right far (control room approaches) -->
+      <g transform="translate(2475,80)" opacity="0.55">
+        <rect x="0" y="0" width="10" height="640" fill="rgba(212,168,75,0.04)"/>
+        <rect x="440" y="0" width="10" height="640" fill="rgba(212,168,75,0.04)"/>
+        <path d="M 10 640 L 10 250 Q 10 100 225 100 Q 440 100 440 250 L 440 640"
+              fill="none" stroke="rgba(212,168,75,0.06)" stroke-width="1"/>
+        <ellipse cx="225" cy="350" rx="25" ry="25" fill="url(#sconce1)" filter="url(#glow-soft)"/>
+      </g>
+
+      <!-- Panel 3 — BACK / Control room glass wall -->
+      <g transform="translate(2925,80)" opacity="0.5">
+        <!-- Glass wall suggestion — teal tinted -->
+        <rect x="60" y="100" width="330" height="540"
+              fill="rgba(109,214,199,0.02)" stroke="rgba(109,214,199,0.08)" stroke-width="1"/>
+        <!-- Horizontal mullion -->
+        <rect x="60" y="350" width="330" height="1.5" fill="rgba(109,214,199,0.12)"/>
+        <!-- Vertical mullions -->
+        <rect x="170" y="100" width="1" height="540" fill="rgba(109,214,199,0.08)"/>
+        <rect x="280" y="100" width="1" height="540" fill="rgba(109,214,199,0.08)"/>
+        <!-- Control room glow from behind glass -->
+        <ellipse cx="225" cy="300" rx="180" ry="120"
+                 fill="rgba(109,214,199,0.04)" filter="url(#glow-soft)"/>
+        <!-- Monitor glow visible through glass -->
+        <rect x="120" y="180" width="60" height="40" rx="2"
+              fill="rgba(255,34,34,0.06)" stroke="rgba(255,34,34,0.1)" stroke-width="0.5"/>
+        <rect x="210" y="180" width="60" height="40" rx="2"
+              fill="rgba(34,221,102,0.04)" stroke="rgba(34,221,102,0.08)" stroke-width="0.5"/>
+      </g>
+
+      <!-- Panel 4 — Back far left -->
+      <g transform="translate(3375,80)" opacity="0.45">
+        <rect x="0" y="0" width="10" height="640" fill="rgba(212,168,75,0.04)"/>
+        <rect x="440" y="0" width="10" height="640" fill="rgba(212,168,75,0.04)"/>
+        <path d="M 10 640 L 10 260 Q 10 110 225 110 Q 440 110 440 260 L 440 640"
+              fill="none" stroke="rgba(212,168,75,0.05)" stroke-width="1"/>
+        <ellipse cx="225" cy="360" rx="20" ry="20" fill="url(#sconce1)" filter="url(#glow-soft)"/>
+      </g>
+
+      <!-- Panel 5 — Wrap back to left (scene continues) -->
+      <g transform="translate(225,80)" opacity="0.45">
+        <rect x="0" y="0" width="10" height="640" fill="rgba(212,168,75,0.04)"/>
+        <rect x="440" y="0" width="10" height="640" fill="rgba(212,168,75,0.04)"/>
+        <path d="M 10 640 L 10 260 Q 10 110 225 110 Q 440 110 440 260 L 440 640"
+              fill="none" stroke="rgba(212,168,75,0.05)" stroke-width="1"/>
+        <ellipse cx="225" cy="360" rx="20" ry="20" fill="url(#sconce1)" filter="url(#glow-soft)"/>
+      </g>
+
+      <!-- Panel 6 — Stage left far -->
+      <g transform="translate(675,80)" opacity="0.55">
+        <rect x="0" y="0" width="10" height="640" fill="rgba(212,168,75,0.04)"/>
+        <rect x="440" y="0" width="10" height="640" fill="rgba(212,168,75,0.04)"/>
+        <path d="M 10 640 L 10 250 Q 10 100 225 100 Q 440 100 440 250 L 440 640"
+              fill="none" stroke="rgba(212,168,75,0.06)" stroke-width="1"/>
+        <ellipse cx="225" cy="350" rx="25" ry="25" fill="url(#sconce1)" filter="url(#glow-soft)"/>
+      </g>
+
+      <!-- Panel 7 — Stage left -->
+      <g transform="translate(1125,80)" opacity="0.7">
+        <rect x="0" y="0" width="10" height="640" fill="rgba(212,168,75,0.05)"/>
+        <rect x="440" y="0" width="10" height="640" fill="rgba(212,168,75,0.05)"/>
+        <path d="M 10 640 L 10 240 Q 10 80 225 80 Q 440 80 440 240 L 440 640"
+              fill="none" stroke="rgba(212,168,75,0.08)" stroke-width="1"/>
+        <ellipse cx="80" cy="360" rx="30" ry="30" fill="url(#sconce1)" filter="url(#glow-soft)"/>
+        <rect x="75" y="352" width="10" height="16" rx="5" fill="rgba(229,193,126,0.4)" filter="url(#glow-hard)"/>
+        <ellipse cx="370" cy="360" rx="30" ry="30" fill="url(#sconce1)" filter="url(#glow-soft)"/>
+        <rect x="365" y="352" width="10" height="16" rx="5" fill="rgba(229,193,126,0.4)" filter="url(#glow-hard)"/>
+      </g>
+
+      <!-- Floor gradient — perspective implied -->
+      <linearGradient id="floorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="rgba(18,14,8,0.0)"/>
+        <stop offset="100%" stop-color="rgba(8,6,4,0.95)"/>
+      </linearGradient>
+      <rect x="0" y="720" width="3600" height="180" fill="url(#floorGrad)"/>
+
+      <!-- Ceiling -->
+      <linearGradient id="ceilGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="rgba(5,4,3,0.98)"/>
+        <stop offset="100%" stop-color="rgba(8,6,4,0)"/>
+      </linearGradient>
+      <rect x="0" y="0" width="3600" height="100" fill="url(#ceilGrad)"/>
+    </svg>
+  </div>
+
+  <!-- ── LAYER 2: Midground set dressing ──────────────────────────────────── -->
+  <div class="pano-layer" id="layer-midground">
+    <!-- Lighting rig above stage -->
+    <div style="position:absolute;top:6%;left:50%;transform:translateX(-50%);
+                width:55%;height:3px;
+                background:linear-gradient(90deg,transparent,rgba(30,22,14,0.9),transparent);
+                border-top:1px solid rgba(212,168,75,0.2);">
+      <!-- Practical lights hanging from rig -->
+      <div style="position:absolute;top:100%;left:20%;width:1px;height:25px;background:rgba(212,168,75,0.15)">
+        <div style="width:12px;height:8px;background:rgba(229,193,126,0.6);border-radius:50% 50% 60% 60%;margin-left:-5px;box-shadow:0 0 16px rgba(229,193,126,0.6);filter:blur(1px)"></div>
+      </div>
+      <div style="position:absolute;top:100%;left:40%;width:1px;height:20px;background:rgba(212,168,75,0.15)">
+        <div style="width:14px;height:9px;background:rgba(229,193,126,0.7);border-radius:50% 50% 60% 60%;margin-left:-6px;box-shadow:0 0 20px rgba(229,193,126,0.7);filter:blur(1px)"></div>
+      </div>
+      <div style="position:absolute;top:100%;left:60%;width:1px;height:22px;background:rgba(212,168,75,0.15)">
+        <div style="width:14px;height:9px;background:rgba(229,193,126,0.7);border-radius:50% 50% 60% 60%;margin-left:-6px;box-shadow:0 0 20px rgba(229,193,126,0.7);filter:blur(1px)"></div>
+      </div>
+      <div style="position:absolute;top:100%;left:80%;width:1px;height:18px;background:rgba(212,168,75,0.15)">
+        <div style="width:12px;height:8px;background:rgba(229,193,126,0.6);border-radius:50% 50% 60% 60%;margin-left:-5px;box-shadow:0 0 16px rgba(229,193,126,0.6);filter:blur(1px)"></div>
+      </div>
+    </div>
+    <!-- Ambient stage halo -->
+    <div id="ambiHalo" class="ambient-halo-pano"
+         style="left:50%;top:50%;width:50%;padding-top:28%;
+                background:radial-gradient(ellipse 100% 100% at 50% 50%,
+                  rgba(229,193,126,0.06) 0%,rgba(212,168,75,0.02) 45%,transparent 70%);
+                transform:translate(-50%,-50%)"></div>
+  </div>
+
+  <!-- ── LAYER 3: Stage floor + characters (world-space anchored) ─────────── -->
+  <div class="pano-layer" id="layer-stage">
+
+    <!-- Floor -->
+    <div style="position:absolute;bottom:0;left:0;right:0;height:20%;
+                background:linear-gradient(0deg,rgba(8,6,4,0.9) 0%,transparent 100%)"></div>
+    <!-- Stage platform circle suggestion -->
+    <div style="position:absolute;bottom:18%;left:50%;transform:translateX(-50%);
+                width:42%;height:3px;
+                background:radial-gradient(ellipse 100% 100% at 50% 50%,
+                  rgba(212,168,75,0.12) 0%,transparent 70%);
+                filter:blur(2px)"></div>
+
+    <!-- CHARACTER: Pete — stage left of center -->
+    <!-- World position: ~320° (stage left, slightly front) -->
+    <!-- In the flat strip this maps to roughly 38% from left -->
+    <div class="char-anchor" id="char-pete" data-avatar="pete" data-action="idle"
+         style="--char-glow:rgba(109,214,199,0.45);left:38%;animation-delay:.3s">
+      <svg class="char-figure-pano" viewBox="0 0 100 200" width="95" height="195" xmlns="http://www.w3.org/2000/svg"
+           style="filter:drop-shadow(0 0 18px rgba(109,214,199,0.4))">
+        <defs>
+          <radialGradient id="pg2" cx="50%" cy="35%" r="55%">
+            <stop offset="0%" stop-color="#7de8d8" stop-opacity="0.95"/>
+            <stop offset="100%" stop-color="#3aaa98" stop-opacity="0.35"/>
+          </radialGradient>
+        </defs>
+        <!-- Legs -->
+        <rect x="37" y="138" width="11" height="58" rx="4" fill="url(#pg2)" opacity="0.55"/>
+        <rect x="52" y="138" width="11" height="58" rx="4" fill="url(#pg2)" opacity="0.55"/>
+        <!-- Torso — work clothes, slightly tapered -->
+        <path d="M30 82 Q31 70 50 68 Q69 70 70 82 L68 142 Q59 146 50 146 Q41 146 32 142Z"
+              fill="url(#pg2)" opacity="0.72"/>
+        <!-- Left arm — relaxed, working posture -->
+        <path d="M30 84 Q20 104 22 134" stroke="#6dd6c7" stroke-width="7" fill="none" stroke-linecap="round" opacity="0.52"/>
+        <!-- Right arm — slightly raised, camera operator gesture -->
+        <path d="M70 84 Q80 96 76 116" stroke="#6dd6c7" stroke-width="7" fill="none" stroke-linecap="round" opacity="0.52"/>
+        <!-- Neck -->
+        <rect x="44" y="59" width="12" height="13" rx="5" fill="url(#pg2)" opacity="0.75"/>
+        <!-- Head -->
+        <ellipse cx="50" cy="44" rx="17" ry="19" fill="url(#pg2)" opacity="0.88"/>
+        <!-- Wedding ring — middle finger left hand -->
+        <circle cx="22" cy="130" r="2.5" fill="none" stroke="rgba(212,168,75,0.65)" stroke-width="1.5"/>
+      </svg>
+      <div class="avatar-props">
+        <div class="avatar-prop mug" data-prop="mug"></div>
+        <div class="avatar-prop camera" data-prop="camera"></div>
+        <div class="avatar-prop console" data-prop="console"></div>
+        <div class="avatar-prop food" data-prop="food"></div>
+        <div class="avatar-prop ladder" data-prop="ladder"><i style="top:9px"></i><i style="top:18px"></i><i style="top:27px"></i><i style="top:36px"></i><i style="top:45px"></i></div>
+        <div class="avatar-prop steering" data-prop="steering"></div>
+        <div class="avatar-prop bike" data-prop="bike"></div>
+        <div class="avatar-prop coat" data-prop="coat"></div>
+        <div class="avatar-prop hat" data-prop="hat"></div>
+        <div class="avatar-prop shoes" data-prop="shoes"></div>
+      </div>
+      <div class="char-foot-glow"></div>
+      <div class="floor-shadow" style="width:70px;height:14px;bottom:unset;left:50%;transform:translateX(-50%)"></div>
+      <div class="char-name-pano">Pete</div>
+    </div>
+
+    <!-- CHARACTER: Re-Pete — slightly behind Pete, more to the right -->
+    <!-- World position: ~10° (almost front, right of Pete) -->
+    <!-- Maps to ~53% in flat strip -->
+    <div class="char-anchor" id="char-repete" data-avatar="repete" data-action="idle"
+         style="--char-glow:rgba(180,200,240,0.38);left:53%;bottom:16%;animation-delay:.8s">
+      <svg class="char-figure-pano" viewBox="0 0 100 200" width="78" height="156" xmlns="http://www.w3.org/2000/svg"
+           style="filter:drop-shadow(0 0 14px rgba(180,200,240,0.35))">
+        <defs>
+          <radialGradient id="rpg2" cx="50%" cy="35%" r="55%">
+            <stop offset="0%" stop-color="#b4c8f8" stop-opacity="0.9"/>
+            <stop offset="100%" stop-color="#6080c0" stop-opacity="0.3"/>
+          </radialGradient>
+        </defs>
+        <!-- Slim, younger build -->
+        <rect x="39" y="140" width="10" height="56" rx="4" fill="url(#rpg2)" opacity="0.5"/>
+        <rect x="51" y="140" width="10" height="56" rx="4" fill="url(#rpg2)" opacity="0.5"/>
+        <!-- Slim torso -->
+        <path d="M33 82 Q34 72 50 70 Q66 72 67 82 L66 142 Q58 145 50 145 Q42 145 34 142Z"
+              fill="url(#rpg2)" opacity="0.65"/>
+        <!-- Arms — slightly tentative, nervous energy -->
+        <path d="M33 84 Q24 100 26 125" stroke="#b4c8f8" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.45"/>
+        <path d="M67 84 Q76 98 74 120" stroke="#b4c8f8" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.45"/>
+        <!-- Neck -->
+        <rect x="44" y="61" width="12" height="12" rx="5" fill="url(#rpg2)" opacity="0.7"/>
+        <!-- Head — young, babyface: slightly rounder -->
+        <ellipse cx="50" cy="46" rx="16" ry="18" fill="url(#rpg2)" opacity="0.85"/>
+      </svg>
+      <div class="avatar-props">
+        <div class="avatar-prop mug" data-prop="mug"></div>
+        <div class="avatar-prop camera" data-prop="camera"></div>
+        <div class="avatar-prop console" data-prop="console"></div>
+        <div class="avatar-prop food" data-prop="food"></div>
+        <div class="avatar-prop ladder" data-prop="ladder"><i style="top:9px"></i><i style="top:18px"></i><i style="top:27px"></i><i style="top:36px"></i><i style="top:45px"></i></div>
+        <div class="avatar-prop steering" data-prop="steering"></div>
+        <div class="avatar-prop bike" data-prop="bike"></div>
+        <div class="avatar-prop coat" data-prop="coat"></div>
+        <div class="avatar-prop hat" data-prop="hat"></div>
+        <div class="avatar-prop shoes" data-prop="shoes"></div>
+      </div>
+      <div class="char-foot-glow" style="width:55px;height:10px"></div>
+      <div class="char-name-pano">Re-Pete</div>
+    </div>
+
+    <!-- CHARACTER: Sir Purfluous — stage right -->
+    <!-- World position: ~40° (stage right) -->
+    <!-- Maps to ~62% in flat strip -->
+    <div class="char-anchor" id="char-purfluous" data-avatar="purfluous" data-action="idle"
+         style="--char-glow:rgba(192,120,224,0.45);left:62%;animation-delay:1.2s">
+      <svg class="char-figure-pano" viewBox="0 0 100 200" width="100" height="200" xmlns="http://www.w3.org/2000/svg"
+           style="filter:drop-shadow(0 0 20px rgba(192,120,224,0.4))">
+        <defs>
+          <radialGradient id="purg2" cx="50%" cy="35%" r="55%">
+            <stop offset="0%" stop-color="#d088f0" stop-opacity="0.92"/>
+            <stop offset="100%" stop-color="#7830a8" stop-opacity="0.3"/>
+          </radialGradient>
+        </defs>
+        <!-- Broader, older, theatrical bearing -->
+        <rect x="36" y="138" width="12" height="58" rx="4" fill="url(#purg2)" opacity="0.52"/>
+        <rect x="52" y="138" width="12" height="58" rx="4" fill="url(#purg2)" opacity="0.52"/>
+        <!-- Coat body — wider -->
+        <path d="M24 78 Q25 63 50 60 Q75 63 76 78 L80 146 Q61 153 50 153 Q39 153 20 146Z"
+              fill="url(#purg2)" opacity="0.7"/>
+        <!-- Coat tails -->
+        <path d="M22 130 Q14 158 18 174" stroke="#c078e0" stroke-width="9" fill="none" stroke-linecap="round" opacity="0.32"/>
+        <path d="M78 130 Q86 158 82 174" stroke="#c078e0" stroke-width="9" fill="none" stroke-linecap="round" opacity="0.32"/>
+        <!-- Arms — theatrical: one raised in declaration -->
+        <path d="M24 82 Q10 98 12 126" stroke="#c078e0" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.5"/>
+        <path d="M76 82 Q88 70 92 50" stroke="#c078e0" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.5"/>
+        <!-- Raised hand suggestion -->
+        <circle cx="92" cy="48" r="7" fill="url(#purg2)" opacity="0.6"/>
+        <!-- Neck -->
+        <rect x="43" y="56" width="14" height="10" rx="4" fill="url(#purg2)" opacity="0.8"/>
+        <!-- Head — older, strong brow -->
+        <ellipse cx="50" cy="40" rx="19" ry="21" fill="url(#purg2)" opacity="0.9"/>
+      </svg>
+      <div class="avatar-props">
+        <div class="avatar-prop mug" data-prop="mug"></div>
+        <div class="avatar-prop camera" data-prop="camera"></div>
+        <div class="avatar-prop console" data-prop="console"></div>
+        <div class="avatar-prop food" data-prop="food"></div>
+        <div class="avatar-prop ladder" data-prop="ladder"><i style="top:9px"></i><i style="top:18px"></i><i style="top:27px"></i><i style="top:36px"></i><i style="top:45px"></i></div>
+        <div class="avatar-prop steering" data-prop="steering"></div>
+        <div class="avatar-prop bike" data-prop="bike"></div>
+        <div class="avatar-prop coat" data-prop="coat"></div>
+        <div class="avatar-prop hat" data-prop="hat"></div>
+        <div class="avatar-prop shoes" data-prop="shoes"></div>
+      </div>
+      <div class="char-foot-glow"></div>
+      <div class="char-name-pano">Sir Purfluous</div>
+    </div>
+
+    <!-- Broadcast desk — anchored front-center -->
+    <div style="position:absolute;bottom:18%;left:50%;transform:translateX(-50%);
+                width:38%;height:9%;
+                background:linear-gradient(180deg,#2a1e10 0%,#1a130a 70%,#100c07 100%);
+                border-top:1px solid rgba(212,168,75,0.28);
+                border-radius:3px 3px 0 0;
+                box-shadow:0 -6px 24px rgba(0,0,0,0.5),inset 0 1px 0 rgba(212,168,75,0.12)">
+      <div style="position:absolute;bottom:100%;left:8%;right:8%;height:28%;
+                  background:linear-gradient(180deg,#1c1610 0%,#271c12 100%);
+                  border:1px solid rgba(212,168,75,0.12);border-bottom:none;
+                  display:flex;align-items:center;justify-content:center;gap:7px;padding:0 10px">
+        <div style="width:5px;height:5px;border-radius:50%;background:rgba(109,214,199,0.5);box-shadow:0 0 5px rgba(109,214,199,0.5);animation:led-p 2s .0s ease-in-out infinite"></div>
+        <div style="width:5px;height:5px;border-radius:50%;background:rgba(109,214,199,0.4);box-shadow:0 0 5px rgba(109,214,199,0.4);animation:led-p 2s .4s ease-in-out infinite"></div>
+        <div style="width:5px;height:5px;border-radius:50%;background:rgba(212,168,75,0.5);box-shadow:0 0 5px rgba(212,168,75,0.5);animation:led-p 2s .8s ease-in-out infinite"></div>
+        <span style="font-family:'Cinzel',serif;font-size:7px;letter-spacing:3px;color:rgba(212,168,75,0.25);flex:1;text-align:center">BELLE ÉPOQUE STUDIOS</span>
+        <div style="width:5px;height:5px;border-radius:50%;background:rgba(212,168,75,0.4);box-shadow:0 0 5px rgba(212,168,75,0.4);animation:led-p 2s 1.2s ease-in-out infinite"></div>
+        <div style="width:5px;height:5px;border-radius:50%;background:rgba(255,34,34,0.5);box-shadow:0 0 5px rgba(255,34,34,0.5);animation:led-p 2s 1.6s ease-in-out infinite"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LAYER 4: Foreground dressing ────────────────────────────────────── -->
+  <div class="pano-layer" id="layer-foreground">
+    <!-- Left equipment edge -->
+    <div style="position:absolute;left:0;top:15%;bottom:18%;width:5%;
+                background:linear-gradient(90deg,#0d0b09 0%,rgba(20,14,8,0.7) 60%,transparent 100%);
+                border-right:1px solid rgba(212,168,75,0.05)"></div>
+    <!-- Right equipment edge -->
+    <div style="position:absolute;right:0;top:15%;bottom:18%;width:5%;
+                background:linear-gradient(270deg,#0d0b09 0%,rgba(20,14,8,0.7) 60%,transparent 100%);
+                border-left:1px solid rgba(212,168,75,0.05)"></div>
+    <!-- Mic arm from below-right -->
+    <div style="position:absolute;bottom:22%;right:33%;width:2px;height:28%;
+                background:linear-gradient(0deg,rgba(212,168,75,0.22) 0%,rgba(212,168,75,0.06) 100%);
+                transform:rotate(-9deg);transform-origin:bottom center">
+      <div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);
+                  width:9px;height:15px;border-radius:5px;
+                  border:1px solid rgba(212,168,75,0.28);background:rgba(22,15,8,0.9)"></div>
+    </div>
+    <!-- Cable suggestion on floor -->
+    <div style="position:absolute;bottom:19%;left:44%;width:18%;height:1px;
+                background:linear-gradient(90deg,transparent,rgba(212,168,75,0.12),transparent);
+                transform:rotate(3deg)"></div>
+  </div>
+
+  <!-- ── LAYER 5: Key light shafts ─────────────────────────────────────── -->
+  <div class="pano-layer" id="layer-lights">
+    <div class="light-shaft-pano"
+         style="left:46%;width:200px;height:72%;opacity:0.8;animation-delay:0s"></div>
+    <div class="light-shaft-pano"
+         style="left:30%;width:140px;height:55%;opacity:0.4;animation-delay:1.2s"></div>
+    <div class="light-shaft-pano"
+         style="left:60%;width:140px;height:50%;opacity:0.4;animation-delay:2.5s"></div>
+  </div>
+
+</div><!-- /pano-world -->
+</div><!-- /pano-root -->
+
+<!-- Overlays -->
+<div class="vignette-edge"></div>
+<div class="vignette"></div>
+<div class="grain"></div>
+
+<!-- Roam indicator -->
+<div id="roam-indicator">
+  <div class="roam-label">ROAM</div>
+  <div class="roam-arc"><div class="roam-thumb" id="roamThumb"></div></div>
+</div>
+
+<!-- Compass -->
+<div id="compass">
+  <div id="compass-needle"></div>
+  <div id="compass-n">N</div>
+</div>
+
+<!-- Stage switcher -->
+<div class="stage-switcher">
+  <a class="stage-switch-btn" href="stage.html">2.5D</a>
+  <a class="stage-switch-btn current" href="#">360°</a>
+  <a class="stage-switch-btn" href="stage_3d.html">3D</a>
+</div>
+
+<!-- ── UI CHROME ───────────────────────────────────────────────────────────── -->
+<div class="chat-panel">
+  <div class="chat-header">
+    <div class="chat-dot"></div>◆ LIVE CHAT ◆
+  </div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-input-bar">
+    <input class="chat-input" id="chatInput" placeholder="Type a message..." maxlength="500">
+    <button class="chat-send" onclick="sendChat()">SEND</button>
+  </div>
+</div>
+
+<div class="cam-bar" id="camBar"></div>
+
+<div class="status-bar">
+  <div class="status-left">
+    <span class="rec-indicator">
+      <span class="rec-dot" id="recDot"></span>
+      <span id="recText">STANDBY</span>
+    </span>
+    <span class="cam-indicator" id="camLabel">CAM: FRONT</span>
+    <span class="room-indicator" id="roomLabel">ROOM: STUDIO</span>
+  </div>
+  <div class="status-right">
+    <span id="timecode" style="color:#33ff99;opacity:0.4;font-size:.6rem">00:00:00:00</span>
+    <button class="rec-btn" id="recBtn" onclick="toggleRecord()">● REC</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     PANORAMIC ENGINE
+═══════════════════════════════════════════════════════════════════════════════ -->
+<div class="perf-mini-hud" id="perfMiniHud">
+  <span class="perf-dot medium" id="perfDot"></span>
+  <span id="perfMiniText">PERF MEDIUM • 35 FPS</span>
+</div>
+
+<div class="perf-vitals" id="perfVitals">
+  <h4>Performance Vitals</h4>
+  <div><span class="k">Profile:</span> <span class="v" id="perfProfileVal">medium</span></div>
+  <div><span class="k">Target FPS:</span> <span class="v" id="perfFpsVal">35</span></div>
+  <div><span class="k">Static FX:</span> <span class="v" id="perfFxVal">false</span></div>
+  <div><span class="k">Architect:</span> <span class="v" id="perfArchVal">enabled</span></div>
+</div>
+
+<div class="action-rig" id="actionRig">
+  <h4>Avatar Foundry Motion</h4>
+  <div class="action-row">
+    <label for="actionAvatar">Avatar</label>
+    <select id="actionAvatar">
+      <option value="pete">Pete</option>
+      <option value="repete">Re-Pete</option>
+      <option value="purfluous">Sir Purfluous</option>
+    </select>
+    <label for="actionSpecies">Species</label>
+    <select id="actionSpecies">
+      <option value="human">Human</option>
+      <option value="dog">Dog (Starter)</option>
+      <option value="cat">Cat (Starter)</option>
+    </select>
+    <span class="action-badge" id="actionHint">WASD / Arrows = walk</span>
+  </div>
+  <div class="action-row">
+    <label for="actionSelect">Action</label>
+    <select id="actionSelect"></select>
+    <label for="actionIntensity">Intensity</label>
+    <input id="actionIntensity" type="range" min="0.4" max="2.5" step="0.1" value="1.0" />
+    <label for="actionDuration">Sec</label>
+    <input id="actionDuration" type="number" min="0.3" max="15" step="0.1" value="2.0" />
+    <button class="mini" id="actionCueBtn">Cue</button>
+    <button class="mini" id="actionIdleBtn">Idle</button>
+  </div>
+  <div class="action-row">
+    <label><input id="constraintEnabled" type="checkbox" checked /> Human Constraints</label>
+    <label for="constraintSpeed">Speed</label>
+    <input id="constraintSpeed" type="number" min="0.5" max="8" step="0.1" value="2.2" style="width:68px" />
+    <label for="constraintTurn">Turn</label>
+    <input id="constraintTurn" type="number" min="20" max="720" step="5" value="220" style="width:68px" />
+    <button class="mini" id="constraintApplyBtn">Apply Limits</button>
+    <button class="mini" id="constraintOffBtn">No Limits</button>
+  </div>
+  <div class="action-row">
+    <label for="lightPresetA">Lighting A</label>
+    <select id="lightPresetA" style="max-width:140px"></select>
+    <button class="mini" id="lightSetBtn">Set</button>
+    <label for="lightPresetB">B</label>
+    <select id="lightPresetB" style="max-width:140px"></select>
+    <label for="lightMix">Mix</label>
+    <input id="lightMix" type="range" min="0" max="100" step="1" value="0" />
+    <button class="mini" id="lightMixBtn">Blend</button>
+    <button class="mini" id="lightFlashBtn">Flash</button>
+  </div>
+  <div class="action-row">
+    <label for="foleySurface">Surface</label>
+    <select id="foleySurface" style="max-width:120px">
+      <option value="carpet">Carpet</option>
+      <option value="hardwood">Hardwood</option>
+      <option value="cement">Cement</option>
+      <option value="tile">Tile</option>
+    </select>
+    <label for="foleyFootwear">Footwear</label>
+    <select id="foleyFootwear" style="max-width:90px">
+      <option value="auto">Auto</option>
+      <option value="flats">Flats</option>
+      <option value="heels">Heels</option>
+    </select>
+    <button class="mini" id="audioEnableBtn">Enable Audio</button>
+    <label><input id="loungeToggle" type="checkbox" checked /> Lounge</label>
+    <label><input id="projectorToggle" type="checkbox" /> Projector</label>
+    <label for="musicVolume">Music</label>
+    <input id="musicVolume" type="range" min="0" max="100" step="1" value="12" />
+    <label for="masterVolume">Master</label>
+    <input id="masterVolume" type="range" min="0" max="100" step="1" value="78" />
+  </div>
+  <div class="action-row">
+    <label for="customTrackInput">Background Track</label>
+    <input id="customTrackInput" type="file" accept="audio/*" style="max-width:220px" />
+    <button class="mini" id="customTrackClearBtn">Clear Track</button>
+    <span class="action-badge" id="audioHint">Quiet lounge audio is idle until a real audio source is connected.</span>
+  </div>
+</div>
+
+<script src="/static/foley_engine.js"></script>
+<script>
+'use strict';
+
+// ─── PANORAMIC STATE ───────────────────────────────────────────────────────
+
+// currentAngle: degrees, 0 = front (facing stage). Positive = pan right.
+// Full circle = 360. We use modular arithmetic.
+let currentAngle  = 0;    // smooth display angle
+let targetAngle   = 0;    // angle we're moving toward
+let lockedAngle   = 0;    // angle of the active named camera
+let isRoaming     = false;
+let roamDragActive = false;
+let roamStartX    = 0;
+let roamStartAngle = 0;
+
+// Roam arc limits — how far from locked angle can roam go (degrees each side)
+const ROAM_ARC    = 35;
+
+// Performance profile runtime controls
+let currentPerfProfile = 'medium';
+let currentPerfSettings = {
+  stage_target_fps: 35,
+  stage_static_fx: false,
+  architect_enabled: true,
+};
+let targetFps = 35;
+let frameIntervalMs = 1000 / targetFps;
+let lastRenderTs = 0;
+
+// Layer depth coefficients — how much each layer moves per degree of pan
+// Lower = closer to background (moves less). Higher = foreground (moves more).
+// These are the key numbers that create the parallax depth illusion.
+const LAYER_DEPTHS = {
+  'layer-sky':          0.12,   // barely moves — infinite distance
+  'layer-architecture': 0.22,   // back wall — very slow
+  'layer-structure':    0.34,   // pillars — moderate
+  'layer-midground':    0.50,   // set dressing — noticeable
+  'layer-stage':        0.72,   // stage + characters — significant
+  'layer-foreground':   1.00,   // desk edge, cables — most movement
+  'layer-lights':       0.40,   // shafts tied to midground roughly
+};
+
+// Viewport width
+const VW = () => window.innerWidth;
+
+// Degrees-to-pixels: how many pixels does 1° of pan translate?
+// Based on: the full strip is 360° wide = VW * some multiplier
+// We want 360° to equal the full perceived room sweep.
+// At VW=1920, 1° = ~8px feels right. Scale with viewport.
+const DEG_TO_PX = () => VW() * 0.022;
+
+// ─── NAMED CAMERAS ────────────────────────────────────────────────────────
+
+// Each camera has:
+//   angle:   world angle in degrees (0=front, 90=right, 180=back, 270=left)
+//   roam:    true if roam mode activates automatically (director can drift)
+//   roamArc: override roam arc width in degrees (default ROAM_ARC)
+//   label:   display name
+
+const CAMERAS = {
+  front:      {angle:0,   roam:false, label:'FRONT'},
+  // Pete's angle — looking toward her from front-right
+  pete:       {angle:-25, roam:true,  label:'PETE', roamArc:20},
+  // Purfluous from front-left
+  purfluous:  {angle:30,  roam:true,  label:'PURF', roamArc:20},
+  // Looking from desk toward monitors
+  desk:       {angle:5,   roam:false, label:'DESK'},
+  // Reverse — from back of room looking toward stage
+  reverse:    {angle:175, roam:true,  roamArc:28, label:'REVERSE'},
+  // Control room POV through glass
+  control:    {angle:160, roam:true,  roamArc:22, label:'CTRL'},
+  // Stage left — shooting across
+  stage_left: {angle:-75, roam:true,  roamArc:25, label:'STAGE L'},
+  // Stage right — shooting across
+  stage_right:{angle:75,  roam:true,  roamArc:25, label:'STAGE R'},
+};
+
+let activeCamName = 'front';
+
+// ─── ANIMATION STATE ──────────────────────────────────────────────────────
+
+let moodColor = {r:229, g:193, b:126};
+let targetMoodColor = {r:229, g:193, b:126};
+
+const MOOD_COLORS = {
+  warm:       {r:229,g:193,b:126},
+  theatrical: {r:192,g:120,b:224},
+  tense:      {r:220,g:100,b:80},
+  cool:       {r:109,g:214,b:199},
+  dark:       {r:80,g:60,b:40},
+  neutral:    {r:229,g:193,b:126},
+};
+
+const ACTION_LIBRARY_FALLBACK = {
+  idle: {label:'Idle', duration:2.0, category:'base'},
+  stand: {label:'Stand', duration:1.2, category:'base'},
+  walk: {label:'Walk', duration:2.0, category:'locomotion'},
+  run: {label:'Run', duration:1.3, category:'locomotion'},
+  jump: {label:'Jump', duration:0.9, category:'locomotion'},
+  crawl: {label:'Crawl', duration:2.4, category:'locomotion'},
+  sit_desk: {label:'Sit At Desk', duration:2.0, category:'pose'},
+  sit_table: {label:'Sit At Dinner Table', duration:2.0, category:'pose'},
+  fall: {label:'Fall', duration:1.0, category:'pose'},
+  trip: {label:'Trip', duration:0.9, category:'pose'},
+  sleep: {label:'Sleep', duration:4.0, category:'pose'},
+  eat: {label:'Eat', duration:3.0, category:'interaction'},
+  hold_coffee: {label:'Hold Coffee Mug', duration:3.0, category:'interaction'},
+  film_camera: {label:'Film With Cinema Camera', duration:3.2, category:'interaction'},
+  work_console: {label:'Work At Console', duration:3.2, category:'interaction'},
+  climb_ladder: {label:'Climb Ladder', duration:3.0, category:'interaction'},
+  drive_car: {label:'Drive Car', duration:4.0, category:'interaction'},
+  ride_bike: {label:'Ride Bike', duration:4.0, category:'interaction'},
+  coat_on: {label:'Put On Coat', duration:2.4, category:'wardrobe'},
+  coat_off: {label:'Take Off Coat', duration:2.0, category:'wardrobe'},
+  hat_on: {label:'Put On Hat', duration:1.6, category:'wardrobe'},
+  hat_off: {label:'Take Off Hat', duration:1.4, category:'wardrobe'},
+  shoes_on: {label:'Put On Shoes', duration:2.4, category:'wardrobe'},
+  shoes_off: {label:'Take Off Shoes', duration:1.9, category:'wardrobe'},
+};
+
+const SPECIES_PRESETS = {
+  human: {gait:1.00, jump:1.00, crouch:1.00, tail:0.00},
+  dog:   {gait:0.85, jump:0.72, crouch:0.80, tail:1.00},
+  cat:   {gait:0.75, jump:0.95, crouch:0.72, tail:0.75},
+};
+
+const AVATAR_ALIAS_MAP = {
+  pete: 'pete',
+  'bot-pete': 'pete',
+  repete: 'repete',
+  're-pete': 'repete',
+  'bot-re-pete': 'repete',
+  purfluous: 'purfluous',
+  'sir-purfluous': 'purfluous',
+  'bot-purfluous': 'purfluous',
+};
+
+let actionLibrary = {...ACTION_LIBRARY_FALLBACK};
+const avatarRigs = {};
+let selectedAvatarId = 'pete';
+const movementKeys = new Set();
+const movementKeyMap = new Set(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright']);
+const FOOTSTEP_OMEGA = {
+  walk: 7.2,
+  run: 11.5,
+  crawl: 5.5,
+  climb_ladder: 6.0,
+};
+const CAMERA_ZONE = {
+  front: 'stage',
+  pete: 'stage',
+  purfluous: 'stage',
+  desk: 'stage',
+  stage_left: 'stage',
+  stage_right: 'stage',
+  reverse: 'back',
+  control: 'back',
+};
+let clientConstraints = {
+  enabled: true,
+  maxHorizontalSpeed: 2.2,
+  maxTurnRate: 220,
+  xMin: -2.4,
+  xMax: 2.4,
+  yMin: -1.1,
+  yMax: 1.8,
+  zMin: -2.0,
+  zMax: 2.0,
+};
+let previousCameraZone = CAMERA_ZONE.front;
+let foley = null;
+let foleyReady = false;
+let foleyEnabled = false;
+const foleyState = {
+  surface: 'carpet',
+  footwear: 'auto',
+  lounge: true,
+  projector: false,
+  breathTimer: null,
+  throatTimer: null,
+};
+
+function normalizeAvatarId(raw) {
+  const key = String(raw || '').trim().toLowerCase();
+  if (!key) return '';
+  if (AVATAR_ALIAS_MAP[key]) return AVATAR_ALIAS_MAP[key];
+  if (key.includes('purf')) return 'purfluous';
+  if (key.includes('re-pete') || key.includes('repete')) return 'repete';
+  if (key.includes('pete')) return 'pete';
+  return key;
+}
+
+function clamp(v, lo, hi) {
+  return Math.min(Math.max(v, lo), hi);
+}
+
+function wrapAngle(deg) {
+  return ((deg + 180) % 360 + 360) % 360 - 180;
+}
+
+function initAvatarRigs() {
+  document.querySelectorAll('.char-anchor[data-avatar]').forEach(anchor => {
+    const id = anchor.dataset.avatar;
+    const props = {};
+    anchor.querySelectorAll('[data-prop]').forEach(el => { props[el.dataset.prop] = el; });
+    avatarRigs[id] = {
+      id,
+      anchor,
+      species: 'human',
+      wear: {coat:false, hat:false, shoes:true},
+      action: 'idle',
+      actionIntensity: 1,
+      actionDuration: 2,
+      actionStartedAt: performance.now(),
+      actionAutoFromInput: false,
+      props,
+      worldTarget: {x:0, y:0, z:0, rx:0, ry:0, rz:0},
+      world: {x:0, y:0, z:0, rx:0, ry:0, rz:0},
+      moveIntent: {x:0, z:0, run:false},
+      foley: {lastStepIndex: null, lastStepAtMs: 0},
+    };
+  });
+}
+
+function applySpeciesPresetToAvatar(avatarId, species) {
+  const rig = avatarRigs[avatarId];
+  if (!rig) return;
+  rig.species = SPECIES_PRESETS[species] ? species : 'human';
+}
+
+function setAvatarAction(avatarId, action, opts = {}) {
+  const rig = avatarRigs[avatarId];
+  if (!rig) return;
+  const name = actionLibrary[action] ? action : 'idle';
+  const actionChanged = rig.action !== name;
+  rig.action = name;
+  rig.actionIntensity = clamp(Number(opts.intensity || 1), 0.1, 3.0);
+  rig.actionDuration = Math.max(0.2, Number(opts.duration || actionLibrary[name]?.duration || 2));
+  if (actionChanged || opts.forceReset) {
+    rig.actionStartedAt = performance.now();
+  }
+  rig.actionAutoFromInput = !!opts.autoFromInput;
+  rig.anchor.dataset.action = name;
+  if (actionChanged && rig.foley) {
+    rig.foley.lastStepIndex = null;
+  }
+
+  if (name === 'coat_on') rig.wear.coat = true;
+  if (name === 'coat_off') rig.wear.coat = false;
+  if (name === 'hat_on') rig.wear.hat = true;
+  if (name === 'hat_off') rig.wear.hat = false;
+  if (name === 'shoes_on') rig.wear.shoes = true;
+  if (name === 'shoes_off') rig.wear.shoes = false;
+}
+
+function computeActionPose(rig, nowMs) {
+  const species = SPECIES_PRESETS[rig.species] || SPECIES_PRESETS.human;
+  const t = (nowMs - rig.actionStartedAt) / 1000;
+  const i = rig.actionIntensity;
+  const gait = species.gait;
+  const pose = {
+    dx: 0, dy: 0, dz: 0,
+    yaw: 0, lean: 0, tilt: 0,
+    scale: 1,
+    props: {
+      mug: false, camera: false, console: false, food: false, ladder: false,
+      steering: false, bike: false,
+      coat: rig.wear.coat, hat: rig.wear.hat, shoes: rig.wear.shoes,
+    },
+  };
+
+  switch (rig.action) {
+    case 'walk':
+      pose.dx = Math.sin(t * 7.2) * 7 * i * gait;
+      pose.dy = Math.abs(Math.sin(t * 7.2)) * 6 * i * gait;
+      pose.lean = Math.sin(t * 3.8) * 5 * i;
+      break;
+    case 'run':
+      pose.dx = Math.sin(t * 11.5) * 12 * i * gait;
+      pose.dy = Math.abs(Math.sin(t * 11.5)) * 11 * i * gait;
+      pose.lean = 12 + Math.sin(t * 9) * 3;
+      break;
+    case 'jump': {
+      const p = clamp(t / Math.max(rig.actionDuration, 0.001), 0, 1);
+      pose.dy = -Math.sin(p * Math.PI) * 42 * i * species.jump;
+      pose.scale = 1 + Math.sin(p * Math.PI) * 0.03;
+      break;
+    }
+    case 'crawl':
+      pose.dy = 24 * species.crouch;
+      pose.dx = Math.sin(t * 5.5) * 8 * i * gait;
+      pose.lean = 26;
+      break;
+    case 'sit_desk':
+      pose.dy = 28; pose.lean = 16; pose.props.console = true;
+      break;
+    case 'sit_table':
+      pose.dy = 30; pose.lean = 8; pose.props.food = true;
+      break;
+    case 'fall': {
+      const p = clamp(t / Math.max(rig.actionDuration, 0.001), 0, 1);
+      pose.dy = 36 * p; pose.tilt = 88 * p; pose.lean = 42 * p;
+      break;
+    }
+    case 'trip': {
+      const p = clamp(t / Math.max(rig.actionDuration, 0.001), 0, 1);
+      pose.dy = (p < 0.55 ? p * 28 : (1 - p) * 12);
+      pose.lean = p < 0.55 ? 34 * p : 34 * (1 - p);
+      pose.tilt = p < 0.6 ? -20 * p : 12 * (p - 0.6);
+      break;
+    }
+    case 'sleep':
+      pose.dy = 34; pose.tilt = 90; pose.yaw = Math.sin(t * 1.5) * 4; pose.props.coat = true;
+      break;
+    case 'eat':
+      pose.dy = 26; pose.lean = 12 + Math.sin(t * 5.5) * 5; pose.props.food = true;
+      break;
+    case 'hold_coffee':
+      pose.dy = 10; pose.props.mug = true; pose.lean = Math.sin(t * 2.4) * 3;
+      break;
+    case 'film_camera':
+      pose.dy = 12; pose.props.camera = true; pose.lean = 14; pose.yaw = Math.sin(t * 1.8) * 6;
+      break;
+    case 'work_console':
+      pose.dy = 20; pose.props.console = true; pose.lean = 10 + Math.sin(t * 8.5) * 3;
+      break;
+    case 'climb_ladder':
+      pose.props.ladder = true; pose.dy = 8 + Math.sin(t * 6) * 12; pose.lean = 20;
+      break;
+    case 'drive_car':
+      pose.dy = 16; pose.props.steering = true; pose.lean = 8 + Math.sin(t * 4) * 2;
+      break;
+    case 'ride_bike':
+      pose.dy = 14; pose.props.bike = true; pose.dx = Math.sin(t * 8) * 5; pose.lean = 10;
+      break;
+    case 'coat_on':
+      pose.props.coat = true; pose.lean = Math.sin(t * 6) * 8;
+      break;
+    case 'coat_off':
+      pose.props.coat = false; pose.lean = Math.sin(t * 6) * 8;
+      break;
+    case 'hat_on':
+      pose.props.hat = true; pose.lean = Math.sin(t * 7) * 6;
+      break;
+    case 'hat_off':
+      pose.props.hat = false; pose.lean = Math.sin(t * 7) * 6;
+      break;
+    case 'shoes_on':
+      pose.props.shoes = true; pose.dy = 24;
+      break;
+    case 'shoes_off':
+      pose.props.shoes = false; pose.dy = 24;
+      break;
+    case 'stand':
+      pose.dy = 0;
+      break;
+    default:
+      pose.dy = Math.sin(t * 2.2) * 2.5;
+      break;
+  }
+  return pose;
+}
+
+function applyRigProps(rig, props) {
+  Object.entries(rig.props).forEach(([name, el]) => {
+    if (!el) return;
+    el.classList.toggle('on', !!props[name]);
+  });
+}
+
+function resolveRigFootwear(rig) {
+  if (foleyState.footwear === 'flats' || foleyState.footwear === 'heels') {
+    return foleyState.footwear;
+  }
+  if (rig.id === 'purfluous') return 'heels';
+  return 'flats';
+}
+
+function maybeTriggerFootstep(rig, nowMs) {
+  if (!foleyEnabled || !foleyReady || !foley) return;
+  const omegaBase = FOOTSTEP_OMEGA[rig.action];
+  if (!omegaBase) {
+    if (rig.foley) rig.foley.lastStepIndex = null;
+    return;
+  }
+
+  const omega = omegaBase * clamp(Number(rig.actionIntensity || 1), 0.5, 2.5);
+  const elapsedSec = Math.max(0, (nowMs - rig.actionStartedAt) / 1000);
+  const phaseIndex = Math.floor((elapsedSec * omega) / Math.PI);
+  if (!Number.isFinite(phaseIndex)) return;
+
+  if (!rig.foley) rig.foley = {lastStepIndex: phaseIndex, lastStepAtMs: nowMs};
+  if (rig.foley.lastStepIndex === null) {
+    rig.foley.lastStepIndex = phaseIndex;
+    return;
+  }
+  if (phaseIndex <= rig.foley.lastStepIndex) return;
+
+  const missing = Math.min(2, phaseIndex - rig.foley.lastStepIndex);
+  const isRun = rig.action === 'run';
+  for (let step = 0; step < missing; step += 1) {
+    foley.triggerFootstep({
+      surface: foleyState.surface,
+      footwear: resolveRigFootwear(rig),
+      gain: isRun ? 1.04 : 0.92,
+      pitch: isRun ? 1.04 : 1.0,
+      jitter: isRun ? 0.035 : 0.025,
+    });
+  }
+  rig.foley.lastStepIndex = phaseIndex;
+  rig.foley.lastStepAtMs = nowMs;
+}
+
+function clearAmbientVoiceTimers() {
+  if (foleyState.breathTimer) clearTimeout(foleyState.breathTimer);
+  if (foleyState.throatTimer) clearTimeout(foleyState.throatTimer);
+  foleyState.breathTimer = null;
+  foleyState.throatTimer = null;
+}
+
+function scheduleBreathAndThroat() {
+  clearAmbientVoiceTimers();
+  if (!foleyEnabled || !foleyReady || !foley) return;
+
+  const scheduleBreath = () => {
+    const ms = 20000 + Math.random() * 26000;
+    foleyState.breathTimer = setTimeout(() => {
+      if (foleyEnabled) foley.triggerBreath({gain: 0.56});
+      scheduleBreath();
+    }, ms);
+  };
+
+  const scheduleThroat = () => {
+    const ms = 70000 + Math.random() * 90000;
+    foleyState.throatTimer = setTimeout(() => {
+      if (foleyEnabled && Math.random() < 0.55) {
+        foley.triggerThroatClear({gain: 0.46});
+      }
+      scheduleThroat();
+    }, ms);
+  };
+
+  scheduleBreath();
+  scheduleThroat();
+}
+
+function maybeTriggerDoorTransition(nextCamName) {
+  if (!foleyEnabled || !foleyReady || !foley) return;
+  const nextZone = CAMERA_ZONE[nextCamName] || 'stage';
+  const prevZone = previousCameraZone || 'stage';
+  previousCameraZone = nextZone;
+  if (prevZone === nextZone) return;
+
+  foley.triggerDoor('open', {gain: 0.98});
+  setTimeout(() => {
+    if (foleyEnabled) foley.triggerDoor('close', {gain: 1.0});
+  }, 430);
+}
+
+async function initFoleySystem() {
+  if (!window.PubcastFoleyEngine) return;
+  if (!foley) {
+    foley = new window.PubcastFoleyEngine('/static/foley_manifest.json');
+  }
+  try {
+    await foley.init();
+    foleyReady = true;
+    const status = foley.getStatus();
+    foleyState.surface = status.surface || foleyState.surface;
+    foleyState.footwear = status.footwear_mode || foleyState.footwear;
+    const surfaceEl = document.getElementById('foleySurface');
+    const footwearEl = document.getElementById('foleyFootwear');
+    if (surfaceEl && foleyState.surface) surfaceEl.value = foleyState.surface;
+    if (footwearEl && foleyState.footwear) footwearEl.value = foleyState.footwear;
+  } catch (err) {
+    console.warn('Foley init failed', err);
+    foleyReady = false;
+  }
+}
+
+async function toggleFoleyAudio(forceOn = false) {
+  const btn = document.getElementById('audioEnableBtn');
+  if (!foleyReady || !foley) return false;
+  if (foleyEnabled && !forceOn) {
+    foleyEnabled = false;
+    foley.stopAllLoops();
+    clearAmbientVoiceTimers();
+    if (btn) btn.textContent = 'Enable Audio';
+    return false;
+  }
+
+  await foley.unlock();
+  foleyEnabled = true;
+  foley.setSurface(foleyState.surface);
+  foley.setFootwearMode(foleyState.footwear);
+  foley.setMasterVolume((Number(document.getElementById('masterVolume')?.value || 78)) / 100);
+  foley.setMusicVolume((Number(document.getElementById('musicVolume')?.value || 12)) / 100);
+  foley.setAmbienceVolume(0.2);
+  await foley.startDefaultBeds({loungeEnabled: foleyState.lounge});
+  await foley.setProjectorEnabled(foleyState.projector);
+  await foley.playCustomTrack();
+  scheduleBreathAndThroat();
+  if (btn) btn.textContent = 'Audio On';
+  return true;
+}
+
+function updateSelectedAvatarMovement(dt) {
+  const rig = avatarRigs[selectedAvatarId];
+  if (!rig) return;
+  const left = movementKeys.has('a') || movementKeys.has('arrowleft');
+  const right = movementKeys.has('d') || movementKeys.has('arrowright');
+  const up = movementKeys.has('w') || movementKeys.has('arrowup');
+  const down = movementKeys.has('s') || movementKeys.has('arrowdown');
+  const run = movementKeys.has('shift');
+  const active = left || right || up || down;
+
+  if (!active) {
+    if (rig.actionAutoFromInput) {
+      setAvatarAction(selectedAvatarId, 'idle', {intensity: 1, duration: 1.4, autoFromInput: false});
+    }
+    return;
+  }
+
+  const speed = run ? 2.8 : 1.5;
+  let vx = 0;
+  let vz = 0;
+  if (left) vx -= speed;
+  if (right) vx += speed;
+  if (up) vz += speed;
+  if (down) vz -= speed;
+  const len = Math.hypot(vx, vz) || 1;
+  vx /= len;
+  vz /= len;
+  rig.worldTarget.x += vx * speed * dt;
+  rig.worldTarget.z += vz * speed * dt;
+
+  if (clientConstraints.enabled) {
+    rig.worldTarget.x = clamp(rig.worldTarget.x, clientConstraints.xMin, clientConstraints.xMax);
+    rig.worldTarget.z = clamp(rig.worldTarget.z, clientConstraints.zMin, clientConstraints.zMax);
+  }
+  const desiredYaw = Math.atan2(vx, vz) * 180 / Math.PI;
+  let yawDelta = wrapAngle(desiredYaw - rig.worldTarget.ry);
+  const yawStep = (clientConstraints.maxTurnRate || 220) * dt;
+  yawDelta = clamp(yawDelta, -yawStep, yawStep);
+  rig.worldTarget.ry += yawDelta;
+
+  const desiredAction = run ? 'run' : 'walk';
+  if (rig.action !== desiredAction || !rig.actionAutoFromInput) {
+    setAvatarAction(selectedAvatarId, desiredAction, {
+      intensity: run ? 1.35 : 1,
+      duration: 0.9,
+      autoFromInput: true,
+    });
+  } else {
+    rig.actionIntensity = run ? 1.35 : 1;
+    rig.actionDuration = 0.9;
+    rig.actionAutoFromInput = true;
+  }
+}
+
+function updateAvatarRigs(dt, nowMs) {
+  updateSelectedAvatarMovement(dt);
+  Object.values(avatarRigs).forEach(rig => {
+    const lerp = 1 - Math.pow(0.02, dt * 60);
+    rig.world.x += (rig.worldTarget.x - rig.world.x) * lerp;
+    rig.world.y += (rig.worldTarget.y - rig.world.y) * lerp;
+    rig.world.z += (rig.worldTarget.z - rig.world.z) * lerp;
+    rig.world.rx += (rig.worldTarget.rx - rig.world.rx) * lerp;
+    rig.world.ry += wrapAngle(rig.worldTarget.ry - rig.world.ry) * lerp;
+    rig.world.rz += (rig.worldTarget.rz - rig.world.rz) * lerp;
+
+    const pose = computeActionPose(rig, nowMs);
+    const elapsed = (nowMs - rig.actionStartedAt) / 1000;
+    if (elapsed > rig.actionDuration && !rig.actionAutoFromInput && !['sleep', 'hold_coffee', 'drive_car', 'ride_bike', 'work_console'].includes(rig.action)) {
+      setAvatarAction(rig.id, 'idle', {duration: 1.6});
+    }
+
+    const pxX = (rig.world.x * 58) + pose.dx;
+    const pxY = (-rig.world.y * 66) + pose.dy;
+    const scale = 1 + (rig.world.z * 0.05) + (pose.scale - 1);
+    const yaw = (rig.world.ry * 0.82) + pose.yaw;
+    const lean = pose.lean + rig.world.rx;
+    const tilt = pose.tilt + rig.world.rz;
+
+    const constrainedScale = clientConstraints.enabled ? clamp(scale, 0.76, 1.26) : scale;
+    const constrainedYaw = clientConstraints.enabled ? clamp(yaw, -88, 88) : yaw;
+    const constrainedLean = clientConstraints.enabled ? clamp(lean, -55, 55) : lean;
+    const constrainedTilt = clientConstraints.enabled ? clamp(tilt, -92, 92) : tilt;
+    const constrainedX = clientConstraints.enabled ? clamp(pxX, -160, 160) : pxX;
+    const constrainedY = clientConstraints.enabled ? clamp(pxY, -86, 118) : pxY;
+
+    rig.anchor.style.transform =
+      `translate3d(${constrainedX}px, ${constrainedY}px, 0) rotateY(${constrainedYaw}deg) rotateX(${constrainedLean}deg) rotateZ(${constrainedTilt}deg) scale(${constrainedScale})`;
+
+    applyRigProps(rig, pose.props);
+    maybeTriggerFootstep(rig, nowMs);
+  });
+}
+
+function applyChoreoFrame(payload) {
+  if (!payload || (payload.room && payload.room !== ROOM)) return;
+  const avatars = Array.isArray(payload.avatars) ? payload.avatars : [];
+  avatars.forEach(entry => {
+    const id = normalizeAvatarId(entry.id);
+    const rig = avatarRigs[id];
+    if (!rig) return;
+    const pos = Array.isArray(entry.position) ? entry.position : [0, 0, 0];
+    const rot = Array.isArray(entry.rotation) ? entry.rotation : [0, 0, 0];
+    rig.worldTarget.x = Number(pos[0] || 0);
+    rig.worldTarget.y = Number(pos[1] || 0);
+    rig.worldTarget.z = Number(pos[2] || 0);
+    rig.worldTarget.rx = Number(rot[0] || 0);
+    rig.worldTarget.ry = Number(rot[1] || 0);
+    rig.worldTarget.rz = Number(rot[2] || 0);
+  });
+}
+
+async function fetchActionMetadata() {
+  try {
+    const res = await fetch('/api/choreo/actions', {cache:'no-store'});
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.actions && typeof data.actions === 'object') {
+        actionLibrary = data.actions;
+      }
+    }
+  } catch {}
+  const select = document.getElementById('actionSelect');
+  if (!select) return;
+  select.innerHTML = '';
+  Object.entries(actionLibrary).forEach(([key, cfg]) => {
+    const option = document.createElement('option');
+    option.value = key;
+    option.textContent = cfg.label || key;
+    select.appendChild(option);
+  });
+  if (select.options.length) select.value = 'walk';
+}
+
+async function fetchChoreoConstraints() {
+  try {
+    const res = await fetch('/api/choreo/constraints', {cache:'no-store'});
+    if (!res.ok) return;
+    const data = await res.json();
+    const c = data?.constraints;
+    if (!c) return;
+    clientConstraints.enabled = !!c.enabled;
+    clientConstraints.maxHorizontalSpeed = Number(c.max_horizontal_speed || clientConstraints.maxHorizontalSpeed);
+    clientConstraints.maxTurnRate = Number(c.max_turn_rate_deg || clientConstraints.maxTurnRate);
+    clientConstraints.xMin = Number(c.x_min ?? clientConstraints.xMin);
+    clientConstraints.xMax = Number(c.x_max ?? clientConstraints.xMax);
+    clientConstraints.yMin = Number(c.y_min ?? clientConstraints.yMin);
+    clientConstraints.yMax = Number(c.y_max ?? clientConstraints.yMax);
+    clientConstraints.zMin = Number(c.z_min ?? clientConstraints.zMin);
+    clientConstraints.zMax = Number(c.z_max ?? clientConstraints.zMax);
+  } catch {}
+  const enabled = document.getElementById('constraintEnabled');
+  const speed = document.getElementById('constraintSpeed');
+  const turn = document.getElementById('constraintTurn');
+  if (enabled) enabled.checked = !!clientConstraints.enabled;
+  if (speed) speed.value = String(clientConstraints.maxHorizontalSpeed);
+  if (turn) turn.value = String(clientConstraints.maxTurnRate);
+}
+
+async function sendActionCue(actionOverride = null) {
+  const avatar = document.getElementById('actionAvatar')?.value || selectedAvatarId;
+  const action = actionOverride || document.getElementById('actionSelect')?.value || 'idle';
+  const intensity = Number(document.getElementById('actionIntensity')?.value || 1);
+  const duration = Number(document.getElementById('actionDuration')?.value || 2);
+  const species = document.getElementById('actionSpecies')?.value || 'human';
+  selectedAvatarId = normalizeAvatarId(avatar) || 'pete';
+  applySpeciesPresetToAvatar(selectedAvatarId, species);
+  setAvatarAction(selectedAvatarId, action, {intensity, duration, forceReset: true});
+
+  try {
+    await fetch('/api/choreo/cue', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        room: ROOM,
+        avatar_id: selectedAvatarId,
+        action,
+        intensity,
+        duration,
+        props:{species},
+      }),
+    });
+  } catch {}
+}
+
+async function sendConstraintPatch(enabledOverride = null) {
+  const enabledEl = document.getElementById('constraintEnabled');
+  const speedEl = document.getElementById('constraintSpeed');
+  const turnEl = document.getElementById('constraintTurn');
+  const enabled = enabledOverride !== null ? !!enabledOverride : !!enabledEl?.checked;
+  const speed = Number(speedEl?.value || clientConstraints.maxHorizontalSpeed);
+  const turn = Number(turnEl?.value || clientConstraints.maxTurnRate);
+  clientConstraints.enabled = enabled;
+  clientConstraints.maxHorizontalSpeed = speed;
+  clientConstraints.maxTurnRate = turn;
+
+  try {
+    await fetch('/api/choreo/constraints', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        constraints: {
+          enabled,
+          max_horizontal_speed: speed,
+          max_turn_rate_deg: turn,
+        },
+      }),
+    });
+  } catch {}
+}
+
+function bindActionRigUi() {
+  document.getElementById('actionCueBtn')?.addEventListener('click', () => sendActionCue());
+  document.getElementById('actionIdleBtn')?.addEventListener('click', () => sendActionCue('idle'));
+  document.getElementById('constraintApplyBtn')?.addEventListener('click', () => sendConstraintPatch(null));
+  document.getElementById('constraintOffBtn')?.addEventListener('click', () => {
+    const enabled = document.getElementById('constraintEnabled');
+    if (enabled) enabled.checked = false;
+    sendConstraintPatch(false);
+  });
+  document.getElementById('actionAvatar')?.addEventListener('change', e => {
+    selectedAvatarId = normalizeAvatarId(e.target.value) || selectedAvatarId;
+    const rig = avatarRigs[selectedAvatarId];
+    const speciesSelect = document.getElementById('actionSpecies');
+    if (rig && speciesSelect) speciesSelect.value = rig.species || 'human';
+  });
+  document.getElementById('actionSpecies')?.addEventListener('change', e => {
+    applySpeciesPresetToAvatar(selectedAvatarId, e.target.value);
+  });
+  document.getElementById('actionSelect')?.addEventListener('change', e => {
+    const key = e.target.value;
+    const suggested = Number(actionLibrary[key]?.duration || 2);
+    const dur = document.getElementById('actionDuration');
+    if (dur) dur.value = String(suggested);
+  });
+
+  const surfaceEl = document.getElementById('foleySurface');
+  const footwearEl = document.getElementById('foleyFootwear');
+  const loungeEl = document.getElementById('loungeToggle');
+  const projectorEl = document.getElementById('projectorToggle');
+  const masterEl = document.getElementById('masterVolume');
+  const musicEl = document.getElementById('musicVolume');
+  const customEl = document.getElementById('customTrackInput');
+
+  if (surfaceEl) {
+    surfaceEl.value = foleyState.surface;
+    surfaceEl.addEventListener('change', e => {
+      foleyState.surface = e.target.value || 'carpet';
+      if (foleyReady && foley) foley.setSurface(foleyState.surface);
+    });
+  }
+  if (footwearEl) {
+    footwearEl.value = foleyState.footwear;
+    footwearEl.addEventListener('change', e => {
+      foleyState.footwear = e.target.value || 'auto';
+      if (foleyReady && foley) foley.setFootwearMode(foleyState.footwear);
+    });
+  }
+  if (loungeEl) {
+    loungeEl.checked = foleyState.lounge;
+    loungeEl.addEventListener('change', async e => {
+      foleyState.lounge = !!e.target.checked;
+      if (!foleyReady || !foley || !foleyEnabled) return;
+      await foley.setLoungeEnabled(foleyState.lounge);
+    });
+  }
+  if (projectorEl) {
+    projectorEl.checked = foleyState.projector;
+    projectorEl.addEventListener('change', async e => {
+      foleyState.projector = !!e.target.checked;
+      if (!foleyReady || !foley || !foleyEnabled) return;
+      await foley.setProjectorEnabled(foleyState.projector);
+    });
+  }
+  if (masterEl) {
+    masterEl.addEventListener('input', e => {
+      if (!foleyReady || !foley) return;
+      foley.setMasterVolume(Number(e.target.value || 78) / 100);
+    });
+  }
+  if (musicEl) {
+    musicEl.addEventListener('input', e => {
+      if (!foleyReady || !foley) return;
+      foley.setMusicVolume(Number(e.target.value || 12) / 100);
+    });
+  }
+  document.getElementById('audioEnableBtn')?.addEventListener('click', async () => {
+    if (!foleyReady) await initFoleySystem();
+    await toggleFoleyAudio(false);
+  });
+  customEl?.addEventListener('change', async e => {
+    const file = e.target.files && e.target.files[0];
+    if (!file || !foleyReady || !foley) return;
+    await foley.setCustomTrackFromFile(file);
+    if (foleyEnabled) await foley.playCustomTrack();
+    const hint = document.getElementById('audioHint');
+    if (hint) hint.textContent = `Custom track: ${file.name}`;
+  });
+  document.getElementById('customTrackClearBtn')?.addEventListener('click', async () => {
+    if (!foleyReady || !foley) return;
+    foley.clearCustomTrack();
+    if (foleyEnabled && foleyState.lounge) {
+      await foley.setLoungeEnabled(true);
+    }
+    const hint = document.getElementById('audioHint');
+    if (hint) hint.textContent = 'Quiet lounge audio is idle until a real audio source is connected.';
+    if (customEl) customEl.value = '';
+  });
+}
+
+function updatePerfHud() {
+  const dot = document.getElementById('perfDot');
+  const mini = document.getElementById('perfMiniText');
+  const p = (currentPerfProfile || 'medium').toLowerCase();
+  const fps = Math.max(1, Math.round(targetFps));
+  if (dot) {
+    dot.classList.remove('low', 'medium', 'high');
+    dot.classList.add(p);
+  }
+  if (mini) mini.textContent = `PERF ${p.toUpperCase()} • ${fps} FPS`;
+
+  const profileVal = document.getElementById('perfProfileVal');
+  const fpsVal = document.getElementById('perfFpsVal');
+  const fxVal = document.getElementById('perfFxVal');
+  const archVal = document.getElementById('perfArchVal');
+  if (profileVal) profileVal.textContent = p;
+  if (fpsVal) fpsVal.textContent = String(fps);
+  if (fxVal) fxVal.textContent = String(!!currentPerfSettings.stage_static_fx);
+  if (archVal) archVal.textContent = currentPerfSettings.architect_enabled ? 'enabled' : 'disabled';
+}
+
+function applyProfile(profileName, settings) {
+  currentPerfProfile = (profileName || 'medium').toLowerCase();
+  currentPerfSettings = settings || {};
+
+  const requestedFps = Number(settings?.stage_target_fps || 35);
+  targetFps = Number.isFinite(requestedFps) ? Math.max(10, Math.min(120, requestedFps)) : 35;
+  frameIntervalMs = 1000 / targetFps;
+
+  const staticFx = !!settings?.stage_static_fx;
+  document.body.classList.toggle('perf-static', staticFx);
+
+  updatePerfHud();
+}
+
+async function fetchPerformanceProfile() {
+  try {
+    const res = await fetch('/api/performance/status', {cache: 'no-store'});
+    if (!res.ok) return;
+    const data = await res.json();
+    const profile = data.profile || data.active_profile || 'medium';
+    const settings = data.settings || data.current || {};
+    applyProfile(profile, settings);
+  } catch {}
+}
+
+// ─── PARALLAX RENDER ──────────────────────────────────────────────────────
+
+function renderFrame() {
+  const deg = currentAngle;
+  const px = DEG_TO_PX();
+
+  Object.entries(LAYER_DEPTHS).forEach(([id, depth]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const shift = deg * px * depth;
+    el.style.transform = `translateX(${shift}px)`;
+  });
+
+  // Characters are world-space — they don't move with layers
+  // They stay at their absolute pixel positions, creating the correct
+  // depth relationship as the background moves behind them.
+  // (Characters are in layer-stage which has its own depth coefficient,
+  //  but their SVG sizes and positions create relative depth naturally.)
+
+  // Update compass
+  const needle = document.getElementById('compass-needle');
+  if (needle) needle.style.transform = `rotate(${-deg}deg)`;
+
+  // Roam arc indicator
+  if (isRoaming) {
+    const pct = (deg - (lockedAngle - ROAM_ARC)) / (ROAM_ARC * 2);
+    const clamped = Math.max(0, Math.min(1, pct));
+    const thumb = document.getElementById('roamThumb');
+    if (thumb) thumb.style.top = `${clamped * 28}px`;
+  }
+
+  // Mood light on ambient halo
+  const {r,g,b} = moodColor;
+  const halo = document.getElementById('ambiHalo');
+  if (halo) {
+    halo.style.background = `radial-gradient(ellipse 100% 100% at 50% 50%,
+      rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},0.07) 0%,
+      rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},0.025) 45%,
+      transparent 70%)`;
+  }
+}
+
+// ─── ANIMATION LOOP ───────────────────────────────────────────────────────
+
+let lastRaf = 0;
+function tick(ts) {
+  const dt = Math.min((ts - lastRaf) / 1000, 0.05);
+  lastRaf = ts;
+
+  // Smooth angle toward target
+  const diff = targetAngle - currentAngle;
+  currentAngle += diff * (1 - Math.pow(0.04, dt * 60));
+
+  // Mood color lerp
+  moodColor.r += (targetMoodColor.r - moodColor.r) * 0.015;
+  moodColor.g += (targetMoodColor.g - moodColor.g) * 0.015;
+  moodColor.b += (targetMoodColor.b - moodColor.b) * 0.015;
+
+  updateAvatarRigs(dt, ts);
+
+  if ((ts - lastRenderTs) >= frameIntervalMs) {
+    renderFrame();
+    lastRenderTs = ts;
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(t => { lastRaf = t; requestAnimationFrame(tick); });
+
+// ─── CAMERA SWITCHING ─────────────────────────────────────────────────────
+
+function switchCamera(name) {
+  const cam = CAMERAS[name];
+  if (!cam) return;
+  maybeTriggerDoorTransition(name);
+  activeCamName = name;
+  lockedAngle = cam.angle;
+  targetAngle = cam.angle;
+
+  // Auto-enable roam if camera supports it
+  const hadRoam = isRoaming;
+  isRoaming = !!cam.roam;
+
+  if (isRoaming !== hadRoam) toggleRoamUI(isRoaming);
+
+  document.getElementById('camLabel').textContent = 'CAM: ' + cam.label;
+  buildCamBar();
+}
+window.switchCamera = switchCamera;
+
+// ─── ROAM MODE ────────────────────────────────────────────────────────────
+
+function toggleRoam() {
+  isRoaming = !isRoaming;
+  toggleRoamUI(isRoaming);
+  if (!isRoaming) {
+    // Snap back to locked angle
+    targetAngle = lockedAngle;
+  }
+}
+
+function toggleRoamUI(on) {
+  const btn = document.getElementById('roamBtn');
+  if (btn) btn.classList.toggle('on', on);
+  const ind = document.getElementById('roam-indicator');
+  if (ind) ind.classList.toggle('active', on);
+}
+
+function toggleVitals() {
+  const panel = document.getElementById('perfVitals');
+  if (!panel) return;
+  panel.classList.toggle('on');
+}
+
+// ─── DRAG TO ROAM — mouse and touch ───────────────────────────────────────
+
+const panoRoot = document.getElementById('pano-root');
+
+function startDrag(x) {
+  if (!isRoaming) return;
+  roamDragActive = true;
+  roamStartX = x;
+  roamStartAngle = targetAngle;
+  panoRoot.style.cursor = 'grabbing';
+}
+
+function moveDrag(x) {
+  if (!roamDragActive) return;
+  const cam = CAMERAS[activeCamName] || {};
+  const arc = cam.roamArc || ROAM_ARC;
+  const sensitivity = 0.18;   // px per degree — tune for feel
+  const delta = (x - roamStartX) * sensitivity;
+  const raw = roamStartAngle - delta;
+  // Clamp to roam arc
+  targetAngle = Math.max(lockedAngle - arc, Math.min(lockedAngle + arc, raw));
+}
+
+function endDrag() {
+  if (!roamDragActive) return;
+  roamDragActive = false;
+  panoRoot.style.cursor = isRoaming ? 'grab' : 'default';
+  // Ease back toward locked angle when released
+  // Only if close — if user is holding position deliberately, let it sit
+  // Gentle return after .8s idle — implemented via setTimeout
+  clearTimeout(endDrag._timer);
+  endDrag._timer = setTimeout(() => {
+    if (!roamDragActive) targetAngle = lockedAngle;
+  }, 1800);
+}
+
+panoRoot.addEventListener('mousedown',  e => startDrag(e.clientX));
+window.addEventListener('mousemove',    e => moveDrag(e.clientX));
+window.addEventListener('mouseup',      () => endDrag());
+
+panoRoot.addEventListener('touchstart', e => startDrag(e.touches[0].clientX), {passive:true});
+window.addEventListener('touchmove',    e => moveDrag(e.touches[0].clientX), {passive:true});
+window.addEventListener('touchend',     () => endDrag());
+
+// Update cursor based on roam state
+function updateCursor() {
+  panoRoot.style.cursor = isRoaming ? 'grab' : 'default';
+}
+
+// ─── CAMERA BAR ───────────────────────────────────────────────────────────
+
+function buildCamBar() {
+  const bar = document.getElementById('camBar');
+  bar.innerHTML = '';
+
+  Object.entries(CAMERAS).forEach(([name, cam]) => {
+    const btn = document.createElement('button');
+    btn.className = 'cam-btn' + (activeCamName === name ? ' active' : '');
+    btn.textContent = cam.label;
+    btn.onclick = () => { switchCamera(name); updateCursor(); };
+    bar.appendChild(btn);
+  });
+
+  // Roam toggle
+  const roamBtn = document.createElement('button');
+  roamBtn.id = 'roamBtn';
+  roamBtn.className = 'roam-btn' + (isRoaming ? ' on' : '');
+  roamBtn.textContent = isRoaming ? '⟵ ROAM ⟶' : 'ROAM';
+  roamBtn.title = 'Toggle free camera roam (drag to look around)';
+  roamBtn.onclick = () => { toggleRoam(); updateCursor(); buildCamBar(); };
+  bar.appendChild(roamBtn);
+
+  const vitalsBtn = document.createElement('button');
+  vitalsBtn.className = 'cam-btn';
+  vitalsBtn.textContent = 'VITALS';
+  vitalsBtn.title = 'Toggle performance vitals panel';
+  vitalsBtn.onclick = () => toggleVitals();
+  bar.appendChild(vitalsBtn);
+}
+buildCamBar();
+
+// ─── MOOD ─────────────────────────────────────────────────────────────────
+
+window.setMoodColor = function(state) {
+  targetMoodColor = MOOD_COLORS[state] || MOOD_COLORS.neutral;
+};
+
+// ─── RECORDING ────────────────────────────────────────────────────────────
+
+let isRecording = false, mediaRecorder = null, recordedChunks = [];
+
+window.toggleRecord = function() {
+  if (isRecording) {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+    isRecording = false;
+    document.getElementById('recDot').classList.remove('on');
+    document.getElementById('recText').textContent = 'STANDBY';
+    document.getElementById('recBtn').classList.remove('on');
+    document.getElementById('recBtn').textContent = '● REC';
+  } else {
+    // DOM-based recording — recommend OBS for production
+    alert('For production recording use OBS screen capture.\nThis stage uses DOM rendering which cannot be captured via canvas.captureStream().');
+  }
+};
+
+// ─── WEBSOCKET ────────────────────────────────────────────────────────────
+
+let ws = null;
+const ROOM = new URLSearchParams(location.search).get('room') || 'studio';
+document.getElementById('roomLabel').textContent = 'ROOM: ' + ROOM.toUpperCase();
+
+function connectWS() {
+  try {
+    ws = new WebSocket(window.ReachAuth.websocketURL(`/ws/room/${encodeURIComponent(ROOM)}`));
+    ws.onmessage = e => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'chat' && msg.payload) {
+          addChatMessage(msg.payload.user||'Anon', msg.payload.text||'', msg.payload.user_id);
+        } else if (msg.type === 'history' && msg.payload) {
+          msg.payload.forEach(m => addChatMessage(m.user||'Anon', m.text||'', m.user_id));
+        } else if (msg.type === 'camera_switch' && msg.payload) {
+          if (msg.payload.target === 'program') {
+            const map = {
+              wide_shot:'front', medium_shot:'pete', close_up:'purfluous',
+              overhead:'desk', stage_left:'stage_left', stage_right:'stage_right',
+              reverse:'reverse', control_room:'control',
+            };
+            const cam = map[msg.payload.source_id] || msg.payload.source_id;
+            switchCamera(cam); updateCursor();
+          }
+        } else if (msg.type === 'mood_change' && msg.payload) {
+          window.setMoodColor(msg.payload.state || 'neutral');
+        } else if (msg.type === 'choreo_frame' && msg.payload) {
+          applyChoreoFrame(msg.payload);
+        } else if (msg.type === 'avatar_action_cue' && msg.payload) {
+          if (!msg.payload.room || msg.payload.room === ROOM) {
+            const avatarId = normalizeAvatarId(msg.payload.avatar_id);
+            if (avatarId && avatarRigs[avatarId]) {
+              if (msg.payload.props?.species) applySpeciesPresetToAvatar(avatarId, msg.payload.props.species);
+              setAvatarAction(avatarId, msg.payload.action || 'idle', {
+                intensity: msg.payload.intensity || 1,
+                duration: msg.payload.duration || 2,
+                forceReset: true,
+              });
+            }
+          }
+        } else if (msg.type === 'gesture_triggered' && msg.payload) {
+          const avatarId = normalizeAvatarId(msg.payload.user_id);
+          const gestureToAction = {
+            wave: 'walk',
+            point: 'work_console',
+            nod: 'sit_desk',
+            ponder: 'hold_coffee',
+          };
+          const resolved = gestureToAction[msg.payload.gesture] || 'stand';
+          if (avatarId && avatarRigs[avatarId]) {
+            setAvatarAction(avatarId, resolved, {
+              intensity: msg.payload.intensity || 1,
+              duration: 1.4,
+            });
+          }
+        } else if (msg.type === 'avatar_mood_changed' && msg.payload) {
+          if (msg.payload.mood) window.setMoodColor(msg.payload.mood);
+        } else if (msg.type === 'performance_profile_changed' && msg.payload) {
+          applyProfile(msg.payload.profile || 'medium', msg.payload.settings || {});
+        } else if (msg.type === 'choreo_constraints' && msg.payload) {
+          clientConstraints.enabled = !!msg.payload.enabled;
+          clientConstraints.maxHorizontalSpeed = Number(msg.payload.max_horizontal_speed || clientConstraints.maxHorizontalSpeed);
+          clientConstraints.maxTurnRate = Number(msg.payload.max_turn_rate_deg || clientConstraints.maxTurnRate);
+          clientConstraints.xMin = Number(msg.payload.x_min ?? clientConstraints.xMin);
+          clientConstraints.xMax = Number(msg.payload.x_max ?? clientConstraints.xMax);
+          clientConstraints.yMin = Number(msg.payload.y_min ?? clientConstraints.yMin);
+          clientConstraints.yMax = Number(msg.payload.y_max ?? clientConstraints.yMax);
+          clientConstraints.zMin = Number(msg.payload.z_min ?? clientConstraints.zMin);
+          clientConstraints.zMax = Number(msg.payload.z_max ?? clientConstraints.zMax);
+          const enabled = document.getElementById('constraintEnabled');
+          if (enabled) enabled.checked = clientConstraints.enabled;
+        } else if (msg.type === 'production_state' && msg.payload) {
+          if (msg.payload.current_room) {
+            document.getElementById('roomLabel').textContent =
+              'ROOM: ' + msg.payload.current_room.toUpperCase();
+          }
+        }
+      } catch {}
+    };
+    ws.onclose = () => setTimeout(connectWS, 3000);
+  } catch {}
+}
+
+window.sendChat = function() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text || !ws || ws.readyState !== 1) return;
+  if (foleyEnabled && foleyReady && foley) {
+    foley.triggerTypewriter({gain: 0.48, pitch: 0.98, jitter: 0.03});
+  }
+  ws.send(JSON.stringify({type:'chat', user:'Director', text, user_id:'director'}));
+  input.value = '';
+};
+
+document.getElementById('chatInput').addEventListener('keydown', e => {
+  if (foleyEnabled && foleyReady && foley) {
+    const printable = e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
+    if (printable) {
+      foley.triggerTypewriter({gain: 0.32, pitch: 1.03, jitter: 0.05});
+    } else if (e.key === 'Backspace' || e.key === 'Delete') {
+      foley.triggerTypewriter({gain: 0.26, pitch: 0.9, jitter: 0.02});
+    }
+  }
+  if (e.key === 'Enter') window.sendChat();
+});
+
+function addChatMessage(user, text, userId) {
+  const div = document.createElement('div');
+  div.className = 'chat-msg';
+  const isBot = userId && (userId.startsWith('bot-') || userId.startsWith('agent:'));
+  const esc = text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  div.innerHTML = `<span class="${isBot?'bot':'user'}">${user}:</span> <span class="text">${esc}</span>`;
+  const c = document.getElementById('chatMessages');
+  c.appendChild(div); c.scrollTop = c.scrollHeight;
+}
+
+// ─── TIMECODE ─────────────────────────────────────────────────────────────
+
+setInterval(() => {
+  const now = new Date();
+  const p = n => String(n).padStart(2,'0');
+  const f = Math.floor((now.getMilliseconds()/1000)*30);
+  document.getElementById('timecode').textContent =
+    `${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}:${p(f)}`;
+}, 100);
+
+// ─── KEYBOARD ─────────────────────────────────────────────────────────────
+
+document.addEventListener('keydown', e => {
+  const key = String(e.key || '').toLowerCase();
+  if (movementKeyMap.has(key) || key === 'shift') {
+    movementKeys.add(key);
+    if (movementKeyMap.has(key)) e.preventDefault();
+  }
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+
+  const keys = {
+    '1':'front','2':'pete','3':'purfluous','4':'desk',
+    '5':'reverse','6':'control','7':'stage_left','8':'stage_right',
+  };
+  if (keys[e.key]) { switchCamera(keys[e.key]); updateCursor(); return; }
+  if (e.key === ' ') { e.preventDefault(); sendActionCue('jump'); return; }
+  if (e.key === 'x' || e.key === 'X') { sendActionCue('sit_desk'); return; }
+  if (e.key === 'c' || e.key === 'C') { sendActionCue('crawl'); return; }
+  if (e.key === 'f' || e.key === 'F') { sendActionCue('film_camera'); return; }
+  if (e.key === 'Tab') { e.preventDefault(); toggleRoam(); updateCursor(); buildCamBar(); }
+  if (e.key === 'r' || e.key === 'R') window.toggleRecord();
+});
+
+document.addEventListener('keyup', e => {
+  const key = String(e.key || '').toLowerCase();
+  movementKeys.delete(key);
+});
+
+let autoAudioAttempted = false;
+async function attemptAutoAudioEnable() {
+  if (autoAudioAttempted || foleyEnabled) return;
+  autoAudioAttempted = true;
+  if (!foleyReady) await initFoleySystem();
+  await toggleFoleyAudio(true);
+}
+window.addEventListener('pointerdown', () => { attemptAutoAudioEnable(); }, {once:true});
+window.addEventListener('keydown', () => { attemptAutoAudioEnable(); }, {once:true});
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────
+
+initAvatarRigs();
+bindActionRigUi();
+initFoleySystem();
+fetchActionMetadata();
+fetchChoreoConstraints();
+switchCamera('front');
+fetchPerformanceProfile();
+updatePerfHud();
+connectWS();
+</script>
+</body>
+</html>

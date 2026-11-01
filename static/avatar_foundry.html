@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>PubCast — Avatar Foundry</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#080b10;--s:#0f1219;--s2:#161c27;--border:rgba(0,224,255,0.08);--accent:#00e0ff;--accent2:#7b68ee;--text:#b8bdd0;--bright:#eef0f6;--muted:#4a5068;--r:8px}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh;
+      background-image:radial-gradient(ellipse at 50% 0%,rgba(0,224,255,0.07),transparent 60%)}
+    header{display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;border-bottom:1px solid var(--border);background:rgba(8,11,16,0.95);position:sticky;top:0;z-index:100}
+    .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;color:var(--accent);letter-spacing:0.04em}
+    .back{color:var(--muted);font-size:0.72rem;text-decoration:none}
+    .back:hover{color:var(--accent)}
+    main{max-width:1200px;margin:0 auto;padding:2rem 1.5rem;display:grid;grid-template-columns:1fr 280px;gap:2rem}
+    @media(max-width:800px){main{grid-template-columns:1fr}}
+    h2{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--accent);margin-bottom:1rem}
+
+    /* Preset grid */
+    .preset-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1rem}
+    .preset-card{
+      background:var(--s);border:2px solid transparent;border-radius:var(--r);
+      padding:1.5rem 1rem 1rem;cursor:pointer;text-align:center;
+      transition:border-color 0.15s,background 0.15s,transform 0.15s;
+    }
+    .preset-card:hover{background:var(--s2);transform:translateY(-3px)}
+    .preset-card.active{border-color:var(--accent);background:rgba(0,224,255,0.04)}
+    .preset-orb{
+      width:72px;height:72px;border-radius:50%;margin:0 auto 0.8rem;
+      display:flex;align-items:center;justify-content:center;font-size:2rem;
+      box-shadow:0 0 20px currentColor;
+    }
+    .preset-name{font-size:0.78rem;color:var(--bright);margin-bottom:0.2rem;font-weight:500}
+    .preset-body{font-size:0.65rem;color:var(--muted)}
+    .preset-badge{display:inline-block;font-size:0.58rem;text-transform:uppercase;letter-spacing:0.08em;padding:0.15rem 0.5rem;border-radius:100px;border:1px solid var(--border);color:var(--muted);margin-top:0.4rem}
+
+    /* Side panel */
+    .side{display:flex;flex-direction:column;gap:1.2rem}
+    .card{background:var(--s);border:1px solid var(--border);border-radius:var(--r);padding:1.2rem}
+
+    /* Live preview */
+    .preview-orb{
+      width:100px;height:100px;border-radius:50%;margin:0 auto 1rem;
+      display:flex;align-items:center;justify-content:center;font-size:2.8rem;
+      transition:background 0.4s,box-shadow 0.4s;
+    }
+    .preview-name{text-align:center;font-size:0.85rem;color:var(--bright);margin-bottom:0.25rem}
+    .preview-sub{text-align:center;font-size:0.65rem;color:var(--muted)}
+
+    /* Controls */
+    label{display:flex;flex-direction:column;gap:0.25rem;font-size:0.7rem;color:var(--muted);margin-bottom:0.8rem}
+    input[type=text],select{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);color:var(--bright);font-family:inherit;font-size:0.78rem;padding:0.45rem 0.7rem;width:100%;transition:border-color 0.15s}
+    input:focus,select:focus{outline:none;border-color:var(--accent)}
+    input[type=range]{width:100%;accent-color:var(--accent)}
+    .color-row{display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.3rem}
+    .cswatch{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color 0.15s,transform 0.15s;flex-shrink:0}
+    .cswatch:hover,.cswatch.active{border-color:var(--bright);transform:scale(1.15)}
+    input[type=color]{width:28px;height:28px;padding:2px;border-radius:50%;border:1px solid var(--border);cursor:pointer;background:none}
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;font-size:0.75rem;color:var(--text);margin-bottom:0.6rem}
+    .toggle{width:36px;height:20px;background:var(--s2);border-radius:100px;position:relative;cursor:pointer;transition:background 0.2s;border:1px solid var(--border)}
+    .toggle.on{background:var(--accent)}
+    .toggle::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform 0.2s}
+    .toggle.on::after{transform:translateX(16px)}
+    .btn{width:100%;background:var(--accent);border:none;border-radius:var(--r);color:#080b10;font-family:inherit;font-size:0.78rem;font-weight:500;padding:0.65rem;cursor:pointer;transition:opacity 0.15s;margin-top:0.3rem}
+    .btn:hover{opacity:0.85}
+    .save-status{font-size:0.68rem;color:var(--accent);text-align:center;min-height:1.2em;margin-top:0.4rem;opacity:0;transition:opacity 0.3s}
+    .save-status.show{opacity:1}
+  </style>
+</head>
+<body>
+<header>
+  <span class="logo">Avatar Foundry</span>
+  <a class="back" href="/">← Hub</a>
+</header>
+<main>
+  <!-- Preset picker -->
+  <div>
+    <h2>Choose Your Form</h2>
+    <div class="preset-grid" id="presetGrid">
+      <div style="color:var(--muted);font-size:0.75rem;padding:1rem;grid-column:1/-1">Loading presets…</div>
+    </div>
+  </div>
+
+  <!-- Config panel -->
+  <div class="side">
+    <!-- Live preview -->
+    <div class="card" style="text-align:center">
+      <h2 style="text-align:left">Live Preview</h2>
+      <div class="preview-orb" id="prevOrb">🎭</div>
+      <div class="preview-name" id="prevName">—</div>
+      <div class="preview-sub" id="prevSub">—</div>
+    </div>
+
+    <!-- Customise -->
+    <div class="card">
+      <h2>Customise</h2>
+
+      <label>Display Name
+        <input type="text" id="displayName" placeholder="Your name" maxlength="40">
+      </label>
+
+      <label>Glow Colour</label>
+      <div class="color-row">
+        <div class="cswatch" style="background:#00e0ff" data-c="#00e0ff" onclick="pickGlow(this)"></div>
+        <div class="cswatch" style="background:#7b68ee" data-c="#7b68ee" onclick="pickGlow(this)"></div>
+        <div class="cswatch" style="background:#4ade80" data-c="#4ade80" onclick="pickGlow(this)"></div>
+        <div class="cswatch" style="background:#d97706" data-c="#d97706" onclick="pickGlow(this)"></div>
+        <div class="cswatch" style="background:#e05599" data-c="#e05599" onclick="pickGlow(this)"></div>
+        <div class="cswatch" style="background:#f97316" data-c="#f97316" onclick="pickGlow(this)"></div>
+        <input type="color" id="glowCustom" value="#00e0ff" oninput="applyGlow(this.value)" title="Custom glow">
+      </div>
+
+      <div style="margin:0.8rem 0 0.4rem">
+        <label for="energy">Energy Level — <span id="energyVal">1.0</span>
+          <input type="range" id="energy" min="0" max="2" step="0.1" value="1.0" oninput="document.getElementById('energyVal').textContent=parseFloat(this.value).toFixed(1);updatePreview()">
+        </label>
+      </div>
+
+      <label>Hologram Mode
+        <select id="hMode" onchange="updatePreview()">
+          <option value="energy">Energy</option>
+          <option value="ghost">Ghost</option>
+          <option value="solid">Solid</option>
+        </select>
+      </label>
+
+      <div class="toggle-row">
+        <span>Visible to Others</span>
+        <div class="toggle on" id="visToggle" onclick="toggleVis(this)"></div>
+      </div>
+
+      <button class="btn" onclick="saveAvatar()">Save Avatar</button>
+      <div class="save-status" id="saveStatus">✓ Saved</div>
+    </div>
+
+    <!-- Photo bake link -->
+    <div class="card">
+      <h2>Photo Portrait</h2>
+      <p style="font-size:0.72rem;color:var(--muted);margin-bottom:0.8rem">Upload a photo to bake a voxel portrait — face clearly visible for best results.</p>
+      <a href="/dressing" style="display:block;text-align:center;font-size:0.75rem;color:var(--accent);border:1px solid var(--border);border-radius:var(--r);padding:0.5rem">→ Go to Dressing Room to upload</a>
+    </div>
+  </div>
+</main>
+
+<script>
+let _state = { preset: 'MANNY', glow_color: '#00e0ff', display_name: '', energy_level: 1.0, hologram_mode: 'energy', visible: true };
+let _presets = [];
+
+const PRESET_EMOJI = { MANNY:'🧑', FELICIA:'👩', TINY:'👶', KAI:'🧒', SPECTRAL:'👻', BISCUIT:'🐕', ROBO:'🤖', ANON:'🟦' };
+
+async function loadPresets() {
+  try {
+    const r = await fetch('/api/avatars/presets');
+    if (!r.ok) return;
+    const d = await r.json();
+    _presets = d.presets || [];
+    renderPresets();
+  } catch(e) { console.warn('foundry: presets load failed', e); }
+}
+
+async function loadMe() {
+  try {
+    const r = await fetch('/api/avatars/me');
+    if (!r.ok) return;
+    const d = await r.json();
+    _state = { ..._state, ...d };
+    document.getElementById('displayName').value = _state.display_name || '';
+    document.getElementById('energy').value = _state.energy_level ?? 1.0;
+    document.getElementById('energyVal').textContent = (_state.energy_level ?? 1.0).toFixed(1);
+    document.getElementById('hMode').value = _state.hologram_mode || 'energy';
+    const vis = document.getElementById('visToggle');
+    vis.classList.toggle('on', _state.visible !== false);
+    applyGlow(_state.glow_color || '#00e0ff');
+    renderPresets();
+    updatePreview();
+  } catch(e) { console.warn('foundry: me load failed', e); }
+}
+
+function renderPresets() {
+  const grid = document.getElementById('presetGrid');
+  if (!_presets.length) { grid.innerHTML = '<div style="color:var(--muted);font-size:0.75rem;padding:1rem;grid-column:1/-1">No presets available</div>'; return; }
+  grid.innerHTML = _presets.map(p => {
+    const emoji = PRESET_EMOJI[p.preset_id] || '🎭';
+    const color = _state.glow_color || '#00e0ff';
+    const active = p.preset_id === _state.preset ? 'active' : '';
+    return `<div class="preset-card ${active}" onclick="selectPreset('${p.preset_id}',this)">
+      <div class="preset-orb" style="color:${color};background:${color}22">${emoji}</div>
+      <div class="preset-name">${p.name || p.preset_id}</div>
+      <div class="preset-body">${p.body_type || 'humanoid'}</div>
+      <span class="preset-badge">${p.preset_id}</span>
+    </div>`;
+  }).join('');
+}
+
+function selectPreset(id, el) {
+  _state.preset = id;
+  document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  updatePreview();
+}
+
+function applyGlow(hex) {
+  _state.glow_color = hex;
+  document.getElementById('glowCustom').value = hex;
+  document.querySelectorAll('.cswatch').forEach(s => s.classList.toggle('active', s.dataset.c === hex));
+  updatePreview();
+  // Re-render preset orbs with new glow
+  document.querySelectorAll('.preset-orb').forEach(o => { o.style.color = hex; o.style.background = hex + '22'; });
+}
+
+function pickGlow(el) { applyGlow(el.dataset.c); }
+
+function toggleVis(el) {
+  el.classList.toggle('on');
+  _state.visible = el.classList.contains('on');
+}
+
+function updatePreview() {
+  const preset = _presets.find(p => p.preset_id === _state.preset);
+  const emoji = PRESET_EMOJI[_state.preset] || '🎭';
+  const glow = _state.glow_color || '#00e0ff';
+  const orb = document.getElementById('prevOrb');
+  orb.textContent = emoji;
+  orb.style.background = glow + '22';
+  orb.style.boxShadow = `0 0 24px ${glow}88`;
+  document.getElementById('prevName').textContent = document.getElementById('displayName').value || _state.display_name || 'Unnamed';
+  const energy = parseFloat(document.getElementById('energy').value);
+  const mode = document.getElementById('hMode').value;
+  document.getElementById('prevSub').textContent = `${preset?.name || _state.preset} · ${mode} · ⚡${energy.toFixed(1)}`;
+}
+
+document.getElementById('displayName').addEventListener('input', updatePreview);
+
+async function saveAvatar() {
+  _state.display_name = document.getElementById('displayName').value;
+  _state.energy_level = parseFloat(document.getElementById('energy').value);
+  _state.hologram_mode = document.getElementById('hMode').value;
+  _state.visible = document.getElementById('visToggle').classList.contains('on');
+  try {
+    await fetch('/api/avatars/me', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(_state),
+    });
+    const st = document.getElementById('saveStatus');
+    st.classList.add('show');
+    setTimeout(() => st.classList.remove('show'), 2000);
+  } catch(e) { console.error('foundry: save failed', e); }
+}
+
+loadPresets().then(loadMe);
+</script>
+</body>
+</html>

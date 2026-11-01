@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "id": "pubcast25d-1793479223040-eu9fyn",
+  "packageId": "news",
+  "startedAt": "2026-10-31T20:40:23.040Z",
+  "endedAt": "2026-10-31T20:40:33.959Z",
+  "events": [
+    {
+      "offsetMs": 0,
+      "type": "production.start",
+      "payload": {
+        "package": "news",
+        "program": "wide"
+      }
+    },
+    {
+      "offsetMs": 120,
+      "type": "camera.shared_state",
+      "payload": {
+        "program": "wide",
+        "preview": "anchor",
+        "transition": {
+          "type": "cut",
+          "duration_ms": 0
+        }
+      }
+    },
+    {
+      "offsetMs": 5954,
+      "type": "recording.start",
+      "payload": {
+        "mime": "video/webm;codecs=vp9,opus",
+        "microphone": false,
+        "sharedProgramMix": true,
+        "canvas": [
+          1280,
+          720
+        ]
+      }
+    },
+    {
+      "offsetMs": 6447,
+      "type": "cue.animation",
+      "payload": {
+        "performer": "p25d-news-performer-1",
+        "clipPattern": "wave|gesture|talk|cheer|nod|react|point|look|greet"
+      }
+    },
+    {
+      "offsetMs": 6902,
+      "type": "cue.blocking",
+      "payload": {
+        "performer": "p25d-news-performer-1",
+        "from": 0.5,
+        "to": 0.57,
+        "y": 0.8
+      }
+    },
+    {
+      "offsetMs": 8219,
+      "type": "camera.shared_state",
+      "payload": {
+        "program": "anchor",
+        "preview": "wide",
+        "transition": {
+          "type": "cut",
+          "duration_ms": 0
+        }
+      }
+    },
+    {
+      "offsetMs": 8219,
+      "type": "camera.cut",
+      "payload": {
+        "from": "wide",
+        "to": "anchor",
+        "durationMs": 0,
+        "shared": true
+      }
+    },
+    {
+      "offsetMs": 10187,
+      "type": "recording.stop",
+      "payload": {
+        "bytes": 65157,
+        "mime": "video/webm;codecs=vp9,opus"
+      }
+    },
+    {
+      "offsetMs": 10919,
+      "type": "production.stop",
+      "payload": {}
+    }
+  ],
+  "recordings": [
+    {
+      "id": "pubcast25d-1793479223040-eu9fyn-take-1793479228993",
+      "mime": "video/webm;codecs=vp9,opus",
+      "bytes": 65157,
+      "startedAt": "2026-10-31T20:40:28.993Z",
+      "offsetMs": 5953,
+      "durationMs": 4234,
+      "incomplete": false
+    }
+  ],
+  "media": {
+    "id": "pubcast25d-1793479223040-eu9fyn-take-1793479228993",
+    "mime": "video/webm;codecs=vp9,opus",
+    "bytes": 65157,
+    "startedAt": "2026-10-31T20:40:28.993Z",
+    "offsetMs": 5953,
+    "durationMs": 4234,
+    "incomplete": false
+  }
+}

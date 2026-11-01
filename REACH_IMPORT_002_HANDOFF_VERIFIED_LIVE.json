@@ -1,0 +1,133 @@
+{
+  "operation": "overlay_final_verified_live_files_from_master_handoff",
+  "count": 18,
+  "changed_count": 17,
+  "files": [
+    {
+      "path": "main.py",
+      "authority_source": "FULL_SESSION_HANDOFF/code_and_reports/main.py",
+      "before_sha256": "43cd88e0a312558bfe338f8797da72885719591999d3c4a8d83f27ddba1f3243",
+      "after_sha256": "60e73d651628d826a5f44e6058127ad17abd2457209e780c740596e01288eea7",
+      "changed": true
+    },
+    {
+      "path": "modules/pete_enhanced.py",
+      "authority_source": "FULL_SESSION_HANDOFF/code_and_reports/pete_enhanced.py",
+      "before_sha256": "f4e044f55007c3e69ad3dcc82fe4e84a6a6205d0a98be235bb2980291d7da486",
+      "after_sha256": "7227a92aed09ebe938898022483c0aa768979405ac63ccda12755550cf0ee9d3",
+      "changed": true
+    },
+    {
+      "path": "modules/cameras_advanced.py",
+      "authority_source": "FULL_SESSION_HANDOFF/code_and_reports/cameras_advanced.py",
+      "before_sha256": "0a9a295b399642e51941805dde0611d4a935578f608ed05bf00298dac1c515c2",
+      "after_sha256": "bed5917d33fc9770e15f8105efcc30a680968229f3103e63e0fa6b6a8465ed8f",
+      "changed": true
+    },
+    {
+      "path": "modules/hub.py",
+      "authority_source": "FULL_SESSION_HANDOFF/code_and_reports/hub.py",
+      "before_sha256": "80f4b39ff9c1b67153a53d96a43ab5901d8fb219dcbeb8151fb732adb8457147",
+      "after_sha256": "faca6f8900ff11f1181ebb1ad8d6c96fe222cdc5d18c84f6c493ddca473253a0",
+      "changed": true
+    },
+    {
+      "path": "modules/bridge.py",
+      "authority_source": "FULL_SESSION_HANDOFF/code_and_reports/bridge.py",
+      "before_sha256": "dc5a8162cbcb687e8bade56cf81a2ebdf2c6493bfee300eaf65329f6defd61af",
+      "after_sha256": "b351963fd3ea88c08841d33f429666b134cf86b3ea8e08691daffa9dd614450c",
+      "changed": true
+    },
+    {
+      "path": "modules/voxel_asset_manager.py",
+      "authority_source": "FULL_SESSION_HANDOFF/code_and_reports/voxel_asset_manager.py",
+      "before_sha256": "7b80bedc8513dfc3c6363566fdbd8e4e1c7eabb417242f20c670c2875932342a",
+      "after_sha256": "8517febe526cfbaa646f51ec0a2606c86f34f45fe69b1cbe5729e2b8fd2110b2",
+      "changed": true
+    },
+    {
+      "path": "modules/jeremy_cricket.py",
+      "authority_source": "FULL_SESSION_HANDOFF/code_and_reports/jeremy_cricket.py",
+      "before_sha256": "953ccc0b13d6a14262b94454ed0501af7c5874fce6b1a4318aac88ba763e286a",
+      "after_sha256": "d58397c8f94d75307643e4789255d28054de8b86aa6e1de66f567a9fb9a76de6",
+      "changed": true
+    },
+    {
+      "path": "modules/voxel_studio.py",
+      "authority_source": "FULL_SESSION_HANDOFF/code_and_reports/voxel_studio.py",
+      "before_sha256": null,
+      "after_sha256": "d55a2774b369bcbb55d41efe098150223fcbcb55b4771a29fdf6fb03e0d336b3",
+      "changed": true
+    },
+    {
+      "path": "modules/bubble_stack.py",
+      "authority_source": "FULL_SESSION_HANDOFF/code_and_reports/bubble_stack.py",
+      "before_sha256": "fb53ae6445c320422d299eeecaf7a5e0ab5e339345fcd998ae5f1a134b590b3a",
+      "after_sha256": "b32941649d8cebb3f876bf58777a1000d381f983b32129e17df2ce7302c666e7",
+      "changed": true
+    },
+    {
+      "path": "modules/pubcast_vision_routes.py",
+      "authority_source": "FULL_SESSION_HANDOFF/code_and_reports/pubcast_vision_routes.py",
+      "before_sha256": "ad4fb64f485c53670e6e2e2cccc74f3a0e9b07ae799a7d5259f61ebb82be0520",
+      "after_sha256": "349839d63c4af39c54a9428cafb9de0f4de746c233331e41caf0040f557f6ef1",
+      "changed": true
+    },
+    {
+      "path": "modules/sir_purfluous_character_profile.py",
+      "authority_source": "FULL_SESSION_HANDOFF/code_and_reports/sir_purfluous_character_profile.py",
+      "before_sha256": "97580ca4f00d51b12a7d06c7db0b3a70e6f9372fd250826d57875f7690ac15f3",
+      "after_sha256": "6239ce1d89f0b1736e1d5fce2cb22e3e11ca4ef0554415584d1c9b1a6cfbede7",
+      "changed": true
+    },
+    {
+      "path": "modules/character_cast.py",
+      "authority_source": "FULL_SESSION_HANDOFF/code_and_reports/character_cast.py",
+      "before_sha256": "a4512581d992c749fd978a5b451c67830cb15d6da73b50568200f02b5beece07",
+      "after_sha256": "a4512581d992c749fd978a5b451c67830cb15d6da73b50568200f02b5beece07",
+      "changed": false
+    },
+    {
+      "path": "static/login.html",
+      "authority_source": "FULL_SESSION_HANDOFF/code_and_reports/login.html",
+      "before_sha256": null,
+      "after_sha256": "83ca7f9ae04c63afb3edc64251767f8177214dff7008071f0d1d6b078dd195d9",
+      "changed": true
+    },
+    {
+      "path": "static/avatar_foundry.html",
+      "authority_source": "FULL_SESSION_HANDOFF/code_and_reports/avatar_foundry.html",
+      "before_sha256": null,
+      "after_sha256": "d1abd4672ad3924b0cf0aa5aa8e6d0607094d1fa787937240fc19a33e0b9af8a",
+      "changed": true
+    },
+    {
+      "path": "static/analytics.html",
+      "authority_source": "FULL_SESSION_HANDOFF/code_and_reports/analytics.html",
+      "before_sha256": "9c93b6a9905eb6343e2b3bb890fb7e17b0011be4634c3f3b005978b0f3eb0f0b",
+      "after_sha256": "62d47d33c1e5560cb881e41b6ad19c83fa68c0a545dca02a8f9709976f892e4e",
+      "changed": true
+    },
+    {
+      "path": "static/gallery.html",
+      "authority_source": "FULL_SESSION_HANDOFF/code_and_reports/gallery.html",
+      "before_sha256": "c59f652a3196742158003985e84addcbb0dfda7877f6d5a3937c0613a1b287ff",
+      "after_sha256": "55b457409ac29df5298191d68a013c38acdccbf3a457dcfa0220d0e45c1b11ff",
+      "changed": true
+    },
+    {
+      "path": "static/bar.html",
+      "authority_source": "FULL_SESSION_HANDOFF/code_and_reports/bar.html",
+      "before_sha256": "8c33627010c89232d7985d468ee1ab1dcc7d9dcee874fc2f1a59ac29c9bdcdad",
+      "after_sha256": "411c7df06f1a9d76a27cac30762335a0469ede3a6d2207b7cb0d46c29c201c65",
+      "changed": true
+    },
+    {
+      "path": "static/dressing.html",
+      "authority_source": "FULL_SESSION_HANDOFF/code_and_reports/dressing.html",
+      "before_sha256": "417ba068e5f6226762210ac80d6a9739b7b274d6b2237ec829d0f02c6d9ee2f0",
+      "after_sha256": "2fb47f11085cb8eccab8898a79a71fc58986e626d6e24a696164ed53b17fad10",
+      "changed": true
+    }
+  ]
+}
