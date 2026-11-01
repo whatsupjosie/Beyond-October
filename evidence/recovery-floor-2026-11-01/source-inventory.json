@@ -1,0 +1,175 @@
+{
+  "source_commit": "bfbdcf0676c11163063ef369cd419b5667792cfe",
+  "root_tree": "1395b56de4e20eda1c10b17dfdfec720da8ce2c0",
+  "truncated": false,
+  "remote_file_count": 1702,
+  "matching_file_count": 1661,
+  "different_or_absent_count": 41,
+  "different_or_absent": [
+    {
+      "path": "ABOUT.md",
+      "status": "absent from local saved package"
+    },
+    {
+      "path": "AGENTS.md",
+      "status": "different bytes"
+    },
+    {
+      "path": "CLAUDE.md",
+      "status": "different bytes"
+    },
+    {
+      "path": "ENGINEERING_HANDOFF_BEYOND_OCTOBER.md",
+      "status": "absent from local saved package"
+    },
+    {
+      "path": "QUALITY_STANDARDS.md",
+      "status": "absent from local saved package"
+    },
+    {
+      "path": "README.md",
+      "status": "different bytes"
+    },
+    {
+      "path": "docs/missions/pubcast-lead-engineer-2026-10-31/ACCEPTANCE_MATRIX.md",
+      "status": "different bytes"
+    },
+    {
+      "path": "docs/missions/pubcast-lead-engineer-2026-10-31/NEXT_DAY_HANDOFF.md",
+      "status": "different bytes"
+    },
+    {
+      "path": "docs/missions/pubcast-lead-engineer-2026-10-31/RUNTIME_REPORT.md",
+      "status": "different bytes"
+    },
+    {
+      "path": "docs/missions/pubcast-lead-engineer-2026-10-31/START_HERE.md",
+      "status": "different bytes"
+    },
+    {
+      "path": "docs/missions/pubcast-lead-engineer-2026-10-31/evidence/2026-10-31/README.md",
+      "status": "different bytes"
+    },
+    {
+      "path": "docs/missions/pubcast-lead-engineer-2026-10-31/evidence/2026-10-31/SHA256SUMS.json",
+      "status": "different bytes"
+    },
+    {
+      "path": "docs/standards/PUBCAST_ENGINEERING_LESSON.md",
+      "status": "absent from local saved package"
+    },
+    {
+      "path": "docs/standards/PUBCAST_SESSION_RULES.md",
+      "status": "absent from local saved package"
+    },
+    {
+      "path": "handoffs/LETTER_TO_THE_NEXT_AI.md",
+      "status": "different bytes"
+    },
+    {
+      "path": "handoffs/SESSION_HANDOFF_2026-08-21_COMPLETE.md",
+      "status": "different bytes"
+    },
+    {
+      "path": "main.py",
+      "status": "different bytes"
+    },
+    {
+      "path": "modules/production_routes.py",
+      "status": "different bytes"
+    },
+    {
+      "path": "modules/recording.py",
+      "status": "different bytes"
+    },
+    {
+      "path": "modules/studio25d_media_routes.py",
+      "status": "different bytes"
+    },
+    {
+      "path": "package.json",
+      "status": "different bytes"
+    },
+    {
+      "path": "saved-workflows-inactive/bella-faux-pas-studio.yml",
+      "status": "absent from local saved package"
+    },
+    {
+      "path": "saved-workflows-inactive/bella-live-capture.yml",
+      "status": "absent from local saved package"
+    },
+    {
+      "path": "saved-workflows-inactive/foresight-workbench.yml",
+      "status": "absent from local saved package"
+    },
+    {
+      "path": "saved-workflows-inactive/pubcast-25d-integrity.yml",
+      "status": "absent from local saved package"
+    },
+    {
+      "path": "saved-workflows-inactive/pubcast-integration-verification.yml",
+      "status": "absent from local saved package"
+    },
+    {
+      "path": "static/control_room.html",
+      "status": "different bytes"
+    },
+    {
+      "path": "static/director_switcher.html",
+      "status": "different bytes"
+    },
+    {
+      "path": "static/production25d.html",
+      "status": "different bytes"
+    },
+    {
+      "path": "static/production25d_app.js",
+      "status": "different bytes"
+    },
+    {
+      "path": "static/production25d_frame_publisher.js",
+      "status": "different bytes"
+    },
+    {
+      "path": "static/production25d_renderer.js",
+      "status": "different bytes"
+    },
+    {
+      "path": "static/production25d_storage.js",
+      "status": "different bytes"
+    },
+    {
+      "path": "static/program_audio_runtime.js",
+      "status": "different bytes"
+    },
+    {
+      "path": "static/studio25d_remote_feed.js",
+      "status": "different bytes"
+    },
+    {
+      "path": "static/world_walk_glb.js",
+      "status": "different bytes"
+    },
+    {
+      "path": "tests/test_module_router_parity_guards.py",
+      "status": "different bytes"
+    },
+    {
+      "path": "tests/test_production25d_browser.py",
+      "status": "different bytes"
+    },
+    {
+      "path": "tests/test_pubcast.py",
+      "status": "different bytes"
+    },
+    {
+      "path": "tests/test_round5_filesystem_collision_guards.py",
+      "status": "different bytes"
+    },
+    {
+      "path": "tests/test_studio25d_confidence.cjs",
+      "status": "different bytes"
+    }
+  ],
+  "scope": "Git blob inventory plus targeted source review; not full-runtime or all-line validation"
+}
