@@ -1,0 +1,63 @@
+name: PubCast 2.5D Integrity
+on:
+  push:
+    branches:
+      - pubcast-25d-production-integration-2026-10-30
+      - lead-engineering-control-room-tv-studio-2026-10-31
+  workflow_dispatch:
+
+jobs:
+  javascript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse studio and switcher scripts
+        run: |
+          node --check static/production25d_core.js
+          node --check static/production25d_renderer.js
+          node --check static/production25d_storage.js
+          node --check static/production25d_switcher_bridge.js
+          node --check static/production25d_frame_publisher.js
+          node --check static/studio25d_remote_feed.js
+          node --check static/production25d_app.js
+          node --check static/control_stations.js
+          node --check static/switcher.js
+          node --check static/editor_sync_core.js
+          node --check static/editor_sync_store.js
+          node --check static/editor_sync_station.js
+          node --check static/editor_interchange.js
+          node --check static/control_switcher.js
+          node --check static/program_audio_runtime.js
+      - name: Run dependency-free studio tests
+        run: |
+          node --test tests/production25d.test.cjs tests/test_production25d_core.cjs tests/test_production25d_wiring.cjs tests/test_production25d_switcher_bridge.cjs tests/test_studio25d_confidence.cjs tests/test_editor_sync_interchange.cjs
+      - run: npm ci
+      - run: npm run test:node
+      - run: node --test tests/test_foresight_file_close_node.js tests/test_foresight_owner_recovery_node.js tests/test_twoi_rich_browser_contract_node.js
+  python-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Syntax-check modified production modules and test sources
+        run: |
+          python -m py_compile modules/studio25d_media_routes.py modules/switcher_routes.py modules/program_audio.py modules/program_audio_routes.py modules/production_routes.py main.py tests/test_studio25d_media_routes.py tests/test_shared_studio_switchers.py
+      - name: Install runtime and acceptance dependencies
+        run: python -m pip install -r requirements.txt -r requirements-dev.txt
+      - name: Install development browser
+        run: python -m playwright install --with-deps chromium
+      - name: Verify authenticated studio, real recording and portable source retention
+        env:
+          PUBCAST_EVIDENCE_DIR: artifacts/studio25d
+        run: python -m pytest -q tests/test_production25d_browser.py tests/test_world_walk_glb_browser.py tests/test_recording_portable_bundle.py tests/test_studio25d_media_routes.py tests/test_shared_studio_switchers.py tests/test_studio25d_recording_guard.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: studio25d-browser-evidence
+          path: artifacts/studio25d
+          if-no-files-found: ignore

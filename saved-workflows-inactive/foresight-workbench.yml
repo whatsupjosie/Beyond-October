@@ -1,0 +1,75 @@
+name: Foresight workbench integration
+on:
+  push:
+    paths:
+      - 'static/foresight*'
+      - '2i/**'
+      - 'modules/**'
+      - 'tests/test_foresight*'
+      - 'tests/test_reach_launcher.py'
+      - 'tests/test_reach_writers_room.py'
+      - 'tests/test_pubpartner_shared_auth_authority.py'
+      - 'tests/test_alex_memory_reach.py'
+      - 'tests/test_writers_room_real_http.py'
+      - 'tools/workbench_preflight.py'
+      - 'tools/foresight_checks/check_workbench_browser.py'
+      - 'run_reach.py'
+      - 'start_reach.py'
+      - '.github/workflows/foresight-workbench.yml'
+  pull_request:
+  workflow_dispatch:
+jobs:
+  workbench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install application and test dependencies
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install pytest playwright
+          python -m playwright install --with-deps chromium
+      - name: Validate JavaScript syntax
+        run: |
+          node --check static/foresight_counter.js
+          node --check static/foresight_programs.js
+          node --check static/foresight_chain.js
+          node --check static/foresight_shapes.js
+      - name: Run workbench integration regression suite
+        run: |
+          python -m pytest -q tests/test_foresight_*.py tests/test_reach_launcher.py tests/test_reach_writers_room.py tests/test_pubpartner_shared_auth_authority.py tests/test_alex_memory_reach.py --junitxml=workbench-junit.xml
+      - name: Verify packaged Reach routes and 2i runtime
+        run: python tools/workbench_preflight.py
+      - name: Verify 2i persistence over a real HTTP socket and process restart
+        run: python -m pytest -q tests/test_writers_room_real_http.py
+      - name: Browser smoke with real Reach server
+        shell: bash
+        run: |
+          python -m uvicorn main:app --host 127.0.0.1 --port 8000 > workbench-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          python - <<'WAIT'
+          import time, urllib.request
+          for _ in range(120):
+              try:
+                  if urllib.request.urlopen('http://127.0.0.1:8000/foresight-counter', timeout=1).status == 200:
+                      break
+              except Exception:
+                  time.sleep(1)
+          else:
+              raise SystemExit('Reach did not start; see workbench-server.log')
+          WAIT
+          python tools/foresight_checks/check_workbench_browser.py
+      - name: Upload regression results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: foresight-workbench-results
+          path: |
+            workbench-junit.xml
+            workbench-server.log
+          if-no-files-found: ignore

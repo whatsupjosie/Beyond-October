@@ -1,0 +1,82 @@
+name: Bella Faux Pas Studio
+# The walkable world (game section): world model and camera math, the walker in a real browser, the walker inside the
+# real PubCast host, and the launch acceptance (run_reach.py -> login -> empty Counter -> 2i, PubPartner, the studio).
+on:
+  push:
+    paths:
+      - 'static/world_walk*'
+      - 'static/world/**'
+      - 'static/foresight_counter*'
+      - 'static/foresight_programs.js'
+      - 'static/foresight_canvas2d.js'
+      - 'static/world.html'
+      - 'modules/pubcast_world*.py'
+      - 'modules/pubworld_hotspots.py'
+      - 'modules/studio_progress.py'
+      - 'modules/counter_layout.py'
+      - 'modules/pubpartner_cartridges.py'
+      - 'static/pubpartner*'
+      - 'tests/test_pubpartner_cartridges.py'
+      - 'tests/test_pubpartner_menus_browser.py'
+      - 'tests/test_foresight_counter_layout_host.py'
+      - 'data/world/**'
+      - 'tools/build_world_json.py'
+      - 'tools/world_src/**'
+      - 'tests/test_pubcast_world*.py'
+      - 'tests/test_world_walk*.py'
+      - 'tests/test_bella_faux_pas*.py'
+      - 'main.py'
+      - 'run_reach.py'
+      - '.github/workflows/bella-faux-pas-studio.yml'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  studio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install application and test dependencies
+        run: |
+          python -m pip install -r requirements.txt -r requirements-dev.txt
+          python -m pip install pytest-timeout shapely
+          python -m playwright install --with-deps chromium
+      - name: Validate JavaScript syntax
+        run: |
+          node --check static/world_walk_live.js
+          node --check static/foresight_counter.js
+          node --check static/foresight_programs.js
+          python - <<'PY'
+          import re, pathlib, subprocess, tempfile
+          html = pathlib.Path('static/world_walk.html').read_text(encoding='utf-8')
+          js = re.search(r'<script>\n"use strict";(.*)</script>', html, re.S).group(1)
+          f = pathlib.Path(tempfile.mkdtemp()) / 'walk.js'; f.write_text(js, encoding='utf-8')
+          subprocess.run(['node', '--check', str(f)], check=True)
+          PY
+      - name: World data is current (regenerate and compare)
+        run: |
+          python tools/world_src/gen_placements.py
+          python tools/build_world_json.py
+          git diff --exit-code -- data/world/placements.json static/world/world.json
+      - name: World, walker, host and launch tests
+        run: |
+          python -m pytest -q -p no:cacheprovider --timeout=300 \
+            tests/test_pubcast_world.py tests/test_pubcast_world_placement.py tests/test_pubcast_world_json.py \
+            tests/test_world_walk_browser.py tests/test_world_walk_glb_browser.py \
+            tests/test_world_walk_host_integration.py tests/test_bella_faux_pas_launch_acceptance.py tests/test_bella_faux_pas_progress.py tests/test_foresight_counter_layout_host.py \
+            tests/test_pubpartner_cartridges.py tests/test_pubpartner_menus_browser.py \
+            tests/test_00_integrity.py tests/test_02_routing.py tests/test_foresight_front_door.py tests/test_no_user_audit.py \
+            --junitxml=bella-faux-pas-junit.xml
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bella-faux-pas-results
+          path: bella-faux-pas-junit.xml
+          if-no-files-found: ignore
