@@ -88,9 +88,12 @@ can target the restored copy:
 python run_reach.py --data-dir .\PubCast-recovered\data
 ```
 
-That final full-host launch/login/media check has **not** been executed in this
-engineering environment. The tested product-store reopen uses the real document
-and conversation modules, not the complete host or browser.
+The full-host launch/login/media workflow has now been executed on Linux:
+the original data path was made unavailable, the actual launcher restarted on
+the restored root, a fresh Chromium session signed in with the original password,
+opened the original 2i manuscript and played the original recording in Gallery.
+Original JWTs and encrypted credentials also remained usable. See
+[the executed acceptance record](RECOVERY_ACCEPTANCE_2026-11-01.md).
 
 ## Failure behavior and limits
 
@@ -138,7 +141,13 @@ also ran: **501 files, 67,136,254 bytes**, including a 64 MiB payload restored w
 the original path unavailable. The payload hash matched exactly. The observed
 3.612-second run is local evidence, not a target-device performance guarantee.
 
-**UNKNOWN / not run:** full-host authenticated restored startup, Windows/PowerShell
-execution, actual-device media, large/long-lived production commissioning, live
-multi-process snapshots, external-data roots, hard power loss and Claude's two
-test environments. No GitHub Actions run was requested.
+**Subsequent RAN:** 49 recovery/recording checks, including real authenticated
+restored startup and browser playback, followed by 17 affected backend checks.
+Exact logs, XML, source hashes and environment versions are in
+`evidence/recovery-completion-2026-11-01/`.
+
+**UNKNOWN / not run:** Windows/PowerShell execution, actual-device media,
+large/long-lived production commissioning, live multi-process snapshots,
+external-data roots, hard power loss and separate remote sandbox machines.
+The system is verified in the named Linux environment; those remaining gates
+are still open. No GitHub Actions run was requested.

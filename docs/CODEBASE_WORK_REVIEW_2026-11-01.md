@@ -70,6 +70,9 @@ The tested scope and precise failure behavior are in [DATA_CHECKPOINT.md](DATA_C
 
 **RAN:** 31 focused standard-library checks on Linux/Python 3.12.14, including real
 file/SQLite operations, subprocess CLI execution and existing-store reopen.
-**Not run:** complete host/browser startup from a restored root, Windows, physical
-devices, actual production archives, the full suite or either Claude environment.
+**Subsequent recovery acceptance:** complete host/browser startup from a restored
+root now passes on Linux, including real sign-in, manuscript opening, credentials
+and Gallery recording playback. See [the later acceptance record](RECOVERY_ACCEPTANCE_2026-11-01.md).
+**Not run:** Windows, physical devices, actual production archives, the full suite
+or separate remote sandbox machines.
 No product release/merge is implied by this report.
