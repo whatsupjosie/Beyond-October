@@ -44,8 +44,9 @@ def _ok(response: httpx.Response, *codes: int):
 
 
 class Host:
-    def __init__(self, data: Path, log: Path):
+    def __init__(self, data: Path, log: Path, extra_env: dict | None = None):
         self.data, self.log_path = data, log
+        self.extra_env = extra_env or {}
         self.process = None
         self.output = None
         with socket.socket() as sock:
@@ -55,6 +56,7 @@ class Host:
 
     def start(self):
         env = {k: v for k, v in os.environ.items() if not k.startswith("PUBCAST_")}
+        env.update(self.extra_env)
         # The launcher must read the persisted secrets, not a test-supplied key.
         self.output = self.log_path.open("w", encoding="utf-8")
         self.process = subprocess.Popen(

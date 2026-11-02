@@ -166,6 +166,7 @@
       if (!this.allowed(options)) throw new Error('Dressing room permits direct director announcements only');
       this.ensureContext();
       await this.context.resume();
+      if (options.signal?.aborted) throw new DOMException('Playback canceled', 'AbortError');
       const busName = options.bus || "sfx";
       const bus = this.createBus(busName);
       const audio = new Audio(url);
@@ -189,13 +190,23 @@
       gain.connect(bus.gain);
       const handle = { audio, source, gain, panner, busName, directorAnnouncement: options.directorAnnouncement === true, stop: () => this.stopHandle(handle) };
       this.active.add(handle);
+      if (options.signal) {
+        handle.abortSignal = options.signal;
+        handle.abortListener = () => this.stopHandle(handle);
+        options.signal.addEventListener('abort', handle.abortListener, {once: true});
+      }
       bus.sources.add(handle);
       if (busName === "dialogue") {
         this.dialogueActive += 1;
         this.updateDucking();
       }
       audio.onended = () => this.stopHandle(handle);
-      try { await audio.play(); return handle; }
+      try {
+        if (options.signal?.aborted) throw new DOMException('Playback canceled', 'AbortError');
+        await audio.play();
+        if (options.signal?.aborted) throw new DOMException('Playback canceled', 'AbortError');
+        return handle;
+      }
       catch (error) { this.lastError = error.message; this.stopHandle(handle); throw error; }
     }
 
@@ -221,6 +232,7 @@
 
     stopHandle(handle) {
       if (!handle || !this.active.has(handle)) return false;
+      handle.abortSignal?.removeEventListener('abort', handle.abortListener);
       try { handle.audio?.pause?.(); } catch (_) {}
       try { handle.oscillator?.stop?.(); } catch (_) {}
       try { handle.source?.disconnect?.(); } catch (_) {}

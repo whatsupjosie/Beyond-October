@@ -1,0 +1,10 @@
+# Explicit optional CPU speech installation; tested together on Python 3.12.
+# Install after requirements.txt. No model downloads occur during app startup.
+faster-whisper==1.2.1
+kokoro-onnx==0.6.1
+av==19.0.2
+ctranslate2==4.8.4
+onnxruntime==1.31.1
+phonemizer==3.4.0
+espeakng-loader==0.2.4
+huggingface-hub==2.4.0

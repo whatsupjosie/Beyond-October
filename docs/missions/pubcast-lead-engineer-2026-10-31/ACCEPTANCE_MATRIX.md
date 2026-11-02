@@ -1,6 +1,15 @@
 # Acceptance matrix — Control Room + 2.5D Television Studio
 **Date:** 2026-10-31 · **Revision:** 1 · **State:** UNSEALED
 
+**Beyond-October PC-035 update (November 1 session):** local English speech now has
+real Linux host/browser/mixer-recording acceptance and executed negative-path
+checks. See [speech scope and limits](../../SPEECH_SYSTEM.md) and
+`evidence/speech-system-2026-11-01/` at repository root. Speech playback feeds the
+existing dialogue/capture bus; it does not prove all G08 cross-client audio, G14
+master capture or performance/lip-sync gates. Windows/devices remain open and the
+studio remains UNSEALED. The 124-check run includes affected recovery/auth/studio
+regressions; it is not a full-repository suite or a release-completion count.
+
 This is not a list of aspirations. A row is complete only with:
 - executable command and observed exit status;
 - dated log/test artifact or screenshot/recording and where it can be read;

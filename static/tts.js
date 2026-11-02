@@ -1,91 +1,76 @@
 /**
  * tts.js — Text-to-Speech panel
- * Uses Web Speech API (no server required for basic mode).
- * Server TTS mode posts to /api/tts/synthesize when PUBCAST_TTS_ENABLED=1.
+ * Local speech uses the shared program dialogue bus.
+ * Browser speech is an explicit listening-only alternative.
  */
 (function () {
   'use strict';
 
   const $ = id => document.getElementById(id);
 
-  let voices = [];
-  let generation = 0;
-  let controller = null;
-  function stop() {generation++; controller?.abort(); controller = null; window.speechSynthesis?.cancel();}
-  window.PubcastProgramAudio?.externalStops.add(stop);
-  let autoplay = false;
-  let botsOnly = false;
-  let useServer = false;
-  let humanize  = false;
-
-  // ── Load voices ──────────────────────────────────────────────────────────
+  let voices = [], localVoices = {}, preferences = null;
+  let autoplay = false, botsOnly = false, useServer = true, humanize = false;
+  let preferenceGeneration = 0, speechGeneration = 0, loading = true;
+  const status = message => { if ($('tts-status')) $('tts-status').textContent = message; };
+  function stop() { speechGeneration++; window.PubcastSpeech?.stop(); window.speechSynthesis?.cancel(); status('Speech stopped'); }
+  window.PubcastProgramAudio?.externalStops.add(() => window.speechSynthesis?.cancel());
   function loadVoices() {
-    if (!window.speechSynthesis) return;
-    voices = speechSynthesis.getVoices();
-    const sel = $('tts-voice');
-    if (!sel) return;
-    sel.innerHTML = '';
-    voices.forEach((v, i) => {
-      const opt = document.createElement('option');
-      opt.value = i;
-      opt.textContent = `${v.name} (${v.lang})`;
-      if (v.default) opt.selected = true;
-      sel.appendChild(opt);
-    });
-  }
-
-  if (window.speechSynthesis) {
-    loadVoices();
-    speechSynthesis.onvoiceschanged = loadVoices;
-  }
-
-  // ── Speak function ────────────────────────────────────────────────────────
-  function speakText(text, isBot) {
-    if (!text || !window.PubcastProgramAudio?.allowed()) return;
-    if (botsOnly && !isBot) return;
-
-    const clean = humanize ? humanizeText(text) : text;
-
+    const select = $('tts-voice'); if (!select) return;
+    const chosen = select.value;
+    select.replaceChildren();
     if (useServer) {
-      speakServer(clean);
-      return;
+      for (const [id, voice] of Object.entries(localVoices)) {
+        const option = new Option(voice.name + ' (' + voice.language + ')', id);
+        select.add(option);
+      }
+      const desired = preferences?.voice_id;
+      if (desired && localVoices[desired]) select.value = desired;
+      else if (localVoices[chosen]) select.value = chosen;
+      else if (localVoices.af_heart) select.value = 'af_heart';
+      select.disabled = !select.options.length || loading;
+    } else {
+      voices = window.speechSynthesis?.getVoices() || [];
+      voices.forEach((voice, index) => select.add(new Option(voice.name + ' (' + voice.lang + ')', String(index))));
+      select.disabled = !voices.length;
     }
-
-    if (!window.speechSynthesis) return;
-    const utter = new SpeechSynthesisUtterance(clean);
-    const sel = $('tts-voice');
-    const idx = sel ? parseInt(sel.value, 10) : 0;
-    if (voices[idx]) utter.voice = voices[idx];
-    utter.rate  = 1.0;
-    utter.pitch = 1.0;
-    speechSynthesis.speak(utter);
   }
-
-  async function speakServer(text) {
-    const mine = ++generation;
-    controller?.abort();
-    controller = new AbortController();
+  async function saveChoice() {
+    if (!useServer || !preferences || loading) return;
+    const mine = ++preferenceGeneration, select = $('tts-voice'); select.disabled = true;
     try {
-      const r = await fetch('/api/tts/synthesize', {
-        method: 'POST',
-        signal: controller.signal,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+      preferences = await window.PubcastSpeech.savePreferences({
+        voice_id: select.value, speed: preferences.speed, language: preferences.language,
+        expected_revision: preferences.revision
       });
-      if (!r.ok) throw new Error("TTS HTTP " + r.status);
-      if (!(r.headers.get("content-type") || "").startsWith("audio/")) throw new Error("TTS returned non-audio content");
-      const blob = await r.blob();
-      const url  = URL.createObjectURL(blob);
-      if (mine !== generation) { URL.revokeObjectURL(url); return; }
+      if (mine === preferenceGeneration) status('Voice choice saved on this host');
+    } catch (error) {
+      status(error.message);
+      try { preferences = await window.PubcastSpeech.preferences(); loadVoices(); } catch (_) {}
+    } finally { if (mine === preferenceGeneration) select.disabled = false; }
+  }
+  async function speakText(text, isBot) {
+    if (!text || !window.PubcastProgramAudio?.allowed() || (botsOnly && !isBot)) return;
+    const clean = humanize ? humanizeText(text) : text;
+    stop(); const mine = ++speechGeneration; status('Preparing speech…');
+    if (useServer) {
       try {
-        const handle = await window.PubcastProgramAudio.playUrl(url, {bus: 'dialogue'});
-        handle.onStop = () => URL.revokeObjectURL(url);
-        handle.audio.addEventListener('ended', () => URL.revokeObjectURL(url), {once: true});
-      } catch (error) {URL.revokeObjectURL(url); throw error;}
-    } catch (e) {
-      console.warn('Server TTS failed', e);
+        const result = await window.PubcastSpeech.speak(clean, {
+          voice_id: $('tts-voice')?.value || undefined,
+          onStart: () => { if (mine === speechGeneration) status('Speaking through program dialogue'); }
+        });
+        if (mine === speechGeneration) status(result.canceled ? 'Speech stopped' : 'Speech finished');
+      } catch (error) { if (mine === speechGeneration) status(error.message); }
+    } else {
+      if (!window.speechSynthesis) { status('Browser speech is unavailable'); return; }
+      const utterance = new SpeechSynthesisUtterance(clean);
+      utterance.voice = voices[Number($('tts-voice')?.value)] || null;
+      utterance.onstart = () => status('Browser speech — not captured by the program recording');
+      utterance.onend = () => status('Browser speech finished');
+      utterance.onerror = () => status('Browser speech stopped or failed');
+      window.speechSynthesis.speak(utterance);
     }
   }
+  window.speechSynthesis?.addEventListener('voiceschanged', () => { if (!useServer) loadVoices(); });
 
   // ── Humanizer: flatten markdown / remove brackets etc ────────────────────
   function humanizeText(t) {
@@ -112,13 +97,21 @@
     const humanChk   = $('tts-humanize');
     const ttsInput   = $('tts-text');
 
+    $('tts-stop')?.addEventListener('click', stop);
+    $('tts-voice')?.addEventListener('change', saveChoice);
     if (sayBtn) sayBtn.addEventListener('click', () => {
       speakText(ttsInput?.value || '', false);
     });
     if (autoChk)   autoChk.addEventListener('change',   () => { autoplay = autoChk.checked; });
     if (botsChk)   botsChk.addEventListener('change',   () => { botsOnly = botsChk.checked; });
-    if (serverChk) serverChk.addEventListener('change', () => { useServer = serverChk.checked; });
-    if (humanChk)  humanChk.addEventListener('change',  () => { humanize = humanChk.checked; });
+    if (serverChk) serverChk.addEventListener('change', () => { stop(); useServer = serverChk.checked; loadVoices(); status(useServer ? 'Local speech uses program dialogue' : 'Browser speech — not captured by program recordings'); });
+    if (humanChk) humanChk.addEventListener('change', () => { humanize = humanChk.checked; });
+    window.PubcastSpeech.bindDictation($('chat-dictate'), $('chat-input'));
+    status('Checking local speech…');
+    Promise.all([window.PubcastSpeech.voices(), window.PubcastSpeech.preferences()]).then(([catalogue, saved]) => {
+      localVoices = catalogue.voices || {}; preferences = saved; loading = false; loadVoices();
+      status(catalogue.available ? 'Local ' + catalogue.engine + ' speech configured' : catalogue.reason || 'Local speech is unavailable');
+    }).catch(error => { loading = false; loadVoices(); status(error.message); });
   });
 
   // ── Hook into incoming WS messages to autoplay chat ──────────────────────

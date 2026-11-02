@@ -1,0 +1,31 @@
+{
+  "platform": "linux",
+  "python": "3.12.14",
+  "fixture": "Generated Kokoro speech; no physical microphone",
+  "dictation": {
+    "recognized": "The studio lights are ready. Please save this recording before you close the program.",
+    "preview_preserved_existing_text": true,
+    "manual_insert_no_autosend": true
+  },
+  "late_permission_cancel_released_real_fixture_tracks": true,
+  "recorded_dialogue": {
+    "bytes": 87580,
+    "decoded_samples": 197280,
+    "rms": 0.06928343325853348,
+    "recognized_recording": "The studio lights are ready. Please save this recording before you close the program.",
+    "sha256": "7a47d95e1f83195f7d00a01f9e063fe33d2c5e916012c32e3bd8019462060c27",
+    "events": [
+      {
+        "characterId": "default",
+        "voiceId": "am_michael",
+        "engine": "kokoro",
+        "duration": 5.354666666666667,
+        "sampleRate": 24000,
+        "sampleCount": 128512,
+        "observedStart": 3833.4000000003725
+      }
+    ]
+  },
+  "browser_stop_and_saved_voice_after_reload": true,
+  "authenticated_http_bounds_multipart_cancel_recovery_restart": true
+}
