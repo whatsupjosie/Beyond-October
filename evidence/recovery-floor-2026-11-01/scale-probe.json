@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "ran_at": "2026-11-01T22:37:41.590116+00:00",
+  "python": "3.12.14",
+  "platform": "Linux",
+  "files": 501,
+  "uncompressed_bytes": 67136254,
+  "media_bytes": 67108864,
+  "media_sha256": "f242ecd1b071026cb08fe0274293c64f106089a4699a84074f6a6f3302d0840a",
+  "checkpoint_sha256": "794cc4cd8b231d98ec0e8431d04f5fdd1ba30891205ec5475a3a5c47effb948d",
+  "exact_original_bytes_restored": true,
+  "original_path_unavailable_during_restore": true,
+  "elapsed_seconds": 3.612,
+  "scope": "Disposable files, not a production media codec or full application acceptance test"
+}

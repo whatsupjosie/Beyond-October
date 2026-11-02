@@ -1,0 +1,28 @@
+{
+  "starting_commit": "123474459c472fb449d3fd56a07331f4650ae69e",
+  "captured_utc": "2026-11-02T00:54:11.400835+00:00",
+  "sha256": {
+    ".env.example": "9ba298d55b0ecc6bc1af2ef9438d34bd30c7c9fd8f60647fbc447f4c0babe0c2",
+    "main.py": "c0f05cda4ef984ce07d9f695eb5ddd10317c4bd7617a816bde8c53001737e1b9",
+    "modules/stt_engine.py": "43c51c00f3d02edf2af846476b80e6afad985fee831e1b8e2bbbc1b78d656429",
+    "modules/tts_engine.py": "2359d7ef21ec788c53b8d24778dd8dff894bece41138992f0af28e466e904d23",
+    "modules/speech_worker.py": "f72f2c3a43d205bd6f15b7426b2bb26fa6a59becc285af9f7490d2d61f2a8e15",
+    "modules/speech_routes.py": "93fbd11d8f19813b838e2f7e9a9b89e81ec3b063037c43cb87da2f493f57ec3f",
+    "modules/speech_preferences.py": "92c7bc5e4d309351856948865c0350f7b9d9861df748f1a7339d54bff2d51421",
+    "static/speech_client.js": "3007a21d94e4c5ba04b3e9ab6c6a2561e6cadbf6f51d8042326503a319e39c62",
+    "static/tts.js": "6c47fe9284f99ca8f44fa0007eb58feb3bede3b2032b2ef04b5be79b3caedbbb",
+    "static/mic_processor.js": "c866a72092a016d0fb7591c0d6747758cc7858af520969ed260080ab0d9937cd",
+    "static/program_audio_runtime.js": "c26a948c431ad10d465afae42fc00c922a6a02dd27c3b1f9bd100cd9dab2c1e4",
+    "static/ui.js": "8927e064e34cdb8b63206f2277c8b1bfe837fc70d51d157048281e19cda342cc",
+    "static/styles.css": "009b22aa43092ce96e8bc312ceb490758a870fd3445534b12462b5ebb686ab6e",
+    "static/control.html": "606a32ad272f36a74d650e6b0a9ec699aa86804f50f538583460f5182af38541",
+    "2i/writers-room-v22.html": "a4d44ceee61b90db20916a0accf843ce1e979f594bed92c3b9c560fae9e90dbe",
+    "tools/speech_setup.py": "b99517c6105d4d21ab7fa6fd018160a165e64c0e77bb8192000052dc101a97fa",
+    "tools/speech_assets.json": "fc263b3eb8f16c76394dddd9733ae8390c2f1e84af6b97c1a68d4bfb0a6d1420",
+    "requirements-speech.txt": "de3b4afcaefabbd8dbf221ff52127c754b37c305c90ec60302d84801ae9ee82c",
+    "tests/test_speech_system.py": "5224a1b64a032c5940046527efff3cef72d58bc6eb4a3f88e5b2f796d3aa91b3",
+    "tests/test_speech_host_acceptance.py": "3591b614d1ac2092edd614912b35c8e68b7bf3b583d64d7053b563cf910e2657",
+    "tests/test_communications_host_contracts.py": "3b846c2a62e3814c936bab12751a94f11ab8846a76c97fd0cdb89fd1123b2bf2",
+    "tests/test_data_checkpoint_host_recovery.py": "e27586beb4b80acc06da8dc6ff041a4cd0bc8eb4414aa3d202ada212797ef91a"
+  }
+}

@@ -474,6 +474,43 @@ class RecordingService:
             return clean[:-4] + "k"
         return clean
 
+    def _opus_export_bitrate(self, source: Path, requested: Optional[str]) -> tuple[Optional[str], Optional[str]]:
+        """Respect libopus' per-channel encoder limit for a derived WebM.
+
+        AAC production profiles may request 320 kb/s, which libopus rejects for
+        mono. Probe the actual source so stereo keeps its requested bitrate.
+        This affects derived encoding only; the original stays byte-identical.
+        """
+        normalized = self._ffmpeg_bitrate(requested)
+        if not normalized:
+            return requested, None
+        match = re.fullmatch(r"(\d+(?:\.\d+)?)([kKmM]?)", normalized)
+        if not match:
+            return requested, None
+        try:
+            bitrate = int(float(match[1]) * {"": 1, "k": 1000, "m": 1_000_000}[match[2].lower()])
+        except (ValueError, OverflowError):
+            return requested, None
+        if bitrate <= 256_000:
+            return requested, None
+        ffprobe = shutil.which("ffprobe")
+        if not ffprobe:
+            return requested, "Opus channel probe unavailable; requested bitrate retained; conversion may fail"
+        try:
+            probe = subprocess.run([ffprobe, "-v", "error", "-select_streams", "a:0",
+                                    "-show_entries", "stream=channels", "-of", "csv=p=0", str(source)],
+                                   capture_output=True, text=True, check=True, timeout=10)
+            channels = int(probe.stdout.strip())
+            if not 1 <= channels <= 255:
+                raise ValueError("Unsupported source channel count")
+        except (OSError, ValueError, subprocess.SubprocessError):
+            return requested, "Opus source channels could not be measured; requested bitrate retained; conversion may fail"
+        maximum = 256_000 * channels
+        if bitrate <= maximum:
+            return requested, None
+        return str(maximum), (f"Opus bitrate limited from {normalized} to {maximum} bps for {channels} "
+                              "source channel(s); original media bytes preserved")
+
     def _transcode_artifact(
         self,
         src: Path,
@@ -617,10 +654,15 @@ class RecordingService:
                             ContainerFormat.MOV: ("prores_ks", "pcm_s24le"),
                             ContainerFormat.WAV: (None, "pcm_s16le"),
                         }[container]
+                        audio_bitrate = profile.audio_bitrate
+                        if audio == "libopus":
+                            audio_bitrate, adjustment = self._opus_export_bitrate(artifact.file_path, audio_bitrate)
+                            if adjustment:
+                                manifest["warnings"].append(adjustment)
                         export_profile = EncodingProfile(
                             profile_id=profile.profile_id, name=profile.name, container=container,
                             video_codec=video, audio_codec=audio, video_bitrate=profile.video_bitrate,
-                            audio_bitrate=profile.audio_bitrate, resolution=profile.resolution,
+                            audio_bitrate=audio_bitrate, resolution=profile.resolution,
                             frame_rate=profile.frame_rate, description=profile.description,
                             is_audio_only=profile.is_audio_only or container == ContainerFormat.WAV)
                         if self._transcode_artifact(artifact.file_path, out_path, export_profile) and out_path.is_file():
@@ -628,7 +670,8 @@ class RecordingService:
                             bundle.write(out_path, arcname=member, compress_type=ZIP_STORED)
                             manifest["files"][member] = {"sha256": self._file_digest(out_path), "bytes": out_path.stat().st_size}
                             manifest["derived"].append({"path": member, "source_member": source_member,
-                                                        "container": container.value, "source_master": False})
+                                                        "container": container.value, "source_master": False,
+                                                        "audio_bitrate_setting": self._ffmpeg_bitrate(export_profile.audio_bitrate)})
                         else:
                             manifest["warnings"].append(f"Conversion failed for {artifact.name}; original media preserved")
                 metadata_bytes = json.dumps(metadata, indent=2).encode("utf-8")

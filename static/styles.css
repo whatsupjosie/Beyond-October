@@ -280,6 +280,9 @@ button[type="submit"] { border-color: var(--accent); color: var(--accent); }
   display: flex;
 }
 .drawer.open { transform: translateX(0); }
+@media (prefers-reduced-motion: reduce) {
+  .drawer { transition: none; }
+}
 
 .drawer-tab {
   width: 32px;

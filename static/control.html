@@ -556,8 +556,8 @@
 
   <aside id="chat-drawer" class="drawer">
     <div class="drawer-tab" id="drawer-tab">Chat</div>
-    <div class="drawer-body">
-      <div class="drawer-header">
+    <div class="drawer-body" style="min-width:0; overflow-y:auto;">
+      <div class="drawer-header" style="flex-wrap:wrap;">
         <span>Chat</span>
         <select id="chat-room" class="chat-room" style="margin-left:8px;">
           <option value="dressing">dressing</option>
@@ -572,15 +572,18 @@
         <span id="typing" class="typing" style="margin-left:8px;color:#888;font-size:12px;"></span>
       </div>
       <div id="chat-log" class="chat-log"></div>
-      <form id="chat-form" class="chat-form">
-        <input id="chat-input" placeholder="Type a message..." />
+      <form id="chat-form" class="chat-form" style="flex-wrap:wrap;">
+        <input id="chat-input" placeholder="Type a message..." style="min-width:0;" />
+        <button id="chat-dictate" type="button">Dictate</button>
         <button type="submit">Send</button>
       </form>
-      <div id="tts-panel" class="tts" style="margin-top:8px; display:flex; gap:6px; align-items:center;">
-        <label for="tts-text" class="muted small">Voice:</label>
+      <div id="tts-panel" class="tts" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; min-width:0;">
+        <label for="tts-voice" class="muted small">Voice:</label>
         <select id="tts-voice" style="max-width:220px;"></select>
-        <input id="tts-text" placeholder="Type something for TTS..." style="flex:1;" />
+        <input id="tts-text" placeholder="Type something for TTS..." style="flex:1 1 160px; min-width:0;" />
         <button id="tts-say" type="button">Speak</button>
+        <button id="tts-stop" type="button">Stop speech</button>
+        <span id="tts-status" role="status" aria-live="polite" style="flex-basis:100%; overflow-wrap:anywhere;"></span>
         <label class="muted small" style="display:flex; align-items:center; gap:4px;">
           <input id="tts-autoplay" type="checkbox" /> Speak incoming chat
         </label>
@@ -588,7 +591,7 @@
           <input id="tts-bots-only" type="checkbox" /> Bots only
         </label>
         <label class="muted small" style="display:flex; align-items:center; gap:4px;">
-          <input id="tts-server" type="checkbox" /> Use server TTS
+          <input id="tts-server" type="checkbox" checked /> Local speech (recordable)
         </label>
         <label class="muted small" style="display:flex; align-items:center; gap:4px;">
           <input id="tts-humanize" type="checkbox" /> Humanizer
@@ -599,6 +602,7 @@
 
   <script src="/static/reach_auth.js"></script>
   <script src="/static/program_audio_runtime.js"></script>
+  <script src="/static/speech_client.js"></script>
   <script src="/static/ws.js"></script>
   <script src="/static/ui.js"></script>
   <script src="/static/app.js"></script>
