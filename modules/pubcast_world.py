@@ -197,7 +197,10 @@ WORLD: Dict[str, WorldRoom] = {r.room_id: r for r in (
     WorldRoom(
         "manager_office", "Sir Purfluous's Office",
         views=(_v("main", "manager_office.png", 1536, 1024,
-                  "Theater manager's office"),),
+                  "Theater manager's office"),
+               # Josie (2026-11-02): her painting, hidden as an Easter egg in the frame lying on the floor.
+               _v("painting", "manager_office_painting.png", 1024, 1536,
+                  "Painting in the frame on the floor"),),
         exits=(Exit("lobby_upstairs", "Out to the upstairs lobby", "door",
                     note="Josie (2026-10-18): the entrance and exit is a "
                          "hotspot at the bottom of the screen."),),

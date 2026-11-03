@@ -1,0 +1,11 @@
+{
+ "purpose": "Preserved previous version of an edited picture; not a runtime file.",
+ "files": [
+  {
+   "path": "world/manager_office.png",
+   "sha256": "920adbd29c6807234f255f11282068d501232f349baf071d69fc2ad8ac8a95c2",
+   "bytes": 432562,
+   "origin": "static/world/rooms/manager_office.png at bfbdcf0"
+  }
+ ]
+}

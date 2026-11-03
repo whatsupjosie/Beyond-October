@@ -5481,9 +5481,44 @@
         "type": "animation",
         "animation": "sit down on the leather sofa"
        }
+      },
+      {
+       "id": "floor-painting",
+       "label": "Frame on the floor",
+       "at": [
+        1362,
+        958
+       ],
+       "r": 40,
+       "status": "proposed",
+       "note": "Josie (2026-11-02): her painting is hidden as an Easter egg in the framed tray lying on the floor, bottom right; she chose this spot. The label and the spot's wording are mine.",
+       "action": {
+        "type": "view",
+        "view": "painting",
+        "event": "Look closer"
+       }
       }
      ],
      "notes": "Floor wraps the desk on the right and front; its front edge now follows the desk's own base line (2026-10-18) instead of a straight row 810. The sofa and coffee table (left) are partly inside it and are cut out with footprints. Josie (2026-10-18): the back door (the brown one with the small sign, about 570,350) leads into the back of the theater's mezzanine, up on the second floor. The theater is not built, so there is no exit through it yet."
+    },
+    {
+     "id": "painting",
+     "image": "/static/world/rooms/manager_office_painting.png",
+     "w": 1024,
+     "h": 1536,
+     "label": "Painting in the frame on the floor",
+     "time": "",
+     "status": "proposed",
+     "pad_status": "proposed",
+     "camera": null,
+     "scale": [],
+     "scale_info": null,
+     "zones": [],
+     "occluders": [],
+     "blockers": [],
+     "doors": [],
+     "hotspots": [],
+     "notes": "Close-up view; no avatar walking here. Josie's painting, full size, exactly as she sent it."
     }
    ],
    "exits": [
