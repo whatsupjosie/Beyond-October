@@ -66,6 +66,7 @@ from modules.studio25d_media_routes import create_studio25d_media_router
 from modules.governance import GovernanceEngine
 from modules.governance_routes import create_governance_router
 from modules.host_control import create_host_control_router
+from modules.production_notes import create_production_notes_router
 from modules.pubworld_private import PubWorldPrivate
 from modules.avatar_studio_bridge import AvatarStudioBridge, create_avatar_studio_router
 from modules.pubworld_hotspots import create_hotspot_router
@@ -1217,6 +1218,8 @@ async def lifespan(application: FastAPI):
     pubworld_private.on_room_change = host_router.host.on_room_change
     pubworld_private.pending_for = host_router.host.pending_for
     application.include_router(host_router)
+    # Production notes (the sticky notes) and the PubCast profile they belong to. Spots come from the studio's own file.
+    application.include_router(create_production_notes_router(DATA_DIR, STATIC_DIR / "world" / "note_spots.json"))
     logger.info("[7/12] Governance ready — bans, freeze, consent, waiting room")
 
     # 7b. PubWorld Hotspot API

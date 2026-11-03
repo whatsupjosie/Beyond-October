@@ -216,6 +216,7 @@ textarea { width: 100%; height: 90px; background: var(--bg); color: var(--ink); 
 <script type="importmap">{"imports":{"three":"/static/vendor/three-0.160.0/build/three.module.js","three/addons/":"/static/vendor/three-0.160.0/examples/jsm/"}}</script>
 <script type="module" src="/static/world_walk_glb.js"></script>
 <script src="/static/world_walk_live.js"></script>
+<script src="/static/production_notes.js"></script>
 <script src="/static/keymap.js"></script>
 <script>
 "use strict";
@@ -506,6 +507,7 @@ async function setView(roomId, viewId, opts) {
   requestAnimationFrame(() => fade.classList.remove("on"));
   const L = window.PubCastLive;
   if (L) L.enterView({ room: room.id, view: view.id, liveId: room.live_id || "", layoutId: room.layout_id || "" });
+  if (window.PubCastNotes) window.PubCastNotes.onView(S.key);
   return true;
 }
 function goTo(roomId, fromRoomId) {
@@ -645,6 +647,8 @@ function draw() {
   const v = S.view;
   c.save(); c.translate(f.ox, f.oy); c.scale(f.s, f.s);
   c.drawImage(S.img, 0, 0, v.w, v.h);
+  const notes = window.PubCastNotes;
+  if (notes) notes.drawScene(c, S.key, f.s);          // production notes lie on the picture's surfaces, under the figures
 
   if (S.show.pads) for (const z of v.zones) {
     const col = KIND_COLOR[z.kind] || KIND_COLOR.floor, unknown = z.z_in === null || (z.kind !== "floor" && z.rise_in === null);
@@ -688,7 +692,7 @@ function draw() {
     }
     if (!drawGlbFigure(c, fg)) drawFigure(c, fg.p[0], fg.p[1], fg.H, ch.color, ch.sex, { alpha: fg.main ? 1 : 0.85 });
     for (const o of v.occluders) if (occluderInFront(o, fg.p[1], fg.p[0])) {
-      c.save(); polyPath(c, o.points); c.clip(); c.drawImage(S.img, 0, 0, v.w, v.h); c.restore();
+      c.save(); polyPath(c, o.points); c.clip(); c.drawImage(S.img, 0, 0, v.w, v.h); if (notes) notes.drawScene(c, S.key, f.s); c.restore();
     }
   }
   if (S.show.alt && v.scale_info && v.scale_info.alt && S.refs.length) {
@@ -1029,6 +1033,8 @@ function showHotspotBubble(h) {
   S.bubbleFor = h;
   const a = h.action || {}, L = window.PubCastLive, live = L ? L.actionFor(h) : null;
   const btns = [];
+  const stuck = window.PubCastNotes ? window.PubCastNotes.hotspotNotes(S.key, h.id) : [];
+  for (const n of stuck) btns.push(makeButton("Read note: " + n.subject, () => { hideBubble(); window.PubCastNotes.openNote(n.id, true); }));
   if (a.type === "view") btns.push(makeButton("Open " + h.label, () => { hideBubble(); openCloseup(a.view); }));
   if (live) btns.push(makeButton(a.type === "view" ? "Use it here" : "Use", () => runLive(h, live, null)));
   btns.push(makeButton("Close", () => hideBubble()));
@@ -1088,6 +1094,7 @@ canvas.addEventListener("pointerdown", e => {
   if (p[0] < 0 || p[1] < 0 || p[0] > S.view.w || p[1] > S.view.h) return;
   hideBubble();
   if (window.PubCastHostPanel && window.PubCastHostPanel.driveTo(S.view.zones.length ? snapToFloor(S.view, p) : p)) return;   // the host is walking someone else
+  if (window.PubCastNotes && window.PubCastNotes.click(S.key, p)) return;      // a sticky note you can reach in this picture
   if (S.canArm === "place") {
     const ppi = ppiFor(sizingOf(S.view), p[1], null, zoneAt(S.view, p)), h = ppi ? Math.max(8, ppi * CAN_IN) : 24;
     canListNow().push({ x: p[0], y: p[1], h: Math.round(h), fy: null }); S.canSel = canListNow().length - 1; S.canArm = null;

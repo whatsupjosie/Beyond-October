@@ -120,6 +120,9 @@ class LoginRequest(BaseModel):
 
 class SetupRequest(LoginRequest):
     confirm_password: str = Field(..., min_length=1, max_length=256)
+    # The owner's PubCast profile. Both optional at setup; either can be set later from the profile.
+    email: str = Field("", max_length=254)
+    display_name: str = Field("", max_length=80)
 
 
 class TokenResponse(BaseModel):
@@ -149,7 +152,12 @@ async def first_run_setup(payload: SetupRequest, request: Request, response: Res
     if payload.password != payload.confirm_password:
         raise HTTPException(400, "Passwords do not match")
     _validate_password(payload.password, payload.username)
-    created = await userdb.create_owner_via_setup(payload.username, payload.password)
+    try:
+        email = userdb.clean_email(payload.email)
+        display_name = userdb.clean_display_name(payload.display_name, payload.username)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    created = await userdb.create_owner_via_setup(payload.username, payload.password, email, display_name)
     if not created:
         # Do not expose account details; setup is a one-time transition.
         raise HTTPException(409, "Initial setup has already been completed")

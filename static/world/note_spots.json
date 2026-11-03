@@ -1,0 +1,47 @@
+{
+ "about": "Where production notes (sticky notes) can be stuck, and where each spot is in each picture. quad is the surface the note lies on, as four corners in the picture's own pixels (top left, top right, bottom right, bottom left), measured by eye from the painting on 2026-11-02: proposed, for Josie to correct. A note is laid flat on that surface in its perspective, so its edges aim at the same point on the horizon line as the surface's own edges. note_w is a note's width as a share of the surface's width (its height follows, so it stays square on the surface). slots are where the first, second and third notes go: [u, v, tilt in degrees], u and v from 0 to 1 across and down the surface, newest first; at most three show. click: true means the note can be clicked in that picture (a close-up); in a wide shot it is only seen. hotspot: the hotspot in that picture whose bubble offers to read the note. The mirror always gets a copy of every note.",
+ "spots": {
+  "mirror": {
+   "label": "Makeup mirror",
+   "surfaces": [
+    {"view": "dressing_room/wide", "quad": [[73, 253], [267, 265], [267, 478], [73, 488]], "note_w": 0.16,
+     "slots": [[0.68, 0.135, 2], [0.79, 0.05, -5], [0.60, 0.035, 6]], "click": false, "hotspot": "makeup-station"},
+    {"view": "dressing_room/makeup_mirror", "quad": [[310, 104], [1280, 104], [1280, 580], [310, 580]], "note_w": 0.16,
+     "slots": [[0.66, 0.12, 2], [0.80, 0.04, -5], [0.56, 0.03, 6]], "click": true}
+   ]
+  },
+  "audio_console": {
+   "label": "Audio console",
+   "surfaces": [
+    {"view": "control_room/main", "quad": [[260.5, 285.5], [277, 284.5], [279, 298], [264.5, 303.5]], "note_w": 0.5,
+     "slots": [[0.48, -0.06, -5], [0.04, -0.05, 4], [0.30, 0.52, -2]], "click": false, "hotspot": "audio-console"}
+   ]
+  },
+  "director_console": {
+   "label": "Director's console (video mixer)",
+   "surfaces": [
+    {"view": "control_room/main", "quad": [[531.7, 255.8], [600, 256.7], [598.3, 295], [532.5, 292.5]], "note_w": 0.13,
+     "slots": [[0.84, -0.04, -4], [0.03, -0.04, 5], [0.84, 0.56, 3]], "click": false, "hotspot": "director-console"}
+   ]
+  },
+  "avatar_foundry": {
+   "label": "Avatar Foundry mirror",
+   "surfaces": [
+    {"view": "dressing_room/wide", "quad": [[438, 280], [558, 272], [563, 556], [441, 563]], "note_w": 0.15,
+     "slots": [[0.07, 0.05, 3], [0.24, 0.04, -4], [0.12, 0.15, 2]], "click": false}
+   ]
+  },
+  "studio_door": {
+   "label": "Studio door (green room)",
+   "surfaces": [
+    {"view": "green_room/main", "quad": [[940, 166.7], [980, 168.3], [980, 300], [940, 298.3]], "note_w": 0.085,
+     "slots": [[0.30, 0.30, -3], [0.46, 0.35, 4], [0.36, 0.41, 1]], "click": false}
+   ]
+  }
+ },
+ "corkboard_button": {
+  "about": "The sticky note on the dressing room corkboard that opens the notes menu. Always there, notes or not.",
+  "view": "dressing_room/corkboard", "quad": [[470, 735], [790, 730], [792, 985], [470, 992]], "note_w": 0.56,
+  "slot": [0.22, 0.12, -3], "label": "Production notes"
+ }
+}

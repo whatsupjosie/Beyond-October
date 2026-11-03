@@ -209,16 +209,10 @@ def _handle_makeup(client_id: str, room: str, data: Dict[str, Any]) -> Dict[str,
 
 
 def _handle_message_board(client_id: str, room: str, data: Dict[str, Any]) -> Dict[str, Any]:
-    """Check message board — returns recent system messages."""
-    return {
-        "status": "ok",
-        "result": {
-            "messages": [
-                {"from": "Stage Manager", "text": "Rehearsal at 3pm", "t": time.time() - 3600},
-                {"from": "System", "text": "Welcome to PubCast AI v5.2", "t": time.time()},
-            ],
-        },
-    }
+    """Check message board. Production notes live in modules/production_notes.py (/api/notes) and are read on the
+    corkboard and the mirror in the studio. This hotspot has no signed-in person to read them for, so it reports none
+    rather than inventing any (it used to return two made-up messages)."""
+    return {"status": "ok", "result": {"messages": [], "notes_api": "/api/notes"}}
 
 
 def _handle_sit(client_id: str, room: str, data: Dict[str, Any]) -> Dict[str, Any]:

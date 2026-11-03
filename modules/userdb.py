@@ -18,8 +18,11 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
+import secrets
 import sqlite3
 import threading
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -68,13 +71,171 @@ def _sync_init_db() -> None:
             );
 
             CREATE INDEX IF NOT EXISTS idx_mod_actions_room ON mod_actions(room, ts DESC);
+
+            -- The PubCast profile. user_id is permanent: made once, never reused or changed, so everything a person
+            -- owns (notes, records) stays theirs whatever their display name or username becomes.
+            CREATE TABLE IF NOT EXISTS profiles (
+                user_id         TEXT PRIMARY KEY,
+                username        TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                display_name    TEXT NOT NULL DEFAULT '',
+                email           TEXT NOT NULL DEFAULT '',
+                created_at      REAL NOT NULL
+            );
         """)
+        _sync_backfill_profiles(conn)
         conn.commit()
         logger.info("userdb: tables ready at %s", _DB_PATH)
     finally:
         conn.close()
 
 
+
+
+# ---------------------------------------------------------------------------
+# PubCast profiles
+# ---------------------------------------------------------------------------
+EMAIL_RE = re.compile(r"^[^@\s]{1,64}@[^@\s]+\.[^@\s]{2,}$")
+DISPLAY_NAME_MAX = 80
+EMAIL_MAX = 254
+
+
+def new_user_id() -> str:
+    """A permanent, random user ID: 'u_' and 20 hex digits (80 bits)."""
+    return "u_" + secrets.token_hex(10)
+
+
+def clean_email(value: Optional[str]) -> str:
+    """'' for no email; otherwise a trimmed address, or ValueError if it is not one."""
+    value = (value or "").strip()
+    if not value:
+        return ""
+    if len(value) > EMAIL_MAX or not EMAIL_RE.fullmatch(value):
+        raise ValueError("That email address does not look right")
+    return value
+
+
+def clean_display_name(value: Optional[str], fallback: str) -> str:
+    value = " ".join((value or "").split())
+    if len(value) > DISPLAY_NAME_MAX:
+        raise ValueError(f"Display name is longer than {DISPLAY_NAME_MAX} characters")
+    return value or fallback
+
+
+def _insert_profile(conn: sqlite3.Connection, username: str, display_name: str = "", email: str = "") -> str:
+    user_id = new_user_id()
+    conn.execute(
+        "INSERT INTO profiles (user_id, username, display_name, email, created_at) VALUES (?, ?, ?, ?, ?)",
+        (user_id, username, display_name or username, email, time.time()),
+    )
+    return user_id
+
+
+def _sync_backfill_profiles(conn: sqlite3.Connection) -> int:
+    """Every account gets a profile. Accounts made before profiles existed get one now, once."""
+    rows = conn.execute(
+        "SELECT u.username FROM users u LEFT JOIN profiles p ON p.username = u.username COLLATE NOCASE "
+        "WHERE p.user_id IS NULL"
+    ).fetchall()
+    for row in rows:
+        _insert_profile(conn, row["username"])
+    if rows:
+        logger.info("userdb: made profiles for %d existing account(s)", len(rows))
+    return len(rows)
+
+
+_PROFILE_COLS = "p.user_id, p.username, p.display_name, p.email, p.created_at, u.role"
+
+
+def _sync_get_profile_by_username(username: str) -> Optional[Dict[str, Any]]:
+    conn = _get_connection()
+    try:
+        row = conn.execute(
+            f"SELECT {_PROFILE_COLS} FROM profiles p JOIN users u ON u.username = p.username COLLATE NOCASE "
+            "WHERE p.username = ? COLLATE NOCASE",
+            (username,),
+        ).fetchone()
+        if row is None and conn.execute("SELECT 1 FROM users WHERE username = ?", (username,)).fetchone():
+            _sync_backfill_profiles(conn)                 # an account made by an older path: give it its profile now
+            conn.commit()
+            row = conn.execute(
+                f"SELECT {_PROFILE_COLS} FROM profiles p JOIN users u ON u.username = p.username COLLATE NOCASE "
+                "WHERE p.username = ? COLLATE NOCASE",
+                (username,),
+            ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def _sync_get_profile(user_id: str) -> Optional[Dict[str, Any]]:
+    conn = _get_connection()
+    try:
+        row = conn.execute(
+            f"SELECT {_PROFILE_COLS} FROM profiles p JOIN users u ON u.username = p.username COLLATE NOCASE "
+            "WHERE p.user_id = ?",
+            (user_id,),
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def _sync_list_profiles() -> List[Dict[str, Any]]:
+    conn = _get_connection()
+    try:
+        if _sync_backfill_profiles(conn):            # any account made by an older path shows up in the production too
+            conn.commit()
+        rows = conn.execute(
+            f"SELECT {_PROFILE_COLS} FROM profiles p JOIN users u ON u.username = p.username COLLATE NOCASE "
+            "ORDER BY p.created_at ASC"
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def _sync_update_profile(user_id: str, display_name: Optional[str], email: Optional[str]) -> Optional[Dict[str, Any]]:
+    conn = _get_connection()
+    try:
+        row = conn.execute("SELECT username FROM profiles WHERE user_id = ?", (user_id,)).fetchone()
+        if not row:
+            return None
+        if display_name is not None:
+            conn.execute("UPDATE profiles SET display_name = ? WHERE user_id = ?",
+                         (clean_display_name(display_name, row["username"]), user_id))
+        if email is not None:
+            conn.execute("UPDATE profiles SET email = ? WHERE user_id = ?", (clean_email(email), user_id))
+        conn.commit()
+    finally:
+        conn.close()
+    return _sync_get_profile(user_id)
+
+
+def _sync_create_member(username: str, password: str, role: str, display_name: str, email: str) -> Optional[str]:
+    """Make a crew account and its profile together. Returns the new user_id, or None if the username is taken."""
+    if role not in {"guest", "mod"}:
+        raise ValueError("A crew account is either guest or mod")
+    email = clean_email(email)
+    display_name = clean_display_name(display_name, username)
+    hashed = get_password_hash(password)
+    conn = _get_connection()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        taken = conn.execute("SELECT 1 FROM users WHERE username = ? COLLATE NOCASE", (username,)).fetchone() or \
+            conn.execute("SELECT 1 FROM profiles WHERE username = ? COLLATE NOCASE", (username,)).fetchone()
+        if taken:
+            conn.rollback()
+            return None
+        conn.execute("INSERT INTO users (username, hashed_password, role) VALUES (?, ?, ?)", (username, hashed, role))
+        user_id = _insert_profile(conn, username, display_name, email)
+        conn.commit()
+        logger.info("userdb: crew account '%s' (%s) created", username, role)
+        return user_id
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def _sync_count_users() -> int:
@@ -85,7 +246,7 @@ def _sync_count_users() -> int:
         conn.close()
 
 
-def _sync_create_owner_via_setup(username: str, password: str) -> bool:
+def _sync_create_owner_via_setup(username: str, password: str, email: str = "", display_name: str = "") -> bool:
     """Atomically create the first owner account.
 
     Returns False when setup has already been completed. BEGIN IMMEDIATE plus
@@ -104,6 +265,7 @@ def _sync_create_owner_via_setup(username: str, password: str) -> bool:
                 "INSERT INTO users (username, hashed_password, role) VALUES (?, ?, 'owner')",
                 (username, hashed),
             )
+            _insert_profile(conn, username, clean_display_name(display_name, username), clean_email(email))
             conn.commit()
             logger.info("userdb: first-run owner account '%s' created", username)
             return True
@@ -236,8 +398,28 @@ async def count_users() -> int:
     return await _in_thread(_sync_count_users)
 
 
-async def create_owner_via_setup(username: str, password: str) -> bool:
-    return await _in_thread(_sync_create_owner_via_setup, username, password)
+async def create_owner_via_setup(username: str, password: str, email: str = "", display_name: str = "") -> bool:
+    return await _in_thread(_sync_create_owner_via_setup, username, password, email, display_name)
+
+
+async def get_profile_by_username(username: str) -> Optional[Dict[str, Any]]:
+    return await _in_thread(_sync_get_profile_by_username, username)
+
+
+async def get_profile(user_id: str) -> Optional[Dict[str, Any]]:
+    return await _in_thread(_sync_get_profile, user_id)
+
+
+async def list_profiles() -> List[Dict[str, Any]]:
+    return await _in_thread(_sync_list_profiles)
+
+
+async def update_profile(user_id: str, display_name: Optional[str] = None, email: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    return await _in_thread(_sync_update_profile, user_id, display_name, email)
+
+
+async def create_member(username: str, password: str, role: str, display_name: str = "", email: str = "") -> Optional[str]:
+    return await _in_thread(_sync_create_member, username, password, role, display_name, email)
 
 
 async def update_password_hash(username: str, hashed_password: str) -> bool:

@@ -61,6 +61,12 @@
     <label>Confirm Password
       <input type="password" id="regPass2" autocomplete="new-password" placeholder="••••••••">
     </label>
+    <label>Name shown to your crew <span style="font-size:0.62rem">(optional)</span>
+      <input type="text" id="regName" autocomplete="name" maxlength="80">
+    </label>
+    <label>Email <span style="font-size:0.62rem">(optional · for production notes sent as email)</span>
+      <input type="email" id="regEmail" autocomplete="email" maxlength="254">
+    </label>
     <button class="btn" id="regBtn" onclick="doRegister()">Create Account</button>
     <div class="error" id="regErr"></div>
     <div class="success" id="regOk" style="display:none"></div>
@@ -137,7 +143,9 @@
     try {
       const r = await fetch('/api/auth/setup', {
         method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({username:user, password:pass, confirm_password:confirm})
+        body: JSON.stringify({username:user, password:pass, confirm_password:confirm,
+                              display_name: document.getElementById('regName').value.trim(),
+                              email: document.getElementById('regEmail').value.trim()})
       });
       const d = await r.json();
       if (!r.ok) { err.textContent = d.detail || 'Setup failed'; return; }

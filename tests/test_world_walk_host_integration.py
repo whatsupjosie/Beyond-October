@@ -232,8 +232,11 @@ def test_dressing_room_hotspots_run_on_the_host(host, signed_in):
     assert worn["title"] == "Wardrobe"
     page.get_by_role("button", name="Formal Suit", exact=True).click()
     page.wait_for_function("/Wearing: Formal Suit/.test(document.querySelector('#bubble p').textContent)", timeout=15000)
-    board = _use_hotspot(page, "message-board", "Use it here")      # it also opens the corkboard close-up
-    assert board["title"] == "Message board" and "Stage Manager" in board["body"]
+    # the message board opens its close-up, where the production notes are; it no longer shows two made-up messages
+    page.evaluate("(id) => { const W = window.PubCastWalk; W.showHotspotBubble(W.S.view.hotspots.find(h => h.id === id)); }", "message-board")
+    names = page.evaluate("[...document.querySelectorAll('#bubble button')].map(b => b.textContent)")
+    assert "Open Message board" in names and "Use it here" not in names
+    page.evaluate("window.PubCastWalk.hideBubble()")
     look = _use_hotspot(page, "makeup-station", "Use it here")
     assert look["title"] == "Hair and makeup" and "Natural" in look["body"]
     # the walker sends the same hotspot call world.html makes

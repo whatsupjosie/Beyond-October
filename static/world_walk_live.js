@@ -30,7 +30,8 @@
     "phone": "phone",
     "wardrobe": "wardrobe",
     "makeup-station": "makeup",
-    "message-board": "message_board",
+    // "message-board" is not sent to the host: the board opens its close-up, where the production notes button is
+    // (static/production_notes.js). The host's message_board action only ever returned two made-up messages.
     "tv": "tv",
   };
   const SIT_RE = /(^|-)(sit|couch)(-|$)/;

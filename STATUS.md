@@ -5,6 +5,13 @@ Foresight inside this Build. It is **not** a declaration that all of PubCast is
 finished. Never treat a file, route, recovered donor, or test fixture as proof
 of live functionality.
 
+## 2026-11-02: Production notes (sticky notes) and the PubCast profile
+
+Ledger: `handoffs/PRODUCTION_NOTES_2026-11-02.md`.
+
+- Every account has a profile with a permanent user ID, display name and email; the owner or a moderator adds crew accounts. Notes are kept on the host and shown in the studio as sticky notes on the mirror and on spots the sender chose, in each surface's perspective, with a gold star that glints; the corkboard's note opens the menu (by date or project); notes open like an email and can be copied to email from the sender's own email program.
+- Tested: 9 API tests and a real-browser test against `run_reach.py`, plus the studio, auth and host-control regressions (not a full-suite run). Not built: email replies back into PubCast, the user menu and the "place sticky note" picker, spots for the remaining places.
+
 ## 2026-10-29: Control page integration and host control
 
 Ledgers: `handoffs/CONTROL_PAGE_INTEGRATION_2026-10-29.md`, `HOST_CONTROL_SERVER_2026-10-29.md`, `KEYMAP_2026-10-29.md`, `CAMERA_CONTROL_MODES_2026-10-29.md`.
