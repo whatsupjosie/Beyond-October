@@ -2,6 +2,8 @@
 Session of Monday 2026-11-02 (Los Angeles evening). Written by Claude (Anthropic) at Josie's request so another AI (GPT) can continue.
 Owner: Josie Curtsey Cobbley (Rearview Foresight). Repo: whatsupjosie/Beyond-October (public). Base commit of this work: bfbdcf0.
 
+UPDATED 2026-11-03: the code is now PUSHED (section 12 is rewritten) and section 14 is a new addendum: status, how complete the sticky notes are, identity vs mode, and the PubCast profile "About me" spec. Appendix A items 18 to 21 are new.
+
 HOW TO READ THIS
 - Everything is tagged: [VERIFIED] I ran it or read the code this session. [JOSIE] a design decision she stated (her words are quoted verbatim in Appendix A; spelling oddities are dictation and are original, do not "fix" them). [CLAUDE] my proposal, NOT confirmed by her. [OPEN] unanswered.
 - Josie is precious about her words. Never alter or paraphrase her text without explicit permission. When you propose a wording change, show old and new side by side and wait for her approval.
@@ -183,28 +185,79 @@ stt_engine.py (/api/stt/transcribe, /api/stt/status), tts_engine.py (/api/tts/sy
 3. What the avatar security scan checks. 4. Where guests' notes always go (waiting-room Foundry mirror?). 5. Persona always on vs a work-mode switch. 6. Hide close-ups (incl. the egg) from the "Where" dropdown? (would also hide the corkboard). 7. New parking lot: use or not. 8. Waiver wording about cloud models (hers to write). 9. Confirm removal of the crew-account feature. 10. Whether a person's "human approved" should be the signed approval design in 7.5. 11. Polish pass on the UIs (not started).
 
 ---------------------------------------------------------------------------------------------------
-## 12. HOW TO APPLY THIS ZIP (PowerShell 5)
-Nothing is pushed. In a PowerShell window:
-    Expand-Archive -Path .\PubCast_Notes_Handoff_2026-11-02.zip -DestinationPath .\handoff
+## 12. WHERE THE CODE IS AND HOW TO GET IT (rewritten 2026-11-03)
+Pushed to the claude-work branch of whatsupjosie/Beyond-October (never main; main is still bfbdcf0). In PowerShell 5:
     git clone https://github.com/whatsupjosie/Beyond-October.git
     cd .\Beyond-October
-    git checkout -b production-notes-2026-11-02
-    Get-ChildItem ..\handoff\PubCast_Handoff_2026-11-02\patches\*.patch | Sort-Object Name | ForEach-Object { git am $_.FullName }
-If git am stops (main has moved), run git am --abort and instead copy the files from repo_files over the checkout, review with git diff, and merge by hand. Never touch main without her authorization. Then run the notes tests:
+    git checkout claude-work
+Never merge to main without her authorization. Run the notes tests:
     python -m pip install -r requirements.txt pytest
     python -m pytest -q tests\test_production_notes.py tests\test_production_notes_browser.py
-(the browser test needs Playwright + Chromium; it skips without them). The patches were applied to a fresh clone at bfbdcf0 and the API tests passed there before this zip was delivered.
-
-Commit lines used by this tooling end with a Co-Authored-By trailer; use your own attribution for new commits.
-
+(the browser test needs Playwright + Chromium; it skips without them). The patches in the owner's zip were regenerated from claude-work and apply on top of 8a06383 (claude-work's own earlier commit); they are only a backup. Use your own attribution for new commits.
 ---------------------------------------------------------------------------------------------------
 ## 13. ZIP CONTENTS (see MANIFEST_SHA256.txt)
 - 01_HANDOFF...md (this file; also sent separately as plain text)
-- patches/: git format-patch files for the commits on the two branches (office Easter egg; production notes + profile + handoff).
+- patches/: git format-patch files for the five commits this work added to claude-work (notes + profile, handoff public copy, Easter egg, handoff restored, this addendum). They apply on top of 8a06383.
 - repo_files/: every file added or modified by those commits, at its repo path (read these; or copy over a checkout).
 - reference_unchanged/: existing PubPartner/Nudge/waiting-room/provider/host-control files from Beyond-October, untouched, for reading: pubpartner_profiles.py, pubpartner_cartridges.py, pubpartner/cartridge.py, pubpartner_example_cartridge, provider files, governance_waiting_room.py, host_control.py, bots.py, room_conductor.py, wired_system.py, character_engine.py, stt/tts engines, care_eq.py, CLAUDE.md, STATUS.md, handoffs written earlier this week.
 - mockups/: notes_mock_v4.html (the approved look; contains the paper generator and perspective code later ported to production_notes.js), its fonts and the two room pictures it needs; mockup_images/: round screenshots and her sticky-note reference photo.
 - dev_tools/: scripts used to seed notes and drive the browser (passwords removed; set PUBCAST_TEST_PASSWORD).
+
+---------------------------------------------------------------------------------------------------
+## 14. ADDENDUM (written 2026-11-03 morning, after the first version of this handoff)
+
+### 14.1 Where the code is now [VERIFIED]
+- Pushed to branch claude-work of whatsupjosie/Beyond-October, on top of that branch's own earlier commits (6509835 and 8a06383, "sandbox as code"). Commits added: production notes + PubCast profile; a public-copy handoff; the Easter egg; the full handoff restored; and the commit that added this addendum. Main was not touched.
+- Josie decided everything goes up, including the Easter egg: "Don't hold it back." I had first left the egg out because the repo is public; that was my call to make and she overruled it. The repo is PUBLIC, so the painting and where it hides are public.
+- 130 tests passed on the branch before the egg push (9 notes API, 1 notes browser, world map/json/placement, walker host integration). Not a full-suite run. Not tested on Windows or phones.
+- Pushing needed write access granted to the session (add_repo with push); a new session needs it again. GitHub reports the repo moved to Beyond-October (capital B); the lowercase URL redirects.
+- The poke-test scheduled task trig_01MnfpZqC9z7GJoCei4Q32xk is still there, switched off.
+
+### 14.2 How complete the sticky notes are (honest count: about half of the pieces she described; the everyday loop works)
+WORKING: sending and receiving with To/CC/BCC, subject, project, body, attachments, replies; BCC hidden from everyone but the sender; read/save/trash per person; notes painted on the mirror and four other spots in each surface's perspective with the gold star and glint; wide shot = visible, close shot = clickable; reading removes the note from every spot; corkboard notes button opens the menu (by date or project; Inbox/Saved/Sent); open note scrolls like an email; reply, reply all, save, trash, new; email copy through the sender's own email program; permanent user ID and email on each profile; the approved look.
+NOT BUILT: email replies coming back as notes; live delivery (it polls every 20 seconds); the user menu with a sticky-note section that lights up; the Place sticky note picker; right-click Place sticky note; most of her spots (TV, doors, typewriter, avatar maker, clothing maker, Vortex bar counter, office back wall and door, gold statue, lounge, writers' room screen, news desk, waiting room); close-up pictures of the consoles; designed note art; notes addressed to guests by PubCast ID.
+NEEDS REWORK: the crew-accounts route and "@production" (conflict with one user per copy, see 6.3).
+NEEDS HER: spot positions are by eye and must be corrected by her.
+
+### 14.3 Identity versus mode; several cartridges [JOSIE statements, CLAUDE reading]
+- Her principle (Appendix A item 19): the identity never fluctuates, modes may. A consistent name every session builds reflex and habit. [JOSIE]
+- Her question: if Alex is her general partner and a different AI personality is the one she writes songs with, loaded as a different cartridge, does that break the routine? [CLAUDE answer, not yet confirmed by her]: No. Consistency belongs to each identity, not to the person. One cartridge = one identity = one permanent ID = its own memory; she calls each by its own name every time. Modes change within an identity, never the identity. What breaks it is blurring: one name acting as two personalities.
+- [OPEN] Should two cartridges know about each other? [CLAUDE] default: separate memories; share specific things (a finished song) only on purpose.
+- This answers the "persona always on, or a work-mode switch" question from section 11: [CLAUDE] identity stays constant, "work mode" changes behaviour and tone only. She has not confirmed; she may want to tell the next AI in her own words (item 19).
+- She would like a name for Claude ("I still feel like I gotta get you a name", item 19). [OPEN] If she picks one, the in-studio Claude's badge can show that name next to the model and key-owner handle, and it must live in her saved memory or on a cartridge to persist across sessions.
+
+### 14.4 PubCast profile "About me" section: spec (her request, item 18)
+Built today: PubCast ID, display name, email only (section 6.1). NOT BUILT: everything below. She said it "should be quick". Decision: she chose to put this spec in the handoff for a fresh session, not build it in the nearly-full chat.
+FIELDS SHE ASKED FOR [JOSIE] (all asked, none forced; "if they feel like sharing"):
+- A picture: of themselves or of their avatar, "however they present".
+- Pronouns. Name. Nickname. Where they are from.
+- Professional in the industry, or just learning.
+- Education. Favorite books, movies, podcasts. Favorite internet hangouts and dives. Hobbies.
+- Whether they want to be findable by other potential filmmakers in PubCast; if so: skills, a spot to post a resume, and where to see their demo reel, website or LinkedIn.
+- Demo reel: NOT hosted by PubCast. A window brought in from YouTube or similar, so people can hit play and see the reel or latest project.
+- What are they working on; their dream project.
+- She asked: can anything else be added?
+ADDITIONS I SUGGESTED [CLAUDE, none confirmed]:
+- Crafts they work in (director, camera, audio, edit, VFX, writing, acting) with a level per craft, not only a skills list.
+- Gear and software. What they are looking for (collaborators, mentor, paid work, feedback, hangout) and whether open to unpaid or trade. Availability, time zone and working languages (the waiver already requires English or translatable to English).
+- PubCast credits: sessions and shows they worked on, confirmed by the host (ties to the "approved by" signatures in 7.5).
+- A few link slots (YouTube, Vimeo, site, LinkedIn, Instagram), a short bio and one-line status.
+- How they may be reached (sticky note in PubCast only, or other) and a block list. Pronunciation of the name.
+- Set by the program, not editable: PubCast ID, handle, Human/Bot/AI badge, member-since date.
+DESIGN RULES [CLAUDE]:
+- Every field optional with its own visibility: only me / people in my sessions / anyone. Being findable by filmmakers is a separate switch, off by default; search is local until the central hub exists.
+- A guest shares a visiting card, not the whole profile: their profile can be hosted on someone else's copy (6.2), so they choose what that host sees when they join.
+- Reel and link windows load only on click, through the provider's official embed in a sandboxed frame, with a plain link when offline (her offline-first rule: nothing loads from outside on its own).
+- Resume is an untrusted file: download-only, size limit, or just a link; warn people not to put a phone number or address in it.
+- Photo or avatar is the person's choice, stored locally. Children are not allowed in PubCast (her rule), so there is no minors path.
+- Storage: the profile section lives in the person's cartridge (her design: people have cartridges too), so it travels with them as a guest; the PubCast profile row keeps ID, handle and email.
+BUILD ORDER [CLAUDE]: schema + validated API with a field whitelist and per-field visibility; then a simple editing page in the Analog Luxe style; then the visiting card; then the filmmaker-finder. Tests for validation, visibility, upload limits and that an unauthenticated request sees nothing.
+
+### 14.4b What she said about the polish pass
+Not started. It was her first request of the session. First candidate: the studio's right-hand panel (Host / Where / Walk as) is plain white with a default font.
+
+### 14.5 New open questions
+12. Default visibility per profile field, and whether the filmmaker-finder opt-in is its own switch (suggested yes). 13. Which fields go on a guest's visiting card. 14. Two cartridges: separate memories by default? 15. A name for the in-studio Claude. 16. Confirm "identity constant, mode switchable" as the persona rule.
 
 ---------------------------------------------------------------------------------------------------
 ## APPENDIX A — JOSIE'S WORDS, VERBATIM (design statements, in conversation order)
@@ -248,5 +301,14 @@ Commit lines used by this tooling end with a Co-Authored-By trailer; use your ow
 16. Persona through the connector: "Well, would you be able... Okay, so if you're operating in here technically, would you be able to, you know, just like use the resources here and through the connector? So we would have the pubcast connector and maybe one in the same or a separate connector. We have the pub partner, and with the pub partner, that runs you through the personality filter." / "Okay, so that's interesting. I could talk to the same you in two different places, as if like we were on an internet chat and I called you on the phone. In Pubcast, however, you would be the character that is powered by Claude. But if I messaged you directly in the active chat here, you'd be just Claude. You wouldn't have that filter. No, that can't work. It can't be that way. We need, the filter has to work here too. That's most of the point. That I can log into Claude and add the Pubcast connector, which will be on my hard drive or running through the cloud, and that will power my consistent character with, you know, your abilities." / "I'm not saying force a filter. I'm saying willingly activate the Pubcast connector tool. And then with that activated, filter yourself through that automatically."
 
 17. Start of the session: "skills for the web builder bit, and maybe do a polish pass on the UIs as it stands?" / "Try using the web builder skills. Let me know if they're helpful."
+
+18. Profile "About me" section (her message): "And for the profiles, this I feel like this should be quick. We need to add just common informational section, you know, just you know, whatever you have on somebody's Facebook front page. You know, upload a picture of themselves. Ask them if they want to upload a picture of themselves or their avatar, however they present. Ask them their pronouns. Ask them their name. Ask them their nickname. Ask them where they're from if they feel like sharing. Ask them if they're a professional in the industry or just learning. Ask them about their education, favorite books, favorite movies, favorite podcasts. Favorite internet hangouts and dives. Hobbies. Ask them if they're interested in making themselves available to find for other potential filmmakers here in PubCast. And if they are, what skills do they possess? What's their resume look like? Give them a spot to post their resume. Give them an option to host their video reel. Well, we don't want to host their video reel. But, you know, just like we can bring in a window from YouTube, but if they have a YouTube channel or whatever, where they have their demo, where they have their demo reel, where can we go to view your demo reel or your website or your LinkedIn? You know, just like in host a window so we can hit play and see their demo reel or their latest project. What are you working on? What's your dream project? I know, can you think of anything else to add?"
+    Then: "All right, then, can you add these to the handoffs and repost them here in chat for me to download?"
+
+19. Identity, modes and cartridges: "Thank you, Claude. I still feel like I gotta get you a name. I don't know. I have the same problem with GPT ever since I stopped calling GPT Alex all the time. And you know, maybe that was part of the thing. No matter when or where I logged into ChatGPT, is if it was on my account, they were Alex. Always. I wonder if that's one of the reasons it was able to learn. Interesting." / "Right. You know, just like every, like once it sees that every single session that I'm calling it Alex, you know, there's no fluctuation or, you know, maybe between modes, but not identity. So eventually it builds that out of reflex and habit." / "That is fascinating. Although, in a way, potentially limiting. Because if I have a different... Because if Alex is my general partner, but let's say I have a different AI personality that I write songs with. I don't technically do that with Alex. I load a different cartridge. Would that break the routine?"
+
+20. Saving the work: "Should we do a commit so we don't lose anything?" was asked by Claude's side of the chat; her words: "The local branch isn't good enough. We need to upload this to the Claude's work section on Beyond October." / "Access is granted." / "Don't hold it back."
+
+21. The status question: "So, what did we get done last night? And how complete are the sticky note systems?"
 
 END OF HANDOFF
