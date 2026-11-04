@@ -67,3 +67,18 @@ def test_the_route_still_enforces_its_own_ceilings_behind_the_guard(guarded):
     notes_root = root / "data" / "notes"
     assert list((notes_root / "incoming").iterdir()) == []
     assert [p for p in (notes_root / "files").iterdir()] == []
+
+
+def test_a_refused_note_leaves_no_temporary_upload_files_open(guarded):
+    """The route parses the multipart form itself, so it must close it: uploads over 1 MB spool to disk."""
+    import gc
+    import warnings
+    client, headers, me, _ = guarded
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        assert _send(client, headers, me, [pn.FILE_BYTES_MAX + 1]).status_code == 413
+        # A note with nobody to send to is refused after the files were already received by the parser.
+        files = [("files", ("big.bin", io.BytesIO(os.urandom(3 * 1024 * 1024)), "application/octet-stream"))]
+        assert client.post("/api/notes", headers=headers, files=files, data={"note": json.dumps({"subject": "x", "to": []})}).status_code == 400
+        gc.collect()
+    assert [str(w.message) for w in caught if "Unclosed file" in str(w.message) or "unclosed file" in str(w.message)] == []

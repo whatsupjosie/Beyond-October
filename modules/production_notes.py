@@ -43,8 +43,9 @@ import sqlite3
 import threading
 import time
 import unicodedata
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
@@ -188,11 +189,27 @@ class NotesStore:
             if "project" not in cols:                     # a notes.db from before projects existed
                 conn.execute("ALTER TABLE notes ADD COLUMN project TEXT NOT NULL DEFAULT ''")
 
-    def _conn(self) -> sqlite3.Connection:
+    @contextmanager
+    def _conn(self) -> Iterator[sqlite3.Connection]:
+        """One connection per unit of work, always closed.
+
+        sqlite3's own `with connection:` commits or rolls back but never closes, so a connection used that way
+        lingers until the garbage collector reaches it (and holds the database file open meanwhile, which matters
+        on Windows when the data folder is moved, checkpointed or restored).
+        """
         conn = sqlite3.connect(str(self.db_path), timeout=15, isolation_level=None)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA foreign_keys = ON")
-        return conn
+        try:
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA foreign_keys = ON")
+            yield conn
+            if conn.in_transaction:
+                conn.commit()
+        except BaseException:
+            if conn.in_transaction:
+                conn.rollback()
+            raise
+        finally:
+            conn.close()
 
     # -- writing --
     def create(self, sender_id: str, subject: str, body: str, recipients: List[Tuple[str, str]], spots: List[str],
@@ -473,6 +490,15 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
 
     @router.post("/api/notes", status_code=201)
     async def send(request: Request, profile: Dict[str, Any] = Depends(me)) -> Dict[str, Any]:
+        # The multipart form is parsed here rather than by FastAPI, so nothing else closes it: its uploads spool to
+        # temporary files on disk above 1 MB, and a refused note (too large, no recipient) would otherwise leave
+        # them behind until the garbage collector got round to it.
+        try:
+            return await _send(request, profile)
+        finally:
+            await request.close()
+
+    async def _send(request: Request, profile: Dict[str, Any]) -> Dict[str, Any]:
         ctype = request.headers.get("content-type", "")
         uploads: List[UploadFile] = []
         if ctype.startswith("multipart/form-data"):

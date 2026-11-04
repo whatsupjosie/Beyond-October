@@ -210,3 +210,17 @@ def test_spot_catalog_always_has_the_mirror(env):
     client, as_, _, tmp = env
     cat = client.get("/api/notes/spots", headers=as_("pete", "guest")).json()
     assert cat["always"] == "mirror" and {s["id"] for s in cat["spots"]} == {"mirror", "audio_console"}
+
+
+def test_the_store_closes_every_database_connection_it_opens(tmp_path):
+    """sqlite3's `with connection:` never closes; a lingering handle keeps notes.db open (Windows: blocks moving it)."""
+    import gc
+    import warnings
+    store = pn.NotesStore(tmp_path / "notes")
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        store.create("u_sender", "subject", "body", [("u_a", "to")], [], None, [])
+        with pytest.raises(sqlite3.IntegrityError):       # the same person twice: the write fails and rolls back
+            store.create("u_sender", "subject", "body", [("u_a", "to"), ("u_a", "cc")], [], None, [])
+        gc.collect()
+    assert [str(w.message) for w in caught if "unclosed database" in str(w.message)] == []

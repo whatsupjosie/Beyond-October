@@ -26,14 +26,30 @@ Each was reproduced before it was fixed, and the same reproduction was run again
 - Sandbox `fast` tier on the merged tree: PASS (372 Python files compile, 28 Node tests, packaged-route preflight, 32 backend tests, `data/` untouched).
 - Sandbox `standard` tier before fixes 2 and 3: 4 browser failures (the two 2i tests above and two known-flaky recording tests).
 - Whole pytest suite, run 1 (before fixes 2 to 4): 2,212 passed, 12 failed, 6 skipped.
-- Whole pytest suite, run 2 (after all fixes): **2,222 passed, 2 failed, 6 skipped**, 803 s.
+- Whole pytest suite, run 2 (after the first four fixes): 2,222 passed, 2 failed, 6 skipped, 803 s. (Superseded by the final run in "Second review" below: 2,237 passed, 0 failed.)
   - `test_portable_save_as_and_reopen_uses_real_disk_without_vendor_picker`: failed once under full-suite load; passed alone. Load-sensitive, not explained.
   - `test_production25d_browser.py::test_multiple_takes_keep_original_media_bytes`: one of the recording tests documented as flaky. **Fixed afterwards, see "Recording tests" below.**
 - The 6 skips: two Alex Little One research tests (off by design) and four speech tests that need the speech models installed (`PUBCAST_SPEECH_TEST_MODELS`, audio decoder dependencies). **The real-model speech acceptance did not run here.** GPT's recorded evidence for it stands as GPT's.
 
 ## Recording tests (fixed after the full run)
 
-Root cause: the tests stopped recording after a fixed 1.1 s delay, before the browser's recorder had produced its first chunk, so the studio had nothing to save. The tests now wait for a real non-empty chunk (a read-only counter in the test fixture; the studio is unchanged). Applied to the multiple-takes, failed-storage, panic, recorder-error and reload-and-play tests. Evidence: 30 of 30 idle passes; 10 of 10 with both CPUs saturated, where the old tests failed 2 of 5 in one such run. The whole suite was not re-run after this change; only these five tests were. `tools/sandbox/README.md` "Flaky tests" is updated.
+Root cause: the tests stopped recording after a fixed 1.1 s delay, before the browser's recorder had produced its first chunk, so the studio had nothing to save. The tests now wait for a real non-empty chunk (a read-only counter in the test fixture; the studio is unchanged). Applied to the multiple-takes, failed-storage, panic, recorder-error and reload-and-play tests. Evidence: 30 of 30 idle passes; with both CPUs kept busy for the whole run (load average about 4.5 on 2 CPUs) the old tests failed 3 of 5 and the new ones passed 15 of 15 (three runs of five). An earlier version of this note claimed 10 of 10 under load; that run's load generator had stopped partway, so it was corrected. `tools/sandbox/README.md` "Flaky tests" is updated.
+
+## Second review, three rounds (2026-11-04, after Josie asked for a check for cut corners)
+
+Round 1, audit of my own claims. Found: (1) the load evidence for the recording fix was overstated (corrected above); (2) the 2i speech code had no test of its own, since the only coverage needs the real speech models; (3) the full suite and the fast tier had not been re-run on the final tree. Checked and held up: no HTML-injection sinks (`innerHTML`, `eval` and the like) in the new scripts; `/health` answers with the speech models absent; the larger notes body limit applies only to the single upload route.
+
+Round 2, troubleshooting. Each item was reproduced, fixed, and shown to fail without its fix:
+1. **2i speech wiring now has tests** (`tests/test_2i_speech_wiring.py`, 11 tests): standalone read-aloud, superseded and cancelled utterances, no browser speech at all, browser voice input, and the hosted path through the local client (clamped speed, cancel, failure message, cancelled result). With GPT's original 2i page the five standalone tests fail; two deliberate breakages of my own fallback code were each caught.
+2. **Standalone 2i had silently lost its original read-speed range.** GPT narrowed the slider to 0.7 to 1.5 in steps of 0.1 for the local voice. With no local voice, 2i now restores 0.5 to 2.5 in steps of 0.25, as before. Hosted behaviour is unchanged.
+3. **The notes store left database connections unclosed** (`with connection:` in sqlite3 commits but does not close). It now closes every connection it opens. Before: 51 "unclosed database" warnings in the notes tests; after: 0. New test fails without the fix.
+4. **The notes upload route never closed the multipart form it parses itself.** Uploads over 1 MB spool to temporary files on disk, and a refused note (too large, no recipient) left them open until garbage collection. The route now always closes the form. New test fails without the fix.
+5. The other backend areas (checkpoint, speech, recording, userdb) were scanned with resource warnings on: none found.
+6. **Not explained:** `test_portable_save_as_and_reopen_uses_real_disk_without_vendor_picker`, which failed once in the first full run. It passed 16 of 16 repeats under sustained load and in the final full run. I could not reproduce it, so I cannot say what caused the one failure.
+
+Round 3, regression on the final tree (Python 3.13 venv for pytest, Chromium 153 software WebGL): whole suite **2,237 passed, 0 failed, 6 skipped** (820 s). Sandbox `fast` tier (clean room, Python 3.12): PASS in 36 s (372 Python files compile, 28 Node tests, packaged-route preflight, 32 backend tests, `data/` untouched). The 6 skips are unchanged: two research tests that are off by design and four that need the real speech models.
+
+Still not verified, unchanged: Windows and PowerShell 5, physical microphone and speakers, real speech models, phones, a second machine, long sessions, power loss.
 
 ## Cross-feature check (RAN)
 
@@ -43,7 +59,7 @@ On the merged tree: real host, owner set up, a note with a 3,000,000-byte attach
 
 - `modules/production_notes.py`, `static/production_notes.js`, `modules/userdb.py` changes, `modules/data_checkpoint.py`, `modules/speech_*.py`, `modules/stt_engine.py`, `modules/tts_engine.py`, `static/speech_client.js`, `modules/recording.py` changes were read in full. No injection sinks found in the new JavaScript (no `innerHTML`, `eval`, or similar).
 - `/api/production/people` returns every account's email to every signed-in member. Under Josie's one-user-per-copy model this goes away with the crew-accounts route, which Claude's own handoff says to rework.
-- `NotesStore` opens a SQLite connection per call using `with conn:`, which commits but does not close; CPython closes them when they are dropped. Low risk here, but a handle can linger on Windows.
+- `NotesStore` opened a SQLite connection per call using `with conn:`, which does not close it. Fixed in the second review (see above).
 - `/health` now calls `status()` on both speech engines on every request; for the neural voice that opens the voice archive each time. Low cost, worth caching if `/health` is polled often.
 - `production_notes.js` keeps polling every 20 seconds when signed out or when no host answers.
 - The "Use server TTS" checkbox on the Control page now starts checked and is relabelled "Local speech (recordable)". That is a behaviour and wording change in GPT's work; Josie should confirm it.
