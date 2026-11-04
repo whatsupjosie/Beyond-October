@@ -145,13 +145,13 @@ Every line below was run on the cloud sandbox (Linux, 2 CPUs, 8 GB, no GPU, Chro
 | The two skipped Alex Little One tests | Skipped by design. Whether to enable them is Josie's call. |
 | Colab or Hugging Face hosting | Deliberately not built yet. |
 
-### Flaky tests (observed, not fixed)
+### Flaky tests
 
-Three recording tests have failed at least once and then passed when rerun alone. In five direct repeats of just those three tests (no sandbox involved), two repeats passed fully and three each had one failure, a different test each time; across the five complete browser-test runs, three had at least one of them fail. In each case the symptom is that no media was recorded. For the panic test, a probe earlier in this project showed the recorder produces no data when the panic comes about two seconds or less after the recording starts, so that test lacks a wait for the first data. For the other two the symptom looks the same but the cause is **not established**. A fourth test, in the file-workspace tests, failed once in one warm run and has not failed since.
+**Recording tests: cause found and fixed (2026-11-04, integration branch).** Three tests in `tests/test_production25d_browser.py` (panic, multiple takes, failed storage) had failed at least once and then passed on rerun, always with "no media was recorded". Cause: each stopped the recording after a fixed delay (about 1.1 s). The browser's recorder hands over its first chunk only once it has encoded something, and on a busy machine that can come later than the delay, so the studio was stopped with nothing to save and reported "Recorder generated no video data". The tests now count non-empty recorder chunks (a read-only counter added in the test fixture) and wait for real media before stopping; the same wait was added to the recorder-error test and the reload-and-play test. Nothing in the studio itself was changed. Evidence: those five tests passed 30 of 30 runs on an idle machine, and 10 of 10 across two runs with both CPUs saturated; the old version of the tests, run the same way, failed 2 of 5 in one saturated run and passed 5 of 5 in the other. Real product behaviour that remains: a person who presses Stop within about a second or two of Record can get the "no video data" message instead of a saved take.
 
-- `tests/test_production25d_browser.py::test_remote_panic_stops_real_capture_blacks_program_and_silences_audio`
-- `tests/test_production25d_browser.py::test_multiple_takes_keep_original_media_bytes`
-- `tests/test_production25d_browser.py::test_failed_storage_keeps_a_downloadable_take_and_retries`
-- `tests/test_foresight_file_workspace.py::test_normal_2i_manuscript_saves_to_reach_and_each_save_is_a_new_revision` (once)
+Still observed, not fixed:
+
+- `tests/test_foresight_file_workspace.py::test_normal_2i_manuscript_saves_to_reach_and_each_save_is_a_new_revision` (failed once in one warm run)
+- `tests/test_foresight_file_workspace.py::test_portable_save_as_and_reopen_uses_real_disk_without_vendor_picker` (failed once under full-suite load on the merged tree, passes alone)
 
 A `FLAKY` result means "this test is unreliable here", not "this feature works". The tests were not changed; fixing them is separate work that needs Josie's go-ahead.

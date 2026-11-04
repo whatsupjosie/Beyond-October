@@ -28,8 +28,12 @@ Each was reproduced before it was fixed, and the same reproduction was run again
 - Whole pytest suite, run 1 (before fixes 2 to 4): 2,212 passed, 12 failed, 6 skipped.
 - Whole pytest suite, run 2 (after all fixes): **2,222 passed, 2 failed, 6 skipped**, 803 s.
   - `test_portable_save_as_and_reopen_uses_real_disk_without_vendor_picker`: failed once under full-suite load; passed alone. Load-sensitive, not explained.
-  - `test_production25d_browser.py::test_multiple_takes_keep_original_media_bytes`: one of the recording tests already documented as flaky (a recording stopped within about two seconds produces no data). Alone on the merged tree it passed 3 of 4 times; alone on `main`, `gpt-work` and `claude-work` it passed every time I ran it (3, 2 and 2 runs). I did not fix it; the sandbox README says that needs Josie's go-ahead.
+  - `test_production25d_browser.py::test_multiple_takes_keep_original_media_bytes`: one of the recording tests documented as flaky. **Fixed afterwards, see "Recording tests" below.**
 - The 6 skips: two Alex Little One research tests (off by design) and four speech tests that need the speech models installed (`PUBCAST_SPEECH_TEST_MODELS`, audio decoder dependencies). **The real-model speech acceptance did not run here.** GPT's recorded evidence for it stands as GPT's.
+
+## Recording tests (fixed after the full run)
+
+Root cause: the tests stopped recording after a fixed 1.1 s delay, before the browser's recorder had produced its first chunk, so the studio had nothing to save. The tests now wait for a real non-empty chunk (a read-only counter in the test fixture; the studio is unchanged). Applied to the multiple-takes, failed-storage, panic, recorder-error and reload-and-play tests. Evidence: 30 of 30 idle passes; 10 of 10 with both CPUs saturated, where the old tests failed 2 of 5 in one such run. The whole suite was not re-run after this change; only these five tests were. `tools/sandbox/README.md` "Flaky tests" is updated.
 
 ## Cross-feature check (RAN)
 
