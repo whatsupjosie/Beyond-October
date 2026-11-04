@@ -14,7 +14,7 @@
  *
  * The menu: the room blurs; a column of notes, newest on top, grouped by date or by project; Inbox, Saved, Sent.
  * A note opens as one big sticky note laid out like an email, scrolling inside. Reply, Reply all, Save, Trash,
- * New sticky note. Writing one: To / CC / BCC (people, everyone in the production, or yourself), subject (what is
+ * New sticky note, Place sticky note (a room, then a place in it, then the writer with that place already chosen). Writing one: To / CC / BCC (people, everyone in the production, or yourself), subject (what is
  * written on the sticky note), project, message, where to stick it, attachments, and an optional copy addressed in
  * your own email program.
  *
@@ -383,7 +383,11 @@
     if (!layer) return; layer.hidden = true; layer.textContent = ""; N.openId = null; N.mode = null;
     if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
   }
-  function back() { if (N.mode === "note" || N.mode === "compose") openMenu(); else closeAll(); }
+  function back() {
+    if (N.mode === "place-spot") placeRooms();
+    else if (N.mode === "note" || N.mode === "compose" || N.mode === "place") openMenu();
+    else closeAll();
+  }
   /* Paper behind DOM notes: the same sheet as in the rooms, drawn to each element's size. */
   function paintPapers(root) {
     root.querySelectorAll("[data-paper]").forEach(host => {
@@ -454,9 +458,55 @@
     wrap.appendChild(col);
     const bar = el("div", "pn-bar");
     bar.appendChild(btn("New sticky note", "pn-brass primary", () => compose({})));
+    bar.appendChild(btn("Place sticky note", "pn-brass", placeRooms));
     bar.appendChild(btn("Close", "pn-brass", closeAll));
     const frag = document.createDocumentFragment(); frag.appendChild(wrap); frag.appendChild(bar);
     show(frag, ".pn-card, .pn-brass");
+  }
+
+  /* ---------------------------------------------------------------- Place sticky note: a room, then a place in it */
+  const ROOM_LABELS = { dressing_room: "Dressing room", control_room: "Control room", green_room: "Green room" };
+  const roomLabel = key => ROOM_LABELS[key] || key.replace(/_/g, " ").replace(/^./, c => c.toUpperCase());
+  /* Rooms and the places in them, from the same spot file the rooms are painted from: a place belongs to every room
+   * one of its surfaces is in. The room you are standing in comes first. */
+  function placesByRoom() {
+    const rooms = new Map();
+    for (const [id, s] of Object.entries((N.file && N.file.spots) || {})) {
+      for (const room of new Set((s.surfaces || []).map(x => String(x.view).split("/")[0]))) {
+        if (!rooms.has(room)) rooms.set(room, []); rooms.get(room).push({ id, label: s.label || id });
+      }
+    }
+    const here = String(N.view || "").split("/")[0];
+    return [...rooms.entries()].sort((a, b) => (b[0] === here) - (a[0] === here) || roomLabel(a[0]).localeCompare(roomLabel(b[0])));
+  }
+  async function placeRooms() {
+    N.mode = "place"; N.openId = null;
+    await loadSpotFile();
+    const here = String(N.view || "").split("/")[0], wrap = el("div", "pn-menu"), col = el("div", "pn-col");
+    col.appendChild(el("div", "pn-group", "Place sticky note in which room?"));
+    const rooms = placesByRoom();
+    if (!rooms.length) col.appendChild(el("div", "pn-empty", "No places to stick a note have been set up yet."));
+    for (const [room] of rooms) {
+      const b = btn(roomLabel(room) + (room === here ? " (you are here)" : ""), "pn-brass" + (room === here ? " primary" : ""), () => placeSpots(room));
+      b.dataset.room = room; col.appendChild(b);
+    }
+    wrap.appendChild(col);
+    const bar = el("div", "pn-bar"); bar.appendChild(btn("Back", "pn-brass", () => openMenu()));
+    const frag = document.createDocumentFragment(); frag.appendChild(wrap); frag.appendChild(bar);
+    show(frag, ".pn-menu .pn-brass");
+  }
+  function placeSpots(room) {
+    N.mode = "place-spot";
+    const wrap = el("div", "pn-menu"), col = el("div", "pn-col");
+    col.appendChild(el("div", "pn-group", "Where in the " + roomLabel(room).toLowerCase() + "?"));
+    const entry = placesByRoom().find(r => r[0] === room);
+    for (const sp of (entry ? entry[1] : [])) {
+      const b = btn(sp.label, "pn-brass", () => compose({ spot: sp.id })); b.dataset.spot = sp.id; col.appendChild(b);
+    }
+    wrap.appendChild(col);
+    const bar = el("div", "pn-bar"); bar.appendChild(btn("Back", "pn-brass", placeRooms));
+    const frag = document.createDocumentFragment(); frag.appendChild(wrap); frag.appendChild(bar);
+    show(frag, ".pn-menu .pn-brass");
   }
 
   async function people() {
@@ -519,6 +569,7 @@
     if (!crew) { alertInLayer("Your crew list could not be loaded."); return; }
     if (!N.spotCatalog) { const r = await api("/api/notes/spots"); N.spotCatalog = r.ok ? r.data.spots : [{ id: "mirror", label: "Makeup mirror", always: true }]; }
     const sel = { to: new Set(), cc: new Set(), bcc: new Set() }, spots = new Set(["mirror"]);
+    if (o.spot && N.spotCatalog.some(x => x.id === o.spot)) spots.add(o.spot);          // chosen through Place sticky note
     const re = o.replyTo;
     if (re) {
       if (re.from.user_id !== N.me) sel.to.add(re.from.user_id);
