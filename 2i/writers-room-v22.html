@@ -829,6 +829,7 @@ html, body {
 .zoom-ctrl.on-paper .zoom-pct { color:var(--pencil-soft); }
 </style>
 <script src="/static/program_audio_runtime.js"></script>
+<script src="/static/speech_client.js"></script>
 </head>
 <body>
 <!-- ═══════════════════════════════════════════════════════════════
@@ -993,7 +994,7 @@ html, body {
         <button class="pb-btn" id="stopBtn" title="Stop">■</button>
         <button class="pb-btn" id="playBtn" title="Play/Pause">▶</button>
         <button class="pb-btn" id="skipBtn" title="Skip">⏭</button>
-        <input type="range" class="speed-slider" id="speedSlider" min="0.5" max="2.5" step="0.25" value="1" title="Read speed" />
+        <input type="range" class="speed-slider" id="speedSlider" min="0.7" max="1.5" step="0.1" value="1" title="Read speed" />
       </div>
       <span id="saveIndicator" style="font-size:9px; opacity:0.6;">unsaved</span>
       <button class="save-btn" id="saveBtn">Save</button>
@@ -1686,17 +1687,36 @@ $('skipBtn').onclick = () => {
 
 // ── SPEECH ─────────────────────────────────────────────────────────
 function speechRead(text, done) {
-  if (!('speechSynthesis' in window)) { if (done) done(); return; }
+  if (!window.PubcastSpeech) {
+    // 2i also opens on its own, from disk and offline, where /static/speech_client.js is not served.
+    // There it keeps its original browser-only read-aloud instead of failing.
+    if (!('speechSynthesis' in window)) { if (done) done(); return; }
+    const browserToken = ++speechToken;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = parseFloat($('speedSlider').value) || 1;
+    u.onstart = () => { if (browserToken !== speechToken) return; speaking = true; render(); };
+    u.onend = () => { if (browserToken !== speechToken) return; speaking = false; render(); if (done) done(); };
+    u.onerror = () => { if (browserToken !== speechToken) return; speaking = false; render(); if (done) done(); };
+    window.speechSynthesis.speak(u);
+    return;
+  }
   const token = ++speechToken;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.rate = parseFloat($('speedSlider').value) || 1;
-  u.onstart = () => { if (token !== speechToken) return; speaking = true; render(); };
-  u.onend = () => { if (token !== speechToken) return; speaking = false; render(); if (done) done(); };
-  u.onerror = () => { if (token !== speechToken) return; speaking = false; render(); if (done) done(); };
-  window.speechSynthesis.speak(u);
+  window.PubcastSpeech.speak(text, {
+    speed: Math.max(.7, Math.min(1.5, parseFloat($('speedSlider').value) || 1)),
+    onStart: () => { if (token === speechToken) { speaking = true; render(); } }
+  }).then(result => {
+    if (token !== speechToken) return;
+    speaking = false; render();
+    if (!result.canceled && done) done();
+    else if (result.canceled) stopPlaying();
+  }).catch(error => {
+    if (token !== speechToken) return;
+    stopPlaying(); addChat('pp', 'Speech stopped: ' + error.message);
+  });
 }
 function cancelSpeech() {
+  window.PubcastSpeech?.stop();
   if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   speechToken++; speaking = false;
 }
@@ -1733,24 +1753,29 @@ async function sendChat() {
 $('chatSendBtn').onclick = sendChat;
 chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
 
-// Voice input
-const SpeechAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-const micBtn = $('chatMicBtn');
-if (SpeechAPI) {
-  const rec = new SpeechAPI(); rec.interimResults = true;
-  let listening = false, baseText = '';
-  rec.onresult = e => {
-    let t = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript;
-    chatInput.value = (baseText + ' ' + t).trim();
-  };
-  rec.onend = () => { listening = false; micBtn.classList.remove('listening'); };
-  micBtn.onclick = () => {
-    if (listening) { rec.stop(); return; }
-    baseText = chatInput.value.trim(); rec.start(); listening = true; micBtn.classList.add('listening');
-  };
+// Local dictation with an editable review. Nothing is sent to chat automatically.
+if (window.PubcastSpeech) {
+  window.PubcastSpeech.bindDictation($('chatMicBtn'), chatInput);
 } else {
-  micBtn.disabled = true; micBtn.title = 'Speech not supported in this browser';
+  // Opened on its own (from disk, offline): the original browser voice input, unchanged.
+  const SpeechAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const micBtn = $('chatMicBtn');
+  if (SpeechAPI) {
+    const rec = new SpeechAPI(); rec.interimResults = true;
+    let listening = false, baseText = '';
+    rec.onresult = e => {
+      let t = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript;
+      chatInput.value = (baseText + ' ' + t).trim();
+    };
+    rec.onend = () => { listening = false; micBtn.classList.remove('listening'); };
+    micBtn.onclick = () => {
+      if (listening) { rec.stop(); return; }
+      baseText = chatInput.value.trim(); rec.start(); listening = true; micBtn.classList.add('listening');
+    };
+  } else {
+    micBtn.disabled = true; micBtn.title = 'Speech not supported in this browser';
+  }
 }
 
 // ── REFERENCE ARCHIVE ──────────────────────────────────────────────

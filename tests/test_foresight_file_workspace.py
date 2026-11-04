@@ -187,7 +187,7 @@ def test_docx_opens_in_native_2i_as_explicit_text_copy(page):
     )
     assert (
         "not preserved"
-        in page.frame_locator("#host iframe").locator("[role=status]").inner_text()
+        in page.frame_locator("#host iframe").get_by_role("region", name="2i file controls").get_by_role("status").inner_text()
     )
     editor(page).fill("Edited document")
     page.evaluate("p.save(c)")
@@ -383,7 +383,7 @@ def test_python_syntax_check_in_native_editor_without_external_services(page):
         "document.querySelector('#host iframe')?.contentWindow.document.querySelector('[role=status]')?.textContent.includes('not executed')"
     )
     page.wait_for_timeout(600)  # The pending autosave must not erase the syntax result.
-    assert "not executed" in frame.get_by_role("status").inner_text()
+    assert "not executed" in frame.get_by_role("region", name="2i file controls").get_by_role("status").inner_text()
 
 
 def test_normal_2i_manuscript_saves_to_reach_and_each_save_is_a_new_revision(page):

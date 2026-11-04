@@ -346,7 +346,7 @@ registerProcessor('pitch-shifter', PitchShifterProcessor);
     }
 
     deactivate() {
-      if (this.utterance?.state === 'recording') this.utterance.stop();
+      this.dictation?.cancel();
       if (this.output) {
         this.output.stream.getTracks().forEach(t => t.stop());
         this.output = null;
@@ -668,28 +668,21 @@ registerProcessor('pitch-shifter', PitchShifterProcessor);
 
       on(`proc-panel-${pid}`, 'click', async e => {
         if (!e.target.classList.contains('proc-transcribe')) return;
-        if (this.utterance?.state === 'recording') { this.utterance.stop(); return; }
+        if (this.dictation?.state === 'recording') { this.dictation.finish(); return; }
+        if (this.dictation && this.dictation.state !== 'idle') { this.dictation.cancel(); return; }
         if (!this.output) { this._updateStatus('Activate a microphone first', 'error'); return; }
-        const button = e.target, chunks = [];
-        try {
-          this.utterance = new MediaRecorder(this.output.stream);
-          this.utterance.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
-          this.utterance.onstop = async () => {
-            clearTimeout(this.utteranceTimeout); button.textContent = 'Transcribing…'; button.disabled = true;
-            try {
-              const blob = new Blob(chunks, {type: this.utterance.mimeType});
-              const response = await fetch('/api/stt/transcribe', {method: 'POST', headers: {'Content-Type': blob.type}, body: blob});
-              const result = await response.json();
-              if (!response.ok) throw new Error(result.detail || 'Transcription failed');
-              const transcript = get(`proc-transcript-${pid}`);
-              if (transcript) transcript.textContent = result.text;
-              this._updateStatus('Raw transcript ready', 'ok');
-            } catch (error) { this._updateStatus(error.message, 'error'); }
-            finally { button.textContent = 'Transcribe'; button.disabled = false; }
-          };
-          this.utterance.start(); button.textContent = 'Stop transcription';
-          this.utteranceTimeout = setTimeout(() => { if (this.utterance.state === 'recording') this.utterance.stop(); }, 60000);
-        } catch (error) { this._updateStatus(error.message, 'error'); }
+        const button = e.target;
+        if (!window.PubcastSpeech) { this._updateStatus('Local speech controls are unavailable', 'error'); return; }
+        this.dictation = new window.PubcastSpeech.Dictation({
+          onState: state => { button.textContent = state === 'recording' ? 'Finish transcription' : state === 'idle' ? 'Transcribe' : 'Cancel transcription'; },
+          onTranscript: result => {
+            const transcript = get(`proc-transcript-${pid}`);
+            if (transcript) transcript.textContent = result.text || 'No speech recognized';
+            this._updateStatus(result.text ? 'Raw transcript ready — review before using' : 'No speech recognized', 'ok');
+          },
+          onError: error => this._updateStatus(error.message, 'error')
+        });
+        this.dictation.start(this.output.stream);
       });
 
       // Activate button

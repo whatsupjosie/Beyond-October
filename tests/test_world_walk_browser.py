@@ -51,9 +51,13 @@ def browser():
 def page(server, browser):
     pg = browser.new_page(viewport={"width": 1500, "height": 860})
     pg.problems = []
-    # served without the PubCast host, the live link asks /health once to find out; that one 404 is expected
+    # served without the PubCast host, the live link asks /health once to find out, and the production notes ask
+    # /api/notes for the signed-in person's notes; those two 404s are expected. Any other console problem is not.
+    def host_less_probe(url):
+        path = url.split("?", 1)[0]
+        return path.endswith("/health") or path.endswith("/api/notes")
     pg.on("console", lambda m: pg.problems.append(m.text)
-          if m.type in ("error", "warning") and not (m.location or {}).get("url", "").endswith("/health") else None)
+          if m.type in ("error", "warning") and not host_less_probe((m.location or {}).get("url", "")) else None)
     pg.on("pageerror", lambda e: pg.problems.append(str(e)))
     pg.open = lambda key: (pg.goto(f"{server}/static/world_walk.html?view={key}"),
                            pg.wait_for_function("document.documentElement.dataset.ready==='1'", timeout=15000))

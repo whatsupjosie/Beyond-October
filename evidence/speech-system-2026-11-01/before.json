@@ -1,0 +1,19 @@
+{
+  "source": "123474459c472fb449d3fd56a07331f4650ae69e",
+  "anonymous_empty_stt_status": 400,
+  "anonymous_empty_tts_status": 400,
+  "stt_status": {
+    "available": true,
+    "model": "medium",
+    "device": "cpu",
+    "compute_type": "int8",
+    "loaded": false,
+    "language": "auto-detect"
+  },
+  "tts_status": {
+    "available": true,
+    "xtts_loaded": false,
+    "voices_ready": {},
+    "fallback": "pyttsx3"
+  }
+}

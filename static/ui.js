@@ -4,6 +4,10 @@
  * Runs after DOM is ready; no external dependencies.
  */
 (function initUI() {
+  // control.html and its base template both include this shared adapter.
+  // Bind once so a single click cannot toggle a drawer open and closed again.
+  if (window.pubcastUIInitialized) return;
+  window.pubcastUIInitialized = true;
   // ── View switching ──────────────────────────────────────────────────────
   document.querySelectorAll('.nav-btn[data-room]').forEach(btn => {
     btn.addEventListener('click', () => {
