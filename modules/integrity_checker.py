@@ -1,16 +1,18 @@
 """
 Background Integrity Checker
 =============================
-Continuous monitoring of vault files for corruption with automatic restoration.
+Continuous monitoring of vault files for corruption. It DETECTS and records; it does not repair.
 
 Features:
-  - Hourly checksump verification of all vault files
-  - Automatic restoration on corruption detection
+  - Hourly checksum verification of all vault files
+  - Corruption is reported as "corruption_detected" (no automatic restoration exists: repairing lost bytes needs a
+    verified copy to restore from, and nothing here has one, so `restored` stays False)
   - File watcher for sudden modifications
   - Audit logging of all checks
   - Graceful degradation if monitoring unavailable
 """
 
+import tempfile
 import threading
 import time
 import logging
@@ -36,15 +38,16 @@ class IntegrityCheckResult:
     checksum_valid: bool
     previous_checksum: str
     current_checksum: str
-    restored: bool
+    restored: bool          # True only if a repair actually ran and was verified; no repair exists yet, so always False
     error: Optional[str] = None
+    state: str = "verified"  # "verified", "corruption_detected" or "check_failed"
 
 # ─────────────────────────────────────────────────────────────
 #  Integrity Checker
 # ─────────────────────────────────────────────────────────────
 
 class BackgroundIntegrityChecker:
-    """Monitor vault for corruption and restore automatically."""
+    """Monitor vault for corruption and record it. Detection only: nothing is restored."""
     
     def __init__(self, vault_engine, check_interval_hours: int = 1):
         self.vault = vault_engine
@@ -111,8 +114,9 @@ class BackgroundIntegrityChecker:
                 checksum_valid=ok,
                 previous_checksum="",
                 current_checksum="",
-                restored=not ok,  # If failed, we restored
-                error=None if ok else msg
+                restored=False,  # nothing here repairs a file; a failed check means "detected", never "restored"
+                error=None if ok else msg,
+                state="verified" if ok else "corruption_detected",
             )
             
             with self.lock:
@@ -123,13 +127,19 @@ class BackgroundIntegrityChecker:
                     self.check_history = self.check_history[-1000:]
             
             if not ok:
-                logger.warning(f"File {file_id} corrupted and restored: {msg}")
+                logger.warning(f"File {file_id} failed its integrity check (detected, NOT repaired): {msg}")
             
             return result
         
         except Exception as e:
             logger.error(f"Error checking file {file_id}: {e}")
-            return None
+            result = IntegrityCheckResult(
+                check_id=str(len(self.check_history)), timestamp=datetime.utcnow().isoformat(), file_id=file_id,
+                file_path="", checksum_valid=False, previous_checksum="", current_checksum="", restored=False,
+                error=str(e), state="check_failed")
+            with self.lock:
+                self.check_history.append(result)
+            return result
     
     def get_check_history(self, file_id: Optional[str] = None) -> List[Dict]:
         """Get check history, optionally filtered by file."""
@@ -144,11 +154,15 @@ class BackgroundIntegrityChecker:
             total_checks = len(self.check_history)
             failed_checks = sum(1 for c in self.check_history if not c.checksum_valid)
             restored_files = sum(1 for c in self.check_history if c.restored)
+            corruption_detected = sum(1 for c in self.check_history if c.state == "corruption_detected")
+            check_failures = sum(1 for c in self.check_history if c.state == "check_failed")
         
         return {
             "total_checks": total_checks,
             "failed_checks": failed_checks,
             "files_restored": restored_files,
+            "corruption_detected": corruption_detected,
+            "check_failures": check_failures,
             "success_rate": (
                 (total_checks - failed_checks) / max(1, total_checks) * 100
             ),

@@ -260,6 +260,39 @@ def test_multiple_takes_keep_original_media_bytes(studio):
     assert page.locator("#sessionList button").count() == 2
 
 
+SLOW_TO_FIRST_DATA = """() => {
+  // A busy machine encodes its first frame late; a Stop before that finds the recorder with nothing to hand over. This
+  // reproduces exactly that: data events in the first 1.3 s after start are withheld from the studio, as measured when
+  // the host's CPUs were saturated (idle machines produce data even 150 ms in, so load alone is not repeatable).
+  const Native = window.MediaRecorder;
+  window.MediaRecorder = class extends Native {
+    start(slice) { this.__t0 = performance.now(); return super.start(slice); }
+    set ondataavailable(fn) { super.ondataavailable = fn && (e => { if (performance.now() - this.__t0 < 1300) return; fn.call(this, e); }); }
+    get ondataavailable() { return super.ondataavailable; }
+  };
+}"""
+
+
+def test_a_very_short_take_is_still_saved_when_the_recorder_is_slow_to_produce_data(studio):
+    page, _ = studio
+    wait_for_actors(page)
+    page.evaluate(SLOW_TO_FIRST_DATA)
+    page.click("#start")
+    page.wait_for_function("document.querySelector('#switcherLink').textContent === 'VIDEO: SHARED SWITCHER'")
+    page.click("#record")
+    page.wait_for_function("PubCast25DStudio.state().recording")
+    page.wait_for_timeout(150)
+    page.click("#recordStop")                      # an ordinary Stop, 150 ms in
+    page.wait_for_function("!PubCast25DStudio.state().recording", timeout=15000)
+    result = page.evaluate("""async () => {
+      const session = (await PubCast25DStore.list())[0];
+      const item = await PubCast25DStore.read(session.id);
+      return {bytes: item.blob ? item.blob.size : 0, takes: (session.recordings || []).length, alert: document.querySelector('#alert').innerText};
+    }""")
+    assert result["alert"] == "", result
+    assert result["bytes"] > 1000 and result["takes"] == 1, result
+
+
 def test_failed_storage_keeps_a_downloadable_take_and_retries(studio, tmp_path):
     page, _ = studio
     wait_for_actors(page)

@@ -26,7 +26,7 @@
   "use strict";
 
   const HAND = '"PN Caveat", cursive', SERIF = '"PN Garamond", Georgia, serif';
-  const POLL_MS = 20000, GRID = 5, MAX_PER_SPOT = 3;
+  const POLL_MS = 20000, POLL_MAX_MS = 300000, GRID = 5, MAX_PER_SPOT = 3;
   const reduceMotion = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : { matches: false };
 
   /* ---------------------------------------------------------------- style */
@@ -673,9 +673,20 @@
   /* ---------------------------------------------------------------- start */
   function openMenuPublic() { return openMenu(); }
   document.fonts && document.fonts.load(`700 40px ${HAND}`).then(() => { N.fontsReady = true; N.bitmaps.clear(); }, () => { N.fontsReady = true; });
-  refresh();
-  setInterval(() => { if (!document.hidden) refresh(); }, POLL_MS);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+  /* Look for new notes every 20 seconds while the tab is showing. When the host does not answer, or nobody is signed
+   * in, asking again every 20 seconds only fills the console and the host's log: wait twice as long each time, up to
+   * five minutes, and go back to 20 seconds on the first answer. */
+  let pollDelay = POLL_MS, pollTimer = null;
+  function schedulePoll(ms) { clearTimeout(pollTimer); pollTimer = setTimeout(poll, ms); }
+  async function poll() {
+    if (document.hidden) return schedulePoll(POLL_MS);
+    const ok = await refresh();
+    const wait = ok ? POLL_MS : pollDelay;                      // 20 s after the first miss, then 40, 80, 160, 300
+    pollDelay = ok ? POLL_MS : Math.min(pollDelay * 2, POLL_MAX_MS);
+    schedulePoll(wait);
+  }
+  poll();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { pollDelay = POLL_MS; clearTimeout(pollTimer); poll(); } });
 
   window.PubCastNotes = { drawScene, click, hotspotNotes, onView, refresh, open: openMenuPublic, openNote, state: N,
     _noteQuad: noteQuad, _homography: homography };

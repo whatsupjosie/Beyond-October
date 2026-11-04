@@ -134,7 +134,7 @@ def create_blackbox_router(witness: BlackBoxRuntimeWitness) -> APIRouter:
                 sink.error = 'Capture transport failed'
             try:
                 await ws.close(code=1011, reason='Capture failed; committed audio retained')
-            except RuntimeError:
+            except (RuntimeError, WebSocketDisconnect):   # the page may already be gone (a reload)
                 pass
         finally:
             if sink is not None:
@@ -144,7 +144,7 @@ def create_blackbox_router(witness: BlackBoxRuntimeWitness) -> APIRouter:
                 witness.record_event('capture.stopped', actor=identity['user_id'], data={**sink.status(), 'clean': clean})
             try:
                 await ws.close()
-            except RuntimeError:
+            except (RuntimeError, WebSocketDisconnect):   # already closed, or the page went away without a close frame
                 pass
 
     @router.get("/status")

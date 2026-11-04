@@ -91,7 +91,7 @@ Rules for reuse come from [docs/missions/pubcast-lead-engineer-2026-10-31/SOURCE
 | `main.py` | The PubCast host (FastAPI, about 4,900 lines). Boots every system in dependency order. |
 | `run_reach.py` | The launcher for the full local, authenticated host. Opens the Foresight Counter by default. |
 | `modules/` | The Python backend: about 250 modules plus the subpackages `evo/`, `pubpartner_vessel/`, `pubworld_stage/`, `performance/`, `bubble_stack_pikpc/`, `alex_little_one/`, `wired/`. |
-| `static/` | The browser front end: pages, JavaScript, world art, and `vendor/three-0.160.0/` (the deliberate, versioned Three.js tree; do not restore an older path). |
+| `static/` | The browser front end: pages, JavaScript, world art, and `vendor/three-0.160.0/` (the deliberate, versioned Three.js tree; do not restore an older path). `vendor/three-0.128.0/` is a separate, single-purpose copy for the classic-script PubWorld Set page only (see its `PROVENANCE.json`). |
 | `2i/`, `2i-backend/` | The writer's room front end (`writers-room-v22.html`, editor engine) and its optional legacy Express backend (port 8787). |
 | `pubpartner/` | A standalone cartridge, memory-store and portable-runtime package. The in-host version lives in `modules/pubpartner_*.py`. |
 | `thinking_context/` | Jeremy's conductor infrastructure: memory, nudge queue, circuit breaker. |
