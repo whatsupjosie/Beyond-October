@@ -224,3 +224,21 @@ def test_the_store_closes_every_database_connection_it_opens(tmp_path):
             store.create("u_sender", "subject", "body", [("u_a", "to"), ("u_a", "cc")], [], None, [])
         gc.collect()
     assert [str(w.message) for w in caught if "unclosed database" in str(w.message)] == []
+
+
+def test_email_addresses_are_shown_only_to_their_owner_and_to_those_who_run_the_production(env):
+    client, as_, people, _ = env
+    # The owner (who adds the crew) sees every address.
+    seen_by_owner = {p["username"]: p.get("email") for p in client.get("/api/production/people", headers=as_("josie", "owner")).json()["people"]}
+    assert seen_by_owner["pete"] == "pete@example.com" and seen_by_owner["repete"] == "repete@example.com"
+    # An ordinary member sees everyone's name and ID, but only their own address.
+    seen_by_pete = client.get("/api/production/people", headers=as_("pete", "guest")).json()["people"]
+    by_name = {p["username"]: p for p in seen_by_pete}
+    assert set(by_name) == {"josie", "oldtimer", "repete", "pete"}
+    assert by_name["pete"]["email"] == "pete@example.com"
+    assert all("email" not in p for name, p in by_name.items() if name != "pete")
+    # The address is not leaked anywhere else in what a member receives.
+    assert "repete@example.com" not in client.get("/api/production/people", headers=as_("pete", "guest")).text
+    # A moderator runs the production and sees all of them.
+    seen_by_mod = {p["username"]: p.get("email") for p in client.get("/api/production/people", headers=as_("josie", "mod")).json()["people"]}
+    assert seen_by_mod["repete"] == "repete@example.com"

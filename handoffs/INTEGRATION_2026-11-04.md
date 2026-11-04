@@ -51,6 +51,10 @@ Round 3, regression on the final tree (Python 3.13 venv for pytest, Chromium 153
 
 Still not verified, unchanged: Windows and PowerShell 5, physical microphone and speakers, real speech models, phones, a second machine, long sessions, power loss.
 
+## After the second review: email visibility (PC-038 / PC-015, first step)
+
+`GET /api/production/people` used to return every account's email address to every signed-in member. It now returns an address only to its owner and to the owner and moderators, who add the crew and need it to address an email copy. Other members see names, IDs and roles. The "Also send as email" link still works for those who can see addresses; for others it says "No email address available to you for ...". New test (fails without the change); notes tests and the notes browser test pass. **This is a decision Josie should confirm:** it keeps the email-copy feature for the people who run the production and closes the leak, but the fuller one-user-per-copy and invited-guest model (PC-038) is not built. Usernames and roles are still visible to all members.
+
 ## Cross-feature check (RAN)
 
 On the merged tree: real host, owner set up, a note with a 3,000,000-byte attachment, a saved speech choice (revision 1); host stopped; offline checkpoint; restore into a new directory; original data directory deleted; restored host started; sign-in. Result: same permanent user ID, the note with its subject and project, the attachment byte-identical (SHA-256 equal), and the speech choice at revision 1. This shows the checkpoint covers the new notes and speech data, which are inside the host data directory.

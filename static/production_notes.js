@@ -587,7 +587,7 @@
       await refresh();
       if (!emailBox.checked) return openMenu();
       const link = mailto(note, crew);
-      msg.className = "pn-msg ok"; msg.textContent = "Stuck. " + (link.missing.length ? "No email on file for " + link.missing.join(", ") + ". " : "");
+      msg.className = "pn-msg ok"; msg.textContent = "Stuck. " + (link.missing.length ? "No email address available to you for " + link.missing.join(", ") + ". " : "");
       if (link.href) {
         const a = el("a", "pn-mail", "Open the email copy in my email program"); a.href = link.href; msg.appendChild(el("br")); msg.appendChild(a);
         if (files.files.length) msg.appendChild(el("div", null, "Attach the files in your email program; an email link cannot carry them."));

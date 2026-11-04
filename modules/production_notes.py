@@ -23,7 +23,8 @@ Routes
     GET   /api/profile/me                 your profile
     PATCH /api/profile/me                 change your display name or email
     POST  /api/profile/password           change your password (current password required)
-    GET   /api/production/people          everyone in the production (members only)
+    GET   /api/production/people          everyone in the production (members only; email addresses only to the owner,
+                                          moderators and the person themself)
     POST  /api/production/people          add a crew account (owner or moderator)
     GET   /api/notes/spots                where a note can be stuck
     GET   /api/notes?box=inbox|saved|sent your notes, newest first (each with its optional project, for grouping)
@@ -389,7 +390,11 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
     @router.get("/api/production/people")
     async def people(profile: Dict[str, Any] = Depends(me)) -> Dict[str, Any]:
         everyone = await userdb.list_profiles()
-        return {"me": profile["user_id"], "people": [public(p, with_email=True) for p in everyone]}
+        # An email address is private to its owner and to the people who run the production (owner, moderator), who
+        # add the crew and need it to address an email copy. Any other member sees names and IDs, not addresses.
+        sees_all = role_gte(profile.get("role", "guest"), "mod")
+        return {"me": profile["user_id"],
+                "people": [public(p, with_email=sees_all or p["user_id"] == profile["user_id"]) for p in everyone]}
 
     @router.post("/api/production/people", status_code=201)
     async def add_person(request: Request, profile: Dict[str, Any] = Depends(me)) -> Dict[str, Any]:
