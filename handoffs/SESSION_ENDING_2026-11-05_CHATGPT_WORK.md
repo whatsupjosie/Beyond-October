@@ -64,9 +64,9 @@ isolated stems are proven, independent admitted guest identities are not yet.
 The recovered socket tests do check distinct authenticated subjects and capability
 binding, but do not substitute for the real guest journey.
 
-Recorded fifteen-second clacker/reference track, complete replayable source
-master, deterministic selective native rendering and physical-device/Windows/
-PowerShell 5/long-session/network acceptance remain open. PCM contributions
+The local recorded clacker is implemented in the later checkpoint below.
+Complete replayable source masters, deterministic selective native rendering and
+physical-device/Windows/PowerShell 5/long-session/network acceptance remain open. PCM contributions
 have an explicit 500 ms playout reserve and are receiver-encoded pre-fader stems;
 they are not lossless sender originals or sample-accurate cross-device sync.
 
@@ -119,6 +119,52 @@ eight-genre and actual-animation checks also pass. Full failures, corrections,
 exact commands, source hashes and actual measurements are preserved under
 `evidence/clacker-integration-2026-11-05/`.
 
-A whole-repository integration baseline is running on this source. It is not
-either of the two required post-feature debugging rounds. No profiles/groups
-implementation or independent guest identity acceptance is claimed yet.
+## Session end — workspace became unavailable
+
+**Signed:** Codex / ChatGPT Work, 2026-11-05T11:00:31.965Z.
+**Reason for stopping:** the execution environment became unavailable while a
+profile UI patch/test operation was pending. The non-returning orchestration was
+canceled. This is an environment stop, not milestone completion.
+
+Published application source is `f997d5418903522d62a2aa10e4afc9755800ee09`,
+identical to local `aacf59d`, tree
+`ab251b65a2b294ffb75d4975ac3ee971a93c001d`. Recording reconciliation is the
+preceding `c5589bb`. Documentation-only recovery commits follow those. No main
+merge, deployment or Actions occurred.
+
+**RAN, complete recording integration baseline:** `python -m pytest -q` with
+the installed Node executable selected for Playwright, on that frozen source:
+**2,328 passed, six skipped, zero failed, sixteen subtests passed**, 217 warnings,
+921.01 seconds, exit zero. All current recording, clacker, exact-frame reuse and
+camera-pool tests passed in this run. The six skips are two disabled Alex research
+modules, three real-model speech cases and one optional speech-decoder dependency.
+Final Node recording/sync/audio/archive selection: **37 passed**. Earlier failed
+runs remain evidence; a broad pass does not certify physical-device performance.
+
+The full-suite raw log and XML were copied into the local evidence directory,
+but access dropped before those two artifacts were published. The final summary
+above was directly observed. Already published focused logs, failures, source
+hashes and timing measurements remain available in the two evidence folders.
+
+**Profiles:** an initial backend extension was implemented locally and passed
+15 API/SQLite tests (old notes regressions included). Later setup/auth metadata,
+editor, draft, photo and reel UI work was written but not verified. No profile
+application changes were committed/published before the interruption. The last
+UI patch's completion and the dependent browser test are UNKNOWN.
+
+[Profile recovery record](PROFILE_WORK_RECOVERY_2026-11-05.md) lists every confirmed
+and unconfirmed local path, the actual test result, workspace and artifact paths,
+requirements, intended test command and next actions. Recover that working tree
+before assuming the code is missing or rewriting it. If it is lost, these notes
+are a reconstruction guide, not a claim that the source was uploaded.
+
+**Still unfinished:** independent invited guests/one-owner-per-copy migration,
+the expanded profile journey, production groups/department/individual note
+addressing, schedule updates, contacts/notifications needed for those journeys,
+their targeted debugging, and both required post-feature whole-codebase debug
+rounds. The broad recording baseline is not counted as either round. Source
+masters, cross-device sync, native Windows and hardware gates remain open.
+
+The claim is PAUSED because the workspace is unavailable. Next session resumes
+guest identity/profiles and the remaining agreed scope from these records.
+
