@@ -188,3 +188,147 @@ search, click-to-load reels, setup metadata and the existing singleton tray are
 implemented. Independent guest identity/admission, groups/schedules, contacts,
 full onboarding browser acceptance and the remaining milestone gates remain open.
 Claim ACTIVE, continuing with guest admission. No main merge or deployment.
+
+## Session-ending checkpoint — resumed work saved
+
+Signed: Codex / ChatGPT Work / 2026-11-05T18:18:08.766851+00:00.
+Status: session/context checkpoint; milestone unfinished. There is no outstanding
+owner decision blocking the next authorized engineering step.
+
+### Source and actual results
+
+Published application commit: `e4686221531b58cead4545a3020475f61a80d14b` on
+`chatgpt-work-2026-11-05`. Exact tested local twin: `0848ee7`; tree:
+`609741847ad38fa651a2619139a7eb3dd154daf7`. The connector publication has the
+same tree; shell push still lacks credentials. Do not reset or discard local
+history merely because local/published commit IDs differ. Published predecessor
+`01d9a49` contains durable governance admission; `b2ecb20` contains the earlier
+profile checkpoint. Local `2b288da` contains the first-run browser follow-up,
+which is included in the latest published application tree.
+
+**RAN on this current frozen application:** 109 passed, one Starlette/AnyIO
+deprecation warning, 99.14 seconds, exit zero. This includes actual two-copy HTTP
+and popup browser journeys; private note delivery; auth/role/privacy boundaries;
+profile/onboarding/drafts; incoming and unsolicited outgoing socket revocation;
+legacy note browser regressions; credential/checkpoint recovery; and the original
+full two-peer media acceptance using two independently admitted guest leases.
+Physical microphones are replaced by browser tones. Actual decoding, source
+separation, live controls, reconnect, original save and exact ZIP bytes are real.
+
+Exact selection, architecture, failures/corrections and open gates:
+`evidence/guest-admission-2026-11-05/VISITING_IDENTITIES.md`.
+Final raw output/JUnit: `guest-checkpoint-final.log` / `.xml` in that directory.
+Earlier failing observers and the initial missed session-ban check remain as
+raw evidence. Raw pytest logs contain their own trailing whitespace; they were
+preserved verbatim. Source-only whitespace check passed.
+
+The old **2,328-test** result remains a recording integration baseline on the
+older `f997d541` tree, not a full-suite result for the new profile/guest source.
+**Neither of the two post-feature whole-codebase debugging rounds has begun.**
+
+### What now exists
+
+- Private human profile editing, opt-in host-scoped discovery, explicit optional
+  fields, bounded metadata-free photo copies, per-field sharing, click-to-load
+  reels, revision-fenced updates and drafts, basic first-run setup and skippable
+  optional profile entry. Permanent existing IDs survive migration. Actual first-
+  install browser journeys pass for private and discoverable choices.
+- Me menu opens the existing singleton profile and guest/invitation trays;
+  no tray geometry or note art was redesigned.
+- Independent copies keep their own sole local owner and permanent human ID.
+  Human identity keys extend the existing encrypted CredentialStore. Atomic
+  create-once publication prevents racing workers from silently rotating keys;
+  damaged keys fail rather than being replaced.
+- Host invitations, five-minute one-use challenges, signed minimal visiting cards,
+  explicit consents, owner approval/key comparison, remembered returning keys,
+  an explicitly unlockable door, eight-hour bounded visiting leases and explicit
+  durable lease revocation. Owner role is never granted by the visiting card.
+- Existing GovernanceEngine owns durable approvals; compare-and-set prevents
+  competing workers from both deciding a request. Visiting cards cache shared
+  profile data without adding local password/user rows. New local crew-account
+  HTTP creation is retired (410), while old accounts/IDs/notes are retained.
+- Browser popup exchange validates exact origin and source window. Manual card
+  exchange is offered as a fallback; its browser acceptance is still open.
+  After approval the guest can view her read-only visiting card and is offered
+  the green-room studio entry link. Actual entry through that link remains open.
+- Central token decoding verifies visiting leases. A socket transport fence checks
+  each live incoming/outgoing frame, so an idle revoked visitor cannot keep
+  receiving frames. Tests include an already-open socket.
+- Two independently admitted guest identities have passed the complete existing
+  decoded recording/media-export acceptance. That closes the former same-owner-
+  token limitation for this tested local workflow; native/network gates remain.
+
+### Source map
+
+`modules/human_profiles.py`, `modules/userdb.py`, `modules/auth_routes.py` and
+`modules/production_notes.py` own profile validation/persistence and legacy notes
+integration. `modules/credentials.py` owns encrypted immutable identity secrets.
+`modules/governance.py` owns durable waiting entries; `modules/guest_identity.py`
+owns invite/proof/pin/lease state in the same governance database.
+`modules/guest_identity_routes.py` owns the visitor HTTP surface.
+`modules/auth.py` and `modules/guest_session_guard.py` fence tokens/live frames.
+`main.py` wires them at the existing governance startup and middleware boundary.
+
+`static/human_profile.html` / `.js` are the profile UI;
+`static/human_visits.html` / `.js` are join/sign/host screens.
+`static/login.html`, `static/reach_auth.js`, `static/foresight_counter.html` and
+`static/foresight_programs.js` integrate setup, stable IDs and existing trays.
+`requirements.txt` includes Pillow for bounded photo normalization.
+
+New tests: `test_human_profiles.py`, `test_human_profiles_browser.py`,
+`test_human_profile_onboarding_browser.py`, `test_governance_admission_persistence.py`,
+`test_identity_credentials.py`, `test_guest_identity.py`,
+`test_guest_identity_routes.py`, `test_independent_guest_hosts.py`,
+`test_independent_guest_browser.py`, `test_admitted_guest_recording_browser.py`,
+all under `tests/`. Existing `test_production_notes.py` and its browser fixture now
+explicitly create pre-existing legacy records rather than using the retired API;
+new separate acceptance proves the independent visitor path.
+
+### Next work, in priority order
+
+1. Targeted guest-boundary audit: cross-worker session-ban propagation and stale
+   ban/unban caches remain open. Session bans are process memory in the existing
+   governance engine; checking the current engine fixed the reproduced immediate
+   gap, but does not certify multiple workers. Explicit guest-lease revocation is
+   durable and tested. Do not describe broader moderation as certified.
+2. Verify guest actual studio entry and own/private dressing-room behavior,
+   waiting-room avatar controls, no host private-room exposure, manual fallback,
+   reconnect/restart, expiry and identity-cartridge backup/restore UX. Guest photo
+   transfer and a public Human badge everywhere remain open. First-contact key
+   trust is owner approval/comparison, not a claim of globally certified humans.
+3. Build production groups/roles/departments on the existing NotesStore. Replace
+   implicit everyone-on-host `@production` with actual selected group membership;
+   snapshot/preview authorized recipients, preserve To/CC/BCC privacy and separate
+   per-person read/save/trash. Add schedule updates and permitted physical note
+   spots, including each person's own mirror and the sound engineer's console.
+   Existing approved paper/gold-star look and attachments must remain intact.
+4. Reuse the existing durable DM request/accept/decline/revoke implementation for
+   contact/message requests and blocking; finish usable UI/notification indicators.
+   Do not create a competing private-message authority.
+5. Targeted debugging of completed recording/profile/group journeys, then two
+   separate post-feature whole-codebase debugging rounds on their respective
+   source trees. Do not count this 109-test focused run or the old baseline as
+   either round. Complete source-master/selective native-render gates remain open.
+6. Update issue #1 and the scoped milestone after each verified checkpoint; always
+   write a session-ending handoff. The requested milestone stopping point remains
+   after features, targeted debugging and both broad rounds.
+
+### Environment, preservation and rollback
+
+Workspace `/workspace/scratch/d6f0985b33b2/pubcast`; Python 3.12.14 virtualenv,
+Node 24, Playwright 1.56 / Chromium 141, system FFmpeg, software WebGL. Restored
+Python launcher points at the installed runtime; Chromium cache was reinstalled.
+Use the installed Node executable via `PLAYWRIGHT_NODEJS_PATH` for Playwright.
+Use isolated temporary PUBCAST_DATA_DIR roots, not actual seeded user data.
+`run_reach.py` supplies the persistent JWT secret for real launcher operation.
+No native Windows/PowerShell 5, physical GPU/microphone/phone, WAN or long-session
+certification is implied. Atomic key publication needs native filesystem checks.
+
+No main merge, deployment, GitHub Actions, art replacement or PubPartner/2i
+restructuring occurred. Base and Horizon were not coupled. No private owner
+material was copied. An unrelated recovery download temporary file remains
+untracked and untouched; do not add or delete it as part of this work.
+
+Changes are additive/reversible source commits; do not delete migrated user or
+identity data to roll back. Reverting source without accounting for signed guest
+leases and cached cards requires a compatibility review, not a destructive reset.

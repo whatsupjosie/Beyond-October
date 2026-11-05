@@ -35,15 +35,15 @@ Do **not** start experimental 3D/voxel builder, gamified onboarding, unrelated m
 ### A. Recording
 - [x] Compare later recovered package against published integration tree path by path. November 5: both ZIPs compared by path and SHA-256; later source integrated, with exclusions and merged-file hashes recorded.
 - [x] Restore missing modules, browser workers/worklets and production-route mounts using semantic integration. See recording integration evidence and the session-ending handoff; this does not close the remaining acceptance gates.
-- [ ] Validate authenticated distinct guest identities and role boundaries for participant audio; do not confuse same-host simulated contributor tokens with independent guests.
+- [x] Validate authenticated distinct guest identities and role boundaries for participant audio. November 5 resumed checkpoint: two own-copy identities signed and admitted on a separate host; existing decoded-media recording/export acceptance passed with those guest leases. Browser tones replace physical microphones; hardware/network gates remain open.
 - [ ] Verify multi-source takes, untouched original media, program and independent stems, cancel/short stop/PANIC, timed capture, replay/export, crash/restart recovery and overlapping speech.
 - [ ] Run focused tests on **current changed tree**, plus relevant existing suites; record hardware/environment exclusions separately.
 
 ### B. Human accounts and profiles
-- [ ] Preserve permanent IDs through migration/restarts.
+- [x] Preserve permanent IDs through additive profile migration; own-copy keys and admission restart tests pass. Native cartridge portability remains open.
 - [ ] One local owner per installation, guest admission/waiting-room behavior, separate identity and privacy.
-- [ ] First-time profile flow: create basic profile, choose public-within-PubCast/private, enter app; optional fields skippable.
-- [ ] Personal menu, profiles and editing; validate uploads and external links; click-to-load reels.
+- [x] First-time profile flow: actual fresh-install browser journeys cover private/discoverable choice, optional-field skipping, permanent ID and requested app destination. Discovery is explicitly this host.
+- [x] Personal Me menu and singleton profile tray, editor, bounded metadata-stripped photos, revision-safe drafts and click-to-load reels tested. Guest picture transfer remains open.
 - [ ] Search/message/contact requests, accept/decline/block and authorized private communication as needed for first usable member journey.
 - [ ] Test privacy across guest/host, anonymous requests, searches, edits, migration and reload.
 
