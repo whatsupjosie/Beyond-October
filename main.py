@@ -901,6 +901,9 @@ async def lifespan(application: FastAPI):
         rearmed_camera_broadcast = getattr(application.state, "camera_broadcast", None)
         if rearmed_camera_broadcast is not None:
             rearmed_camera_broadcast.start()
+        rearmed_camera_pool = getattr(application.state, "camera_pool", None)
+        if rearmed_camera_pool is not None:
+            rearmed_camera_pool.start()
         application.state._pubcast_lifespan_users = 1
         try:
             yield
@@ -908,6 +911,8 @@ async def lifespan(application: FastAPI):
             application.state._pubcast_lifespan_users = 0
             if rearmed_camera_broadcast is not None:
                 await rearmed_camera_broadcast.stop()
+            if rearmed_camera_pool is not None:
+                rearmed_camera_pool.close()
             if evo_orchestrator is not None:
                 await evo_orchestrator.stop()
             if rearmed_conductor is not None:
@@ -1148,6 +1153,8 @@ async def lifespan(application: FastAPI):
     recording = create_recording_service(DATA_DIR, cameras, blackbox_witness=blackbox_witness)
     program_audio_state = ProgramAudioState()
     application.include_router(create_production_router(cameras, recording, hub, blackbox=blackbox_witness, program_audio_state=program_audio_state, include_overlapping_compat_routes=False))
+    from modules.studio25d_recording_ingest import create_studio25d_recording_router
+    application.include_router(create_studio25d_recording_router(recording))
     from modules.pubcast_vision_integration import PubcastVisionManager
     from modules.pubcast_vision_routes import create_vision_router
     vision_manager = PubcastVisionManager(camera_manager=cameras, data_dir=DATA_DIR)
@@ -1163,7 +1170,11 @@ async def lifespan(application: FastAPI):
     application.include_router(create_switcher_router(switcher_service))
     # Browser-origin 2.5D camera pixels, shared with the SAME canonical switcher.
     # Bounded authenticated confidence previews; not a claim of full WebRTC ingest.
-    application.include_router(create_studio25d_media_router(cameras))
+    from modules.camera_pool import CameraPool, create_camera_pool_router
+    camera_pool = CameraPool(cameras)
+    application.state.camera_pool = camera_pool
+    application.include_router(create_camera_pool_router(camera_pool))
+    application.include_router(create_studio25d_media_router(cameras, pool=camera_pool))
     # Every program/preview change, from any route, reaches the stage pages.
     from modules.camera_broadcast import CameraBroadcastBridge
     camera_broadcast = CameraBroadcastBridge(cameras, hub)
@@ -1907,6 +1918,9 @@ async def lifespan(application: FastAPI):
         except Exception:
             logger.debug("e-PETE shutdown failed", exc_info=True)
     rust_camera_runtime = getattr(application.state, "rust_camera_runtime", None)
+    camera_pool = getattr(application.state, "camera_pool", None)
+    if camera_pool is not None:
+        camera_pool.close()
     if rust_camera_runtime is not None:
         try:
             await rust_camera_runtime.stop()

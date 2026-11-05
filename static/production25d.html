@@ -15,7 +15,8 @@ small,.muted{color:var(--sub)}.screen{background:#05080c;aspect-ratio:16/9;width
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}.field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px}
 button,select,input{font:inherit;min-height:37px;border-radius:6px;background:#23334b;color:var(--ink);border:1px solid #4c637d;padding:6px 10px}
 button{cursor:pointer}button:hover{background:#354d70}button:disabled{opacity:.45;cursor:not-allowed}button.live{background:#7c313b;border-color:#f66}button.selected{outline:2px solid var(--gold)}label{color:var(--sub)}
-legend{color:var(--gold)}fieldset{border:1px solid var(--edge);border-radius:8px;margin:8px 0}
+legend{color:var(--gold)}fieldset{min-width:0;border:1px solid var(--edge);border-radius:8px;margin:8px 0}
+#audioInputs input[type=range]{display:block;max-width:100%}#audioInvite{min-width:0;width:100%}#participantAudioStatus{overflow-wrap:anywhere}
 canvas{touch-action:manipulation}#state{font-weight:700;color:var(--green)}#state.error{color:var(--red)}
 #events{height:155px;overflow-y:auto;white-space:pre-wrap;background:#0a1420;padding:8px;font:12px/1.55 ui-monospace,monospace;color:var(--sub);border-radius:5px}
 #sessionList{max-height:210px;overflow:auto}#sessionList button{width:100%;text-align:left;margin:3px 0}
@@ -23,6 +24,7 @@ canvas{touch-action:manipulation}#state{font-weight:700;color:var(--green)}#stat
 .pill{padding:4px 9px;border:1px solid var(--edge);border-radius:100px}
 #timecode{font:16px ui-monospace,monospace;font-variant-numeric:tabular-nums}
 #playback{width:100%;max-height:300px;background:#000}#assetInfo{word-break:break-word}
+#studioRecordings button{min-height:44px;max-width:100%;white-space:normal}#archiveStatus,#archiveList{overflow-wrap:anywhere}
 aside{min-width:0}#avatarStatus,#description{overflow-wrap:anywhere}
 .field select,.field input[type=file]{max-width:100%;min-width:0;width:100%}
 @media(max-width:950px){main{grid-template-columns:1fr}}@media(max-width:500px){main{padding:8px;gap:8px}section{padding:9px}header{padding:9px}}
@@ -46,11 +48,18 @@ aside{min-width:0}#avatarStatus,#description{overflow-wrap:anywhere}
 <div class="screen-frame preview"><canvas class="screen" id="preview" width="1280" height="720" aria-label="Preview camera output"></canvas></div>
 <div class="row"><span id="previewShot" class="pill">PVW: —</span><button id="cut">CUT / TAKE</button><button id="fade">DISSOLVE (0.6s)</button></div>
 </section>
-<section style="margin-top:12px"><h2>SESSION RECORDINGS</h2>
+<section id="studioRecordings" style="margin-top:12px"><h2>SESSION RECORDINGS</h2>
 <div id="sessionList" aria-label="Saved sessions">No sessions loaded.</div>
+<h3>INTERRUPTED RECORDINGS</h3>
+<div id="captureRecoveryList" aria-label="Interrupted recordings">No interrupted recordings found.</div>
 <video id="playback" controls playsinline></video>
 <div class="row"><button id="download" disabled>Download selected media</button><button id="manifest" disabled>Download session manifest</button></div>
-<small>Video and event manifests are stored locally in this browser using IndexedDB. Export copies for long-term safekeeping.</small>
+<small>Local takes and event manifests remain in this browser. Server saving is optional and preserves the original encoded Program recording; it does not create a replayable scene master.</small>
+<div class="row"><button id="archiveSave" disabled>Save selected take on server / retry</button><button id="archivePause" disabled>Pause server transfer</button></div>
+<p id="archiveStatus" role="status" aria-live="polite">No server save requested. Local recordings remain available offline.</p>
+<h3>TAKES SAVED ON THIS SERVER</h3>
+<button id="archiveRefresh">Refresh my server takes</button><div id="archiveList" aria-label="Server takes"></div>
+<button id="archiveBundle" disabled>Download selected server source bundle</button>
 </section>
 </div>
 <aside>
@@ -60,10 +69,18 @@ aside{min-width:0}#avatarStatus,#description{overflow-wrap:anywhere}
 <p id="description" class="muted"></p>
 <div class="row"><button id="start">START PRODUCTION</button><button id="stop" disabled>END PRODUCTION</button></div>
 <div class="row"><button id="record" disabled>START RECORDING</button><button id="recordStop" disabled>STOP RECORDING</button></div>
+<p id="captureStatus" role="status" aria-live="polite">Recording checkpoints are saved in this browser while you record.</p>
 <label><input type="checkbox" id="mic"> Capture microphone (permission required; recording refuses if microphone cannot be acquired)</label>
 <div class="row"><label class="field">MIC LEVEL <input type="range" id="micLevel" min="0" max="100" value="100" disabled></label>
 <button id="micMute" disabled>MUTE MIC</button><label class="field">REAL MIC METER <meter id="micMeter" min="0" max="1" value="0"></meter></label></div>
 <p id="alert" role="alert"></p>
+<h2>PARTICIPANT AUDIO</h2>
+<p>Open the audio desk, then share the invitation. Participants choose when to connect their microphone. Use headphones.</p>
+<div class="row"><button id="audioOpen">OPEN AUDIO DESK</button><button id="audioClose" disabled>CLOSE AUDIO DESK</button></div>
+<label class="field">Participant invitation <input id="audioInvite" readonly type="text" aria-label="Participant audio invitation"></label>
+<p id="participantAudioStatus" role="status" aria-live="polite">Audio desk closed.</p>
+<div id="audioInputs" aria-label="Live audio inputs"></div>
+<small>Recording retains each voice before EQ, level, mute and solo. Muting the program does not erase its separate voice recording.</small>
 <div id="recoveryPanel" hidden role="alert"><p>The take is still in memory. Save it or download a recovery copy before closing this page.</p>
 <div class="row"><button id="recoveryDownload">DOWNLOAD UNSAVED TAKE</button><button id="recoverySave">RETRY SAVING</button></div></div>
 </section>
@@ -93,10 +110,18 @@ aside{min-width:0}#avatarStatus,#description{overflow-wrap:anywhere}
 <script src="./production25d_core.js"></script>
 <script src="./production25d_renderer.js"></script>
 <script src="./production25d_storage.js"></script>
+<script src="./production25d_capture.js"></script>
+<script src="./camera_pool_async.js"></script>
+<script src="./production25d_archive.js"></script>
 <script src="./production25d_switcher_bridge.js"></script>
 <script src="./production25d_frame_publisher.js"></script>
 <script src="./program_audio_runtime.js"></script>
+<script src="./participant_audio.js"></script>
+<script src="./production25d_sources.js"></script>
+<script src="./production25d_audio_panel.js"></script>
 <script type="importmap">{"imports":{"three":"./vendor/three-0.160.0/build/three.module.js","three/addons/":"./vendor/three-0.160.0/examples/jsm/"}}</script>
 <script type="module" src="./world_walk_glb.js"></script>
 <script src="./production25d_app.js"></script>
+<script src="./camera_pool_controller.js"></script>
+<script src="./camera_pool_panel.js" defer></script>
 </body></html>

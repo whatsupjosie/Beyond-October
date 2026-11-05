@@ -30,7 +30,10 @@
       this.lastError = null;
       this.room = roomId(options.room || "controlroom");
       this.externalStops = new Set();
+      this.inputSessionStops = new Set();
       this.seenCommands = new Set();
+      this.inputs = new Map();
+      this.inputListeners = new Set();
     }
 
     setRoom(room) {
@@ -59,6 +62,7 @@
       if (event.action === 'stop_all') return this.stopAll();
       if (event.action === 'stop') {
         for (const handle of Array.from(this.active)) if (handle.busName === event.bus) this.stopHandle(handle);
+        if (event.bus === 'dialogue') for (const stop of this.inputSessionStops) stop();
         return;
       }
       if (event.action === 'mute' || event.action === 'unmute') return this.setMuted(event.bus, event.action === 'mute');
@@ -93,6 +97,62 @@
       this.buses.set(name, bus);
       return bus;
     }
+
+    // One live-input graph, used by both the program output and its recorder.
+    // The stem branches BEFORE EQ, fader, solo and mute, retaining source audio.
+    attachInput(id, stream, options = {}) {
+      if (!this.allowed()) throw Error('Live production audio is blocked in this room');
+      if (!id || this.inputs.has(id)) throw Error('Duplicate or missing audio input ID');
+      if (!stream?.getAudioTracks().some(t => t.readyState === 'live')) throw Error('Live audio track required');
+      const ctx = this.ensureContext(), bus = this.createBus('dialogue');
+      const source = ctx.createMediaStreamSource(stream), raw = ctx.createMediaStreamDestination();
+      const filters = ['lowshelf', 'peaking', 'highshelf'].map((type, i) => {
+        const filter = ctx.createBiquadFilter(); filter.type = type;
+        filter.frequency.value = [160, 1200, 6000][i]; filter.Q.value = .7; return filter;
+      });
+      const gain = ctx.createGain(), analyser = ctx.createAnalyser(); analyser.fftSize = 256;
+      source.connect(raw); source.connect(filters[0]); filters[0].connect(filters[1]);
+      filters[1].connect(filters[2]); filters[2].connect(gain); gain.connect(analyser); analyser.connect(bus.gain);
+      const handle = { id, label: String(options.label || id), source, gain, analyser, filters,
+        busName: 'dialogue', stream, rawStream: raw.stream, volume: 1, muted: false, solo: false,
+        eq: [0, 0, 0], connectedAt: Date.now(), stop: () => this.stopHandle(handle),
+        onStop: () => {
+          this.inputs.delete(id); this.updateInputs();
+          for (const f of filters) f.disconnect(); analyser.disconnect();
+          for (const track of stream.getAudioTracks()) track.removeEventListener('ended', handle.stop);
+          try { options.onStop?.(); } catch (error) { this.lastError = error.message; }
+          this.notifyInputs('removed', handle);
+          for (const track of raw.stream.getTracks()) track.stop();
+        }};
+      for (const track of stream.getAudioTracks()) track.addEventListener('ended', handle.stop);
+      this.inputs.set(id, handle); this.active.add(handle); bus.sources.add(handle);
+      this.dialogueActive++; this.updateDucking(); this.notifyInputs('added', handle);
+      return handle;
+    }
+
+    configureInput(id, patch = {}) {
+      const input = this.inputs.get(id); if (!input) throw Error('Audio input disconnected');
+      if (patch.volume != null) input.volume = clamp(patch.volume, 0, 2, 1);
+      if (patch.muted != null) input.muted = !!patch.muted;
+      if (patch.solo != null) input.solo = !!patch.solo;
+      if (patch.eq) input.eq = [0, 1, 2].map(i => clamp(patch.eq[i], -12, 12, 0));
+      input.filters.forEach((f, i) => f.gain.setTargetAtTime(input.eq[i], this.context.currentTime, .01));
+      this.updateInputs(); this.notifyInputs('changed', input); return input;
+    }
+
+    updateInputs() {
+      const solo = Array.from(this.inputs.values()).some(input => input.solo);
+      for (const input of this.inputs.values()) input.gain.gain.setTargetAtTime(
+        input.muted || (solo && !input.solo) ? 0 : input.volume, this.context.currentTime, .01);
+    }
+
+    notifyInputs(type, input) {
+      for (const listener of this.inputListeners) {
+        try { listener(type, input); } catch (error) { this.lastError = error.message; }
+      }
+    }
+
+    onInput(listener) { this.inputListeners.add(listener); return () => this.inputListeners.delete(listener); }
 
     syncStatus(snapshot) {
       if (!snapshot || typeof snapshot !== "object") throw Error("Invalid shared audio snapshot");
@@ -253,6 +313,7 @@
       const handles = Array.from(this.active);
       for (const handle of handles) this.stopHandle(handle);
       for (const stop of this.externalStops) stop();
+      for (const stop of this.inputSessionStops) stop();
       global.speechSynthesis?.cancel?.();
       this.dialogueActive = 0;
       this.updateDucking();

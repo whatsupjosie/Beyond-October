@@ -30,7 +30,7 @@ class DummyRecording:
     def storage_status(self): return {"ok": True}
     def privacy_matrix(self): return {"ok": True}
 
-    def import_session(self, path: Path):
+    def import_session(self, path: Path, *, operator=None):
         self.imported_paths.append(path)
         return type("Session", (), {"to_dict": lambda self: {"session_id": path.stem}})()
 

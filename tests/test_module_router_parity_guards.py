@@ -76,13 +76,16 @@ class DummyRecording:
     def list_sessions(self):
         return []
 
+    def get_session(self, session_id):
+        raise KeyError(session_id)
+
     def storage_status(self):
         return {"ok": True}
 
     def privacy_matrix(self):
         return {"ok": True}
 
-    def import_session(self, path: Path):
+    def import_session(self, path: Path, *, operator=None):
         self.captured_import_path = path
         return SimpleNamespace(to_dict=lambda: {"session_id": "imported"})
 

@@ -100,11 +100,21 @@ function normalise(root) {
   return { wrap, nativeHeight: size.y, nativeWidth: size.x };
 }
 
-async function load(character, url, label) {
+async function load(character, url, label, options = {}) {
   ensureGL();
   let gltf;
-  try { gltf = await new GLTFLoader().loadAsync(url); }
-  catch (e) { throw new Error("that is not a GLB/glTF avatar I can read (" + String((e && e.message) || e).slice(0, 90) + ")"); }
+  try {
+    if (options.signal) {
+      const absolute = new URL(url, location.href);
+      const response = await fetch(absolute, {signal: options.signal});
+      if (!response.ok) throw new Error("GLB download HTTP " + response.status);
+      if(options.signal.aborted)throw new DOMException("Avatar load cancelled","AbortError");
+      const bytes=await response.arrayBuffer();
+      if(options.signal.aborted)throw new DOMException("Avatar load cancelled","AbortError");
+      gltf = await new GLTFLoader().parseAsync(bytes, new URL(".", absolute).href);
+    } else gltf = await new GLTFLoader().loadAsync(url);
+  }
+  catch (e) { if(e?.name==="AbortError")throw e;throw new Error("that is not a GLB/glTF avatar I can read (" + String((e && e.message) || e).slice(0, 90) + ")"); }
   const root = cloneSkinned(gltf.scene);
   let meshCount = 0, skinned = 0;
   root.traverse(o => { if (o.isMesh) { meshCount++; if (o.isSkinnedMesh) skinned++; o.frustumCulled = false; } });
@@ -127,9 +137,10 @@ async function load(character, url, label) {
   }
   const normalMaterials = new Map(), holo = hologramMaterial();
   root.traverse(o => { if (o.isMesh) normalMaterials.set(o, o.material); });
-  const inst = { character, label: label || character, group: norm.wrap, mixer, actions, gait, yaw: 0, wWalk: 0, phase: 0,
+  const inst = { character, sourceUrl: new URL(url, location.href).href, label: label || character, group: norm.wrap, mixer, actions, gait, yaw: 0, wWalk: 0, phase: 0,
                  clipAssets: gltf.animations, activeGesture: null, clips: gltf.animations.map(a => a.name), nativeHeight: norm.nativeHeight, meshCount, skinned, normalMaterials, holo,
                  tris, bones: boneSet.size };
+  if(options.signal?.aborted){dispose(inst);throw new DOMException("Avatar load cancelled","AbortError");}
   const old = avatars.get(character); if (old) dispose(old);
   avatars.set(character, inst);
   return { clips: inst.clips, nativeHeight: inst.nativeHeight, meshes: meshCount, skinned, hasWalk: !!walk, hasIdle: !!idle, tris, bones: inst.bones };
@@ -237,7 +248,7 @@ function playClip(character, pattern) {
 function setHologram(on) { state.hologram = !!on; }
 function info(character) {
   const i = avatars.get(character); if (!i) return null;
-  return { label: i.label, clips: i.clips, nativeHeight: i.nativeHeight, meshes: i.meshCount, skinned: i.skinned, tris: i.tris, bones: i.bones, proceduralWalk: !!i.gait };
+  return { label: i.label, sourceUrl: i.sourceUrl, clips: i.clips, nativeHeight: i.nativeHeight, meshes: i.meshCount, skinned: i.skinned, tris: i.tris, bones: i.bones, proceduralWalk: !!i.gait };
 }
 
 window.PubCastGLB = { load, clear, has, draw, playClip, setHologram, info, state };

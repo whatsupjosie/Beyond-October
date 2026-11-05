@@ -1,0 +1,71 @@
+/workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/pytest_asyncio/plugin.py:300: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the "fixture" caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+..F............                                                          [100%]
+=================================== FAILURES ===================================
+_________ test_three_participants_sustain_real_camera_preview_traffic __________
+
+pool_server = ('http://127.0.0.1:37141', {'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJwdWJwYXJ0bmVyLXVpIiwiZXhw...S47Nt56olw', 'token_type': 'bearer', 'username': 'engineer', 'role': 'owner'}, <httpx.Client object at 0x7f63fe40ac60>)
+production_browser = <Browser type=<BrowserType name=chromium executable_path=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome> version=141.0.7390.37>
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-4/test_three_participants_sustai0')
+
+    def test_three_participants_sustain_real_camera_preview_traffic(pool_server, production_browser, tmp_path):
+        base, owner, api = pool_server
+        host_ctx, host, sid, sources, headers = make_pool(pool_server, production_browser)
+        contexts = [host_ctx]
+        errors = []
+        workers = []
+        try:
+            for actor, role, token in (("engineer", "owner", owner["access_token"]),
+                                      ("buddy-one", "viewer", auth_module.create_access_token({"sub": "buddy-one", "role": "viewer"})),
+                                      ("buddy-two", "viewer", auth_module.create_access_token({"sub": "buddy-two", "role": "viewer"}))):
+                ctx = context(production_browser, actor, role, token)
+                contexts.append(ctx)
+                page = ctx.new_page()
+                page.on("pageerror", lambda e: errors.append(str(e)))
+                if actor == "buddy-one":
+                    page.goto(base + "/static/control_room.html?camera_pool=" + sid)
+                    page.wait_for_function("document.querySelector('#poolInvite')?.value.includes('pool_')")
+                    page.click("#poolContribute")
+                    page.wait_for_selector("iframe[name='camera-pool-contribution']")
+                    worker = page.frame(name="camera-pool-contribution")
+                    worker.wait_for_selector("#workerJoin")
+                else:
+                    page.goto(base + "/static/camera_pool_worker.html?pool=" + sid)
+                    worker = page
+                worker.click("#workerJoin")
+                assert worker.evaluate("PubCastCameraPoolWorker.status().active") is False
+                worker.fill("#workerLabel", actor)
+                worker.check("#workerAgree")
+                worker.click("#workerJoin")
+                worker.wait_for_function("PubCastCameraPoolWorker.status().participant_id !== null")
+                pid = worker.evaluate("PubCastCameraPoolWorker.status().participant_id")
+                workers.append(worker)
+                host.wait_for_function("pid=>[...document.querySelector('#poolPerson').options].some(o=>o.value===pid)", arg=pid)
+                host.select_option("#poolSource", sources[len(workers)])
+                host.select_option("#poolPerson", pid)
+                host.fill("#poolFps", "2")
+                host.click("#poolAssign")
+                host.wait_for_function("src=>PubCastCameraPool.state()?.assignments.some(t=>t.source_id===src)", arg=sources[len(workers)])
+            for worker in workers:
+                worker.wait_for_function("PubCastCameraPoolWorker.status().frames>=6", timeout=30000)
+                assert worker.evaluate("PubCastCameraPoolWorker.status().loaded_actors") == 0
+            host.wait_for_function("PubCastCameraPool.state().members.every(m=>m.actual_fps>=1.4&&m.upload_kbps>0)", timeout=20000)
+            for worker in workers:
+>               assert worker.evaluate("PubCastCameraPoolWorker.status().performance.state") == "running"
+E               AssertionError: assert 'reduced' == 'running'
+E
+E                 - running
+E                 + reduced
+
+tests/test_camera_pool_browser.py:142: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/starlette/testclient.py:40
+  /workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/starlette/testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_camera_pool_browser.py::test_three_participants_sustain_real_camera_preview_traffic
+1 failed, 14 passed, 1 warning in 99.33s (0:01:39)

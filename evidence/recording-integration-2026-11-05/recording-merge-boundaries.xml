@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="15" time="99.328" timestamp="2026-11-05T01:52:00.845963-08:00" hostname="0622a6366130"><testcase classname="tests.test_recording_integration_browser" name="test_short_stop_waits_for_native_media_and_commits_journal" time="8.634" /><testcase classname="tests.test_recording_integration_browser" name="test_panic_interrupts_an_already_waiting_ordinary_stop" time="2.845" /><testcase classname="tests.test_camera_pool_browser" name="test_three_participants_sustain_real_camera_preview_traffic" time="32.046"><failure message="AssertionError: assert 'reduced' == 'running'&#10;  &#10;  - running&#10;  + reduced">pool_server = ('http://127.0.0.1:37141', {'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJwdWJwYXJ0bmVyLXVpIiwiZXhw...S47Nt56olw', 'token_type': 'bearer', 'username': 'engineer', 'role': 'owner'}, &lt;httpx.Client object at 0x7f63fe40ac60&gt;)
+production_browser = &lt;Browser type=&lt;BrowserType name=chromium executable_path=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome&gt; version=141.0.7390.37&gt;
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-4/test_three_participants_sustai0')
+
+    def test_three_participants_sustain_real_camera_preview_traffic(pool_server, production_browser, tmp_path):
+        base, owner, api = pool_server
+        host_ctx, host, sid, sources, headers = make_pool(pool_server, production_browser)
+        contexts = [host_ctx]
+        errors = []
+        workers = []
+        try:
+            for actor, role, token in (("engineer", "owner", owner["access_token"]),
+                                      ("buddy-one", "viewer", auth_module.create_access_token({"sub": "buddy-one", "role": "viewer"})),
+                                      ("buddy-two", "viewer", auth_module.create_access_token({"sub": "buddy-two", "role": "viewer"}))):
+                ctx = context(production_browser, actor, role, token)
+                contexts.append(ctx)
+                page = ctx.new_page()
+                page.on("pageerror", lambda e: errors.append(str(e)))
+                if actor == "buddy-one":
+                    page.goto(base + "/static/control_room.html?camera_pool=" + sid)
+                    page.wait_for_function("document.querySelector('#poolInvite')?.value.includes('pool_')")
+                    page.click("#poolContribute")
+                    page.wait_for_selector("iframe[name='camera-pool-contribution']")
+                    worker = page.frame(name="camera-pool-contribution")
+                    worker.wait_for_selector("#workerJoin")
+                else:
+                    page.goto(base + "/static/camera_pool_worker.html?pool=" + sid)
+                    worker = page
+                worker.click("#workerJoin")
+                assert worker.evaluate("PubCastCameraPoolWorker.status().active") is False
+                worker.fill("#workerLabel", actor)
+                worker.check("#workerAgree")
+                worker.click("#workerJoin")
+                worker.wait_for_function("PubCastCameraPoolWorker.status().participant_id !== null")
+                pid = worker.evaluate("PubCastCameraPoolWorker.status().participant_id")
+                workers.append(worker)
+                host.wait_for_function("pid=&gt;[...document.querySelector('#poolPerson').options].some(o=&gt;o.value===pid)", arg=pid)
+                host.select_option("#poolSource", sources[len(workers)])
+                host.select_option("#poolPerson", pid)
+                host.fill("#poolFps", "2")
+                host.click("#poolAssign")
+                host.wait_for_function("src=&gt;PubCastCameraPool.state()?.assignments.some(t=&gt;t.source_id===src)", arg=sources[len(workers)])
+            for worker in workers:
+                worker.wait_for_function("PubCastCameraPoolWorker.status().frames&gt;=6", timeout=30000)
+                assert worker.evaluate("PubCastCameraPoolWorker.status().loaded_actors") == 0
+            host.wait_for_function("PubCastCameraPool.state().members.every(m=&gt;m.actual_fps&gt;=1.4&amp;&amp;m.upload_kbps&gt;0)", timeout=20000)
+            for worker in workers:
+&gt;               assert worker.evaluate("PubCastCameraPoolWorker.status().performance.state") == "running"
+E               AssertionError: assert 'reduced' == 'running'
+E
+E                 - running
+E                 + reduced
+
+tests/test_camera_pool_browser.py:142: AssertionError</failure></testcase><testcase classname="tests.test_camera_pool_review_browser" name="test_withdrawing_consent_before_join_reply_never_activates_worker" time="4.204" /><testcase classname="tests.test_camera_pool_review_browser" name="test_stop_cancels_a_hung_encoder_and_discards_its_late_callback" time="3.159" /><testcase classname="tests.test_camera_pool_review_browser" name="test_never_finishing_encoder_times_out_without_wedging_worker" time="5.391" /><testcase classname="tests.test_camera_pool_review_browser" name="test_stopping_pending_glb_load_discards_the_late_asset" time="2.248" /><testcase classname="tests.test_camera_pool_review_browser" name="test_failed_limits_change_cannot_resume_under_old_consent" time="5.698" /><testcase classname="tests.test_camera_pool_review_browser" name="test_pool_controls_fit_a_phone_viewport_and_have_usable_touch_targets" time="0.772" /><testcase classname="tests.test_camera_pool_review_browser" name="test_busy_baseline_admits_no_camera_work_then_recovers" time="10.371" /><testcase classname="tests.test_camera_pool_review_browser" name="test_one_worker_renders_actual_bundled_3d_without_a_heavy_source_browser" time="4.269" /><testcase classname="tests.test_camera_pool_review_browser" name="test_failed_close_stays_retryable_and_does_not_report_success" time="0.339" /><testcase classname="tests.test_camera_pool_review_browser" name="test_late_decoded_image_cannot_reappear_after_pool_close" time="3.567" /><testcase classname="tests.test_camera_pool_review_browser" name="test_receiver_does_not_call_corrupted_jpeg_a_usable_preview" time="3.324" /><testcase classname="tests.test_camera_pool_review_browser" name="test_source_heartbeat_survives_view_switch_and_program_cannot_be_delegated" time="12.105" /></testsuite></testsuites>

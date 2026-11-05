@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PubCast — Contribute camera rendering</title><style>
+body{background:#0b1018;color:#edf1f7;font:16px/1.5 system-ui;max-width:900px;margin:24px auto;padding:16px}input,button{font:inherit;padding:8px;margin:5px;max-width:95%}label{display:block}canvas{width:100%;max-width:640px;background:#000}button{cursor:pointer}#poolWorkerStatus{color:#efd18b}fieldset{margin:16px 0}a{color:#a7cfde}
+*{box-sizing:border-box}fieldset{min-inline-size:0}input,button,label{min-height:44px}button{white-space:normal}input[type=checkbox]{min-height:24px;width:24px;height:24px;vertical-align:middle}label{padding:4px 0;overflow-wrap:anywhere}:focus-visible{outline:3px solid #ffe097;outline-offset:3px}
+</style></head><body><h1>Contribute camera previews</h1>
+<p>Your device renders only the cameras assigned to you. Participation starts after you consent. Closing this page stops work; loss of contact pauses rendering and expires assignments. This shares 640×360 camera previews, not full-rate recording or audio processing.</p>
+<p>Use your existing PubCast account. <a href="/login">Sign in</a> if needed, then return to this invitation.</p>
+<fieldset id="workerConsent"><legend>Your limits</legend>
+<label>Device / participant label <input id="workerLabel" maxlength="48" value="My device"></label>
+<label>Maximum cameras <input id="workerCameras" type="number" min="1" max="4" value="1"></label>
+<label>Maximum frames per second per camera <input id="workerFps" type="number" min="1" max="4" value="3"></label>
+<label>Maximum upload payload (kbps) <input id="workerUpload" type="number" min="256" max="10000" value="2000"></label>
+<label>Render budget target (milliseconds per second) <input id="workerBudget" type="number" min="10" max="600" value="200"></label>
+<label><input id="workerQuality" type="checkbox"> Allow shared previews to drop from 640×360 to 320×180 while recovering from lag.</label>
+<label><input id="workerAgree" type="checkbox"> I consent to these camera tasks using my device and connection for this session.</label>
+<button id="workerJoin" disabled>Join and offer this capacity</button><button id="workerLimits" disabled>Apply new limits and release tasks</button><button id="workerLeave" disabled>Stop contributing now</button>
+</fieldset><p id="poolWorkerStatus" role="status" aria-live="polite">Not participating. No camera work is running.</p>
+<div id="workerViews"></div>
+<script src="./reach_auth.js"></script><script src="./production25d_core.js"></script><script src="./production25d_renderer.js"></script>
+<script type="importmap">{"imports":{"three":"./vendor/three-0.160.0/build/three.module.js","three/addons/":"./vendor/three-0.160.0/examples/jsm/"}}</script>
+<script type="module" src="./world_walk_glb.js"></script><script src="./camera_pool_guard.js"></script><script src="./camera_pool_async.js"></script><script src="./camera_pool_worker.js"></script></body></html>

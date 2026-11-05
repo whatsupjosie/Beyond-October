@@ -338,7 +338,6 @@ def test_recorder_error_preserves_available_media_as_incomplete(studio):
     page.wait_for_function("PubCast25DStudio.state().recording")
     wait_for_media_chunk(page)
     page.evaluate("testRecorder.dispatchEvent(new Event('error'))")
-    page.click("#recordStop")
     page.wait_for_function("!PubCast25DStudio.state().recording")
     result = page.evaluate("""async () => {
       const session=(await PubCast25DStore.list())[0];

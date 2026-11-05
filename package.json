@@ -9,7 +9,8 @@
   "scripts": {
     "test:editor": "node tests/test_reach_editor.cjs",
     "test:reader": "node tests/test_reader.cjs",
-    "test:node": "node --test tests/test_avatar_glb_motion_consumer_node.js tests/test_program_audio_runtime_node.js tests/test_reach_editor.cjs tests/test_reader.cjs tests/test_studio_console_hotspots_node.js tests/test_voxel_block_preview_client_node.js tests/test_switcher_keyboard_node.js"
+    "test:node": "node --test tests/test_avatar_glb_motion_consumer_node.js tests/test_program_audio_runtime_node.js tests/test_reach_editor.cjs tests/test_reader.cjs tests/test_studio_console_hotspots_node.js tests/test_voxel_block_preview_client_node.js tests/test_switcher_keyboard_node.js",
+    "test:camera-pool": "node --test tests/test_camera_pool_guard.cjs tests/test_camera_pool_async.cjs tests/test_confidence_async_review.cjs tests/test_studio25d_confidence.cjs"
   },
   "devDependencies": {
     "jsdom": "26.1.0"
