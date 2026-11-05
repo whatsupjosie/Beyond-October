@@ -70,6 +70,7 @@ aside{min-width:0}#avatarStatus,#description{overflow-wrap:anywhere}
 <div class="row"><button id="start">START PRODUCTION</button><button id="stop" disabled>END PRODUCTION</button></div>
 <div class="row"><button id="record" disabled>START RECORDING</button><button id="recordStop" disabled>STOP RECORDING</button></div>
 <p id="captureStatus" role="status" aria-live="polite">Recording checkpoints are saved in this browser while you record.</p>
+<small>The fifteen-second red dash has its own silent-in-Program sync audio recording. Timing between devices still needs alignment.</small>
 <label><input type="checkbox" id="mic"> Capture microphone (permission required; recording refuses if microphone cannot be acquired)</label>
 <div class="row"><label class="field">MIC LEVEL <input type="range" id="micLevel" min="0" max="100" value="100" disabled></label>
 <button id="micMute" disabled>MUTE MIC</button><label class="field">REAL MIC METER <meter id="micMeter" min="0" max="1" value="0"></meter></label></div>
@@ -118,6 +119,7 @@ aside{min-width:0}#avatarStatus,#description{overflow-wrap:anywhere}
 <script src="./program_audio_runtime.js"></script>
 <script src="./participant_audio.js"></script>
 <script src="./production25d_sources.js"></script>
+<script src="./production25d_clacker.js"></script>
 <script src="./production25d_audio_panel.js"></script>
 <script type="importmap">{"imports":{"three":"./vendor/three-0.160.0/build/three.module.js","three/addons/":"./vendor/three-0.160.0/examples/jsm/"}}</script>
 <script type="module" src="./world_walk_glb.js"></script>

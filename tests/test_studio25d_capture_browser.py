@@ -42,9 +42,10 @@ def test_actual_renderer_crash_recovers_committed_video_and_program_audio(studio
     original=fresh.evaluate("""async id=>{const r=await PubCast25DStore.readCapture(id),b=await PubCast25DCapture.assemble(r);
       return {bytes:b.size,sha256:await PubCast25DCapture.digest(b),chunks:r.chunks.length,startedAt:r.capture.startedAt};}""", pending['id'])
     assert original['bytes'] >= pending['bytes']
-    recovery=fresh.locator('#captureRecoveryList button')
+    recovery=fresh.locator('[data-capture-id="'+pending['id']+'"]')
     recovery.wait_for()
-    fresh.wait_for_function("!document.querySelector('#captureRecoveryList button').disabled", timeout=25000)
+    fresh.wait_for_function("Array.from(document.querySelectorAll('#captureRecoveryList button')).every(b=>!b.disabled)", timeout=25000)
+    fresh.evaluate("async()=>{for(const row of await PubCast25DStore.listCaptures())if(row.kind==='audio-source')await PubCast25DStudio.recoverCapture(row.id);}")
     recovery.click()
     fresh.wait_for_function("playback.readyState>=2&&playback.videoWidth===1280", timeout=20000)
     fresh.evaluate('playback.play()');fresh.wait_for_function('playback.currentTime>.1')
@@ -74,7 +75,7 @@ def test_actual_renderer_crash_recovers_committed_video_and_program_audio(studio
     fresh.screenshot(path=str(tmp_path/'interrupted-take-recovered.png'),full_page=True)
     (tmp_path/'verified.json').write_text(json.dumps({'renderer_crashed_before_stop':True,**original,'decoded_audio_rms':rms,'decoded_tone_hz':frequency,'video_dimensions':[1280,720]},indent=2))
     fresh.reload();fresh.wait_for_function("document.documentElement.dataset.production25d==='ready'")
-    assert fresh.locator('#sessionList button').count()==1
+    assert fresh.locator('#sessionList button').count()==2
     assert fresh.evaluate('async()=>(await PubCast25DStore.listCaptures()).length')==0
 
 
@@ -101,7 +102,7 @@ def hold_microphone(page):
       navigator.mediaDevices.getUserMedia=()=>{microphoneRequests++;return new Promise((r,j)=>{
         window.releaseMicrophone=()=>r(stream);window.rejectMicrophone=()=>j(new DOMException('Old microphone permission denied','NotAllowedError'));});};
       const Native=MediaRecorder;window.recorderStarts=0;
-      window.MediaRecorder=class extends Native{start(...a){recorderStarts++;return super.start(...a);}};
+      window.MediaRecorder=class extends Native{start(...a){if(this.mimeType.startsWith('video/'))recorderStarts++;return super.start(...a);}};
     }""")
     page.check('#mic');page.click('#record');page.wait_for_function('microphoneRequests===1')
     assert page.evaluate('PubCast25DStudio.state().recordingStarting')
@@ -156,11 +157,11 @@ def test_slow_storage_stops_capture_without_discarding_uncommitted_bytes(studio)
       const create=PubCast25DCapture.create;
       PubCast25DCapture.create=options=>create({...options,maxPendingChunks:2});
       const append=PubCast25DStore.appendCapture;let first=true;
-      PubCast25DStore.appendCapture=async(...args)=>{if(first){first=false;await new Promise(r=>window.releaseDisk=r);}return append(...args);};
+      PubCast25DStore.appendCapture=async(...args)=>{if(first&&!args[0].includes('-voice-')){first=false;await new Promise(r=>window.releaseDisk=r);}return append(...args);};
       const Native=MediaRecorder;window.originalPieces=[];window.recorderStopped=false;
       window.MediaRecorder=class extends Native{constructor(...args){super(...args);
-        this.addEventListener('dataavailable',e=>{if(e.data.size)originalPieces.push(e.data);});
-        this.addEventListener('stop',()=>{recorderStopped=true;});}};
+        this.addEventListener('dataavailable',e=>{if(this.mimeType.startsWith('video/')&&e.data.size)originalPieces.push(e.data);});
+        this.addEventListener('stop',()=>{if(this.mimeType.startsWith('video/'))recorderStopped=true;});}};
     }""")
     page.click('#record');page.wait_for_function('PubCast25DStudio.state().recording')
     page.wait_for_function('recorderStopped',timeout=12000)
@@ -215,7 +216,8 @@ def test_full_browser_process_crash_preserves_take_in_reopened_profile(productio
         original=fresh.evaluate("""async id=>{const r=await PubCast25DStore.readCapture(id),b=await PubCast25DCapture.assemble(r);return {bytes:b.size,hash:await PubCast25DCapture.digest(b)};}""",before['id'])
         assert original['bytes']>=before['bytes']>1000
         fresh.wait_for_function("document.querySelector('#captureRecoveryList button')&&!document.querySelector('#captureRecoveryList button').disabled",timeout=25000)
-        fresh.locator('#captureRecoveryList button').click()
+        fresh.evaluate("async()=>{for(const row of await PubCast25DStore.listCaptures())if(row.kind==='audio-source')await PubCast25DStudio.recoverCapture(row.id);}")
+        fresh.locator('[data-capture-id="'+before['id']+'"]').click()
         fresh.wait_for_function('playback.videoWidth===1280&&playback.readyState>=2')
         fresh.evaluate('playback.play()');fresh.wait_for_function('playback.currentTime>.1')
         recovered=fresh.evaluate("""async()=>{const s=(await PubCast25DStore.list())[0],r=await PubCast25DStore.read(s.id);return {bytes:r.blob.size,hash:await PubCast25DCapture.digest(r.blob)};}""")

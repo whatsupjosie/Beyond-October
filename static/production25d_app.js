@@ -286,6 +286,7 @@ async function stopProduction(){
  if(!state.session)return;
  if(state.recorder||state.recordingStarting)await stopRecording();
  if(state.recovery)throw Error("Save the unsaved take before ending this production. A recovery copy can also be downloaded below.");
+ state.clacker?.close();state.clacker=null;
  const sess=state.session;
  emit("production.stop",{});
  Core.finish(sess,Date.now());
@@ -369,17 +370,26 @@ async function startRecording(){
      for(const track of media.capturedAudioStream.getAudioTracks())combined.addTrack(track);
    }
    check();
+   if(state.clacker?.failed){state.clacker.close();state.clacker=null;}
+   if(!state.clacker){
+     const reference=await window.PubCast25DClacker.create(programAudio.context,sess,e=>{
+       state.mediaError=e;error(e.message);stopRecording({immediate:true}).catch(()=>{});
+     });
+     try{check();}catch(e){reference.close();throw e;}
+     state.clacker=reference;
+   }
    const rec=new MediaRecorder(combined,mime?{mimeType:mime,videoBitsPerSecond:3000000}:{videoBitsPerSecond:3000000});
    let startedAt=Date.now();const id=sess.id+"-take-"+startedAt+"-"+Capture.id().slice(0,8);
-   capture={id,owner:captureOwner,session:structuredClone(sess),mime:rec.mimeType||mime||"video/webm",
+   capture={id,owner:captureOwner,session:structuredClone(sess),mime:rec.mimeType||mime||"video/webm",syncReferenceId:state.clacker.input.syncReferenceId,
      sourceId:"p25d_"+sess.packageId+"_"+state.programId,startedAt:new Date(startedAt).toISOString(),
      offsetMs:startedAt-Date.parse(sess.startedAt)};
    await Store.beginCapture(capture);check();
    media.sourceRecordings=new window.PubCast25DSourceRecordings({mixer:programAudio,session:sess,
-     parentTakeId:id,owner:captureOwner,onFailure:e=>{
+     parentTakeId:id,owner:captureOwner,references:[state.clacker.input],onFailure:e=>{
        if(op.cancelled||(state.recordingId!==id&&state.recordingStarting!==op))return;
        state.mediaError=state.mediaError||e;
-       if(state.recorder)stopRecording().catch(e=>error(e.message));
+       $("captureStatus").textContent="Recording interrupted: "+e.message+". Available chunks are retained.";
+       if(state.recorder)stopRecording({immediate:true}).catch(e=>error(e.message));
      }});
    await media.sourceRecordings.start();check();
    if(state.mediaError)throw state.mediaError;
@@ -392,10 +402,10 @@ async function startRecording(){
    const fail=e=>{
      state.mediaError=state.mediaError||e;
      $("captureStatus").textContent="Recording interrupted: "+e.message+". Available chunks are retained.";
-     stopRecording().catch(e=>error(e.message));
+     stopRecording({immediate:true}).catch(e=>error(e.message));
    };
    const writer=Capture.create({store:Store,id,owner:captureOwner,session:sess,timing:capture,onFailure:fail,
-     onProgress:p=>{$("captureStatus").textContent="Saved locally: "+p.bytes+" bytes in "+p.chunks+" checkpoints · checkpoint at "+(p.durationMs/1000).toFixed(1)+" seconds";}});
+     onProgress:p=>{if(!state.mediaError)$("captureStatus").textContent="Saved locally: "+p.bytes+" bytes in "+p.chunks+" checkpoints · checkpoint at "+(p.durationMs/1000).toFixed(1)+" seconds";}});
    stopLease=captureLease(id,captureOwner,e=>{if(!finishing)fail(e);});
    state.captureWriter=writer;
    rec.ondataavailable=e=>{if(e.data?.size){state.recordingHasData=true;writer.push(e.data,Date.now()-startedAt);}};
@@ -436,7 +446,7 @@ async function finishRecording(rec,writer,capture,sess){
    const blob=await Capture.assemble(record,pending.pending);
    emit("recording.stop",{bytes:blob.size,mime:blob.type,incomplete:!!captureError});
    if(!sess.recordings)sess.recordings=sess.media?[Object.assign({id:sess.id},sess.media)]:[];
-   sess.media={id:capture.id,mime:blob.type,bytes:blob.size,sourceId:capture.sourceId,
+   sess.media={id:capture.id,mime:blob.type,bytes:blob.size,sourceId:capture.sourceId,syncReferenceId:capture.syncReferenceId,
      startedAt:capture.startedAt,offsetMs:capture.offsetMs,durationMs:Date.now()-Date.parse(capture.startedAt),
      incomplete:!!captureError,journal:{chunks:record.chunks.length,bytes:record.capture.bytes}};
    sess.recordings.push(sess.media);
@@ -496,7 +506,7 @@ async function recoverCapture(id){
    const record=await Store.readCapture(id),blob=await Capture.assemble(record);
    const sess=record.capture.session;
    if(capture.kind==='audio-source'){
-     const source={id,parentTakeId:capture.parentTakeId,sourceId:capture.sourceId,label:capture.label,
+     const source={id,parentTakeId:capture.parentTakeId,sourceId:capture.sourceId,label:capture.label,kind:capture.sourceKind||'voice',syncReferenceId:capture.syncReferenceId||null,
        mime:blob.type,bytes:blob.size,startedAt:capture.startedAt,offsetMs:capture.offsetMs,
        durationMs:capture.durationMs,preFader:true,incomplete:true,recovered:true};
      await Store.saveSource(sess,source,blob,{id,owner:captureOwner});
@@ -505,7 +515,7 @@ async function recoverCapture(id){
    const saved=await Store.read(sess.id);
    sess.sourceTracks=saved.session?.sourceTracks||sess.sourceTracks||[];
    if(!sess.recordings)sess.recordings=sess.media?[Object.assign({id:sess.id},sess.media)]:[];
-   sess.media={id,mime:blob.type,bytes:blob.size,sourceId:capture.sourceId,startedAt:capture.startedAt,
+   sess.media={id,mime:blob.type,bytes:blob.size,sourceId:capture.sourceId,syncReferenceId:capture.syncReferenceId||null,startedAt:capture.startedAt,
      offsetMs:capture.offsetMs,durationMs:record.capture.durationMs,incomplete:true,recovered:true,
      journal:{chunks:record.chunks.length,bytes:blob.size,lastCheckpointAt:record.capture.lastCheckpointAt}};
    sess.recordings.push(sess.media);
@@ -522,6 +532,7 @@ async function refreshCaptureRecovery(){
  if(!visible.length){list.textContent="No interrupted recordings found.";return;}
  for(const row of visible){
    const button=document.createElement("button");button.type="button";button.style.cssText="width:100%;min-height:44px;text-align:left;margin:4px 0";
+   button.dataset.captureId=row.id;
    const active=row.leaseUntil>Date.now();
    button.textContent=(active?"Active in another tab / checking connection: ":"Recover incomplete take: ")+row.startedAt+" · "+row.bytes+" bytes saved";
    button.disabled=active||!row.bytes||!!state.session;
@@ -543,7 +554,7 @@ async function refreshSessions(){
   }
   for(const source of session.sourceTracks||[]){
    const btn=document.createElement('button');
-   btn.textContent='VOICE: '+source.label+' · '+(source.incomplete?'INCOMPLETE · ':'')+source.bytes+' bytes';
+   btn.textContent=(source.kind==='sync-reference'?'SYNC: ':'VOICE: ')+source.label+' · '+(source.incomplete?'INCOMPLETE · ':'')+source.bytes+' bytes';
    btn.onclick=()=>safe(()=>selectSession(session.id,source.id));el.sessionList.appendChild(btn);
   }
  }
@@ -660,8 +671,9 @@ function frame(now){
  const pkg=state.pkg;if(!pkg)return;
  if(state.avatarError){el.avatarStatus.textContent=state.avatarError;state.avatarError="";}
  try{
+  state.actorFrameStamp=now;
   Render.renderCamera(pr,pkg,Core.shot(pkg,state.programId),state,world,dt);
-  const previewState=Object.assign({},state,{blackout:false,lowerThird:false});
+  const previewState=Object.assign({},state,{blackout:false,lowerThird:false,reuseActorFrame:true});
   const pooledPreview=window.PubCastCameraPool?.previewFor?.("p25d_"+pkg.id+"_"+state.previewId);
   if(pooledPreview)pv.drawImage(pooledPreview,0,0,Core.W,Core.H);
   else Render.renderCamera(pv,pkg,Core.shot(pkg,state.previewId),previewState,world,0);
@@ -676,6 +688,14 @@ function frame(now){
     pv.fillStyle="#ff8b8b";pv.font="bold 28px system-ui";pv.textAlign="center";
     pv.fillText("EXTERNAL PREVIEW SOURCE — NO LOCAL VIDEO FEED",Core.W/2,Core.H/2);
   }
+  if(state.transition){
+   const f=1-(now-state.transition.started)/state.transition.duration;
+   if(f>0){pr.globalAlpha=Math.min(1,Math.max(0,f));pr.drawImage(lastFrame,0,0);pr.globalAlpha=1;}
+   else state.transition=null;
+  }
+  if(state.clacker?.paint(el.program,!state.blackout&&!state.remoteProgram))
+    state.videoStream?.getVideoTracks()[0]?.requestFrame?.();
+  state.clacker?.paint(el.preview,!state.remotePreview);
   if(state.mediaPublisher&&state.sharedSwitcher?.connected()){
    const assigned=window.PubCastCameraPool?.assignedSources?.()||[];
    // Program is always source-local, including while an old preview assignment
@@ -683,11 +703,6 @@ function frame(now){
    if(!state.remoteProgram)state.mediaPublisher.publish(state.programId,el.program).catch(e=>log("PROGRAM PUBLISH ERROR "+e.message));
    if(!state.remotePreview&&state.previewId!==state.programId&&!assigned.includes("p25d_"+pkg.id+"_"+state.previewId))
      state.mediaPublisher.publish(state.previewId,el.preview).catch(e=>log("PREVIEW PUBLISH ERROR "+e.message));
-  }
-  if(state.transition){
-   const f=1-(now-state.transition.started)/state.transition.duration;
-   if(f>0){pr.globalAlpha=Math.min(1,Math.max(0,f));pr.drawImage(lastFrame,0,0);pr.globalAlpha=1;}
-   else state.transition=null;
   }
  }catch(e){state.avatarError=e.message;log("RENDER ERROR "+e.message);}
  if(state.session){
@@ -797,7 +812,7 @@ async function init(){
  window.requestAnimationFrame(frame);
  const cuePoll=setInterval(()=>syncServerVideoCues().catch(e=>log("CUE ERROR "+e.message)),500);
  const recoveryPoll=setInterval(()=>refreshCaptureRecovery().catch(()=>{}),3000);
- window.addEventListener("pagehide",()=>{clearInterval(cuePoll);clearInterval(recoveryPoll);});
+ window.addEventListener("pagehide",()=>{clearInterval(cuePoll);clearInterval(recoveryPoll);state.clacker?.close();});
  window.PubCast25DStudio={state:()=>({package:state.pkg?.id,program:state.programId,preview:state.previewId,recording:!!state.recorder,recordingStarting:!!state.recordingStarting,journal:state.captureWriter?.status()||null,session:state.session?.id||null,storage:state.storageReady}),
  loadGenre,choosePreview,cut,startProduction,stopProduction,startRecording,stopRecording,recoverCapture,
  poolSnapshot:()=>{

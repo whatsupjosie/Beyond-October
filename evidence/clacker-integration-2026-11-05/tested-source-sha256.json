@@ -1,0 +1,15 @@
+{
+  "static/production25d.html": "2d156e4d2303e0d75ca1a9786e9fcc15a7e863758b43d41ce922d64a8a97056b",
+  "static/production25d_app.js": "9c982b36a9cc81feee6e0e198d5d795ffa1ff2d4a67ebba1188134b71d52e3a7",
+  "static/production25d_renderer.js": "21a36d1c810c1ad8b8c09bd16cd22315aad3d25014483a1857625cf94f1aea77",
+  "static/production25d_sources.js": "4665da15f81d5f09c7a0e886b5e013895c67d0ea2cf316ff43f1ec79e9bcd9ac",
+  "static/world_walk_glb.js": "77201f83976852515d3d442850dda685778803e3ce2d7b2b16aa2ab2487dd1c6",
+  "tests/test_participant_audio_browser.py": "bfb33e4353f58611dfc24da008a7ef3d4b45f3e97f713df6ce3808a0a604c08b",
+  "tests/test_production25d_browser.py": "7257ecec5af3b646df4cc2823ae501a0ca3c4edda0205d00fa8c075b266aec47",
+  "tests/test_studio25d_capture_browser.py": "8747a52468612a78acb5c8dce23dd508803caaa4f46f0336a9f540f3215c3e65",
+  "static/production25d_clacker.js": "41042993694ff16f5a39609e8fce6c0f67a6313350907f18e2ea2fcdbf215a9f",
+  "static/production25d_clacker_worklet.js": "9f431d30d2fb65d0f162c3c4a9d74ed4ef9b297233a9456e79c55f3c95448660",
+  "tests/test_clacker_recording_browser.py": "be6ab168c33033a6c4fdd742ade2c7c3eab51f4545334199fc7f4eafe67b5a96",
+  "tests/test_clacker_worklet.cjs": "8de9907e1bb0e2ffa688d690e849b63ed67e04b8d3375d0ddfb528647da3976f",
+  "tests/test_studio_actor_frame_reuse_browser.py": "ddcf4d5644845519bc1f6a99224f8d402c7bdd4c99596715a644bbd724825128"
+}

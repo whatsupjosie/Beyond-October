@@ -109,12 +109,14 @@ def test_two_peers_mix_controls_separate_durable_stems_and_original_server_expor
         page.wait_for_timeout(1500)
         page.click('#recordStop');page.wait_for_function('!PubCast25DStudio.state().recording',timeout=20000)
         session=page.evaluate('async()=>(await PubCast25DStore.list())[0]')
-        assert len(session['sourceTracks'])==3
+        voices=[s for s in session['sourceTracks'] if s.get('kind')!='sync-reference']
+        assert len(voices)==3
+        assert len([s for s in session['sourceTracks'] if s.get('kind')=='sync-reference'])==1
         assert all(s['preFader'] and not s['incomplete'] and s['parentTakeId']==session['media']['id'] for s in session['sourceTracks'])
         assert page.evaluate('async()=>(await PubCast25DStore.listCaptures()).length')==0
         # Sources decode independently: the 440 source contains no 880 voice,
         # including the interval while its program channel was muted.
-        for track in session['sourceTracks']:
+        for track in voices:
             path=tmp_path/(track['id']+'.webm');path.write_bytes(bytes_for(page,session['id'],track['id']))
             samples=decode(path);a,b=amplitude(samples,440),amplitude(samples,880)
             assert max(a,b)>.01 and min(a,b)<max(a,b)*.05, (a,b)
@@ -126,7 +128,7 @@ def test_two_peers_mix_controls_separate_durable_stems_and_original_server_expor
         audio=decode(video);assert amplitude(audio,440)>.01 and amplitude(audio,880)>.01
         start=round((muted_at+500-datetime.fromisoformat(session['media']['startedAt'].replace('Z','+00:00')).timestamp()*1000)*48)
         assert np.sqrt(np.mean(audio[start:start+14400]**2))<.005
-        track=session['sourceTracks'][0]
+        track=voices[0]
         # Exercise the actual UI-selected voice -> resumable server save -> ZIP.
         page.locator('#sessionList button').filter(has_text='VOICE:').first.click()
         page.click('#archiveSave');page.wait_for_function("archiveStatus.textContent.startsWith('Saved on server:')",timeout=30000)
@@ -169,16 +171,18 @@ def test_renderer_crash_recovers_independent_voice_and_program_without_overwriti
         fresh=context.new_page();fresh.goto(base+'/static/production25d.html')
         fresh.wait_for_function("document.documentElement.dataset.production25d==='ready'")
         rows=fresh.evaluate('async()=>await PubCast25DStore.listCaptures()')
-        assert len(rows)==2 and {r.get('kind','program') for r in rows}=={'program','audio-source'}
-        source=next(r for r in rows if r.get('kind')=='audio-source');program=next(r for r in rows if r.get('kind')!='audio-source')
+        assert len(rows)==3 and {r.get('kind','program') for r in rows}=={'program','audio-source'}
+        source=next(r for r in rows if r.get('kind')=='audio-source' and r.get('sourceKind')!='sync-reference');program=next(r for r in rows if r.get('kind')!='audio-source')
         proof=fresh.evaluate('''async id=>{const record=await PubCast25DStore.readCapture(id),blob=await PubCast25DCapture.assemble(record);
           return {bytes:blob.size,sha256:await PubCast25DCapture.digest(blob)};}''',source['id'])
-        fresh.wait_for_function("document.querySelectorAll('#captureRecoveryList button').length===2 && Array.from(document.querySelectorAll('#captureRecoveryList button')).every(b=>!b.disabled)",timeout=25000)
-        fresh.evaluate('id=>PubCast25DStudio.recoverCapture(id)',source['id'])
+        fresh.wait_for_function("document.querySelectorAll('#captureRecoveryList button').length===3 && Array.from(document.querySelectorAll('#captureRecoveryList button')).every(b=>!b.disabled)",timeout=25000)
+        for row in rows:
+            if row.get('kind')=='audio-source':
+                fresh.evaluate('id=>PubCast25DStudio.recoverCapture(id)',row['id'])
         fresh.evaluate('id=>PubCast25DStudio.recoverCapture(id)',program['id'])
         saved=fresh.evaluate('async()=>(await PubCast25DStore.list())[0]')
-        assert len(saved['recordings'])==1 and len(saved['sourceTracks'])==1
-        assert saved['media']['incomplete'] and saved['sourceTracks'][0]['incomplete']
+        assert len(saved['recordings'])==1 and len(saved['sourceTracks'])==2
+        assert saved['media']['incomplete'] and all(s['incomplete'] for s in saved['sourceTracks'])
         assert saved['sourceTracks'][0]['parentTakeId']==saved['media']['id']
         data=bytes_for(fresh,saved['id'],source['id'])
         assert len(data)==proof['bytes'] and hashlib.sha256(data).hexdigest()==proof['sha256']
@@ -207,7 +211,8 @@ def test_local_microphone_enters_canonical_bus_and_preserves_raw_voice(studio):
     assert page.evaluate('PubcastProgramAudio.inputs.size')==0
     page.click('#recordStop');page.wait_for_function('!PubCast25DStudio.state().recording')
     saved=page.evaluate('async()=>(await PubCast25DStore.list())[0]')
-    assert len(saved['sourceTracks'])==1 and saved['sourceTracks'][0]['preFader']
+    assert len(saved['sourceTracks'])==2 and all(s['preFader'] for s in saved['sourceTracks'])
+    assert {s['kind'] for s in saved['sourceTracks']}=={'voice','sync-reference'}
     assert page.evaluate('PubcastProgramAudio.context.state')=='running'
     assert page.evaluate('PubcastProgramAudio.inputs.size')==0
 

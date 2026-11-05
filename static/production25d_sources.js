@@ -6,15 +6,15 @@
 'use strict';
 const Store=global.PubCast25DStore,Capture=global.PubCast25DCapture;
 class SourceRecordings {
- constructor({mixer,session,parentTakeId,owner,onFailure=()=>{}}){
-  Object.assign(this,{mixer,session,parentTakeId,owner,onFailure});this.jobs=[];this.closed=false;
+ constructor({mixer,session,parentTakeId,owner,references=[],onFailure=()=>{}}){
+  Object.assign(this,{mixer,session,parentTakeId,owner,references,onFailure});this.jobs=[];this.closed=false;
  }
  async start(){
   this.unsubscribe=this.mixer.onInput((type,input)=>{
    if(type==='added'&&!this.closed)this.add(input).catch(this.onFailure);
    if(type==='removed')for(const job of this.jobs)if(job.input===input)job.stop();
   });
-  await Promise.all(Array.from(this.mixer.inputs.values(),input=>this.add(input)));
+  await Promise.all([...this.mixer.inputs.values(),...this.references].map(input=>this.add(input)));
  }
  async add(input){
   if(this.closed)return;
@@ -23,7 +23,8 @@ class SourceRecordings {
   const recorder=new MediaRecorder(input.rawStream,{mimeType:mime,audioBitsPerSecond:128000});
   const id=this.parentTakeId+'-voice-'+Capture.id().slice(0,16);
   const timing={id,owner:this.owner,kind:'audio-source',parentTakeId:this.parentTakeId,
-   session:structuredClone(this.session),sourceId:input.id,label:input.label,mime:recorder.mimeType,
+   session:structuredClone(this.session),sourceId:input.id,label:input.label,sourceKind:input.kind||'voice',
+   syncReferenceId:input.syncReferenceId||null,mime:recorder.mimeType,
    startedAt:new Date().toISOString(),offsetMs:Date.now()-Date.parse(this.session.startedAt)};
   let resolve,reject,stopped=false,settling=false,failure=null,renewing=false;
   const completion=new Promise((a,b)=>{resolve=a;reject=b;});completion.catch(()=>{});
@@ -43,9 +44,9 @@ class SourceRecordings {
    recorder.onstop=async()=>{
     if(settling)return;settling=true;
     try{
-     const pending=await writer.settle();failure=failure||pending.error;
+     const pending=await writer.settle();failure=failure||pending.error||input.failure;
      const record=await Store.readCapture(id),blob=await Capture.assemble(record,pending.pending);
-     const source={id,parentTakeId:this.parentTakeId,sourceId:input.id,label:input.label,
+     const source={id,parentTakeId:this.parentTakeId,sourceId:input.id,label:input.label,kind:timing.sourceKind,syncReferenceId:timing.syncReferenceId,
       mime:blob.type,bytes:blob.size,startedAt:timing.startedAt,offsetMs:timing.offsetMs,
       durationMs:Date.now()-Date.parse(timing.startedAt),preFader:true,incomplete:!!failure};
      await Store.saveSource(this.session,source,blob,{id,owner:this.owner});
@@ -54,7 +55,7 @@ class SourceRecordings {
     }catch(e){await Store.releaseCapture(id,this.owner).catch(()=>{});this.onFailure(e);reject(e);}
     finally{clearInterval(timer);}
    };
-   if(stopped||this.closed||!this.mixer.inputs.has(input.id)){
+   if(stopped||this.closed||(!input.reference&&!this.mixer.inputs.has(input.id))){
     clearInterval(timer);await Store.releaseCapture(id,this.owner);resolve(null);return;
    }
    timing.startedAt=new Date().toISOString();timing.offsetMs=Date.now()-Date.parse(this.session.startedAt);

@@ -33,8 +33,8 @@ Do **not** start experimental 3D/voxel builder, gamified onboarding, unrelated m
 ## Execution gates and definition of done
 
 ### A. Recording
-- [ ] Compare later recovered package against published integration tree path by path.
-- [ ] Restore missing modules, browser workers/worklets and production-route mounts using semantic integration.
+- [x] Compare later recovered package against published integration tree path by path. November 5: both ZIPs compared by path and SHA-256; later source integrated, with exclusions and merged-file hashes recorded.
+- [x] Restore missing modules, browser workers/worklets and production-route mounts using semantic integration. See recording integration evidence and the session-ending handoff; this does not close the remaining acceptance gates.
 - [ ] Validate authenticated distinct guest identities and role boundaries for participant audio; do not confuse same-host simulated contributor tokens with independent guests.
 - [ ] Verify multi-source takes, untouched original media, program and independent stems, cancel/short stop/PANIC, timed capture, replay/export, crash/restart recovery and overlapping speech.
 - [ ] Run focused tests on **current changed tree**, plus relevant existing suites; record hardware/environment exclusions separately.
@@ -76,3 +76,4 @@ Do **not** start experimental 3D/voxel builder, gamified onboarding, unrelated m
 ## Evidence log
 
 - 2026-11-05: Branch created at the integrated head `c82069b`. Scope was confirmed by owner. No new application tests or source fixes have yet been verified on this branch; none are claimed by this entry.
+- 2026-11-05, Codex / ChatGPT Work: recording reconciliation published at `c5589bb` (same tested tree as local `0a4f89e`). Restored missing participant audio, raw voice segments, local capture journals, recovery and original server ingest. Added local recorded clacker and measured video timing; exact-frame GLB reuse reduces duplicate Program/Preview rendering without changing poses or resolution. Full current evidence is under `evidence/recording-integration-2026-11-05/` and `evidence/clacker-integration-2026-11-05/`. Camera-pool performance gate remains failed in this environment. Independent admitted guests, full source master, hardware acceptance, profiles, groups and both required whole-codebase debugging rounds remain open. See `handoffs/SESSION_ENDING_2026-11-05_CHATGPT_WORK.md`; the first scope-only entry above is historical.

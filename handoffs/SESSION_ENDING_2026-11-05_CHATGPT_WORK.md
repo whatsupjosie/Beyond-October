@@ -83,3 +83,42 @@ performance assertion was weakened.
 Next: recording identity/
 clacker gates and the remaining agreed scope. Preserve every unfinished gate in
 the living milestone record; continue updating this handoff before session end.
+
+## Local clacker and rendering checkpoint
+
+Recording reconciliation is published at `c5589bbefa56f1de4ac4e7d85daccfb5c00a8963`,
+tree `fab7fd60274adc69fc5936caa68a1f7edee797a7`, exactly matching local `0a4f89e`.
+Shell git push lacked credentials; publication used the GitHub connector and
+verified matching source trees. Local and published commit IDs differ; their
+source content does not. Continue publication against the actual remote parent,
+without overwriting another session's updates.
+
+Added `static/production25d_clacker{,_worklet}.js`, wired through the existing
+source journals and Program canvas. The fifty-millisecond blip is an independent
+recording and does not enter Program audio. A half-second video dash makes the
+mark recordable on the slow software renderer. Per-take reference generation IDs
+preserve earlier timing metadata across clock failure/restart. Clock failure
+stops capture, retains incomplete media and allows a fresh recording generation.
+Local reference timing is now implemented; cross-device timing is still open.
+
+Measured the actual encoded media. A short mark initially disappeared; after
+lengthening it, video delay still measured 244/318 ms, failing the unchanged
+250 ms local acceptance bound. `world_walk_glb.js` now reuses exact current-frame
+pose pixels for the duplicate Preview draw. It checks frame stamp, resolution
+and hologram state; a new frame renders normally and dispose releases the copy.
+Walker callers do not opt into this optimization. The follow-up media run passed
+at measured delays of 79/152 ms. Reference spacing is exactly fifteen seconds
+and Program has no blip. Do not call that sample-accurate video or cross-host sync.
+
+Executed final targeted application run: thirty-five passed; the added GPU
+observation test initially failed because its prototype spy did not observe the
+renderer instance method. Correcting the observer to count native WebGL draw
+calls gives a separately passing proof: same-frame Preview needs no extra draw,
+the pixels are byte-identical, and a new frame does issue draw calls. Existing
+eight-genre and actual-animation checks also pass. Full failures, corrections,
+exact commands, source hashes and actual measurements are preserved under
+`evidence/clacker-integration-2026-11-05/`.
+
+A whole-repository integration baseline is running on this source. It is not
+either of the two required post-feature debugging rounds. No profiles/groups
+implementation or independent guest identity acceptance is claimed yet.

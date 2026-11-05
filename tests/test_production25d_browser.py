@@ -257,7 +257,8 @@ def test_multiple_takes_keep_original_media_bytes(studio):
     page.wait_for_function("!PubCast25DStudio.state().session")
     page.reload()
     page.wait_for_function("document.documentElement.dataset.production25d === 'ready'")
-    assert page.locator("#sessionList button").count() == 2
+    assert page.locator("#sessionList button").filter(has_text="Take ").count() == 2
+    assert page.locator("#sessionList button").filter(has_text="SYNC:").count() == 2
 
 
 SLOW_TO_FIRST_DATA = """() => {

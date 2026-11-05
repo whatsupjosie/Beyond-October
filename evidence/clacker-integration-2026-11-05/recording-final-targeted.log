@@ -1,0 +1,55 @@
+/workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/pytest_asyncio/plugin.py:300: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the "fixture" caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+..F.................................                                     [100%]
+=================================== FAILURES ===================================
+______ test_preview_reuses_exact_pose_pixels_and_new_frames_still_render _______
+
+studio = (<Page url='http://127.0.0.1:35223/static/production25d.html'>, <BrowserContext browser=<Browser type=<BrowserType name=chromium executable_path=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome> version=141.0.7390.37>>)
+
+    def test_preview_reuses_exact_pose_pixels_and_new_frames_still_render(studio):
+        page, _ = studio
+        wait_for_actors(page)
+        result = page.evaluate("""async () => {
+          const THREE = await import('/static/vendor/three-0.160.0/build/three.module.js');
+          const original = THREE.WebGLRenderer.prototype.render;
+          let renders = 0;
+          const id='frame-reuse-probe', make=()=>{
+            const c=document.createElement('canvas');c.width=c.height=400;return c;
+          };
+          try {
+            await PubCastGLB.load(id,'./world/test_avatars/MakeHuman_Female.glb','Frame reuse');
+            THREE.WebGLRenderer.prototype.render = function(...args) { renders++; return original.apply(this,args); };
+            const a=make(), b=make(), c=make();
+            PubCastGLB.draw(a.getContext('2d'),id,200,380,300,{dt:.1,cacheFrame:true,frameStamp:12345});
+            const afterProgram=renders;
+            PubCastGLB.draw(b.getContext('2d'),id,200,380,300,{dt:0,reuseFrame:true,frameStamp:12345});
+            const afterPreview=renders;
+            const x=a.getContext('2d').getImageData(0,0,400,400).data;
+            const y=b.getContext('2d').getImageData(0,0,400,400).data;
+            let differing=0;for(let i=0;i<x.length;i++)if(x[i]!==y[i])differing++;
+            PubCastGLB.draw(c.getContext('2d'),id,200,380,300,{dt:0,reuseFrame:true,frameStamp:12346});
+            return {afterProgram,afterPreview,afterNext:renders,differing};
+          } finally { THREE.WebGLRenderer.prototype.render=original; PubCastGLB.clear(id); }
+        }""")
+>       assert result == {'afterProgram':1,'afterPreview':1,'afterNext':2,'differing':0}
+E       AssertionError: assert {'afterProgra...differing': 0} == {'afterProgra...differing': 0}
+E
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'afterProgram': 0} != {'afterProgram': 1}
+E         {'afterNext': 0} != {'afterNext': 2}
+E         {'afterPreview': 0} != {'afterPreview': 1}
+E         Use -v to get more diff
+
+tests/test_studio_actor_frame_reuse_browser.py:30: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/starlette/testclient.py:40
+  /workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/starlette/testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_studio_actor_frame_reuse_browser.py::test_preview_reuses_exact_pose_pixels_and_new_frames_still_render
+1 failed, 35 passed, 1 warning in 263.43s (0:04:23)

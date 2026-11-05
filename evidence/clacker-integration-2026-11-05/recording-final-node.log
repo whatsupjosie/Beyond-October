@@ -1,0 +1,46 @@
+✔ audio-clock reference preserves exact fifteen-second samples while main thread is absent (619.141456ms)
+✔ clacker reference is exactly fifteen seconds and offset is microsecond-accurate (3.277164ms)
+✔ wrong clacker drift is rejected before corrupt project save (1.260144ms)
+✔ clacker drift fit describes measured rate and maps correct media time (0.734904ms)
+✔ arbitrary 0.03 timing correction cannot affect another camera (0.477878ms)
+✔ rough-cut split, lift, ripple-delete and remove-gap preserve source originals (6.739179ms)
+✔ CMX3600 requires explicit supported non-drop timebase (0.289015ms)
+✔ CMX3600 yields source in/out and sequential record in/out (9.001438ms)
+✔ CMX3600 quantizes cumulative boundaries, not each cut independently (11.065835ms)
+✔ sub-frame or negative-source EDL edits fail rather than silently change cuts (0.454203ms)
+✔ full sidecar retains manual microsecond offset and rejects unsupported master quality (0.810968ms)
+✔ simply tagging low-res footage as cinema master never clears provenance gate (0.317286ms)
+✔ frame rounding, gap and shot event identifiers remain in handoff (0.920703ms)
+✔ a lost chunk ACK resumes from durable server progress without resending confirmed bytes (35.143653ms)
+✔ a forged owner acknowledgement never turns into a saved indicator (5.650428ms)
+✔ another account cannot resume a previous owner pending upload (1.059632ms)
+✔ pausing an unfinished server request releases busy state and discards late replies (7.345971ms)
+✔ pausing while local hashing is stuck releases the save without any upload (2.388564ms)
+✔ an account change stops the save before private metadata is posted (0.902796ms)
+✔ a progressing stream outlives a read deadline and gzip transport keeps the original byte proof (248.291356ms)
+✔ a stalled source body times out and releases the view job (81.185562ms)
+✔ equal-sized corrupted source bytes fail the original download proof (246.263374ms)
+✔ capture writer preserves byte order and releases committed chunks (13.87861ms)
+✔ failed disk writes retain the exact uncommitted suffix for a recovery download (5.008194ms)
+✔ backpressure stops once without dropping the threshold-crossing or stop chunk (2.835199ms)
+✔ recovery refuses corrupt or missing stored chunks while leaving originals intact (4.66289ms)
+✔ eight independently configured genre packages (1.915748ms)
+✔ unknown shots are rejected (0.536185ms)
+✔ invalid geometry and duplicate camera identifiers are rejected (0.462565ms)
+✔ production event timeline and closure are enforced (1.849809ms)
+✔ camera viewport always remains inside source frame (0.342975ms)
+✔ HTML script dependencies are in correct order and present (3.184394ms)
+✔ all referenced control IDs exist in HTML (0.684008ms)
+✔ local recording and persistence are real browser API paths, not placeholders (0.36592ms)
+✔ 3D fixture paths exist (0.237256ms)
+✔ Control Room has an entry to 2.5D console (0.395544ms)
+test_program_audio_runtime_node.js passed
+✔ tests/test_program_audio_runtime_node.js (96.997012ms)
+ℹ tests 37
+ℹ suites 0
+ℹ pass 37
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 755.451453

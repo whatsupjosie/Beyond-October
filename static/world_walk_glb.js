@@ -147,6 +147,7 @@ async function load(character, url, label, options = {}) {
 }
 
 function dispose(inst) {
+  if (inst.frameCopy) { inst.frameCopy.width = 0; inst.frameCopy.height = 0; inst.frameCopy = null; }
   const geometries = new Set(), materials = new Set(), textures = new Set();
   inst.group.traverse(o => {
     if (o.geometry) geometries.add(o.geometry);
@@ -176,6 +177,18 @@ function draw(ctx, character, cx, fy, H, motion) {
   // one bad number (NaN from a zero-length step, say) must never reach the turn or the animation, or the avatar is lost for good
   const m = { vx: fin(raw.vx, 0), vy: fin(raw.vy, 0), moving: !!raw.moving, pxScale: fin(raw.pxScale, 1) };
   const dt = Math.min(0.1, Math.max(0, fin(raw.dt, 0)));
+  const hr = Math.max(48, Math.min(MAX_PX, Math.round(H * (m.pxScale || 1) * (window.devicePixelRatio || 1))));
+  const wr = Math.round(hr * 2 * HALF * ASPECT);
+  const fh = H * 2 * HALF, fw = fh * ASPECT;
+  const frameKey = `${raw.frameStamp}:${wr}:${hr}:${state.hologram}`;
+  // Program and Preview crop the same actor pose in one animation frame. Reuse
+  // those exact rendered pixels only on an explicit, matching zero-delta draw.
+  // The frame stamp prevents stale poses surviving a failed or missing render.
+  if (raw.reuseFrame === true && dt === 0 && Number.isFinite(raw.frameStamp) &&
+      inst.frameCopy && inst.frameKey === frameKey) {
+    ctx.drawImage(inst.frameCopy, cx - fw / 2, fy + FEET_ABOVE_BOTTOM * H - fh, fw, fh);
+    return true;
+  }
   // turn to face where it walks: toward the viewer is +z (yaw 0), right is yaw +90 degrees, away is 180
   const moving = !!m.moving && Math.hypot(m.vx || 0, m.vy || 0) > 1e-3;
   const target = moving ? Math.atan2(m.vx, m.vy) : 0;
@@ -217,15 +230,21 @@ function draw(ctx, character, cx, fy, H, motion) {
   // look
   inst.group.traverse(o => { if (o.isMesh) o.material = state.hologram ? inst.holo : (inst.normalMaterials.get(o) || o.material); });
 
-  const hr = Math.max(48, Math.min(MAX_PX, Math.round(H * (m.pxScale || 1) * (window.devicePixelRatio || 1))));
-  const wr = Math.round(hr * 2 * HALF * ASPECT);
   renderer.setPixelRatio(1); renderer.setSize(wr, Math.round(hr * 2 * HALF), false);
   scene.add(inst.group);
   renderer.render(scene, camera);
   scene.remove(inst.group);
   // place the frame so the feet land exactly on (cx, fy)
-  const fh = H * 2 * HALF, fw = fh * ASPECT;
-  ctx.drawImage(renderer.domElement, cx - fw / 2, fy + FEET_ABOVE_BOTTOM * H - fh, fw, fh);
+  if (raw.cacheFrame === true && Number.isFinite(raw.frameStamp)) {
+    const copy = inst.frameCopy || (inst.frameCopy = document.createElement('canvas'));
+    if (copy.width !== renderer.domElement.width) copy.width = renderer.domElement.width;
+    if (copy.height !== renderer.domElement.height) copy.height = renderer.domElement.height;
+    const copyContext = copy.getContext('2d');
+    copyContext.clearRect(0,0,copy.width,copy.height);
+    copyContext.drawImage(renderer.domElement,0,0);
+    inst.frameKey = frameKey;
+    ctx.drawImage(copy, cx - fw / 2, fy + FEET_ABOVE_BOTTOM * H - fh, fw, fh);
+  } else ctx.drawImage(renderer.domElement, cx - fw / 2, fy + FEET_ABOVE_BOTTOM * H - fh, fw, fh);
   return true;
 }
 
