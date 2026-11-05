@@ -58,8 +58,22 @@ the before/after measurements, including failures.
 - Final Node recording/sync/archive/audio checks passed; see the saved log for
   the exact case count.
 
-No failed run is relabeled as a successful one. A final whole-suite integration
-baseline is in progress; its results will be added after completion.
+Full-suite integration baseline finished on local `aacf59d` / published
+`f997d541`: **2,328 passed, six skipped, zero failed, sixteen subtests passed**,
+217 warnings, 921.01 seconds, exit zero. All current recording, clacker,
+frame-reuse and camera-pool checks passed. The skips are two disabled Alex
+research modules, three real speech-model cases and one optional decoder
+dependency case. Final Node recording/sync/archive/audio checks: 37 passed.
+
+No failed run is relabeled as a successful one. Earlier pool performance
+failures stay recorded; this pass does not certify physical-device performance.
+This is a pre-profile/group integration baseline, not either required
+post-feature debugging round.
+
+The raw full-suite log/XML were copied into this directory locally but were not
+published before the environment became unavailable. The summary above was
+directly observed. See the session-ending handoff and profile recovery record
+for the exact interruption state and the unpublished profile work.
 
 ## Reproduction
 
