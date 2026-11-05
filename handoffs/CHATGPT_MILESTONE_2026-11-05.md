@@ -6,7 +6,7 @@
 **Owner:** Josie Curtsey Cobbley / Rearview Foresight  
 **Implementer:** GPT-6 / ChatGPT (this branch only)  
 **Master coordination:** [Beyond-October issue #1](https://github.com/whatsupjosie/Beyond-October/issues/1)  
-**Status:** SCOPE AGREED, NOT COMPLETE. This is a living work record, **not** the end-of-milestone handoff.
+**Status:** SCOPE AGREED, NOT COMPLETE. This is a living work record. A separate **session-ending handoff** is required at the end of every work session, whether or not the milestone is complete.
 
 ## Exact stopping point chosen by the owner
 
@@ -15,7 +15,7 @@
 3. Expand the already-built *production notes* to project/production groups, members, role/department targets and whole-production recipients. Sender chooses room/object/sticky-note spot. Whole-group mirror delivery means each authorized member's **own** dressing room; audio-only note can be placed on an audio-board hotspot. Structured schedule changes remain distinguishable from messages. Personal connections/message requests and a compact personal menu/notifications are within scope only insofar as required to make this user journey function.
 4. Troubleshoot/debug **each of these three systems specifically**, with targeted acceptance and regressions.
 5. Troubleshoot/debug **the entire combined codebase in two separately documented rounds**, repairing reproducible problems and rerunning affected tests after each.
-6. Write a **thorough final handoff** with source base/head, commits, changed files, architecture, feature status, commands, evidence, pass/fail/skip numbers, gaps, open issues, migration/security constraints, and exact next steps. **STOP**.
+6. At **every session end**, write a **thorough session-ending handoff** stating only what was actually accomplished in that session, the source base/head, commits, changed files, verified tests, failures/skips, unfinished items, blockers, risks, and next steps for someone to check and resume. The milestone itself ends after these agreed tasks and two debug rounds are complete. **STOP at that scope.**
 
 Do **not** start experimental 3D/voxel builder, gamified onboarding, unrelated moonshots, or broader product changes during this milestone. Do not merge `main` or run GitHub Actions on this milestone without authorization.
 
@@ -69,9 +69,9 @@ Do **not** start experimental 3D/voxel builder, gamified onboarding, unrelated m
 - [ ] Re-audit and retest on the **post-round-1** tree, focus on cross-feature boundaries (owner/guest, recording/notes, save/restore, offline, concurrent input).
 - [ ] Repair reproducible findings and rerun wide suite; do not reuse round-1 test evidence as the second round.
 
-### G. Final handoff, STOP
-- [ ] Summarize verified/partial/unverified milestones and untouched areas; precise branch/commit, changes, tests, remaining risks, and explicitly separate Linux/headless vs native Windows/real microphone/device evidence.
-- [ ] Sign final handoff and issue #1; owner reviews before any release/main merge.
+### G. Session-ending handoff (every session); milestone scope stop after both rounds
+- [ ] At the end of **this and every subsequent session**, state what was done, what was actually tested, what failed, and what remains unverified or untouched. Include branch/commit, exact files and commands, known risks and blockers, with Linux/headless evidence distinguished from native Windows/real microphone/device checks. **Do not describe the work as complete merely because the session ends.**
+- [ ] Sign each session-ending handoff and link it from issue #1 for review and continuity. A subsequent session resumes the unfinished work rather than assuming completion.
 
 ## Evidence log
 
