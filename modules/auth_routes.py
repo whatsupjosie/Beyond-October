@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 import secrets
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -123,6 +123,7 @@ class SetupRequest(LoginRequest):
     # The owner's PubCast profile. Both optional at setup; either can be set later from the profile.
     email: str = Field("", max_length=254)
     display_name: str = Field("", max_length=80)
+    profile_visibility: Literal['private','discoverable'] = 'private'
 
 
 class TokenResponse(BaseModel):
@@ -130,6 +131,7 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     username: str
     role: str
+    user_id: Optional[str] = None
 
 
 @router.get("/status")
@@ -157,13 +159,15 @@ async def first_run_setup(payload: SetupRequest, request: Request, response: Res
         display_name = userdb.clean_display_name(payload.display_name, payload.username)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
-    created = await userdb.create_owner_via_setup(payload.username, payload.password, email, display_name)
+    created = await userdb.create_owner_via_setup(payload.username, payload.password, email, display_name,
+                                                 payload.profile_visibility=='discoverable')
     if not created:
         # Do not expose account details; setup is a one-time transition.
         raise HTTPException(409, "Initial setup has already been completed")
     token = _auth_module.create_access_token({"sub": payload.username, "role": "owner"})
     _set_ws_session_cookie(response, request, token)
-    return TokenResponse(access_token=token, username=payload.username, role="owner")
+    profile=await userdb.get_profile_by_username(payload.username)
+    return TokenResponse(access_token=token, username=payload.username, role="owner",user_id=profile['user_id'])
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -192,7 +196,8 @@ async def login(payload: LoginRequest, request: Request, response: Response) -> 
     role = str(user.get("role") or "guest")
     token = _auth_module.create_access_token({"sub": payload.username, "role": role})
     _set_ws_session_cookie(response, request, token)
-    return TokenResponse(access_token=token, username=payload.username, role=role)
+    profile=await userdb.get_profile_by_username(payload.username)
+    return TokenResponse(access_token=token, username=payload.username, role=role,user_id=profile['user_id'] if profile else None)
 
 
 @router.get("/verify")
@@ -205,10 +210,12 @@ async def verify_token(request: Request, response: Response, credentials: Option
     if not payload:
         raise HTTPException(401, "Invalid or expired token")
     _set_ws_session_cookie(response, request, credentials.credentials)
+    profile=await userdb.get_profile_by_username(str(payload.get('sub') or ''))
     return {
         "valid": True,
         "payload": payload,
         "username": payload.get("sub"),
+        "user_id": profile['user_id'] if profile else payload.get('sub'),
         "role": payload.get("role", "guest"),
         "expires_at": payload.get("exp"),
     }

@@ -43,7 +43,7 @@
     const username = String(data.username || data.user_id || '').trim();
     const role = String(data.role || 'guest').trim() || 'guest';
     if (username) {
-      sessionStorage.setItem(USER_KEY, JSON.stringify({username, user_id: username, role}));
+      sessionStorage.setItem(USER_KEY, JSON.stringify({username, user_id: String(data.user_id || username), role}));
       localStorage.setItem(CLIENT_KEY, username);
     }
   }
@@ -126,7 +126,7 @@
     const username = String(data.username || (data.payload && data.payload.sub) || '').trim();
     const role = String(data.role || (data.payload && data.payload.role) || 'guest').trim() || 'guest';
     if (username) {
-      sessionStorage.setItem(USER_KEY, JSON.stringify({username, user_id: username, role}));
+      sessionStorage.setItem(USER_KEY, JSON.stringify({username, user_id: String(data.user_id || username), role}));
       localStorage.setItem(CLIENT_KEY, username);
     }
     return data;

@@ -355,22 +355,81 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
     # ---------------------------------------------------------------- profile
     @router.get("/api/profile/me")
     async def profile_me(profile: Dict[str, Any] = Depends(me)) -> Dict[str, Any]:
-        return dict(public(profile, with_email=True), created_at=profile["created_at"])
+        return dict(public(profile, with_email=True), created_at=profile["created_at"],
+                    details=profile['details'], revision=profile['profile_revision'],has_photo=bool(profile['photo_sha256']))
 
     @router.patch("/api/profile/me")
     async def profile_update(request: Request, profile: Dict[str, Any] = Depends(me)) -> Dict[str, Any]:
         body = await _json(request)
-        unknown = set(body) - {"display_name", "email"}
+        unknown = set(body) - {"display_name", "email", "details", "revision"}
         if unknown:
-            raise HTTPException(400, "Only display_name and email can be changed here")
+            raise HTTPException(400, "Only display name, email and optional profile details can be changed here")
+        if 'revision' in body and (type(body['revision']) is not int or body['revision'] < 0):
+            raise HTTPException(400,'A valid profile revision is required')
+        if 'details' in body and not isinstance(body['details'],dict):
+            raise HTTPException(400,'Profile details must be an object')
         for key in ("display_name", "email"):
             if key in body and not isinstance(body[key], str):
                 raise HTTPException(400, f"{key} must be text")
         try:
-            updated = await userdb.update_profile(profile["user_id"], body.get("display_name"), body.get("email"))
+            updated = await userdb.update_profile(profile["user_id"], body.get("display_name"), body.get("email"),
+                                                  body.get('details'),body.get('revision'))
         except ValueError as exc:
-            raise HTTPException(400, str(exc)) from exc
-        return dict(public(updated, with_email=True), created_at=updated["created_at"])
+            raise HTTPException(409 if 'another window' in str(exc) else 400, str(exc)) from exc
+        return await profile_me(updated)
+
+    @router.post('/api/profile/photo')
+    async def upload_profile_photo(request: Request, revision: int, profile: dict = Depends(me)):
+        from modules.human_profiles import normalize_photo
+        import asyncio
+        async def receive():
+            data=bytearray()
+            async for block in request.stream():
+                if len(block)>2*1024*1024-len(data):
+                    raise HTTPException(413,'Choose an image under 2 MB')
+                data.extend(block)
+            return bytes(data)
+        try:
+            photo=await run_in_threadpool(normalize_photo,await asyncio.wait_for(receive(),10))
+            updated=await userdb.profile_photo(profile['user_id'],photo,revision)
+        except asyncio.TimeoutError:
+            raise HTTPException(408,'Photo upload timed out') from None
+        except ValueError as exc:
+            raise HTTPException(409 if 'another window' in str(exc) else 400,str(exc)) from exc
+        return await profile_me(updated)
+
+    def visible_profile(profile):
+        from modules.human_profiles import shared_about
+        return dict(public(profile,with_email=False), about=shared_about(profile),
+                    has_photo=bool(profile['photo_sha256']) and 'photo' in profile['details']['public_fields'])
+
+    @router.get('/api/profiles')
+    async def directory(q: str = '', profile: dict = Depends(me)):
+        if len(q)>80:
+            raise HTTPException(400,'Keep the search under 80 characters')
+        query=q.casefold().strip()
+        found=[visible_profile(p) for p in await userdb.list_profiles()
+               if p['details']['discoverable'] and query in
+               (p['display_name']+' '+p['username']+' '+p['user_id']).casefold()]
+        return {'scope':'this-host','profiles':found[:50]}
+
+    @router.get('/api/profiles/{user_id}')
+    async def view_profile(user_id: str, profile: dict = Depends(me)):
+        selected=await userdb.get_profile(user_id)
+        if not selected or (selected['user_id']!=profile['user_id'] and not selected['details']['discoverable']):
+            raise HTTPException(404,'Profile not found')
+        return visible_profile(selected)
+
+    @router.get('/api/profiles/{user_id}/photo')
+    async def view_photo(user_id: str, profile: dict = Depends(me)):
+        from fastapi.responses import Response
+        selected=await userdb.get_profile(user_id)
+        mine=selected and selected['user_id']==profile['user_id']
+        allowed=selected and selected['details']['discoverable'] and 'photo' in selected['details']['public_fields']
+        data=await userdb.profile_photo(user_id) if mine or allowed else None
+        if data is None:
+            raise HTTPException(404,'Photo not found')
+        return Response(data,media_type='image/png',headers={'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'})
 
     @router.post("/api/profile/password")
     async def profile_password(request: Request, profile: Dict[str, Any] = Depends(me)) -> Dict[str, Any]:

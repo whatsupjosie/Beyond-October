@@ -119,7 +119,7 @@ eight-genre and actual-animation checks also pass. Full failures, corrections,
 exact commands, source hashes and actual measurements are preserved under
 `evidence/clacker-integration-2026-11-05/`.
 
-## Session end — workspace became unavailable
+## Session end — workspace became unavailable (historical; resumed below)
 
 **Signed:** Codex / ChatGPT Work, 2026-11-05T11:00:31.965Z.
 **Reason for stopping:** the execution environment became unavailable while a
@@ -168,3 +168,23 @@ masters, cross-device sync, native Windows and hardware gates remain open.
 The claim is PAUSED because the workspace is unavailable. Next session resumes
 guest identity/profiles and the remaining agreed scope from these records.
 
+
+
+## Resumed profile checkpoint
+
+Signed: Codex / ChatGPT Work / 2026-11-05T17:47:23.494222+00:00.
+
+Recovered the unpublished source, repaired the restored runtime, and completed
+the missing draft/browser changes. RAN current combined profile API, real-browser,
+auth and existing notes selection: **25 passed**, one deprecation warning,
+15.04 seconds. See `evidence/profiles-2026-11-05/README.md` and its actual logs.
+The earlier UNKNOWN patch did not land; the source and tests now supersede that
+uncertainty. The full recording-baseline raw log/XML are now included. That old
+2,328-test result applies only to the earlier recording source. It is not proof
+for these profile changes, and neither baseline is a post-feature debugging round.
+
+Profile optional fields, visibility, photos, drafts, conflict refusal, host-scoped
+search, click-to-load reels, setup metadata and the existing singleton tray are
+implemented. Independent guest identity/admission, groups/schedules, contacts,
+full onboarding browser acceptance and the remaining milestone gates remain open.
+Claim ACTIVE, continuing with guest admission. No main merge or deployment.

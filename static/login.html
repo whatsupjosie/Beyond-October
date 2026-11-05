@@ -67,6 +67,13 @@
     <label>Email <span style="font-size:0.62rem">(optional · for production notes sent as email)</span>
       <input type="email" id="regEmail" autocomplete="email" maxlength="254">
     </label>
+    <label>Profile visibility
+      <select id="regVisibility" aria-label="Profile visibility">
+        <option value="private">Private</option>
+        <option value="discoverable">Discoverable within PubCast</option>
+      </select>
+    </label>
+    <p style="font-size:.75rem">Optional details stay private until you choose what to share. Search currently covers people on this host.</p>
     <button class="btn" id="regBtn" onclick="doRegister()">Create Account</button>
     <div class="error" id="regErr"></div>
     <div class="success" id="regOk" style="display:none"></div>
@@ -108,7 +115,7 @@
       sessionStorage.setItem('pubcast_user', JSON.stringify({username:data.username, user_id:data.username, role:data.role}));
       localStorage.setItem('pubcast.clientId', data.username);
     }
-    location.href = safeNext();
+    location.href = setupRequired ? '/static/human_profile.html?onboarding=1&next='+encodeURIComponent(safeNext()) : safeNext();
   }
 
   async function doLogin() {
@@ -145,6 +152,7 @@
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({username:user, password:pass, confirm_password:confirm,
                               display_name: document.getElementById('regName').value.trim(),
+                              profile_visibility: document.getElementById('regVisibility').value,
                               email: document.getElementById('regEmail').value.trim()})
       });
       const d = await r.json();

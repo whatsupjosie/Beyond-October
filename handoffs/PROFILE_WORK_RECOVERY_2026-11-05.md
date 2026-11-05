@@ -133,3 +133,4 @@ Resume by recovering the uncommitted working tree if possible, testing the
 profile auth/UI changes, then implementing actual guest identity and joining it
 to the existing admission authority. A fresh runtime cannot treat these recovery
 notes as a substitute for source or executed tests.
+

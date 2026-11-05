@@ -395,6 +395,9 @@ function menuModel(){
       {label: 'Lantern light', on: look.lantern, run: () => { look.lantern = !look.lantern; applyLook(); counter.toast(look.lantern ? 'Lit by the lantern' : 'Lit by the studio light'); }},
     ]},
     {name: 'Window', items: windows.length ? [{heading: 'Trays'}, ...windows] : [{label: 'No trays yet', disabled: true, run: () => {}}]},
+    {name: 'Me', items: [
+      {label:'Your PubCast profile',run:()=>programs.open('human_profile')},
+    ]},
     {name: 'Help', items: [
       {label: 'Keyboard and mouse', run: showShortcuts},
       {sep: true},

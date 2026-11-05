@@ -94,3 +94,4 @@ leaks into Program, and verify all original recovery/voice/authorization behavio
 Oscillators in participant tests replace physical microphones only. Hardware,
 Windows/PowerShell 5, other physical devices, cross-host guest identity and
 long-session acceptance remain open.
+

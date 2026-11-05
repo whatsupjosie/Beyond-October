@@ -43,6 +43,8 @@
 
   // id, title, group, kind, address, natural size (w x h of its screen), smallest usable size, shape.
   const PROGRAMS = [
+    {id:'human_profile',title:'Your PubCast profile',group:'Chat & Collaboration',kind:'page',url:'/static/human_profile.html',
+     w:720,h:640,minW:320,minH:400,shape:'wide',singleton:true},
     // conversation and collaboration
     {id: 'world_chat', title: 'World Chat', group: 'Chat & Collaboration', kind: 'page', url: '/static/world_chat.html',
      w: 440, h: 520, minW: 320, minH: 360, shape: 'chat', singleton: true},

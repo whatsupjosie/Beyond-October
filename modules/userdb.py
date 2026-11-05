@@ -16,6 +16,7 @@ Exports:
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import re
@@ -82,6 +83,14 @@ def _sync_init_db() -> None:
                 created_at      REAL NOT NULL
             );
         """)
+        columns = {row[1] for row in conn.execute('PRAGMA table_info(profiles)')}
+        for column, declaration in {
+            'details_json':"TEXT NOT NULL DEFAULT '{}'",
+            'profile_revision':'INTEGER NOT NULL DEFAULT 0',
+            'photo_data':'BLOB', 'photo_sha256':"TEXT NOT NULL DEFAULT ''",
+        }.items():
+            if column not in columns:
+                conn.execute(f'ALTER TABLE profiles ADD COLUMN {column} {declaration}')
         _sync_backfill_profiles(conn)
         conn.commit()
         logger.info("userdb: tables ready at %s", _DB_PATH)
@@ -143,7 +152,16 @@ def _sync_backfill_profiles(conn: sqlite3.Connection) -> int:
     return len(rows)
 
 
-_PROFILE_COLS = "p.user_id, p.username, p.display_name, p.email, p.created_at, u.role"
+_PROFILE_COLS = "p.user_id, p.username, p.display_name, p.email, p.created_at, u.role, p.details_json, p.profile_revision, p.photo_sha256"
+
+
+def _profile_dict(row) -> Optional[Dict[str, Any]]:
+    if row is None:
+        return None
+    from .human_profiles import details
+    value = dict(row)
+    value['details'] = details(json.loads(value.pop('details_json', '{}')))
+    return value
 
 
 def _sync_get_profile_by_username(username: str) -> Optional[Dict[str, Any]]:
@@ -162,7 +180,7 @@ def _sync_get_profile_by_username(username: str) -> Optional[Dict[str, Any]]:
                 "WHERE p.username = ? COLLATE NOCASE",
                 (username,),
             ).fetchone()
-        return dict(row) if row else None
+        return _profile_dict(row)
     finally:
         conn.close()
 
@@ -175,7 +193,7 @@ def _sync_get_profile(user_id: str) -> Optional[Dict[str, Any]]:
             "WHERE p.user_id = ?",
             (user_id,),
         ).fetchone()
-        return dict(row) if row else None
+        return _profile_dict(row)
     finally:
         conn.close()
 
@@ -189,22 +207,30 @@ def _sync_list_profiles() -> List[Dict[str, Any]]:
             f"SELECT {_PROFILE_COLS} FROM profiles p JOIN users u ON u.username = p.username COLLATE NOCASE "
             "ORDER BY p.created_at ASC"
         ).fetchall()
-        return [dict(r) for r in rows]
+        return [_profile_dict(r) for r in rows]
     finally:
         conn.close()
 
 
-def _sync_update_profile(user_id: str, display_name: Optional[str], email: Optional[str]) -> Optional[Dict[str, Any]]:
+def _sync_update_profile(user_id: str, display_name: Optional[str], email: Optional[str], profile_details=None, expected_revision=None) -> Optional[Dict[str, Any]]:
     conn = _get_connection()
     try:
-        row = conn.execute("SELECT username FROM profiles WHERE user_id = ?", (user_id,)).fetchone()
+        conn.execute('BEGIN IMMEDIATE')
+        row = conn.execute("SELECT username, profile_revision FROM profiles WHERE user_id = ?", (user_id,)).fetchone()
         if not row:
             return None
+        if expected_revision is not None and expected_revision != row['profile_revision']:
+            raise ValueError('Profile changed in another window; reload it before saving')
+        if profile_details is not None:
+            from .human_profiles import details
+            conn.execute('UPDATE profiles SET details_json=? WHERE user_id=?',
+                         (json.dumps(details(profile_details)),user_id))
         if display_name is not None:
             conn.execute("UPDATE profiles SET display_name = ? WHERE user_id = ?",
                          (clean_display_name(display_name, row["username"]), user_id))
         if email is not None:
             conn.execute("UPDATE profiles SET email = ? WHERE user_id = ?", (clean_email(email), user_id))
+        conn.execute('UPDATE profiles SET profile_revision=profile_revision+1 WHERE user_id=?',(user_id,))
         conn.commit()
     finally:
         conn.close()
@@ -246,7 +272,7 @@ def _sync_count_users() -> int:
         conn.close()
 
 
-def _sync_create_owner_via_setup(username: str, password: str, email: str = "", display_name: str = "") -> bool:
+def _sync_create_owner_via_setup(username: str, password: str, email: str = "", display_name: str = "", discoverable: bool = False) -> bool:
     """Atomically create the first owner account.
 
     Returns False when setup has already been completed. BEGIN IMMEDIATE plus
@@ -265,7 +291,10 @@ def _sync_create_owner_via_setup(username: str, password: str, email: str = "", 
                 "INSERT INTO users (username, hashed_password, role) VALUES (?, ?, 'owner')",
                 (username, hashed),
             )
-            _insert_profile(conn, username, clean_display_name(display_name, username), clean_email(email))
+            uid=_insert_profile(conn, username, clean_display_name(display_name, username), clean_email(email))
+            from .human_profiles import details
+            conn.execute('UPDATE profiles SET details_json=? WHERE user_id=?',
+                         (json.dumps(details({'discoverable':discoverable})),uid))
             conn.commit()
             logger.info("userdb: first-run owner account '%s' created", username)
             return True
@@ -398,8 +427,8 @@ async def count_users() -> int:
     return await _in_thread(_sync_count_users)
 
 
-async def create_owner_via_setup(username: str, password: str, email: str = "", display_name: str = "") -> bool:
-    return await _in_thread(_sync_create_owner_via_setup, username, password, email, display_name)
+async def create_owner_via_setup(username: str, password: str, email: str = "", display_name: str = "", discoverable: bool = False) -> bool:
+    return await _in_thread(_sync_create_owner_via_setup, username, password, email, display_name, discoverable)
 
 
 async def get_profile_by_username(username: str) -> Optional[Dict[str, Any]]:
@@ -414,8 +443,33 @@ async def list_profiles() -> List[Dict[str, Any]]:
     return await _in_thread(_sync_list_profiles)
 
 
-async def update_profile(user_id: str, display_name: Optional[str] = None, email: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    return await _in_thread(_sync_update_profile, user_id, display_name, email)
+async def update_profile(user_id: str, display_name: Optional[str] = None, email: Optional[str] = None, profile_details=None, expected_revision=None) -> Optional[Dict[str, Any]]:
+    return await _in_thread(_sync_update_profile, user_id, display_name, email, profile_details, expected_revision)
+
+
+def _sync_profile_photo(user_id: str, photo=None, expected_revision=None):
+    import hashlib
+    conn = _get_connection()
+    try:
+        if photo is None:
+            row=conn.execute('SELECT photo_data FROM profiles WHERE user_id=?',(user_id,)).fetchone()
+            return row[0] if row else None
+        conn.execute('BEGIN IMMEDIATE')
+        row=conn.execute('SELECT profile_revision FROM profiles WHERE user_id=?',(user_id,)).fetchone()
+        if row is None:
+            raise ValueError('Profile not found')
+        if expected_revision is not None and expected_revision != row[0]:
+            raise ValueError('Profile changed in another window; reload it before saving')
+        conn.execute('UPDATE profiles SET photo_data=?,photo_sha256=?,profile_revision=profile_revision+1 WHERE user_id=?',
+                     (photo,hashlib.sha256(photo).hexdigest(),user_id))
+        conn.commit()
+    finally:
+        conn.close()
+    return _sync_get_profile(user_id)
+
+
+async def profile_photo(user_id: str, photo=None, expected_revision=None):
+    return await _in_thread(_sync_profile_photo,user_id,photo,expected_revision)
 
 
 async def create_member(username: str, password: str, role: str, display_name: str = "", email: str = "") -> Optional[str]:
