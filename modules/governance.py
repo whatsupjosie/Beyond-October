@@ -199,7 +199,6 @@ class GovernanceEngine:
         self._freezes: Dict[str, FreezeState] = {}
         self._mutes: Dict[str, float] = {}  # user_id → mute_until (0 = indefinite)
         self._consents: Dict[str, Dict[str, ConsentRecord]] = {}
-        self._waiting_room: Dict[str, WaitingRoomEntry] = {}
 
         self._init_db()
         self._load_active_bans()
@@ -238,6 +237,18 @@ class GovernanceEngine:
             );
             CREATE INDEX IF NOT EXISTS idx_bans_user ON bans(user_id);
             CREATE INDEX IF NOT EXISTS idx_audit_time ON audit_log(timestamp);
+            CREATE TABLE IF NOT EXISTS waiting_entries (
+                entry_id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                display_name TEXT NOT NULL,
+                target_room TEXT NOT NULL,
+                requested_at REAL NOT NULL,
+                status TEXT NOT NULL,
+                resolved_by TEXT,
+                resolved_at REAL,
+                consents_json TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_waiting_status ON waiting_entries(status, requested_at);
         """)
         conn.commit()
         conn.close()
@@ -491,19 +502,19 @@ class GovernanceEngine:
             requested_at=time.time(),
             consents=consents or {},
         )
-        self._waiting_room[entry.entry_id] = entry
+        with sqlite3.connect(self._db_path) as conn:
+            conn.execute('INSERT INTO waiting_entries VALUES (?,?,?,?,?,?,?,?,?)',
+                         (entry.entry_id, entry.user_id, entry.display_name, entry.target_room,
+                          entry.requested_at, entry.status.value, None, None, json.dumps(entry.consents)))
         self._audit("ENTRY_REQUEST", user_id, None,
                      f"room={target_room}, name={display_name}")
         return entry
 
     def approve_entry(self, entry_id: str, approved_by: str) -> Optional[WaitingRoomEntry]:
         """Host approves a waiting room request."""
-        entry = self._waiting_room.get(entry_id)
-        if not entry or entry.status != EntryStatus.WAITING:
+        entry = self._resolve_entry(entry_id, EntryStatus.APPROVED, approved_by)
+        if entry is None:
             return None
-        entry.status = EntryStatus.APPROVED
-        entry.resolved_by = approved_by
-        entry.resolved_at = time.time()
         self._audit("APPROVE_ENTRY", approved_by, entry.user_id,
                      f"room={entry.target_room}")
         return entry
@@ -515,33 +526,56 @@ class GovernanceEngine:
         reason: str = "",
     ) -> Optional[WaitingRoomEntry]:
         """Host denies a waiting room request."""
-        entry = self._waiting_room.get(entry_id)
-        if not entry or entry.status != EntryStatus.WAITING:
+        entry = self._resolve_entry(entry_id, EntryStatus.DENIED, denied_by)
+        if entry is None:
             return None
-        entry.status = EntryStatus.DENIED
-        entry.resolved_by = denied_by
-        entry.resolved_at = time.time()
         self._audit("DENY_ENTRY", denied_by, entry.user_id,
                      f"room={entry.target_room}, reason={reason}")
         return entry
 
     def mark_entered(self, entry_id: str) -> None:
-        """Mark that the user has actually entered the room."""
-        entry = self._waiting_room.get(entry_id)
-        if entry:
-            entry.status = EntryStatus.ENTERED
+        """Only an approved admission may enter; pending/denied records stay closed."""
+        with sqlite3.connect(self._db_path) as conn:
+            conn.execute('UPDATE waiting_entries SET status=? WHERE entry_id=? AND status=?',
+                         (EntryStatus.ENTERED.value, entry_id, EntryStatus.APPROVED.value))
+
+    @staticmethod
+    def _waiting_entry(row) -> Optional[WaitingRoomEntry]:
+        if row is None:
+            return None
+        data = dict(row)
+        data['status'] = EntryStatus(data['status'])
+        data['consents'] = json.loads(data.pop('consents_json'))
+        return WaitingRoomEntry(**data)
+
+    def _resolve_entry(self, entry_id: str, status: EntryStatus, actor: str) -> Optional[WaitingRoomEntry]:
+        """Compare-and-set in the shared database: concurrent decisions have one winner."""
+        with sqlite3.connect(self._db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            result = conn.execute(
+                'UPDATE waiting_entries SET status=?,resolved_by=?,resolved_at=? WHERE entry_id=? AND status=?',
+                (status.value, actor, time.time(), entry_id, EntryStatus.WAITING.value))
+            if result.rowcount != 1:
+                return None
+            return self._waiting_entry(conn.execute('SELECT * FROM waiting_entries WHERE entry_id=?', (entry_id,)).fetchone())
 
     def get_waiting_entry(self, entry_id: str) -> Optional[WaitingRoomEntry]:
         """Return one durable admission record by id, if it exists."""
-        return self._waiting_room.get(entry_id)
+        with sqlite3.connect(self._db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            return self._waiting_entry(conn.execute('SELECT * FROM waiting_entries WHERE entry_id=?', (entry_id,)).fetchone())
 
     def list_waiting(self, target_room: str = None) -> List[WaitingRoomEntry]:
         """List users in the waiting room."""
-        entries = [e for e in self._waiting_room.values()
-                   if e.status == EntryStatus.WAITING]
-        if target_room:
-            entries = [e for e in entries if e.target_room == target_room]
-        return entries
+        with sqlite3.connect(self._db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            sql = 'SELECT * FROM waiting_entries WHERE status=?'
+            args = [EntryStatus.WAITING.value]
+            if target_room:
+                sql += ' AND target_room=?'
+                args.append(target_room)
+            rows = conn.execute(sql + ' ORDER BY requested_at, entry_id', args).fetchall()
+            return [self._waiting_entry(row) for row in rows]
 
     def can_enter(self, user_id: str) -> Tuple[bool, str]:
         """
