@@ -1228,6 +1228,11 @@ async def lifespan(application: FastAPI):
 
     # 7. Governance
     governance = GovernanceEngine(DATA_DIR)
+    from modules.guest_identity import GuestAdmission
+    from modules.guest_identity_routes import create_guest_identity_router
+    application.state.guest_admission = GuestAdmission(governance)
+    auth_module.set_guest_admission(application.state.guest_admission)
+    application.include_router(create_guest_identity_router(application.state.guest_admission, cred_store))
     application.include_router(create_governance_router(governance, hub, authority_bridge=alex_bridge, authority_store=pub_manager_authority))
     host_router = create_host_control_router(governance, hub, DATA_DIR, senders=[pubworld_private.send], roster=pubworld_private.roster)   # possession, timeout, profile, gifts, tracker log, roster
     pubworld_private.on_room_change = host_router.host.on_room_change
@@ -1974,6 +1979,8 @@ from modules.unicode_guard import UnicodeGuardMiddleware  # noqa: E402
 app.add_middleware(UnicodeGuardMiddleware)
 from modules.control_plane_guard import ControlPlaneGuardMiddleware  # noqa: E402
 app.add_middleware(ControlPlaneGuardMiddleware)
+from modules.guest_session_guard import GuestSessionGuardMiddleware  # noqa: E402
+app.add_middleware(GuestSessionGuardMiddleware)
 app.mount("/2i-assets", StaticFiles(directory=str(Path(__file__).resolve().parent / "2i" / "2i-assets")), name="writers-room-assets")
 
 if STATIC_DIR.exists() and any(STATIC_DIR.iterdir()):

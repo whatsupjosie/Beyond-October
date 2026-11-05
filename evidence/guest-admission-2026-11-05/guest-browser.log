@@ -1,0 +1,123 @@
+/workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/pytest_asyncio/plugin.py:300: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the "fixture" caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+F....                                                                    [100%]
+=================================== FAILURES ===================================
+___________ test_browser_invite_home_popup_owner_approval_and_revoke ___________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-12/test_browser_invite_home_popup0')
+production_browser = <Browser type=<BrowserType name=chromium executable_path=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome> version=141.0.7390.37>
+
+    def test_browser_invite_home_popup_owner_approval_and_revoke(tmp_path, production_browser):
+        start = contextmanager(fresh_host.__wrapped__)
+        with start(tmp_path/'production') as (host_url, host), start(tmp_path/'visitor') as (home_url, home):
+            owner, owner_headers = setup(host, 'production-owner')
+            human, home_headers = setup(home, 'visiting-owner')
+            owner_context = production_browser.new_context(viewport={'width': 1200, 'height': 900})
+            visitor_context = production_browser.new_context(viewport={'width': 390, 'height': 844})
+            seed(owner_context, host_url, owner['access_token'])
+            seed(visitor_context, home_url, human['access_token'])
+            errors = []
+            for context in [owner_context, visitor_context]:
+                context.on('page', lambda page: page.on('pageerror', lambda exc: errors.append(str(exc))))
+            try:
+                director = owner_context.new_page()
+                director.goto(host_url+'/static/human_visits.html?mode=host')
+                director.wait_for_function('document.getElementById("pending").textContent.includes("No verified guests")')
+                director.click('#createInvite')
+                director.wait_for_selector('#inviteOut:visible')
+                invitation = director.locator('#inviteOut').input_value()
+                visitor = visitor_context.new_page()
+                visitor.goto(host_url+'/static/human_visits.html?mode=join')
+                visitor.fill('#invite', invitation)
+                visitor.click('#prepareButton')
+                visitor.wait_for_selector('#homeOrigin:visible')
+                visitor.fill('#homeOrigin', home_url)
+                with visitor.expect_popup() as opened:
+                    visitor.click('#openHome')
+                home_page = opened.value
+                home_page.wait_for_selector('#signCard:visible')
+                assert host_url in home_page.locator('#target').inner_text()
+                home_page.check('#consent')
+                home_page.click('#signCard')
+                home_page.wait_for_selector('#signed:not([hidden])')
+                visitor.wait_for_function('document.getElementById("status").textContent.includes("Waiting for your host")')
+                assert visitor.locator('#enter').is_hidden()
+                director.click('#refresh')
+                director.wait_for_selector('#pending article')
+                assert human['user_id'] in director.locator('#pending').inner_text()
+                assert home_page.locator('#fingerprint').inner_text() in director.locator('#pending').inner_text()
+                pending = host.get('/api/guests/pending', headers=owner_headers).json()['pending'][0]
+                director.get_by_role('button', name='Approve visit', exact=True).click()
+                visitor.wait_for_selector('#enter:visible', timeout=15000)
+                assert visitor.evaluate('ReachAuth.getUser().user_id') == human['user_id']
+                assert visitor.evaluate('document.documentElement.scrollWidth <= innerWidth')
+                visitor.goto(host_url+'/static/human_profile.html')
+                visitor.wait_for_function('document.getElementById("status").textContent.includes("visiting card")')
+                assert visitor.locator('#editor').is_hidden()
+                assert human['user_id'] in visitor.locator('#identity').inner_text()
+                director.fill('#revokeId', pending['entry_id'])
+                director.locator('#revoke button').click()
+                director.wait_for_function('document.getElementById("status").textContent.includes("revoked")')
+                visitor.reload()
+>               visitor.wait_for_function('document.getElementById("status").textContent.includes("Invalid or expired token")')
+
+tests/test_independent_guest_browser.py:66: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11559: in wait_for_function
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:1112: in wait_for_function
+    return await self._main_frame.wait_for_function(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:860: in wait_for_function
+    await self._channel.send("waitForFunction", self._timeout, params)
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f979d2ef680>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f97645ef240>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        st: List[inspect.FrameInfo] = getattr(
+            task, "__pw_stack__", None
+        ) or inspect.stack(0)
+    
+        parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: Page.wait_for_function: TypeError: Cannot read properties of null (reading 'textContent')
+E               at eval (eval at predicate (eval at evaluate (:290:30)), <anonymous>:1:34)
+E               at eval (<anonymous>)
+E               at predicate (eval at evaluate (:290:30), <anonymous>:4:56)
+E               at next (eval at evaluate (:290:30), <anonymous>:29:29)
+E               at eval (eval at evaluate (:290:30), <anonymous>:42:9)
+E               at UtilityScript.evaluate (<anonymous>:292:16)
+E               at UtilityScript.<anonymous> (<anonymous>:1:44)
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:559: Error
+------------------------------ Captured log setup ------------------------------
+WARNING  modules.auth:auth.py:65 PUBCAST_JWT_SECRET is not set — using a secure process-local secret. Tokens will not survive restart. Launch through run_pubpartner.py for a persistent secret.
+WARNING  modules.audio_devices:audio_devices.py:67 sounddevice unavailable (ModuleNotFoundError: No module named 'sounddevice'). Server-side audio device enumeration disabled; browser-side enumeration is unaffected.
+WARNING  modules.evo.facial_performance:facial_performance.py:65 DeepFace not available — facial analysis in simulation mode
+WARNING  modules.evo.facial_performance:facial_performance.py:77 MediaPipe not available — landmark analysis disabled
+WARNING  pubcast:main.py:638 CORS: '*' origin with credentials is not allowed by browsers - allow_credentials forced False. Set PUBCAST_ALLOWED_ORIGINS to specific origin.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/starlette/testclient.py:40
+  /workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/starlette/testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_independent_guest_browser.py::test_browser_invite_home_popup_owner_approval_and_revoke
+1 failed, 4 passed, 1 warning in 23.85s

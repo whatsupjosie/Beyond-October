@@ -397,6 +397,7 @@ function menuModel(){
     {name: 'Window', items: windows.length ? [{heading: 'Trays'}, ...windows] : [{label: 'No trays yet', disabled: true, run: () => {}}]},
     {name: 'Me', items: [
       {label:'Your PubCast profile',run:()=>programs.open('human_profile')},
+      {label:'Guests and invitations',run:()=>programs.open('human_visits')},
     ]},
     {name: 'Help', items: [
       {label: 'Keyboard and mouse', run: showShortcuts},

@@ -89,6 +89,7 @@ async function load(){
  const viewing=query.get('user');
  if(viewing){const card=await api('/api/profiles/'+encodeURIComponent(viewing));$('title').textContent='PubCast profile';$('intro').hidden=true;showCard(card);return;}
  profile=await api('/api/profile/me');$('identity').textContent=profile.user_id+' · '+profile.username;$('editor').hidden=false;
+ if(profile.visiting){$('editor').hidden=true;showCard({...profile,about:profile.details.about});status('This is your visiting card. Edit your full profile on your own PubCast copy.');return;}
  fill(profile);$('skip').hidden=!query.has('onboarding');
  if(profile.has_photo){$('photo').src='/api/profiles/'+encodeURIComponent(profile.user_id)+'/photo';$('photo').hidden=false;}
  try{const kept=JSON.parse(sessionStorage.getItem(draftKey())||'null');if(kept){fill(kept);dirty=true;

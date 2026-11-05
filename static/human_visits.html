@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PubCast visits</title><link rel="stylesheet" href="/static/fonts/foresight-fonts.css"><script src="/static/reach_auth.js"></script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#100d09;color:#f1e3c6;font:16px/1.5 var(--fs-font-body,system-ui)}main{max-width:900px;margin:auto;padding:24px 18px 60px}h1,h2,h3{font-family:var(--fs-font-display,Georgia);color:#d6a957}a{color:#d6a957}nav{display:flex;gap:20px;flex-wrap:wrap}section,article{border:1px solid #655035;border-radius:10px;padding:20px;margin-top:22px}label{display:block;margin:16px 0}input,textarea,button{font:inherit}input:not([type=checkbox]),textarea{display:block;width:100%;padding:10px;margin-top:5px;background:#191510;border:1px solid #756044;border-radius:5px;color:inherit}textarea{min-height:140px;resize:vertical}button,.enter{display:inline-block;min-height:44px;padding:10px 16px;border:1px solid #9e7b42;border-radius:6px;background:#32271c;color:inherit;cursor:pointer;margin:5px 8px 5px 0}button:disabled{opacity:.5;cursor:wait}input[type=checkbox]{width:20px;height:20px;vertical-align:middle;accent-color:#d6a957}.key{font:13px/1.6 ui-monospace,monospace;overflow-wrap:anywhere}#status{min-height:26px;color:#e9ba84;white-space:pre-wrap}[hidden]{display:none!important}:focus-visible{outline:2px solid #d6a957;outline-offset:3px}details{margin-top:20px}summary{cursor:pointer}article h3{margin-top:0}.muted{color:#b8ac99}
+</style></head><body><main>
+<h1>PubCast visits</h1><nav><a href="?mode=join">Join a production</a><a href="?mode=host">Host guests</a><a href="?mode=sign">My visiting card</a><a href="/foresight">Foresight</a></nav>
+<p id="status" role="status" aria-live="polite"></p>
+<section id="join" hidden><h2>Bring your own PubCast identity</h2>
+<p>Use your invitation, then open your own copy to approve your visiting card. Your host decides when you enter.</p>
+<form id="prepare"><label>Invitation code<input id="invite" required maxlength="128" autocomplete="off"></label><button id="prepareButton">Prepare my visit</button></form>
+<div id="prepared" hidden><label>Your own PubCast address<input id="homeOrigin" type="url" placeholder="http://localhost:8000"></label><button type="button" id="openHome">Open my copy</button>
+<details><summary>Exchange the card manually</summary><p>Copy this request into “My visiting card” on your own copy, then paste its signed card here.</p>
+<label>Visit request<textarea id="challengeOut" readonly></textarea></label><label>Signed visiting card<textarea id="proofIn" maxlength="40000"></textarea></label><button type="button" id="submitProof">Send my card</button></details></div>
+<a class="enter" id="enter" href="/walk?view=green_room/wide" hidden>Enter the studio</a>
+</section>
+<section id="sign" hidden><h2>Your visiting card</h2><p id="signIntro">Sign in as the owner of your own PubCast copy. Your private details stay here; your card carries your name, ID and explicitly shared fields.</p>
+<label>Visit request<textarea id="challengeIn" maxlength="4000"></textarea></label><p id="target" class="key"></p>
+<label><input type="checkbox" id="consent"> I accept the production terms, recording, AI participation and data processing for this visit.</label>
+<a id="terms" target="_blank" rel="noopener noreferrer" hidden>Review this host’s entry information</a><br>
+<button type="button" id="signCard">Approve my visiting card</button>
+<div id="signed" hidden><p>Your identity key — compare it with your host:</p><p id="fingerprint" class="key"></p><label>Signed visiting card<textarea id="proofOut" readonly></textarea></label><p id="sentMessage"></p></div>
+</section>
+<section id="host" hidden><h2>Invite people to your production</h2><p>Visitors keep their own identities. Each invitation admits one guest and expires in one hour.</p>
+<button type="button" id="createInvite">Create invitation</button><label id="inviteLabel" hidden>Invitation code<input id="inviteOut" readonly></label>
+<button type="button" id="lockDoor">Require approval</button><button type="button" id="unlockDoor">Let valid invitations enter</button>
+<p id="doorState" role="status"></p>
+<p class="muted">Requiring approval holds new visitors in the waiting room. Letting invitations enter applies to future verified requests.</p>
+<button type="button" id="refresh">Refresh waiting room</button><div id="pending"></div>
+<h3>Revoke a visit</h3><form id="revoke"><label>Visit ID<input id="revokeId" maxlength="128" required></label><button>Revoke access</button></form>
+</section>
+</main><script src="/static/human_visits.js"></script></body></html>

@@ -1,0 +1,40 @@
+/workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/pytest_asyncio/plugin.py:300: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the "fixture" caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+..F...............                                                       [100%]
+=================================== FAILURES ===================================
+_____________ test_returning_id_cannot_change_key_or_escalate_role _____________
+
+rig = (<modules.guest_identity.GuestAdmission object at 0x7f2262e38e60>, <modules.credentials.CredentialStore object at 0x7f...ssing': True}}, 'signature': 'hzCUiQN0wSZOXseOpxV9pxJy8yk6gCMyKdFC6jVPHku-885sV7GGvQP0T9de046yPeCTInQtvt_FUubQMPgkCw'})
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-8/test_returning_id_cannot_chang0')
+
+    def test_returning_id_cannot_change_key_or_escalate_role(rig, tmp_path):
+        host, home, challenge, proof = rig
+        entry = host.submit(proof)
+        host.governance.approve_entry(entry, 'owner')
+        host.status(challenge['poll_token'])
+        new = host.challenge(host.invite(), 'http://host.example:8000')
+        attacker = sign_visit(CredentialStore(tmp_path/'attacker'), profile(), new['challenge'], CONSENTS)
+        with pytest.raises(ValueError, match='different identity key'):
+            host.submit(attacker)
+        assert not host.validate_claims({**claims(host, entry), 'role': 'owner'})
+        assert not host.validate_claims(claims(host, entry, 'u_00000000000000000000'))
+        assert not host.validate_claims({**claims(host, entry), 'guest_host': '0'*32})
+        host.governance.ban_user(profile()['user_id'], 'test ban', 'owner')
+>       assert not host.validate_claims(claims(host, entry))
+E       AssertionError: assert not True
+E        +  where True = validate_claims({'sub': 'u_1234567890abcdef1234', 'role': 'guest', 'guest_host': 'b28447eaf2bb0ed66568633e37b09e4a', 'guest_entry': '32c004ef-6a7'})
+E        +    where validate_claims = <modules.guest_identity.GuestAdmission object at 0x7f2262e38e60>.validate_claims
+E        +    and   {'sub': 'u_1234567890abcdef1234', 'role': 'guest', 'guest_host': 'b28447eaf2bb0ed66568633e37b09e4a', 'guest_entry': '32c004ef-6a7'} = claims(<modules.guest_identity.GuestAdmission object at 0x7f2262e38e60>, '32c004ef-6a7')
+
+tests/test_guest_identity.py:94: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/starlette/testclient.py:40
+  /workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/starlette/testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_guest_identity.py::test_returning_id_cannot_change_key_or_escalate_role
+1 failed, 17 passed, 1 warning in 16.01s

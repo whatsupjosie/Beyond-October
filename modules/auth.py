@@ -26,6 +26,13 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
+_guest_admission = None
+
+
+def set_guest_admission(admission) -> None:
+    """Wire the host's durable visiting-session validator into every token consumer."""
+    global _guest_admission
+    _guest_admission = admission
 
 try:  # Optional legacy compatibility only; new passwords do not depend on it.
     import bcrypt as _bcrypt
@@ -241,7 +248,11 @@ def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
     if not token or not isinstance(token, str):
         return None
     try:
-        return _jwt_decode(token, _SECRET_KEY)
+        payload = _jwt_decode(token, _SECRET_KEY)
+        if 'guest_entry' in payload or 'guest_host' in payload:
+            if _guest_admission is None or not _guest_admission.validate_claims(payload):
+                return None
+        return payload
     except JWTError as exc:
         logger.debug("JWT decode failed: %s", exc)
         return None

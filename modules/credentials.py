@@ -8,11 +8,12 @@ import base64
 import json
 import os
 import secrets
+import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from threading import RLock
-from typing import Dict, Iterable, List, Mapping, Optional
+from typing import Callable, Dict, Iterable, List, Mapping, Optional
 
 try:
     from cryptography.fernet import Fernet, InvalidToken
@@ -36,6 +37,31 @@ MODELS_DIR_NAME = "models"
 
 class CredentialError(RuntimeError):
     """Raised for credential storage or retrieval failures."""
+
+
+def _create_once(path: Path, payload: bytes) -> bytes:
+    """Publish complete bytes without replacing an existing key, even across workers."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(dir=path.parent, prefix='.key-', delete=False) as stream:
+        temporary = Path(stream.name)
+        try:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        except BaseException:
+            stream.close()
+            temporary.unlink(missing_ok=True)
+            raise
+    try:
+        try:
+            # Linking publishes an already complete file atomically. It refuses
+            # to replace a winner; unlike exists()+write(), no key is rotated.
+            os.link(temporary, path)
+        except FileExistsError:
+            pass
+        return path.read_bytes()
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 @dataclass
@@ -232,6 +258,23 @@ class CredentialStore:
         payload = self._read_creds_payload(user_id)
         return (payload.get(model_id) or {}).keys()
 
+    def identity_secret(self, user_id: str, factory: Callable[[], bytes]) -> bytes:
+        """An immutable human identity secret, encrypted by this existing vault.
+
+        The private value never goes into model metadata, profiles or public
+        visiting cards. Competing workers all receive the same persisted key.
+        """
+        path = self.secure_dir / 'identities' / (storage_key(user_id) + '.key')
+        with self._lock:
+            if path.exists():
+                encrypted = path.read_bytes()
+            else:
+                encrypted = _create_once(path, self._fernet.encrypt(factory()))
+            try:
+                return self._fernet.decrypt(encrypted)
+            except InvalidToken as exc:
+                raise CredentialError('Unable to open the human identity key') from exc
+
     # ------------------------------------------------------------------ #
     # Internal helpers
 
@@ -252,14 +295,7 @@ class CredentialStore:
             raw = self.master_key_path.read_bytes()
             return raw.strip()
 
-        key = Fernet.generate_key()
-        self.master_key_path.write_bytes(key)
-        try:
-            os.chmod(self.master_key_path, 0o600)
-        except OSError:
-            # Windows may not support chmod; ignore failures.
-            pass
-        return key
+        return _create_once(self.master_key_path, Fernet.generate_key()).strip()
 
     def _store_secret(self, user_id: str, model_id: str, name: str, secret: str) -> None:
         payload = self._read_creds_payload(user_id)

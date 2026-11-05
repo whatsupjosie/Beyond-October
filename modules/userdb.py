@@ -82,6 +82,11 @@ def _sync_init_db() -> None:
                 email           TEXT NOT NULL DEFAULT '',
                 created_at      REAL NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS visiting_profiles (
+                user_id TEXT PRIMARY KEY,
+                card_json TEXT NOT NULL,
+                card_at REAL NOT NULL
+            );
         """)
         columns = {row[1] for row in conn.execute('PRAGMA table_info(profiles)')}
         for column, declaration in {
@@ -164,6 +169,32 @@ def _profile_dict(row) -> Optional[Dict[str, Any]]:
     return value
 
 
+def _visiting_profile(conn, user_id):
+    row = conn.execute('SELECT * FROM visiting_profiles WHERE user_id=?', (user_id,)).fetchone()
+    if row is None:
+        return None
+    card = json.loads(row['card_json'])
+    return dict(user_id=card['user_id'], username=card['username'], display_name=card['display_name'],
+                email='', role='guest', created_at=row['card_at'], details=card['details'],
+                profile_revision=0, photo_sha256='', visiting=True)
+
+
+def _sync_save_visiting_profile(card, card_at):
+    """Cache only an admitted signed public card; no local user/password is made."""
+    conn = _get_connection()
+    try:
+        conn.execute('BEGIN IMMEDIATE')
+        if conn.execute('SELECT 1 FROM profiles WHERE user_id=?', (card['user_id'],)).fetchone():
+            raise ValueError('A visitor cannot replace a local profile')
+        conn.execute('''INSERT INTO visiting_profiles VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE
+                        SET card_json=excluded.card_json, card_at=excluded.card_at
+                        WHERE excluded.card_at>visiting_profiles.card_at''',
+                     (card['user_id'], json.dumps(card), card_at))
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def _sync_get_profile_by_username(username: str) -> Optional[Dict[str, Any]]:
     conn = _get_connection()
     try:
@@ -180,7 +211,7 @@ def _sync_get_profile_by_username(username: str) -> Optional[Dict[str, Any]]:
                 "WHERE p.username = ? COLLATE NOCASE",
                 (username,),
             ).fetchone()
-        return _profile_dict(row)
+        return _profile_dict(row) if row else _visiting_profile(conn, username)
     finally:
         conn.close()
 
@@ -193,7 +224,7 @@ def _sync_get_profile(user_id: str) -> Optional[Dict[str, Any]]:
             "WHERE p.user_id = ?",
             (user_id,),
         ).fetchone()
-        return _profile_dict(row)
+        return _profile_dict(row) if row else _visiting_profile(conn, user_id)
     finally:
         conn.close()
 
@@ -207,7 +238,8 @@ def _sync_list_profiles() -> List[Dict[str, Any]]:
             f"SELECT {_PROFILE_COLS} FROM profiles p JOIN users u ON u.username = p.username COLLATE NOCASE "
             "ORDER BY p.created_at ASC"
         ).fetchall()
-        return [_profile_dict(r) for r in rows]
+        visitors = conn.execute('SELECT user_id FROM visiting_profiles ORDER BY card_at').fetchall()
+        return [_profile_dict(r) for r in rows] + [_visiting_profile(conn, r['user_id']) for r in visitors]
     finally:
         conn.close()
 

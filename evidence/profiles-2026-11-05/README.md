@@ -31,3 +31,13 @@ contacts/message requests, full profile onboarding browser acceptance, native
 Windows/device checks, groups/schedules, targeted debugging and both post-feature
 whole-codebase debugging rounds. Existing local crew fixtures are regression
 coverage, not proof of the new guest model. No main merge, Actions or deployment.
+
+## First-run browser follow-up
+
+RAN `tests/test_human_profile_onboarding_browser.py` and
+`tests/test_human_profiles_browser.py`: **four passed**, one deprecation warning,
+14.23 seconds. Two independent fresh-install journeys use the actual login page,
+choose private/discoverable, skip optional fields, retain the permanent ID and
+return to the requested same-origin destination. Existing setup disappears once
+the owner exists. This closes the earlier first-run browser gap, not guest or
+hardware acceptance. Corrected the login fallback to keep the server-returned ID.

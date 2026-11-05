@@ -79,6 +79,7 @@
     <div class="success" id="regOk" style="display:none"></div>
   </div>
 
+  <p><a href="/static/human_visits.html?mode=join">Join a production with your own PubCast identity</a></p>
   <div class="hint">Feic Mo Chroí</div>
 </div>
 
@@ -112,7 +113,7 @@
     if (window.ReachAuth) window.ReachAuth.saveSession(data);
     else {
       sessionStorage.setItem('pubcast_token', data.access_token);
-      sessionStorage.setItem('pubcast_user', JSON.stringify({username:data.username, user_id:data.username, role:data.role}));
+      sessionStorage.setItem('pubcast_user', JSON.stringify({username:data.username, user_id:data.user_id || data.username, role:data.role}));
       localStorage.setItem('pubcast.clientId', data.username);
     }
     location.href = setupRequired ? '/static/human_profile.html?onboarding=1&next='+encodeURIComponent(safeNext()) : safeNext();

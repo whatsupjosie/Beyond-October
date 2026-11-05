@@ -494,6 +494,14 @@ class GovernanceEngine:
         consents: Dict[str, bool] = None,
     ) -> WaitingRoomEntry:
         """User requests to enter a room. Goes to waiting room first."""
+        with sqlite3.connect(self._db_path) as conn:
+            entry = self._insert_waiting_entry(conn, user_id, display_name, target_room, consents)
+        self._audit("ENTRY_REQUEST", user_id, None,
+                     f"room={target_room}, name={display_name}")
+        return entry
+
+    def _insert_waiting_entry(self, conn, user_id, display_name, target_room, consents=None):
+        """Insert within an existing governance transaction (e.g. verified invite use)."""
         entry = WaitingRoomEntry(
             entry_id=str(uuid.uuid4())[:12],
             user_id=user_id,
@@ -502,12 +510,9 @@ class GovernanceEngine:
             requested_at=time.time(),
             consents=consents or {},
         )
-        with sqlite3.connect(self._db_path) as conn:
-            conn.execute('INSERT INTO waiting_entries VALUES (?,?,?,?,?,?,?,?,?)',
-                         (entry.entry_id, entry.user_id, entry.display_name, entry.target_room,
-                          entry.requested_at, entry.status.value, None, None, json.dumps(entry.consents)))
-        self._audit("ENTRY_REQUEST", user_id, None,
-                     f"room={target_room}, name={display_name}")
+        conn.execute('INSERT INTO waiting_entries VALUES (?,?,?,?,?,?,?,?,?)',
+                     (entry.entry_id, entry.user_id, entry.display_name, entry.target_room,
+                      entry.requested_at, entry.status.value, None, None, json.dumps(entry.consents)))
         return entry
 
     def approve_entry(self, entry_id: str, approved_by: str) -> Optional[WaitingRoomEntry]:

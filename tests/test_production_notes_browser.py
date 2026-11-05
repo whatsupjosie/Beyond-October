@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 import secrets
 import socket
+import sqlite3
 import subprocess
 import sys
 import time
@@ -57,9 +58,18 @@ def reach(tmp_path_factory):
                                              "display_name": "Josie", "email": "josie@example.com"})
         assert r.status_code == 201, r.text
         owner = {"Authorization": "Bearer " + r.json()["access_token"]}
-        for u, d in (("repete-notes", "RePete"), ("pete-notes", "Pete")):
-            assert c.post("/api/production/people", headers=owner,
-                          json={"username": u, "password": pw, "display_name": d, "email": u + "@example.com"}).status_code == 201
+        # Regression fixture for pre-existing local crew; the creation API is retired.
+        from modules.auth import get_password_hash
+        with sqlite3.connect(data / 'users.db') as db:
+            for u, d in (("repete-notes", "RePete"), ("pete-notes", "Pete")):
+                db.execute('INSERT INTO users(username,hashed_password,role) VALUES(?,?,?)', (u,get_password_hash(pw),'guest'))
+        # Let the same additive backfill create their permanent legacy profiles.
+        for p in c.get('/api/production/people', headers=owner).json()['people']:
+            if p['username'] != 'owner-notes':
+                token = c.post('/api/auth/login', json={'username':p['username'],'password':pw}).json()['access_token']
+                assert c.patch('/api/profile/me', headers={'Authorization':'Bearer '+token},
+                               json={'display_name':'RePete' if p['username']=='repete-notes' else 'Pete',
+                                     'email':p['username']+'@example.com'}).status_code == 200
         people = {p["username"]: p for p in c.get("/api/production/people", headers=owner).json()["people"]}
 
         def login(u):

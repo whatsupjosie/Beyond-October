@@ -356,10 +356,13 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
     @router.get("/api/profile/me")
     async def profile_me(profile: Dict[str, Any] = Depends(me)) -> Dict[str, Any]:
         return dict(public(profile, with_email=True), created_at=profile["created_at"],
-                    details=profile['details'], revision=profile['profile_revision'],has_photo=bool(profile['photo_sha256']))
+                    details=profile['details'], revision=profile['profile_revision'],has_photo=bool(profile['photo_sha256']),
+                    visiting=bool(profile.get('visiting')))
 
     @router.patch("/api/profile/me")
     async def profile_update(request: Request, profile: Dict[str, Any] = Depends(me)) -> Dict[str, Any]:
+        if profile.get('visiting'):
+            raise HTTPException(403, 'Edit your profile on your own PubCast copy, then bring a fresh visiting card')
         body = await _json(request)
         unknown = set(body) - {"display_name", "email", "details", "revision"}
         if unknown:
@@ -380,6 +383,8 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
 
     @router.post('/api/profile/photo')
     async def upload_profile_photo(request: Request, revision: int, profile: dict = Depends(me)):
+        if profile.get('visiting'):
+            raise HTTPException(403, 'Edit your profile picture on your own PubCast copy')
         from modules.human_profiles import normalize_photo
         import asyncio
         async def receive():
@@ -433,6 +438,8 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
 
     @router.post("/api/profile/password")
     async def profile_password(request: Request, profile: Dict[str, Any] = Depends(me)) -> Dict[str, Any]:
+        if profile.get('visiting'):
+            raise HTTPException(403, 'Change your password on your own PubCast copy')
         from modules.auth_routes import _validate_password      # the same password rules as first-run setup
         body = await _json(request)
         current, new = body.get("current_password"), body.get("new_password")
@@ -455,32 +462,11 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
         return {"me": profile["user_id"],
                 "people": [public(p, with_email=sees_all or p["user_id"] == profile["user_id"]) for p in everyone]}
 
-    @router.post("/api/production/people", status_code=201)
+    @router.post("/api/production/people")
     async def add_person(request: Request, profile: Dict[str, Any] = Depends(me)) -> Dict[str, Any]:
-        from modules.auth_routes import _USERNAME_RE, _validate_password
         if not role_gte(profile.get("role", "guest"), "mod"):
             raise HTTPException(403, "Only the owner or a moderator can add crew")
-        body = await _json(request)
-        username = str(body.get("username") or "").strip()
-        password = body.get("password")
-        role = str(body.get("role") or "guest")
-        if not _USERNAME_RE.fullmatch(username):
-            raise HTTPException(400, "Username may use letters, numbers, dot, dash, and underscore (3 to 64)")
-        if not isinstance(password, str):
-            raise HTTPException(400, "A starting password is required")
-        if role == "mod" and profile.get("role") != "owner":
-            raise HTTPException(403, "Only the owner can add a moderator")
-        _validate_password(password, username)
-        try:
-            user_id = await userdb.create_member(username, password, role,
-                                                 str(body.get("display_name") or ""), str(body.get("email") or ""))
-        except ValueError as exc:
-            raise HTTPException(400, str(exc)) from exc
-        if user_id is None:
-            raise HTTPException(409, "That username is already taken")
-        created = await userdb.get_profile(user_id)
-        logger.info("production notes: %s added crew account %s (%s)", profile["username"], username, role)
-        return public(created, with_email=True)
+        raise HTTPException(410, 'Invite guests through Guests and invitations. Each guest brings their own PubCast identity; new local crew accounts are retired.')
 
     # ---------------------------------------------------------------- notes
     @router.get("/api/notes/spots")

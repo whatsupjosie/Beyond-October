@@ -41,10 +41,9 @@ def env(tmp_path, monkeypatch):
         return {"Authorization": "Bearer " + auth.create_access_token({"sub": username, "role": role})}
 
     owner = as_("josie", "owner")
+    # Legacy local accounts remain usable; new installations admit independent visitors.
     for name, display in (("repete", "RePete"), ("pete", "Pete")):
-        r = client.post("/api/production/people", headers=owner,
-                        json={"username": name, "password": PW, "display_name": display, "email": f"{name}@example.com"})
-        assert r.status_code == 201, r.text
+        assert userdb._sync_create_member(name, PW, 'guest', display, f'{name}@example.com')
     people = {p["username"]: p for p in client.get("/api/production/people", headers=owner).json()["people"]}
     return client, as_, people, tmp_path
 
@@ -65,15 +64,13 @@ def test_profiles_have_permanent_ids_and_validate(env):
     assert client.patch("/api/profile/me", headers=as_("pete", "guest"), json={"display_name": "x" * 81}).status_code == 400
 
 
-def test_only_owner_or_mod_adds_crew_and_only_owner_adds_mods(env):
+def test_local_crew_creation_is_retired_without_changing_legacy_accounts(env):
     client, as_, _, _ = env
     body = {"username": "kay", "password": PW, "role": "guest"}
     assert client.post("/api/production/people", headers=as_("pete", "guest"), json=body).status_code == 403
-    assert client.post("/api/production/people", headers=as_("josie", "owner"), json=dict(body, username="pete")).status_code == 409
-    assert client.post("/api/production/people", headers=as_("josie", "owner"), json=dict(body, username="PETE")).status_code == 409
-    assert client.post("/api/production/people", headers=as_("josie", "owner"), json=dict(body, password="short")).status_code == 400
-    assert client.post("/api/production/people", headers=as_("josie", "owner"), json=dict(body, role="owner")).status_code == 400
-    assert client.post("/api/production/people", headers=as_("josie", "owner"), json=dict(body, username="bad name")).status_code == 400
+    for payload in [body, dict(body, username='pete'), dict(body, role='owner'), dict(body, password='short')]:
+        result = client.post('/api/production/people', headers=as_('josie', 'owner'), json=payload)
+        assert result.status_code == 410 and 'own PubCast identity' in result.json()['detail']
     # nothing half-made by the failures above
     assert "kay" not in {p["username"] for p in client.get("/api/production/people", headers=as_("josie", "owner")).json()["people"]}
 
