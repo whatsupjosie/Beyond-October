@@ -178,7 +178,7 @@ def _clean_staging(incoming: Path):
     # Registration, lease release and cleanup use this same stable parent lock.
     # No age heuristic: slow uploads can still be live. Legacy loose files have
     # no ownership proof and are retained rather than deleting a live old worker's bytes.
-    with _staging_lock(incoming / '.staging.lock'):
+    with _staging_lock(incoming.parent / '.incoming.lock'):
         for path in incoming.glob('batch-*'):
             if not path.is_dir() or path.is_symlink():
                 continue
@@ -200,7 +200,7 @@ class _UploadBatch:
         self.incoming = incoming
         self.path = incoming / ('batch-' + secrets.token_hex(16))
         self.lease = None
-        with _staging_lock(incoming / '.staging.lock'):
+        with _staging_lock(incoming.parent / '.incoming.lock'):
             self.path.mkdir()
             try:
                 self.lease = _staging_lock(self.path / '.lease')
@@ -210,7 +210,7 @@ class _UploadBatch:
                 raise
 
     def close(self):
-        with _staging_lock(self.incoming / '.staging.lock'):
+        with _staging_lock(self.incoming.parent / '.incoming.lock'):
             if self.lease is not None:
                 self.lease.__exit__(None, None, None)
                 self.lease = None
