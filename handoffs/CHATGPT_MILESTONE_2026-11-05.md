@@ -6,7 +6,7 @@
 **Owner:** Josie Curtsey Cobbley / Rearview Foresight  
 **Implementer:** GPT-6 / ChatGPT (this branch only)  
 **Master coordination:** [Beyond-October issue #1](https://github.com/whatsupjosie/Beyond-October/issues/1)  
-**Status:** SCOPED SOFTWARE WORK COMPLETE WITHIN THE AVAILABLE ENVIRONMENT. Final repaired-tree full confirmation: 2,363 passed, six skipped, sixteen subtests; Node 104 reported cases passed. Hardware/optional-model and advanced native-render exclusions remain explicit. See [the latest session-ending handoff](SESSION_ENDING_2026-11-05_SCOPE_COMPLETION.md). Earlier entries below are historical. This is a living work record. A separate **session-ending handoff** is required at the end of every work session, whether or not the milestone is complete.
+**Status:** Post-completion reliability audit completed in the available environment; see [the audit handoff](SESSION_ENDING_2026-11-06_RELIABILITY_AUDIT.md). Five missed defects and one introduced cleanup regression repaired. Final full confirmation: 2,371 passed, six skipped, sixteen subtests; 105 Node reported cases passed. Open engineering/device/timing gates below remain open. Previous result: SCOPED SOFTWARE WORK COMPLETE WITHIN THE AVAILABLE ENVIRONMENT. Final repaired-tree full confirmation: 2,363 passed, six skipped, sixteen subtests; Node 104 reported cases passed. Hardware/optional-model and advanced native-render exclusions remain explicit. See [the latest session-ending handoff](SESSION_ENDING_2026-11-05_SCOPE_COMPLETION.md). Earlier entries below are historical. This is a living work record. A separate **session-ending handoff** is required at the end of every work session, whether or not the milestone is complete.
 
 ## Exact stopping point chosen by the owner
 
@@ -86,3 +86,16 @@ Do **not** start experimental 3D/voxel builder, gamified onboarding, unrelated m
 Signed: Codex / ChatGPT Work. Gates above are closed for their supported software/browser journeys, not as native hardware certification. Local final application `878ef65`, tree `e33526b9b2cba7da5f5df0030e6af6166a9cc761`. Groups, schedule/placement previews, contacts, durable cross-worker moderation and startup migrations completed; guest entry and real-host photos repaired. Round 1: 2,357 passed, six skipped, one failure and four teardown errors; fixes and targeted reruns documented. Round 2 initially: 2,362 passed, six skipped, one clacker timing failure; repaired callback timing, focused rerun passed. Final full confirmation: 2,363 passed, six skipped, zero failures/errors, 217 warnings, sixteen subtests, 963.46 seconds. All 29 Node files exited 0, 104 reported cases. See `evidence/scope-completion-2026-11-05/README.md` and the latest session-ending handoff for commands, source hashes, reproductions, repairs and exclusions.
 
 Native Windows/physical audio-video devices, WAN/cross-device timing, optional speech models, advanced native source-master/selective rendering, guest photo transfer, cartridge backup UX and global profile federation are not certified by these gates. The synchronization decision retains the tested shared-clock marker path; automatic three-probe calibration and compensation are documented design options, not implemented feature claims. No main merge, deployment or GitHub Actions. The scoped stopping point has been reached.
+
+## Post-completion audit — quality gates still open
+
+The later reliability audit supersedes blanket completion wording with its exact source, executed evidence and five repaired defects. Existing checked software/browser tasks above do not close these distinct requirements:
+
+- [ ] Demonstrated frame-accurate or millisecond-accurate video/audio alignment under supported real-device loads; automatic three-probe calibration remains design only.
+- [ ] Complete replayable scene-source master, deterministic source replay and selective native 4K export; actual independent DaVinci import/relink. These are open engineering acceptance gates, not merely untested hardware.
+- [ ] Native Windows/PowerShell 5, physical audio/video/GPU devices, phones, WAN/cross-device clock drift, sustained load and power-loss acceptance.
+- [ ] Optional real-speech-model/decoder acceptance for the six explicitly skipped research/optional cases.
+
+See `handoffs/SESSION_ENDING_2026-11-06_RELIABILITY_AUDIT.md`. PubCast is not sealed or declared release-ready by a passing scoped browser suite.
+
+Signed audit completion: Codex / ChatGPT Work, November 6 UTC. Final application local `bf20f7f`, public twin `885707b079f71b17b3f84e0a801e129eb61538d1`, tested tree `8bd568419b03703b4d113a20b966975c972b4c78`. Final full confirmation 2,371 passed, six skipped, zero failures/errors, 217 warnings, sixteen subtests, 990.44 seconds. The failed 2,370-pass/one-failure audit run remains in the evidence; its original cleanup assertion was preserved. See `evidence/reliability-audit-2026-11-06/README.md`.

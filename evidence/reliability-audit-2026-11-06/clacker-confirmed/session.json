@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "id": "pubcast25d-1793946860102-v4h15z",
+  "packageId": "news",
+  "startedAt": "2026-11-06T06:34:20.102Z",
+  "endedAt": null,
+  "events": [
+    {
+      "offsetMs": 0,
+      "type": "production.start",
+      "payload": {
+        "package": "news",
+        "program": "wide"
+      }
+    },
+    {
+      "offsetMs": 108,
+      "type": "camera.shared_state",
+      "payload": {
+        "program": "wide",
+        "preview": "anchor",
+        "transition": {
+          "type": "cut",
+          "duration_ms": 0
+        }
+      }
+    },
+    {
+      "offsetMs": 791,
+      "type": "recording.start",
+      "payload": {
+        "mime": "video/webm;codecs=vp9,opus",
+        "microphone": false,
+        "sharedProgramMix": true,
+        "canvas": [
+          1280,
+          720
+        ],
+        "journal": "pubcast25d-1793946860102-v4h15z-take-1793946860890-98f0fe1d"
+      }
+    },
+    {
+      "offsetMs": 35809,
+      "type": "recording.stop",
+      "payload": {
+        "bytes": 1251450,
+        "mime": "video/webm;codecs=vp9,opus",
+        "incomplete": false
+      }
+    }
+  ],
+  "syncReferences": [
+    {
+      "id": "77e0f42a41909701bea750d199ea4d2f",
+      "schema": "pubcast.clacker/1",
+      "intervalUs": 15000000,
+      "sampleRate": 44100,
+      "originFrame": 11201,
+      "toneHz": 1000,
+      "pulseUs": 50000,
+      "videoPulseUs": 500000,
+      "audioMarks": [
+        {
+          "sequence": 1,
+          "frame": 672701,
+          "productionUs": 15000000
+        },
+        {
+          "sequence": 2,
+          "frame": 1334201,
+          "productionUs": 30000000
+        }
+      ],
+      "videoMarks": [
+        {
+          "sequence": 1,
+          "audioFrame": 676096,
+          "productionUs": 15076984,
+          "observedUnixMs": 1793946875168
+        },
+        {
+          "sequence": 2,
+          "audioFrame": 1334400,
+          "productionUs": 30004512,
+          "observedUnixMs": 1793946890112
+        }
+      ],
+      "clockScope": "local-shared-audio-context",
+      "crossDeviceAlignment": "unmeasured"
+    }
+  ],
+  "sourceTracks": [
+    {
+      "id": "pubcast25d-1793946860102-v4h15z-take-1793946860890-98f0fe1d-voice-58962e006a686b4b",
+      "parentTakeId": "pubcast25d-1793946860102-v4h15z-take-1793946860890-98f0fe1d",
+      "sourceId": "clacker-reference",
+      "label": "Clacker reference",
+      "kind": "sync-reference",
+      "syncReferenceId": "77e0f42a41909701bea750d199ea4d2f",
+      "mime": "audio/webm;codecs=opus",
+      "bytes": 11407,
+      "startedAt": "2026-11-06T06:34:20.893Z",
+      "offsetMs": 791,
+      "durationMs": 34990,
+      "preFader": true,
+      "incomplete": false
+    }
+  ],
+  "recordings": [
+    {
+      "id": "pubcast25d-1793946860102-v4h15z-take-1793946860890-98f0fe1d",
+      "mime": "video/webm;codecs=vp9,opus",
+      "bytes": 1251450,
+      "sourceId": "p25d_news_wide",
+      "syncReferenceId": "77e0f42a41909701bea750d199ea4d2f",
+      "startedAt": "2026-11-06T06:34:20.893Z",
+      "offsetMs": 791,
+      "durationMs": 35018,
+      "incomplete": false,
+      "journal": {
+        "chunks": 32,
+        "bytes": 1251450
+      }
+    }
+  ],
+  "media": {
+    "id": "pubcast25d-1793946860102-v4h15z-take-1793946860890-98f0fe1d",
+    "mime": "video/webm;codecs=vp9,opus",
+    "bytes": 1251450,
+    "sourceId": "p25d_news_wide",
+    "syncReferenceId": "77e0f42a41909701bea750d199ea4d2f",
+    "startedAt": "2026-11-06T06:34:20.893Z",
+    "offsetMs": 791,
+    "durationMs": 35018,
+    "incomplete": false,
+    "journal": {
+      "chunks": 32,
+      "bytes": 1251450
+    }
+  }
+}

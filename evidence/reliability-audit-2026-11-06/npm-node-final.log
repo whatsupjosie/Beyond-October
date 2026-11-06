@@ -1,0 +1,45 @@
+
+> pubcast-reach-dev-tests@0.0.0 test:node
+> node --test tests/test_avatar_glb_motion_consumer_node.js tests/test_program_audio_runtime_node.js tests/test_reach_editor.cjs tests/test_reader.cjs tests/test_studio_console_hotspots_node.js tests/test_voxel_block_preview_client_node.js tests/test_switcher_keyboard_node.js
+
+test_avatar_glb_motion_consumer_node.js passed
+✔ tests/test_avatar_glb_motion_consumer_node.js (78.541443ms)
+test_program_audio_runtime_node.js passed
+✔ tests/test_program_audio_runtime_node.js (89.774808ms)
+PASS: original image hash, labeled button map and shared scaling
+PASS: words, title and references survive save and reload
+PASS: partner changes isolate conversations; full history reaches the adapter
+PASS: unavailable model displays an error without inventing an assistant turn
+PASS: locked manuscript text resists free editing and replace-all
+PASS: image hotspots insert to draft, commit, open collections and navigate scenes
+PASS: malformed import leaves the manuscript intact
+PASS: imported reference metadata stays inert text
+PASS: stale revision protects the server copy
+PASS: all 26 pictured controls clicked, with navigation, settings, search, archive, locks, chat, draft, save and exports checked
+PASS: chapter destinations follow edits made before them; clickable-area display preserves coordinates
+PASS: switching manuscripts waits for edits made while a save was in progress
+PASS: offline manuscript copies remain separately recoverable through switching and reload
+PASS: phone view reuses all 26 controls with readable captions, 48px minimum heights, writing, save and partner-to-draft actions
+PASS: phone archive, settings, exports and shelf work; desktop/phone switches preserve the exact editor, unsaved state and original coordinates
+PASS: phone tabs support keyboard navigation, viewport changes retain the view, small screens select phone mode, and explicit desktop mode is honored
+✔ tests/test_reach_editor.cjs (1909.457318ms)
+PASS: read/pause/resume/stop, paragraph and 10-word navigation, rate/volume/voice, stale-event cancellation and text preservation
+PASS: automatic paragraph progression and ending, speech failures, edits and document switches stop safely
+PASS: long-text chunks retain every word; absent boundaries replay only the current chunk; unsupported or silent speech reports failure
+✔ tests/test_reader.cjs (89.928244ms)
+test_studio_console_hotspots_node.js passed
+✔ tests/test_studio_console_hotspots_node.js (70.031735ms)
+✔ number keys pick preview, shift+number takes program, space cuts (4.239489ms)
+✔ a plain array response still works (0.97348ms)
+✔ a key with no camera sends nothing, and typing in a field is ignored (1.634837ms)
+test_voxel_block_preview_client_node.js passed
+✔ tests/test_voxel_block_preview_client_node.js (87.065163ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1923.034189
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.

@@ -1,5 +1,7 @@
 # Session-ending handoff — scoped recording, profiles and production notes
 
+**Later audit:** [post-completion reliability audit](SESSION_ENDING_2026-11-06_RELIABILITY_AUDIT.md). Its reproduced defects and later verification supersede this checkpoint for current reliability status.
+
 Signed: Codex / ChatGPT Work, November 5 Los Angeles session (completed November 6 UTC).
 Branch: `chatgpt-work-2026-11-05`. Master coordination: [issue #1](https://github.com/whatsupjosie/Beyond-October/issues/1).
 

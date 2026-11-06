@@ -1,0 +1,35 @@
+/workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/pytest_asyncio/plugin.py:300: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the "fixture" caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____________ test_group_limit_includes_automatically_retained_owner ____________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-16/test_group_limit_includes_auto0')
+
+    def test_group_limit_includes_automatically_retained_owner(tmp_path):
+        import pytest
+        from fastapi import HTTPException
+        store=pn.NotesStore(tmp_path/'notes')
+        known={'owner'}|{'member'+str(i) for i in range(200)}
+        members=[{'user_id':'member'+str(i)} for i in range(200)]
+>       with pytest.raises(HTTPException) as error:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE HTTPException
+
+tests/test_scope_reliability_audit.py:50: Failed
+------------------------------ Captured log setup ------------------------------
+WARNING  modules.audio_devices:audio_devices.py:67 sounddevice unavailable (ModuleNotFoundError: No module named 'sounddevice'). Server-side audio device enumeration disabled; browser-side enumeration is unaffected.
+WARNING  modules.evo.facial_performance:facial_performance.py:65 DeepFace not available — facial analysis in simulation mode
+WARNING  modules.evo.facial_performance:facial_performance.py:77 MediaPipe not available — landmark analysis disabled
+WARNING  pubcast:main.py:638 CORS: '*' origin with credentials is not allowed by browsers - allow_credentials forced False. Set PUBCAST_ALLOWED_ORIGINS to specific origin.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/starlette/testclient.py:40
+  /workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/starlette/testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_scope_reliability_audit.py::test_group_limit_includes_automatically_retained_owner
+1 failed, 3 deselected, 1 warning in 1.41s

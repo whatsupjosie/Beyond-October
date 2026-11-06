@@ -1,0 +1,42 @@
+{
+  "application_commit": "bf20f7f520f0422b9c560f22e83d05a9035764a3",
+  "tree": "8bd568419b03703b4d113a20b966975c972b4c78",
+  "files": {
+    "modules/guest_identity.py": {
+      "sha256": "7832987b2d41a51cc960fb2b326d41f6eb97481e5580cb09b8dc1b2f89b51611",
+      "bytes": 15012
+    },
+    "modules/production_groups.py": {
+      "sha256": "c747db812a96c4bf4be77e35ec44948f9141d9748bd97048117ad805685d9878",
+      "bytes": 9582
+    },
+    "modules/production_notes.py": {
+      "sha256": "e8df363f0d5bbfb27289e9ed5898c475fc0d0d76aeb25da3e1655e14badcf5bf",
+      "bytes": 39500
+    },
+    "static/human_contacts.js": {
+      "sha256": "b6ae9c12683d5e51fd636e7e479200ab188082f8cd922b164b2ac1756498e2fb",
+      "bytes": 8031
+    },
+    "static/production_notes.js": {
+      "sha256": "0fafeffebbe558afd00715d52a0abc59cdcfbd6a5e3f9d032372efd381c56f48",
+      "bytes": 51022
+    },
+    "tests/test_contact_switch_node.cjs": {
+      "sha256": "c0c94c1cc516a352bc7a1e0a44095f9186c0335b9df3fd2a28837c0035ef3d75",
+      "bytes": 4022
+    },
+    "tests/test_guest_production_reliability_browser.py": {
+      "sha256": "479e57703f1f10c66bbeb667afff0a76cb6959c9521771fa619e92db34d8d19f",
+      "bytes": 8314
+    },
+    "tests/test_recording_integrity_audit.py": {
+      "sha256": "78e40b68cf3b3f35da65f60028876da0bb9b1277db0d9b88fb1a1c3304f2bb07",
+      "bytes": 2295
+    },
+    "tests/test_scope_reliability_audit.py": {
+      "sha256": "dfa8a16bd811e47e43f842e2e8fe4f97f8e8cdfb9c8636a030546aac856724ec",
+      "bytes": 5187
+    }
+  }
+}

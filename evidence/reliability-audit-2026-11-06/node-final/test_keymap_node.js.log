@@ -1,0 +1,70 @@
+TAP version 13
+# Subtest: defaults act only at the open station, and the same key can mean different things at different stations
+ok 1 - defaults act only at the open station, and the same key can mean different things at different stations
+  ---
+  duration_ms: 2.402416
+  type: 'test'
+  ...
+# Subtest: assign refuses reserved, modifier and invalid keys, and reports a conflict instead of taking the key
+ok 2 - assign refuses reserved, modifier and invalid keys, and reports a conflict instead of taking the key
+  ---
+  duration_ms: 0.55046
+  type: 'test'
+  ...
+# Subtest: asking where a button goes: the next key answers, Esc cancels, a taken key needs the same key twice
+ok 3 - asking where a button goes: the next key answers, Esc cancels, a taken key needs the same key twice
+  ---
+  duration_ms: 0.358211
+  type: 'test'
+  ...
+# Subtest: a fader: its key selects it, Up and Down step it within its range, Esc lets go, then Esc leaves the station
+ok 4 - a fader: its key selects it, Up and Down step it within its range, Esc lets go, then Esc leaves the station
+  ---
+  duration_ms: 0.452834
+  type: 'test'
+  ...
+# Subtest: save and load: cleared defaults stay cleared; bad, doubled, reserved and unknown entries are dropped
+ok 5 - save and load: cleared defaults stay cleared; bad, doubled, reserved and unknown entries are dropped
+  ---
+  duration_ms: 0.699426
+  type: 'test'
+  ...
+# Subtest: a spec with a bad default or a doubled default is refused at creation
+ok 6 - a spec with a bad default or a doubled default is refused at creation
+  ---
+  duration_ms: 0.504892
+  type: 'test'
+  ...
+# Subtest: the keyboard listener acts only while a station is open, stops other handlers when it uses a key, and leaves typing and shortcuts alone
+ok 7 - the keyboard listener acts only while a station is open, stops other handlers when it uses a key, and leaves typing and shortcuts alone
+  ---
+  duration_ms: 0.488127
+  type: 'test'
+  ...
+# Subtest: the module answers "is any station open?" across keymaps, which is what the walker asks
+ok 8 - the module answers "is any station open?" across keymaps, which is what the walker asks
+  ---
+  duration_ms: 0.228555
+  type: 'test'
+  ...
+# Subtest: the arrows are kept for faders only at stations that have one, so the camera can use them for tilt and pan
+ok 9 - the arrows are kept for faders only at stations that have one, so the camera can use them for tilt and pan
+  ---
+  duration_ms: 0.399173
+  type: 'test'
+  ...
+# Subtest: a held control acts for as long as its key is down: repeat does not press it again, any number at once, release on key up, blur, close and reassignment
+ok 10 - a held control acts for as long as its key is down: repeat does not press it again, any number at once, release on key up, blur, close and reassignment
+  ---
+  duration_ms: 0.73583
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 87.190839

@@ -95,3 +95,7 @@ Its relevant principles are calculating latency before playback, sharing a
 pipeline clock and accommodating the slowest live path through buffering.
 PubCast currently uses browser media APIs; this reference is architectural
 support, not a claim that GStreamer is installed or used by PubCast.
+
+## Post-completion audit clarification — November 6 UTC
+
+The 250 ms assertion is a regression guard for this capture path. It does not establish single-frame alignment at 24/25/30 fps, millisecond accuracy, a universal lip-sync tolerance or a guaranteed maximum latency. Observed values must remain labeled by run/device/load. A shared audio clock gives exact reference cadence on that clock; the main-thread video/encoder observation can still lag. Automatic calibration and compensation remain unimplemented design options. Full scene-source replay/native 4K and cross-device timing acceptance remain open.

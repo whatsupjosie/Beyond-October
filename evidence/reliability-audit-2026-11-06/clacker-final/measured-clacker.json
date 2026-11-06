@@ -1,0 +1,15 @@
+{
+  "audio_seconds": [
+    14.991,
+    29.991000000000003
+  ],
+  "video_seconds": [
+    15.006,
+    30.007
+  ],
+  "video_minus_reference_seconds": [
+    0.015000000000000568,
+    0.015999999999998238
+  ],
+  "scope": "one Linux Chromium shared audio clock; other devices unmeasured"
+}
