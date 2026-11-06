@@ -40,6 +40,8 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
+import shutil
 import re
 import secrets
 import sqlite3
@@ -70,7 +72,7 @@ FILE_BYTES_MAX = 10 * 1024 * 1024
 FILES_TOTAL_MAX = 25 * 1024 * 1024
 FILENAME_MAX = 120
 LIST_LIMIT_MAX = 500
-PRODUCTION = "@production"            # "everyone in the production but me"
+PRODUCTION = "@production"            # all members of the selected production
 KINDS = ("to", "cc", "bcc")
 NOTE_ID_RE = re.compile(r"^n_[0-9a-f]{20}$")
 FILE_ID_RE = re.compile(r"^f_[0-9a-f]{20}$")
@@ -143,6 +145,77 @@ class Spots:
             if s not in out:
                 out.append(s)
         return out
+
+
+@contextmanager
+def _staging_lock(path: Path, *, blocking=True):
+    """Stable OS lease, released even when a worker dies (also on Windows)."""
+    handle = open(path, 'a+b')
+    locked = False
+    try:
+        if os.name == 'nt':
+            import msvcrt
+            handle.seek(0)
+            # Windows permits locking beyond EOF. Do not read the byte before
+            # acquiring it: an existing exclusive lease denies that read.
+            msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK if blocking else msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB))
+        locked = True
+        yield
+    finally:
+        if locked:
+            if os.name == 'nt':
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        handle.close()
+
+
+def _clean_staging(incoming: Path):
+    # Registration, lease release and cleanup use this same stable parent lock.
+    # No age heuristic: slow uploads can still be live. Legacy loose files have
+    # no ownership proof and are retained rather than deleting a live old worker's bytes.
+    with _staging_lock(incoming / '.staging.lock'):
+        for path in incoming.glob('batch-*'):
+            if not path.is_dir() or path.is_symlink():
+                continue
+            try:
+                with _staging_lock(path / '.lease', blocking=False):
+                    pass
+            except OSError as exc:
+                import errno
+                if exc.errno in {errno.EACCES, errno.EAGAIN, errno.EDEADLK}:
+                    continue
+                raise
+            # Parent lock prevents a second cleaner or registration racing us;
+            # close the lease before removal for Windows sharing semantics.
+            shutil.rmtree(path)
+
+
+class _UploadBatch:
+    def __init__(self, incoming: Path):
+        self.incoming = incoming
+        self.path = incoming / ('batch-' + secrets.token_hex(16))
+        self.lease = None
+        with _staging_lock(incoming / '.staging.lock'):
+            self.path.mkdir()
+            try:
+                self.lease = _staging_lock(self.path / '.lease')
+                self.lease.__enter__()
+            except BaseException:
+                shutil.rmtree(self.path)
+                raise
+
+    def close(self):
+        with _staging_lock(self.incoming / '.staging.lock'):
+            if self.lease is not None:
+                self.lease.__exit__(None, None, None)
+                self.lease = None
+            if self.path.exists():
+                shutil.rmtree(self.path)
 
 
 class NotesStore:
@@ -347,11 +420,7 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
     spots = Spots(spots_file)
     incoming = store.root / "incoming"
     incoming.mkdir(parents=True, exist_ok=True)
-    for stale in incoming.glob("*"):                 # uploads a crash left half-written: never attached to anything
-        try:
-            stale.unlink()
-        except OSError:
-            pass
+    _clean_staging(incoming)
 
     async def me(identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
         # Only a signed-in person. With login switched off, a request can name anyone in a header; notes are private,
@@ -619,17 +688,16 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
             if await run_in_threadpool(store.get, reply_to, profile["user_id"]) is None:
                 raise HTTPException(404, "The note you are replying to is not one you can see")
 
-        files = await _receive_files(uploads, incoming)
+        batch = await run_in_threadpool(_UploadBatch, incoming)
         try:
+            files = await _receive_files(uploads, batch.path)
             note_id = await run_in_threadpool(store.create, profile["user_id"], subject, text,
                                               list(placed.items()), chosen_spots, reply_to, files, project, delivery, profile.get('role')=='owner')
-        except Exception:
-            for f in files:
-                try:
-                    f["tmp"].unlink()
-                except OSError:
-                    pass
-            raise
+        finally:
+            # Cleanup must finish even if the browser disconnects mid-upload.
+            import anyio
+            with anyio.CancelScope(shield=True):
+                await run_in_threadpool(batch.close)
         logger.info("production notes: %s sent %s to %d people (%d files)", profile["username"], note_id, len(placed), len(files))
         return {"id": note_id, "recipients": len(placed), "spots": chosen_spots, "files": len(files)}
 

@@ -1,10 +1,12 @@
 (async function () {
   'use strict';
   const $ = id => document.getElementById(id);
-  let socket = null, timer = null, room = null, pending = null, opening = 0;
+  let socket = null, timer = null, room = null, pending = null, opening = 0, receiptTimer = null;
   const status = message => { $('status').textContent = message; };
   const busy = value => { $('text').disabled = value; $('send').querySelector('button').disabled = value; };
   const draftKey = () => 'pubcast.dm.draft.' + (ReachAuth.getUser?.()?.username || 'participant') + '.' + room;
+
+  const cancelReceiptWait = () => { clearTimeout(receiptTimer); receiptTimer = null; };
 
   function remember() {
     if (!room) return;
@@ -58,6 +60,7 @@
   }
   async function open(contact) {
     const generation = ++opening;
+    cancelReceiptWait();
     remember(); const previous = socket; socket = null; previous?.close();
     const verified = await ReachAuth.verify();
     if (generation !== opening) return;
@@ -66,17 +69,17 @@
     $('conversation').hidden = false; $('who').textContent = 'Private conversation with ' + contact.other_user; $('log').replaceChildren();
     const current = new WebSocket(ReachAuth.websocketURL('/ws/chat/' + room)); socket = current;
     current.onopen = () => { if (socket === current) status(pending ? 'Private channel open. Resend the unconfirmed message to retry safely.' : 'Private channel open.'); };
-    current.onclose = () => { if (socket === current) { busy(false); remember(); status(pending ? 'Private channel closed. Your unconfirmed message is kept for retry.' : 'Private channel closed.'); } };
-    current.onerror = () => { if (socket === current) { busy(false); status('The private channel could not connect. Your draft is kept.'); } };
+    current.onclose = () => { if (socket === current) { cancelReceiptWait(); busy(false); remember(); status(pending ? 'Private channel closed. Your unconfirmed message is kept for retry.' : 'Private channel closed.'); } };
+    current.onerror = () => { if (socket === current) { cancelReceiptWait(); busy(false); status('The private channel could not connect. Your draft is kept.'); } };
     current.onmessage = event => {
       if (socket !== current) return;
       try {
         const packet = JSON.parse(event.data);
         if (packet.type === 'chat_receipt' && pending && packet.payload?.client_message_id === pending.id) {
           if ($('text').value === pending.text) $('text').value = '';
-          pending = null; busy(false); remember(); status('Private message confirmed.');
+          cancelReceiptWait(); pending = null; busy(false); remember(); status('Private message confirmed.');
         }
-        if (packet.type === 'error') { busy(false); status(packet.message || packet.payload?.msg || 'The message was not confirmed. Your draft is kept.'); }
+        if (packet.type === 'error') { cancelReceiptWait(); busy(false); status(packet.message || packet.payload?.msg || 'The message was not confirmed. Your draft is kept.'); }
         const messages = packet.type === 'history' ? packet.payload : packet.type === 'chat' ? [packet.payload] : [];
         for (const message of messages) { const row = document.createElement('p'); row.textContent = (message.user || message.user_id || 'Participant') + ': ' + (message.text || ''); $('log').append(row); }
         $('log').scrollTop = $('log').scrollHeight;
@@ -97,10 +100,20 @@
     if (!text.trim()) { status('Write a private message first.'); return; }
     if (!pending || pending.room !== room || pending.text !== text) pending = { id: messageID(), room, text };
     remember(); busy(true);
-    try { socket.send(JSON.stringify({ type: 'chat', text, client_message_id: pending.id })); status('Sending private message…'); }
+    try {
+      cancelReceiptWait();
+      const current = socket, id = pending.id;
+      socket.send(JSON.stringify({ type: 'chat', text, client_message_id: id }));
+      status('Sending private message…');
+      receiptTimer = setTimeout(() => {
+        if (socket !== current || pending?.id !== id) return;
+        busy(false); remember();
+        status('Message not confirmed. Your draft is kept; send again to retry safely.');
+      }, 15000);
+    }
     catch (error) { busy(false); status('Message not confirmed. Your draft is kept.'); }
   };
-  window.addEventListener('pagehide', () => { remember(); clearInterval(timer); socket?.close(); });
+  window.addEventListener('pagehide', () => { remember(); cancelReceiptWait(); clearInterval(timer); socket?.close(); });
   try { const session = await ReachAuth.requireSession(location.pathname); if (session) { await load(); timer = setInterval(() => { if (!document.hidden) load().catch(error => status(error.message)); }, 10000); } }
   catch (error) { status(error.message); }
 })();

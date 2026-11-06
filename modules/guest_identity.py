@@ -245,9 +245,7 @@ class GuestAdmission:
             row = db.execute('''SELECT s.*, e.status FROM guest_sessions s JOIN waiting_entries e USING(entry_id)
                                 JOIN guest_pins p ON p.user_id=s.user_id AND p.public_key=s.public_key
                                 WHERE s.entry_id=?''', (claims.get('guest_entry'),)).fetchone()
-            banned = db.execute('SELECT 1 FROM bans WHERE user_id=? AND lifted_at IS NULL AND (expires_at IS NULL OR expires_at>?)',
-                                (claims.get('sub'), time.time())).fetchone()
-        return bool(row and not banned and not row['revoked'] and row['expires'] > time.time()
+        return bool(row and not row['revoked'] and row['expires'] > time.time()
                     and row['user_id'] == claims.get('sub') and row['status'] in {'approved', 'entered'})
 
     def revoke(self, entry_id: str):

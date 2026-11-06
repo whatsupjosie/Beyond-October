@@ -71,6 +71,8 @@ class ProductionGroups:
                 gid='g_'+secrets.token_hex(10); owner=actor
                 db.execute('INSERT INTO production_groups(id,name,owner_id) VALUES(?,?,?)',(gid,name.strip(),owner))
             clean[owner] = (clean.get(owner,('', 'producer'))[0], 'producer')
+            if len(clean)>200:
+                fail(400,'A production may have up to two hundred members including its owner')
             db.execute('DELETE FROM production_members WHERE group_id=?',(gid,))
             db.executemany('INSERT INTO production_members VALUES(?,?,?,?)',[(gid,uid,*values) for uid,values in clean.items()])
             return self.get(gid,actor,True,db)
