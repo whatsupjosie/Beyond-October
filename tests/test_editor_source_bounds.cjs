@@ -13,3 +13,10 @@ test('handoff audit identifies requested footage missing from available source',
  const p=source();C.addSelection(p,{id:'clip',trackId:'cam',inUs:1500000,outUs:2500000});
  assert(X.audit(p,C).problems.some(x=>/source.*duration|available.*source/i.test(x)));
 });
+test('audio-only selections cannot be mislabeled as video EDL events',()=>{
+ for(const kind of ['audio','blip']){
+  const p=C.createProject('Audio',0,'audio');C.addTrack(p,{id:'voice',kind,label:'voice.webm',mediaRef:'file:voice.webm',durationUs:2000000});
+  C.addSelection(p,{id:'clip',trackId:'voice',inUs:0,outUs:1000000});
+  assert.throws(()=>X.toEDL(p,C,30),/audio|video selection/i);
+ }
+});

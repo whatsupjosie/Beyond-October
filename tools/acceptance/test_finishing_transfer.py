@@ -113,4 +113,12 @@ def test_relinked_source_replaces_preview_and_export_together(archive_host,produ
         assert page.evaluate('document.getElementById("ed-view").duration')<1.5
         exported=grab(page,'#ed-original',tmp_path/'relinked.webm')
         assert exported.read_bytes()==clips[1].read_bytes()
+        audio=tmp_path/'audio.webm'
+        subprocess.run(['ffmpeg','-v','error','-f','lavfi','-i','sine=frequency=440:sample_rate=48000','-t','1','-c:a','libopus',str(audio)],check=True,timeout=30)
+        page.set_input_files('#ed-import',{'name':'same-name.webm','mimeType':'audio/webm','buffer':audio.read_bytes()})
+        expect(page.locator('#ed-audio')).to_be_visible()
+        expect(page.locator('#ed-view')).to_be_hidden()
+        page.wait_for_function('document.getElementById("ed-audio").readyState>=1')
+        relinked_audio=grab(page,'#ed-original',tmp_path/'relinked-audio.webm')
+        assert relinked_audio.read_bytes()==audio.read_bytes()
     finally:ec.close()

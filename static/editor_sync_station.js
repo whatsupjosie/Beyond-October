@@ -229,6 +229,7 @@ async function importFiles(){
      objectURLByTrack.delete(existing.id);
      fileByTrack.set(existing.id,file);
      existing.mediaRef=(ui.cache.checked?"local:":"temporary:")+(ui.cache.checked?existing.id:file.name);
+     existing.kind=file.type.startsWith("audio/")?"audio":"camera";
      existing.durationUs=null;
      existing.quality={role:"unverified",verified:false,bytePreserved:false};
      project.revision++;project.updatedAt=new Date().toISOString();

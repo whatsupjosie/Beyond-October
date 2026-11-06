@@ -134,6 +134,8 @@
      if(durFrames<1)throw Error("A clip or gap is shorter than one frame at "+fps+" fps");
      const clipInfo=isGap?null:tracks.get(e.trackId);
      if(!isGap&&!clipInfo)throw Error("Missing source track for "+e.id);
+     if(!isGap&&!["camera","video"].includes(clipInfo.track.kind))
+       throw Error("CMX3600 cuts export requires video selections; retain audio selections in the JSON handoff");
      const sourceStart=isGap?0:Core.sourceTimeUs(project,e.trackId,e.inUs);
      const sourceEnd=isGap?e.durationUs:Core.sourceTimeUs(project,e.trackId,e.outUs);
      if(sourceStart<0||sourceEnd<0)throw Error("Negative source time for "+e.id+"; adjust sync before interchange");
