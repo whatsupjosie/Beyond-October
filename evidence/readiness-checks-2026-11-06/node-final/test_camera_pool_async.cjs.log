@@ -1,0 +1,34 @@
+TAP version 13
+# Subtest: changing a session cancels an unfinished operation and rejects its late result
+ok 1 - changing a session cancels an unfinished operation and rejects its late result
+  ---
+  duration_ms: 2.468537
+  type: 'test'
+  ...
+# Subtest: an operation that never finishes times out and releases its controller
+ok 2 - an operation that never finishes times out and releases its controller
+  ---
+  duration_ms: 21.047571
+  type: 'test'
+  ...
+# Subtest: request deadlines also bound response body decoding
+ok 3 - request deadlines also bound response body decoding
+  ---
+  duration_ms: 21.494516
+  type: 'test'
+  ...
+# Subtest: cancellation before a queued action starts performs no work
+ok 4 - cancellation before a queued action starts performs no work
+  ---
+  duration_ms: 0.923034
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 144.300242

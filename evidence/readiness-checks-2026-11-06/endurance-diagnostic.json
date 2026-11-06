@@ -1,0 +1,113 @@
+{
+  "target_seconds": 300,
+  "scope": "Linux software WebGL, independent Chromium processes, generated audio; no physical-device or multicamera scene-master claim",
+  "minutes": [
+    {
+      "state": {
+        "package": "news",
+        "program": "wide",
+        "preview": "anchor",
+        "recording": true,
+        "recordingStarting": false,
+        "journal": {
+          "bytes": 3123935,
+          "chunks": 56,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        },
+        "session": "pubcast25d-1793976021227-fzr4yo",
+        "storage": true
+      },
+      "peers": 2,
+      "bands": [
+        -32.28094482421875,
+        -32.93600845336914
+      ],
+      "heap": 11900000,
+      "audioReports": [
+        {
+          "at": 1706.8000000000466,
+          "message": "Audio desk open. Participants choose when to connect their microphones."
+        },
+        {
+          "at": 6267.300000000047,
+          "message": "Participant microphone connected."
+        },
+        {
+          "at": 10710.40000000014,
+          "message": "Participant microphone connected."
+        }
+      ],
+      "deskStatus": "Participant microphone connected.",
+      "elapsed_seconds": 60.582144339000024,
+      "minute": 1,
+      "peer_status": [
+        "Microphone connected. The director can record your voice.",
+        "Microphone connected. The director can record your voice."
+      ]
+    },
+    {
+      "state": {
+        "package": "news",
+        "program": "anchor",
+        "preview": "wide",
+        "recording": true,
+        "recordingStarting": false,
+        "journal": {
+          "bytes": 5954534,
+          "chunks": 109,
+          "pendingBytes": 35602,
+          "pendingChunks": 1,
+          "error": null
+        },
+        "session": "pubcast25d-1793976021227-fzr4yo",
+        "storage": true
+      },
+      "peers": 2,
+      "bands": [
+        -35.02944564819336,
+        -33.01945877075195
+      ],
+      "heap": 11900000,
+      "audioReports": [
+        {
+          "at": 1706.8000000000466,
+          "message": "Audio desk open. Participants choose when to connect their microphones."
+        },
+        {
+          "at": 6267.300000000047,
+          "message": "Participant microphone connected."
+        },
+        {
+          "at": 10710.40000000014,
+          "message": "Participant microphone connected."
+        }
+      ],
+      "deskStatus": "Participant microphone connected.",
+      "elapsed_seconds": 120.175302267,
+      "minute": 2,
+      "peer_status": [
+        "Microphone connected. The director can record your voice.",
+        "Microphone connected. The director can record your voice."
+      ]
+    }
+  ],
+  "faults": [],
+  "started_monotonic": 1608.912124703,
+  "last_audio_reports": [
+    {
+      "at": 1706.8000000000466,
+      "message": "Audio desk open. Participants choose when to connect their microphones."
+    },
+    {
+      "at": 6267.300000000047,
+      "message": "Participant microphone connected."
+    },
+    {
+      "at": 10710.40000000014,
+      "message": "Participant microphone connected."
+    }
+  ],
+  "retained_failed_media": "retained-failed-run.webm"
+}

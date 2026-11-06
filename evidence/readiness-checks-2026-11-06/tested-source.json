@@ -1,0 +1,25 @@
+{
+  "local_source": "a3ca6d8abc554bc5e16751110888a73fbe184a60",
+  "source_tree": "38112edb8a570469bcb46220abcdb6664da91dd0",
+  "published_parent": "91d642130d24a295a515217b9ce23b2cb8724ed2",
+  "source_files": {
+    "static/editor_interchange.js": "7f46a7ac930f11d37f6a526de2143f131a47a3c0e0c48fe09df2afcd9e3f1fa7",
+    "static/editor_sync_station.js": "2d952fe419683d4cb436a5a108754c548e19d19e9519174397f299bcf76f82b0",
+    "tests/test_editor_source_bounds.cjs": "a35506c7813ea388a020beea75315a5e80974d807d0d57a56078f132ad498d9c",
+    "tools/acceptance/test_finishing_transfer.py": "9b2edb50a66e6b7cde1867f36026421654cd8469dbf424e10e54ff7a58326761",
+    "tools/acceptance/test_recording_endurance.py": "b88909ee196a7bd10380719306b7a44165a5dcb068a7a5c2736454944521d97b",
+    "tools/acceptance/test_render_and_mobile_boundaries.py": "5a5325fab0fb9f5fc0b2443a37ac6dba198e0ba292c8b7b672c824c3180c889b",
+    "tools/acceptance/test_virtual_peer_timing.py": "73e12e6c0e6fa3b94a7a8983ddd5df4ed181018f8e860c93d9f249e529fa6ab2"
+  },
+  "verification": {
+    "affected_python": 27,
+    "finishing_browser": 2,
+    "virtual_network": 1,
+    "node_files": 30,
+    "node_reported_cases": 109,
+    "final_finishing_seconds": 35.43
+  },
+  "full_python_suite": "Not rerun at this checkpoint; prior 2371-pass result belongs to earlier source tree",
+  "readiness": "NOT_CLEARED",
+  "public_source": "d7a276030a2a8051396ebfca4ab28dd5b4667d76"
+}

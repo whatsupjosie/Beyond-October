@@ -1,0 +1,53 @@
+{
+  "scope": "loopback TCP proxy; independent browser processes; signed guest; generated audio",
+  "forwarded_chunks": 137,
+  "forwarded_bytes": 1116274,
+  "drop": true,
+  "connections": 1,
+  "observed_power": [
+    {
+      "inputs": 1,
+      "power": -34.325294494628906
+    },
+    {
+      "inputs": 1,
+      "power": -33.87611770629883
+    },
+    {
+      "inputs": 1,
+      "power": -33.53277587890625
+    },
+    {
+      "inputs": 1,
+      "power": -33.26756286621094
+    },
+    {
+      "inputs": 1,
+      "power": -33.061073303222656
+    },
+    {
+      "inputs": 1,
+      "power": -32.89934539794922
+    },
+    {
+      "inputs": 1,
+      "power": -32.772090911865234
+    },
+    {
+      "inputs": 1,
+      "power": -33.70724868774414
+    },
+    {
+      "inputs": 1,
+      "power": -33.40264129638672
+    },
+    {
+      "inputs": 1,
+      "power": -33.166412353515625
+    }
+  ],
+  "clock_skew_ms": 119989,
+  "explicit_stall_disconnect": true,
+  "physical_device_alignment": "NOT_VERIFIED",
+  "sample_accurate_video_sync": "NOT_VERIFIED"
+}

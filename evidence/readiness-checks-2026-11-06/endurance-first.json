@@ -1,0 +1,111 @@
+{
+  "scope": "Linux software WebGL, independent Chromium processes, generated audio; no physical-device or multicamera scene-master claim",
+  "minutes": [
+    {
+      "state": {
+        "package": "news",
+        "program": "wide",
+        "preview": "anchor",
+        "recording": true,
+        "recordingStarting": false,
+        "journal": {
+          "bytes": 2963640,
+          "chunks": 55,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        },
+        "session": "pubcast25d-1793975666520-360n37",
+        "storage": true
+      },
+      "peers": 2,
+      "bands": [
+        -32.280906677246094,
+        -32.936012268066406
+      ],
+      "heap": 11900000,
+      "elapsed_seconds": 60.79965686199989,
+      "minute": 1
+    },
+    {
+      "state": {
+        "package": "news",
+        "program": "anchor",
+        "preview": "wide",
+        "recording": true,
+        "recordingStarting": false,
+        "journal": {
+          "bytes": 5444107,
+          "chunks": 106,
+          "pendingBytes": 14996,
+          "pendingChunks": 1,
+          "error": null
+        },
+        "session": "pubcast25d-1793975666520-360n37",
+        "storage": true
+      },
+      "peers": 2,
+      "bands": [
+        -32.27626037597656,
+        -32.87235641479492
+      ],
+      "heap": 11900000,
+      "elapsed_seconds": 120.15261565700007,
+      "minute": 2
+    },
+    {
+      "state": {
+        "package": "news",
+        "program": "coanchor",
+        "preview": "anchor",
+        "recording": true,
+        "recordingStarting": false,
+        "journal": {
+          "bytes": 7861911,
+          "chunks": 158,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        },
+        "session": "pubcast25d-1793975666520-360n37",
+        "storage": true
+      },
+      "peers": 2,
+      "bands": [
+        -32.28099060058594,
+        -32.93603515625
+      ],
+      "heap": 11900000,
+      "elapsed_seconds": 181.11983763500007,
+      "minute": 3
+    },
+    {
+      "state": {
+        "package": "news",
+        "program": "two",
+        "preview": "coanchor",
+        "recording": true,
+        "recordingStarting": false,
+        "journal": {
+          "bytes": 9381926,
+          "chunks": 209,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        },
+        "session": "pubcast25d-1793975666520-360n37",
+        "storage": true
+      },
+      "peers": 0,
+      "bands": [
+        "-inf",
+        "-inf"
+      ],
+      "heap": 11900000,
+      "elapsed_seconds": 240.927561685,
+      "minute": 4
+    }
+  ],
+  "faults": [],
+  "started_monotonic": 1254.154685877
+}

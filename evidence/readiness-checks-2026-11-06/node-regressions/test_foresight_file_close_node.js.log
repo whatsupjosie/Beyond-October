@@ -1,0 +1,17 @@
+TAP version 13
+# PASS: file adapter awaits identity; close saves actual file and rejects active/new work
+# Subtest: tests/test_foresight_file_close_node.js
+ok 1 - tests/test_foresight_file_close_node.js
+  ---
+  duration_ms: 66.662882
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 75.215292

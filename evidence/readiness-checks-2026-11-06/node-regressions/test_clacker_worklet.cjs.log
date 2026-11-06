@@ -1,0 +1,16 @@
+TAP version 13
+# Subtest: audio-clock reference preserves exact fifteen-second samples while main thread is absent
+ok 1 - audio-clock reference preserves exact fifteen-second samples while main thread is absent
+  ---
+  duration_ms: 548.824662
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 627.617283

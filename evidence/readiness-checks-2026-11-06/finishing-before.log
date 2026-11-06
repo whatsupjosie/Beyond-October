@@ -1,0 +1,45 @@
+/workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/pytest_asyncio/plugin.py:300: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the "fixture" caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+.F
+=================================== FAILURES ===================================
+__________ test_relinked_source_replaces_preview_and_export_together ___________
+
+archive_host = <tests.test_studio25d_archive_browser.archive_host.<locals>.Host object at 0x7f4ac1fc19d0>
+production_browser = <Browser type=<BrowserType name=chromium executable_path=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome> version=141.0.7390.37>
+tmp_path = PosixPath('/workspace/scratch/d6f0985b33b2/readiness-checks-2026-11-06/finishing-runtime/test_relinked_source_replaces_0')
+
+    def test_relinked_source_replaces_preview_and_export_together(archive_host,production_browser,tmp_path):
+        host=archive_host;ec,page=editor(production_browser,host)
+        try:
+            clips=[]
+            for color,size,duration in [('red','320x180',3),('blue','640x360',1)]:
+                path=tmp_path/(color+'.webm')
+                subprocess.run(['ffmpeg','-v','error','-f','lavfi','-i',f'color=c={color}:s={size}:r=30:d={duration}','-c:v','libvpx-vp9','-b:v','200k','-an',str(path)],check=True,timeout=30)
+                clips.append(path)
+            page.fill('#ed-project-title','Relink check');page.click('#ed-new-project')
+            page.wait_for_function('document.getElementById("ed-status").textContent.startsWith("Saved project")')
+            page.check('#ed-cache')
+            def pick(path):page.set_input_files('#ed-import',{'name':'same-name.webm','mimeType':'video/webm','buffer':path.read_bytes()})
+            pick(clips[0]);page.wait_for_function('document.getElementById("ed-view").videoWidth===320')
+            pick(clips[1]);page.wait_for_function('document.getElementById("ed-status").textContent.includes("imported/relinked")')
+>           expect(page.locator('#ed-view')).to_have_js_property('videoWidth',640)
+E           AssertionError: Locator expected to have JS Property '640'
+E           Actual value: 320 
+E           Call log:
+E             - Expect "to_have_property" with timeout 5000ms
+E             - waiting for locator("#ed-view")
+E               9 × locator resolved to <video controls="" id="ed-view" playsinline="" preload="metadata" src="blob:http://127.0.0.1:54817/508d8d3a-e1b4-4e2c-8171-e141b13f6d3d"></video>
+E                 - unexpected value "320"
+
+tools/acceptance/test_finishing_transfer.py:112: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/starlette/testclient.py:40
+  /workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/starlette/testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tools/acceptance/test_finishing_transfer.py::test_relinked_source_replaces_preview_and_export_together
+1 failed, 1 passed, 1 warning in 46.74s

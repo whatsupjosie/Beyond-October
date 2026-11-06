@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="46.740" timestamp="2026-11-06T06:36:18.055716-08:00" hostname="6fe74ba9cf61"><testcase classname="tools.acceptance.test_finishing_transfer" name="test_capture_export_fresh_import_and_exact_offset_interchange" time="33.155" /><testcase classname="tools.acceptance.test_finishing_transfer" name="test_relinked_source_replaces_preview_and_export_together" time="13.332"><failure message="AssertionError: Locator expected to have JS Property '640'&#10;Actual value: 320 &#10;Call log:&#10;  - Expect &quot;to_have_property&quot; with timeout 5000ms&#10;  - waiting for locator(&quot;#ed-view&quot;)&#10;    9 × locator resolved to &lt;video controls=&quot;&quot; id=&quot;ed-view&quot; playsinline=&quot;&quot; preload=&quot;metadata&quot; src=&quot;blob:http://127.0.0.1:54817/508d8d3a-e1b4-4e2c-8171-e141b13f6d3d&quot;&gt;&lt;/video&gt;&#10;      - unexpected value &quot;320&quot;">archive_host = &lt;tests.test_studio25d_archive_browser.archive_host.&lt;locals&gt;.Host object at 0x7f4ac1fc19d0&gt;
+production_browser = &lt;Browser type=&lt;BrowserType name=chromium executable_path=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome&gt; version=141.0.7390.37&gt;
+tmp_path = PosixPath('/workspace/scratch/d6f0985b33b2/readiness-checks-2026-11-06/finishing-runtime/test_relinked_source_replaces_0')
+
+    def test_relinked_source_replaces_preview_and_export_together(archive_host,production_browser,tmp_path):
+        host=archive_host;ec,page=editor(production_browser,host)
+        try:
+            clips=[]
+            for color,size,duration in [('red','320x180',3),('blue','640x360',1)]:
+                path=tmp_path/(color+'.webm')
+                subprocess.run(['ffmpeg','-v','error','-f','lavfi','-i',f'color=c={color}:s={size}:r=30:d={duration}','-c:v','libvpx-vp9','-b:v','200k','-an',str(path)],check=True,timeout=30)
+                clips.append(path)
+            page.fill('#ed-project-title','Relink check');page.click('#ed-new-project')
+            page.wait_for_function('document.getElementById("ed-status").textContent.startsWith("Saved project")')
+            page.check('#ed-cache')
+            def pick(path):page.set_input_files('#ed-import',{'name':'same-name.webm','mimeType':'video/webm','buffer':path.read_bytes()})
+            pick(clips[0]);page.wait_for_function('document.getElementById("ed-view").videoWidth===320')
+            pick(clips[1]);page.wait_for_function('document.getElementById("ed-status").textContent.includes("imported/relinked")')
+&gt;           expect(page.locator('#ed-view')).to_have_js_property('videoWidth',640)
+E           AssertionError: Locator expected to have JS Property '640'
+E           Actual value: 320 
+E           Call log:
+E             - Expect "to_have_property" with timeout 5000ms
+E             - waiting for locator("#ed-view")
+E               9 × locator resolved to &lt;video controls="" id="ed-view" playsinline="" preload="metadata" src="blob:http://127.0.0.1:54817/508d8d3a-e1b4-4e2c-8171-e141b13f6d3d"&gt;&lt;/video&gt;
+E                 - unexpected value "320"
+
+tools/acceptance/test_finishing_transfer.py:112: AssertionError</failure></testcase></testsuite></testsuites>

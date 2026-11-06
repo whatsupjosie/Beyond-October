@@ -1,0 +1,21 @@
+{
+  "os": "Linux-6.18.57-x86_64-with-glibc2.39",
+  "python": "3.12.14",
+  "executables": {
+    "ffmpeg": "/usr/bin/ffmpeg",
+    "ffprobe": "/usr/bin/ffprobe",
+    "blender": null,
+    "resolve": null,
+    "DaVinciResolve": null,
+    "powershell": null,
+    "pwsh": null,
+    "wine": null,
+    "node": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node"
+  },
+  "video_devices": [],
+  "audio_devices": [],
+  "gpu_devices": [],
+  "physical_machine_control": "not exposed in this session",
+  "physical_device_gates": "BLOCKED_UNAVAILABLE",
+  "resolve_gate": "BLOCKED_APPLICATION_UNAVAILABLE"
+}

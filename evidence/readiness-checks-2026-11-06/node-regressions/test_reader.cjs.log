@@ -1,0 +1,19 @@
+TAP version 13
+# PASS: read/pause/resume/stop, paragraph and 10-word navigation, rate/volume/voice, stale-event cancellation and text preservation
+# PASS: automatic paragraph progression and ending, speech failures, edits and document switches stop safely
+# PASS: long-text chunks retain every word; absent boundaries replay only the current chunk; unsupported or silent speech reports failure
+# Subtest: tests/test_reader.cjs
+ok 1 - tests/test_reader.cjs
+  ---
+  duration_ms: 105.26846
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 112.685565

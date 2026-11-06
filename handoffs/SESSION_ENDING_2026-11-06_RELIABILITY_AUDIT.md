@@ -1,5 +1,7 @@
 # Session-ending handoff — post-completion reliability audit
 
+**Later readiness checks:** [executed readiness follow-up](SESSION_ENDING_2026-11-06_READINESS_CHECKS.md) records newly repaired editorial defects, failed long multi-peer continuity, missing source-master/native-4K implementation and unavailable physical/Resolve gates.
+
 Signed: Codex / ChatGPT Work, November 6 UTC. Branch: `chatgpt-work-2026-11-05`.
 **Status: audit repairs and final full confirmation completed in the available environment.** The five missed defects and one introduced cleanup regression were repaired and exercised. This is not a release-readiness or timing guarantee; open engineering and device gates remain below.
 

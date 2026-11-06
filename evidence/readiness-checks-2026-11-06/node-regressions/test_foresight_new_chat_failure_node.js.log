@@ -1,0 +1,17 @@
+TAP version 13
+# Foresight canonical conversation creation: 5 scenarios passed
+# Subtest: tests/test_foresight_new_chat_failure_node.js
+ok 1 - tests/test_foresight_new_chat_failure_node.js
+  ---
+  duration_ms: 85.485261
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 93.53902
