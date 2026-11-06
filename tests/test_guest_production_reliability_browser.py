@@ -76,3 +76,37 @@ def test_independent_guests_group_delivery_and_lost_receipt_retry(tmp_path,produ
         a.wait_for_function('document.getElementById("status").textContent.includes("channel closed")')
         assert host.post('/api/chat/dm/request',headers=one[2],json={'to_user':two[0]['user_id']}).status_code==409
         assert errors==[]
+
+
+from tests.test_production_notes_browser import reach
+from tests.test_groups_and_contacts_browser import login
+
+
+def test_recipient_changes_discard_obsolete_per_person_placements(reach,production_browser):
+    import httpx
+    base,user,password=reach
+    context=production_browser.new_context(viewport={'width':1440,'height':1000})
+    try:
+        page=login(context,base,user,password,'/walk?view=control_room/main')
+        with httpx.Client(base_url=base,trust_env=False) as api:
+            token=api.post('/api/auth/login',json={'username':user,'password':password}).json()['access_token']
+            headers={'Authorization':'Bearer '+token}
+            people={p['username']:p for p in api.get('/api/production/people',headers=headers).json()['people']}
+            group=api.post('/api/production/groups',headers=headers,json={'name':'Placement change','members':[{'user_id':people['pete-notes']['user_id'],'department':'Sound'},{'user_id':people['repete-notes']['user_id'],'department':'Camera'}]}).json()
+        page.wait_for_function('window.PubCastNotes?.state.enabled')
+        page.evaluate('PubCastNotes.compose({})');page.wait_for_selector('#pnGroup')
+        page.select_option('#pnGroup',group['id'])
+        sound=page.locator('.pn-pick[data-kind="to"][data-id="@department:Sound"]')
+        camera=page.locator('.pn-pick[data-kind="to"][data-id="@department:Camera"]')
+        sound.click();page.get_by_role('button',name='Preview recipients',exact=True).click()
+        page.wait_for_selector('.pn-review select')
+        page.get_by_label('Locations for Pete',exact=True).select_option('audio_console')
+        sound.click();camera.click()
+        with page.expect_response(lambda response:response.url.endswith('/api/notes/preview')) as preview:
+            page.get_by_role('button',name='Preview recipients',exact=True).click()
+        assert preview.value.status==200,preview.value.text()
+        page.wait_for_function('document.querySelector(".pn-msg").textContent.includes("Recipients reviewed")',timeout=10000)
+        expect(page.get_by_label('Locations for RePete',exact=True)).to_be_visible()
+        expect(page.get_by_label('Locations for Pete',exact=True)).to_have_count(0)
+    finally:
+        context.close()

@@ -1,6 +1,4 @@
 """Failure-boundary regressions from the post-completion shortcut audit."""
-import asyncio
-import io
 from pathlib import Path
 
 from starlette.datastructures import UploadFile

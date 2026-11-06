@@ -605,7 +605,20 @@
       for (const p of crew.filter(p=>!group||group.members.some(m=>m.user_id===p.user_id))) make(p.user_id, p.user_id === N.me ? "Me" : p.display_name);
       lab.appendChild(box); return lab;
     };
-    const syncPicks = () => {invalidate();form.querySelectorAll('.pn-pick[data-kind]').forEach(b=>b.setAttribute('aria-pressed',String(sel[b.dataset.kind].has(b.dataset.id))));};
+    const syncPicks = () => {
+      invalidate();
+      const group=selectedGroup(), selected=new Set();
+      for(const kind of ['to','cc','bcc']) for(const selector of sel[kind]) {
+        if(selector==='@production'&&group) for(const member of group.members) selected.add(member.user_id);
+        else if(selector.startsWith('@department:')&&group) {
+          for(const member of group.members) if(member.department===selector.slice(12)) selected.add(member.user_id);
+        } else selected.add(selector);
+      }
+      // A placement belongs to its recipient, not to an obsolete picker state.
+      // Retain overrides still selected through another department or To/CC/BCC.
+      for(const uid of Object.keys(placements)) if(!selected.has(uid)) delete placements[uid];
+      form.querySelectorAll('.pn-pick[data-kind]').forEach(b=>b.setAttribute('aria-pressed',String(sel[b.dataset.kind].has(b.dataset.id))));
+    };
     const recipientRows=el('div');form.append(recipientRows);
     const rebuildRecipients=()=>{recipientRows.replaceChildren(picker('to','To'),picker('cc','CC'),picker('bcc','BCC'));syncPicks();};
     groupSelect.onchange=()=>{for(const kind of ['to','cc','bcc'])sel[kind].clear();placements={};rebuildRecipients();};
