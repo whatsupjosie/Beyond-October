@@ -173,6 +173,7 @@ class DMManager:
             created_at REAL NOT NULL, resolved_at REAL,
             message TEXT NOT NULL
         )""")
+        db.execute('CREATE TABLE IF NOT EXISTS dm_blocks(owner_key TEXT NOT NULL,other_key TEXT NOT NULL,PRIMARY KEY(owner_key,other_key))')
         db.execute("""CREATE UNIQUE INDEX IF NOT EXISTS dm_pending_pair
             ON dm_requests(from_key, to_key) WHERE status='pending'""")
         db.execute("""CREATE INDEX IF NOT EXISTS dm_recipient_pending
@@ -226,6 +227,8 @@ class DMManager:
             to_user=to_user, status=status, message=message[:280],
         )
         with self._connection(writing=True) as db:
+            if self._blocked(db,sender,recipient):
+                raise ValueError('Direct contact is blocked')
             if db.execute("""SELECT 1 FROM dm_requests WHERE from_key=? AND to_key=?
                              AND status='pending'""", (sender, recipient)).fetchone():
                 raise ValueError(f"You already have a pending DM request to {to_user}.")
@@ -259,6 +262,8 @@ class DMManager:
                 raise PermissionError(f"Request {request_id} is addressed to {row['to_user']}")
             if row["status"] != DMRequestStatus.PENDING.value:
                 raise ValueError(f"Request {request_id} is not pending")
+            if target==DMRequestStatus.ACCEPTED and self._blocked(db,row['from_key'],row['to_key']):
+                raise ValueError('Direct contact is blocked')
             resolved_at = time.time()
             db.execute("""UPDATE dm_requests SET status=?, resolved_at=?
                           WHERE request_id=? AND status='pending'""",
@@ -270,6 +275,8 @@ class DMManager:
     def can_open_dm(self, user_a: str, user_b: str) -> bool:
         a, b = self._key(user_a), self._key(user_b)
         with self._connection() as db:
+            if self._blocked(db,a,b):
+                return False
             return db.execute("""SELECT 1 FROM dm_requests
                 WHERE ((from_key=? AND to_key=?) OR (from_key=? AND to_key=?))
                 AND status IN ('accepted','bypassed') LIMIT 1""", (a, b, b, a)).fetchone() is not None
@@ -284,7 +291,7 @@ class DMManager:
         if not room_id.startswith(("dm____", "dmv2_")):
             return None
         for grant in self.active_for_user(acting_user):
-            if dm_room_id(grant.from_user, grant.to_user) == room_id:
+            if dm_room_id(grant.from_user, grant.to_user) == room_id and self.can_open_dm(grant.from_user,grant.to_user):
                 if self._key(acting_user) == self._key(grant.from_user):
                     return grant.to_user
                 return grant.from_user
@@ -302,6 +309,25 @@ class DMManager:
             if not result.rowcount:
                 raise ValueError("No open DM to revoke")
             return result.rowcount
+
+    @staticmethod
+    def _blocked(db,a,b):
+        return db.execute('SELECT 1 FROM dm_blocks WHERE (owner_key=? AND other_key=?) OR (owner_key=? AND other_key=?)',(a,b,b,a)).fetchone() is not None
+
+    def block(self,actor,other,blocked=True):
+        a,b=self._key(actor),self._key(other)
+        if a==b:
+            raise ValueError('Cannot block yourself')
+        with self._connection(writing=True) as db:
+            if blocked:
+                db.execute('INSERT OR IGNORE INTO dm_blocks VALUES(?,?)',(a,b))
+                db.execute("UPDATE dm_requests SET status=CASE WHEN status='pending' THEN 'declined' ELSE 'revoked' END,resolved_at=? WHERE ((from_key=? AND to_key=?) OR (from_key=? AND to_key=?)) AND status IN ('pending','accepted','bypassed')",(time.time(),a,b,b,a))
+            else:
+                db.execute('DELETE FROM dm_blocks WHERE owner_key=? AND other_key=?',(a,b))
+
+    def blocked_for_user(self,user):
+        with self._connection() as db:
+            return [r[0] for r in db.execute('SELECT other_key FROM dm_blocks WHERE owner_key=? ORDER BY other_key',(self._key(user),))]
 
     def pending_for_user(self, user_id: str) -> List[DMRequest]:
         with self._connection() as db:
@@ -435,6 +461,12 @@ def create_chat_router(hub: Any, get_identity_fn: Any) -> APIRouter:
         if not isinstance(message, str) or len(message) > 280:
             raise HTTPException(400, "message must be at most 280 characters")
         to_user = to_user.strip()
+        if re.fullmatch(r'u_[0-9a-f]{20}',to_user):
+            from . import userdb
+            person=await userdb.get_profile(to_user)
+            if person is None:
+                raise HTTPException(404,'Person not found on this host')
+            to_user=person['user_id'] if person.get('visiting') else person['username']
         from_user    = identity.get("user_id", "")
         from_role    = identity.get("role", "guest")
         from_display = identity.get("display_name") or identity.get("username") or from_user
@@ -526,6 +558,25 @@ def create_chat_router(hub: Any, get_identity_fn: Any) -> APIRouter:
         })
         return {"ok": True, "status": "revoked", "dm_room": room,
                 "grants_revoked": affected}
+
+    @router.get('/dm/blocked')
+    async def blocked_people(identity=Depends(get_identity_fn)):
+        return {'people':dm.blocked_for_user(identity['user_id'])}
+
+    @router.post('/dm/block')
+    async def block_person(request:Request,identity=Depends(get_identity_fn)):
+        try:
+            body=await request.json()
+        except (ValueError,UnicodeDecodeError):
+            raise HTTPException(400,'Expected a JSON object') from None
+        if not isinstance(body,dict) or not isinstance(body.get('other_user'),str) or not 1<=len(body['other_user'])<=100 or type(body.get('blocked',True)) is not bool:
+            raise HTTPException(400,'Choose a person and block/unblock')
+        try:
+            dm.block(identity['user_id'],body['other_user'],body.get('blocked',True))
+        except ValueError as exc:
+            raise HTTPException(400,str(exc)) from exc
+        await hub.close_room_connections(dm_room_id(identity['user_id'],body['other_user']))
+        return {'blocked':body.get('blocked',True)}
 
     @router.get("/dm/pending")
     async def pending_dms(identity: Dict[str, Any] = Depends(get_identity_fn)):

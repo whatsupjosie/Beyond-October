@@ -75,7 +75,10 @@ def reach(tmp_path_factory):
         def login(u):
             return {"Authorization": "Bearer " + c.post("/api/auth/login", json={"username": u, "password": pw}).json()["access_token"]}
         rp, pt, me = login("repete-notes"), login("pete-notes"), people["owner-notes"]["user_id"]
-        assert c.post("/api/notes", headers=pt, json={"subject": "Call time 6 am", "to": ["@production"], "project": "Episode 3"}).status_code == 201
+        group=c.post('/api/production/groups',headers=owner,json={'name':'Episode 3','members':[{'user_id':p['user_id']} for p in people.values()]}).json()
+        payload={'subject':'Call time 6 am','to':['@production'],'project':'Episode 3','group_id':group['id']}
+        payload['preview']=c.post('/api/notes/preview',headers=pt,json=payload).json()['preview']
+        assert c.post('/api/notes',headers=pt,json=payload).status_code==201
         assert c.post("/api/notes", headers=rp, json={"subject": "Mix notes, ep. 3", "body": "The cold open is hot.",
                                                        "to": [me], "spots": ["audio_console"], "project": "Episode 3"}).status_code == 201
         assert c.post("/api/notes", headers=pt, json={"subject": "Rehearsal 11/10", "to": [me], "spots": ["director_console"]}).status_code == 201

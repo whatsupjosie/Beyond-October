@@ -1,0 +1,6 @@
+bytes 1558122 status 413 body {"detail":"Request body too large (max 1MB)"}
+Traceback (most recent call last):
+  File "/workspace/scratch/d6f0985b33b2/pubcast/../photo_limit_repro.py", line 17, in <module>
+    assert response.status_code==200,'Valid profile image under the advertised 2 MB ceiling was refused by the full host'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Valid profile image under the advertised 2 MB ceiling was refused by the full host

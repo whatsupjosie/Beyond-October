@@ -88,6 +88,7 @@ def _sync_init_db() -> None:
                 card_at REAL NOT NULL
             );
         """)
+        conn.execute('BEGIN IMMEDIATE')
         columns = {row[1] for row in conn.execute('PRAGMA table_info(profiles)')}
         for column, declaration in {
             'details_json':"TEXT NOT NULL DEFAULT '{}'",

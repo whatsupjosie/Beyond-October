@@ -1,5 +1,7 @@
 """Real host and browser: selective disclosure, recovery and stale draft safety."""
 import json
+import io
+import os
 
 import pytest
 
@@ -68,3 +70,21 @@ def test_unsaved_draft_reload_does_not_overwrite_newer_profile(profile_page):
     after = api.get('/api/profile/me', headers=headers).json()
     assert after['display_name'] == 'Changed in another window'
     assert after['details']['about'].get('bio') != 'Unsaved work in this tab'
+
+
+def test_real_host_accepts_advertised_photo_limit_and_rejects_larger_body(production_server):
+    from PIL import Image
+    _, auth, api = production_server
+    headers={'Authorization':'Bearer '+auth['access_token']}
+    output=io.BytesIO()
+    Image.frombytes('RGB',(720,720),os.urandom(720*720*3)).save(output,format='PNG')
+    payload=output.getvalue()
+    assert 1024*1024 < len(payload) < 2*1024*1024
+    profile=api.get('/api/profile/me',headers=headers).json()
+    uploaded=api.post('/api/profile/photo?revision='+str(profile['revision']),headers=headers,content=payload)
+    assert uploaded.status_code==200,uploaded.text
+    picture=api.get('/api/profiles/'+profile['user_id']+'/photo',headers=headers)
+    with Image.open(io.BytesIO(picture.content)) as image:
+        assert max(image.size)==512
+    assert api.post('/api/profile/photo?revision='+str(uploaded.json()['revision']),headers=headers,
+                    content=b'x'*(2*1024*1024+1)).status_code==413

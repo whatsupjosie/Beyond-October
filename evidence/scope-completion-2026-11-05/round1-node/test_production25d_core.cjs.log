@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: eight independently configured genre packages
+ok 1 - eight independently configured genre packages
+  ---
+  duration_ms: 1.19903
+  type: 'test'
+  ...
+# Subtest: unknown shots are rejected
+ok 2 - unknown shots are rejected
+  ---
+  duration_ms: 0.405261
+  type: 'test'
+  ...
+# Subtest: invalid geometry and duplicate camera identifiers are rejected
+ok 3 - invalid geometry and duplicate camera identifiers are rejected
+  ---
+  duration_ms: 0.277519
+  type: 'test'
+  ...
+# Subtest: production event timeline and closure are enforced
+ok 4 - production event timeline and closure are enforced
+  ---
+  duration_ms: 1.135073
+  type: 'test'
+  ...
+# Subtest: camera viewport always remains inside source frame
+ok 5 - camera viewport always remains inside source frame
+  ---
+  duration_ms: 0.220874
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 84.498685

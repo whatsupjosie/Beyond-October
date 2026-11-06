@@ -29,3 +29,21 @@ def test_concurrent_decisions_have_one_winner_and_cannot_enter_denied_request(tm
     assert first.approve_entry(entry.entry_id, 'owner') is None
     second.mark_entered(entry.entry_id)
     assert first.get_waiting_entry(entry.entry_id).status == EntryStatus.DENIED
+
+
+def test_session_and_permanent_bans_propagate_and_unban_has_no_stale_cache(tmp_path, monkeypatch):
+    from modules.governance import BanType
+    monkeypatch.setenv('PUBCAST_SESSION_ID','one-server-run')
+    first,second=GovernanceEngine(tmp_path),GovernanceEngine(tmp_path)
+    first.ban_user('visitor','session ban','owner')
+    assert second.is_banned('visitor')[0]
+    assert second.unban_user('visitor','owner')
+    assert not first.is_banned('visitor')[0]
+    first.ban_user('visitor','session ban','owner')
+    monkeypatch.setenv('PUBCAST_SESSION_ID','next-server-run')
+    restarted=GovernanceEngine(tmp_path)
+    assert not restarted.is_banned('visitor')[0]
+    first.ban_user('persistent','permanent ban','owner',BanType.PERMANENT)
+    assert restarted.is_banned('persistent')[0]
+    assert restarted.unban_user('persistent','owner')
+    assert not first.is_banned('persistent')[0]

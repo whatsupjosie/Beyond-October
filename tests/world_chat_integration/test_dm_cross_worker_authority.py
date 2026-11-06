@@ -136,3 +136,21 @@ def test_private_dm_consent_database_permissions(tmp_path):
                 assert stat.S_IMODE(sidecar.stat().st_mode) & 0o077 == 0
     finally:
         os.umask(old_umask)
+
+
+def test_block_survives_workers_and_prevents_bypass_and_old_grants(tmp_path):
+    from modules.chat_rooms import DMManager
+    path=tmp_path/'contacts.sqlite3'
+    one,two=DMManager(path),DMManager(path)
+    request=one.request_dm('one','guest','One','two')
+    two.accept(request.request_id,'two')
+    assert one.can_open_dm('one','two')
+    two.block('two','one')
+    assert not one.can_open_dm('one','two')
+    import pytest
+    with pytest.raises(ValueError,match='blocked'):
+        one.request_dm('one','owner','One','two')
+    assert two.blocked_for_user('two')==['one']
+    two.block('two','one',False)
+    assert not one.can_open_dm('one','two')
+    assert one.request_dm('one','guest','One','two').status.value=='pending'

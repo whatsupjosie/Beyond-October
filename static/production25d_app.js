@@ -374,6 +374,10 @@ async function startRecording(){
    if(!state.clacker){
      const reference=await window.PubCast25DClacker.create(programAudio.context,sess,e=>{
        state.mediaError=e;error(e.message);stopRecording({immediate:true}).catch(()=>{});
+     }, reference=>{
+       if(reference.paint(el.program,!state.blackout&&!state.remoteProgram))
+         state.videoStream?.getVideoTracks()[0]?.requestFrame?.();
+       reference.paint(el.preview,!state.remotePreview);
      });
      try{check();}catch(e){reference.close();throw e;}
      state.clacker=reference;

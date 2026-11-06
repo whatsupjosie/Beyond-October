@@ -1655,6 +1655,7 @@ window.PubCastWalk = {
     const home = S.world.rooms.find(r => r.id === S.world.start && r.views.length && !r.locked) || S.world.rooms.find(r => r.views.length);
     const first = byLive ? [byLive.id, null] : k && k.includes("/") ? k.split("/") : resume ? [resume.room, resume.view || null] : [home.id, null];
     await setView(first[0], first[1], { instant: true });
+    if(q.get('notes')==='1'&&window.PubCastNotes)PubCastNotes.open();
     if (resume && Array.isArray(resume.pos) && S.view.id === (resume.view || S.view.id) && S.view.zones.length && walkable(S.view, resume.pos)) S.pos = resume.pos.slice();
     // ?demo=husky is a direct launch of the real bundled GLB on the real room artwork.
     // A demo must not replace a saved avatar or character identity in persistent progress.

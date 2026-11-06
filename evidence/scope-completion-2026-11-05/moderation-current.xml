@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="77" time="11.460" timestamp="2026-11-05T20:51:56.816590-08:00" hostname="266c43e7df3f"><testcase classname="tests.test_governance_admission_persistence" name="test_waiting_request_and_decision_survive_new_engine" time="1.120" /><testcase classname="tests.test_governance_admission_persistence" name="test_concurrent_decisions_have_one_winner_and_cannot_enter_denied_request" time="0.025" /><testcase classname="tests.test_governance_admission_persistence" name="test_session_and_permanent_bans_propagate_and_unban_has_no_stale_cache" time="0.033" /><testcase classname="tests.test_guest_identity" name="test_own_identity_only_shared_card_and_owner_admission_survive_restart" time="0.046" /><testcase classname="tests.test_guest_identity" name="test_tamper_wrong_host_missing_consent_and_replay_are_refused" time="0.063" /><testcase classname="tests.test_guest_identity" name="test_returning_id_cannot_change_key_or_escalate_role" time="0.045" /><testcase classname="tests.test_guest_identity" name="test_invite_use_is_atomic_between_workers_and_unlock_still_needs_valid_proof" time="0.055" /><testcase classname="tests.test_guest_identity" name="test_challenge_and_admitted_lease_expiry_are_enforced" time="0.041" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[post-/api/host/possess-body0]" time="0.029" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[post-/api/host/release-body1]" time="0.025" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[post-/api/host/timeout-body2]" time="0.023" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[post-/api/host/drive-body3]" time="0.023" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[get-/api/host/people/mira-None]" time="0.022" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[patch-/api/host/people/mira-body5]" time="0.023" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[put-/api/host/people/mira/privileges/control_room-body6]" time="0.028" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[post-/api/host/people/mira/gifts-body7]" time="0.023" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[get-/api/host/people/mira/log-None]" time="0.024" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[get-/api/host/state-None]" time="0.025" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[post-/api/host/end-timeout-body10]" time="0.023" /><testcase classname="tests.test_host_control" name="test_possession_will_not_send_words_nobody_approved" time="0.023" /><testcase classname="tests.test_host_control" name="test_possession_notice_goes_to_the_target_only_and_everyone_sees_the_mark" time="0.026" /><testcase classname="tests.test_host_control" name="test_one_possession_at_a_time_and_release_returns_control" time="0.034" /><testcase classname="tests.test_host_control" name="test_only_the_person_in_control_can_drive_and_the_move_goes_to_the_target" time="0.030" /><testcase classname="tests.test_host_control" name="test_possession_ends_by_itself" time="1.427" /><testcase classname="tests.test_host_control" name="test_bad_possession_requests_are_refused_and_nothing_happens[bad0]" time="0.024" /><testcase classname="tests.test_host_control" name="test_bad_possession_requests_are_refused_and_nothing_happens[bad1]" time="0.111" /><testcase classname="tests.test_host_control" name="test_bad_possession_requests_are_refused_and_nothing_happens[bad2]" time="0.021" /><testcase classname="tests.test_host_control" name="test_bad_possession_requests_are_refused_and_nothing_happens[bad3]" time="0.022" /><testcase classname="tests.test_host_control" name="test_bad_possession_requests_are_refused_and_nothing_happens[bad4]" time="0.025" /><testcase classname="tests.test_host_control" name="test_bad_possession_requests_are_refused_and_nothing_happens[bad5]" time="0.022" /><testcase classname="tests.test_host_control" name="test_bad_possession_requests_are_refused_and_nothing_happens[bad6]" time="0.025" /><testcase classname="tests.test_host_control" name="test_timeout_teleports_to_the_disciplinary_side_with_recording_on" time="0.031" /><testcase classname="tests.test_host_control" name="test_title_and_position_change_but_the_name_never_does" time="0.031" /><testcase classname="tests.test_host_control" name="test_privileges_and_gifts_are_granted_revoked_and_audited" time="0.035" /><testcase classname="tests.test_host_control" name="test_profile_is_kept_on_disk_and_reads_back_after_a_restart" time="0.037" /><testcase classname="tests.test_host_control" name="test_tracked_people_get_a_text_record_and_untracked_people_do_not" time="0.058" /><testcase classname="tests.test_host_control" name="test_a_moderator_can_read_but_not_take_control" time="0.035" /><testcase classname="tests.test_host_control" name="test_possession_is_undone_when_the_person_never_got_the_notice" time="0.039" /><testcase classname="tests.test_host_control" name="test_someone_already_frozen_is_not_taken_over_silently" time="0.028" /><testcase classname="tests.test_host_control" name="test_letter_case_does_not_make_two_people" time="0.033" /><testcase classname="tests.test_host_control" name="test_no_audit_entry_means_no_action" time="0.027" /><testcase classname="tests.test_host_control" name="test_a_timeout_can_be_ended_and_ends_by_itself" time="1.439" /><testcase classname="tests.test_host_control" name="test_a_possession_and_a_timeout_keep_separate_timers" time="1.436" /><testcase classname="tests.test_host_control" name="test_two_possessions_at_once_cannot_both_win" time="0.031" /><testcase classname="tests.test_host_control" name="test_odd_input_never_causes_a_server_error" time="2.288" /><testcase classname="tests.test_host_control" name="test_the_walker_channel_counts_as_delivery" time="0.034" /><testcase classname="tests.test_host_control" name="test_the_roster_joins_what_walkers_say_with_what_the_host_knows" time="0.034" /><testcase classname="tests.test_host_control" name="test_the_ban_list_shows_who_is_out_and_only_to_those_who_may_see_it" time="0.534"><failure message="AttributeError: 'str' object has no attribute 'value'">rig = &lt;starlette.testclient.TestClient object at 0x7fb315b768a0&gt;
+
+    def test_the_ban_list_shows_who_is_out_and_only_to_those_who_may_see_it(rig):
+        from modules.governance import BanType
+        assert rig.get("/api/host/bans", headers=tok("v", "viewer")).status_code == 403
+        assert rig.get("/api/host/bans", headers=tok("m", "mod")).json()["bans"] == []
+        rig.gov.ban_user("bo", "TEST REASON", "josie", BanType.PERMANENT)
+        rig.gov.ban_user("cy", "later", "josie", BanType.SESSION)
+        rig.gov.ban_user("di", "short", "josie", BanType.TEMPORARY, duration_hours=0.0001)       # runs out at once
+        import time as _t; _t.sleep(0.5)
+&gt;       bans = rig.get("/api/host/bans", headers=tok("m", "mod")).json()["bans"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_host_control.py:398: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.12/site-packages/starlette/testclient.py:514: in get
+    return super().get(
+.venv/lib/python3.12/site-packages/httpx/_client.py:1053: in get
+    return self.request(
+.venv/lib/python3.12/site-packages/starlette/testclient.py:484: in request
+    return super().request(
+.venv/lib/python3.12/site-packages/httpx/_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/httpx/_client.py:914: in send
+    response = self._send_handling_auth(
+.venv/lib/python3.12/site-packages/httpx/_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+.venv/lib/python3.12/site-packages/httpx/_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/httpx/_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/starlette/testclient.py:377: in handle_request
+    raise exc
+.venv/lib/python3.12/site-packages/starlette/testclient.py:374: in handle_request
+    portal.call(self.app, scope, receive, send)
+.venv/lib/python3.12/site-packages/anyio/from_thread.py:347: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+.venv/lib/python3.12/site-packages/anyio/from_thread.py:272: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/applications.py:113: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/middleware/errors.py:187: in __call__
+    raise exc
+.venv/lib/python3.12/site-packages/starlette/middleware/errors.py:165: in __call__
+    await self.app(scope, receive, _send)
+.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py:62: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv/lib/python3.12/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv/lib/python3.12/site-packages/starlette/routing.py:715: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/routing.py:735: in app
+    await route.handle(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/routing.py:288: in handle
+    await self.app(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/routing.py:76: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv/lib/python3.12/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv/lib/python3.12/site-packages/starlette/routing.py:73: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/fastapi/routing.py:301: in app
+    raw_response = await run_endpoint_function(
+.venv/lib/python3.12/site-packages/fastapi/routing.py:212: in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+identity = {'user_id': 'm', 'role': 'mod', 'authenticated': True, 'payload': {'aud': 'pubpartner-ui', 'exp': 1794027126, 'iat': 1793940726, 'iss': 'pubpartner-local', ...}}
+
+    @router.get("/bans")
+    async def read_bans(identity: Dict[str, Any] = Depends(require_role(READ_ROLE))):
+        """Who is out, so a boot or a ban can be undone from the same screen (lifting goes through /api/governance/unban)."""
+&gt;       return {"ok": True, "bans": [{"user_id": b.user_id, "kind": b.ban_type.value, "reason": b.reason, "by": b.issued_by, "at": b.issued_at,
+                                                                    ^^^^^^^^^^^^^^^^
+                                      "until": b.expires_at} for b in sorted(gov.active_bans(), key=lambda b: b.issued_at)]}
+E       AttributeError: 'str' object has no attribute 'value'
+
+modules/host_control.py:381: AttributeError</failure></testcase><testcase classname="tests.test_host_control" name="test_a_new_page_is_told_only_what_is_still_running" time="0.024" /><testcase classname="tests.test_pubcast.TestHub" name="test_initial_state" time="0.003" /><testcase classname="tests.test_pubcast.TestHub" name="test_post_and_get_history" time="0.005" /><testcase classname="tests.test_pubcast.TestHub" name="test_production_state" time="0.003" /><testcase classname="tests.test_pubcast.TestBotManager" name="test_callback_wiring" time="0.004" /><testcase classname="tests.test_pubcast.TestBotManager" name="test_has_ollama" time="0.003" /><testcase classname="tests.test_pubcast.TestBotManager" name="test_nudge_empty" time="0.003" /><testcase classname="tests.test_pubcast.TestCameras" name="test_default_cameras" time="0.001" /><testcase classname="tests.test_pubcast.TestCameras" name="test_reject_unknown" time="0.000" /><testcase classname="tests.test_pubcast.TestCameras" name="test_switch" time="0.000" /><testcase classname="tests.test_pubcast.TestRecording" name="test_lifecycle" time="0.007" /><testcase classname="tests.test_pubcast.TestRecording" name="test_privacy" time="0.001" /><testcase classname="tests.test_pubcast.TestRecording" name="test_profiles" time="0.001" /><testcase classname="tests.test_pubcast.TestGovernance" name="test_audit_hash_chain" time="0.017" /><testcase classname="tests.test_pubcast.TestGovernance" name="test_ban_unban" time="0.020" /><testcase classname="tests.test_pubcast.TestGovernance" name="test_consent_flow" time="0.019" /><testcase classname="tests.test_pubcast.TestGovernance" name="test_freeze" time="0.015" /><testcase classname="tests.test_pubcast.TestGovernance" name="test_waiting_room" time="0.018" /><testcase classname="tests.test_pubcast.TestVault" name="test_add_and_integrity" time="0.013" /><testcase classname="tests.test_pubcast.TestVault" name="test_full_sequence" time="0.989" /><testcase classname="tests.test_pubcast.TestVault" name="test_open_requires_command" time="0.006" /><testcase classname="tests.test_pubcast.TestModeResolver" name="test_modes" time="0.002" /><testcase classname="tests.test_pubcast.TestModeResolver" name="test_override" time="0.001" /><testcase classname="tests.test_pubcast.TestCharacterEngine" name="test_nudge_calibration" time="0.002" /><testcase classname="tests.test_pubcast.TestCharacterEngine" name="test_prompt_templates" time="0.000" /><testcase classname="tests.test_pubcast.TestCharacterEngine" name="test_speaking_slot" time="0.001" /><testcase classname="tests.test_pubcast.TestCharacterEngine" name="test_thought_logger" time="0.006" /><testcase classname="tests.test_pubcast.TestEtherealAvatars" name="test_color_change" time="0.003" /><testcase classname="tests.test_pubcast.TestEtherealAvatars" name="test_create_and_persist" time="0.003" /></testsuite></testsuites>

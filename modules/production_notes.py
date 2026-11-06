@@ -10,9 +10,9 @@ note: on the recipient's makeup mirror always, and on any other spot the sender 
 director's console...). Notes live on this PubCast host, so they wait for people who are offline and survive restarts.
 
 People
-    Everyone with an account on this PubCast is in the production. The owner makes the first account at setup; the
-    owner or a moderator adds crew accounts from the profile page. Each account has a profile with a permanent user ID,
-    a display name and an optional email (used only to address a copy of a note in the sender's own email program).
+    Each copy has its owner; admitted guests keep their own permanent identities. Production membership,
+    departments and producers are explicit groups in the notes database. Legacy local accounts are retained,
+    but new crew-account creation is retired. Optional email is used only for the sender's own email program.
 
 Storage
     <data>/users.db          profiles (see modules/userdb.py)
@@ -25,7 +25,9 @@ Routes
     POST  /api/profile/password           change your password (current password required)
     GET   /api/production/people          everyone in the production (members only; email addresses only to the owner,
                                           moderators and the person themself)
-    POST  /api/production/people          add a crew account (owner or moderator)
+    POST  /api/production/people          retired (410); use guest invitations
+    GET/POST/PATCH /api/production/groups production membership and departments
+    POST  /api/notes/preview              exact authorized recipients and per-person spots
     GET   /api/notes/spots                where a note can be stuck
     GET   /api/notes?box=inbox|saved|sent your notes, newest first (each with its optional project, for grouping)
     POST  /api/notes                      send a note (JSON, or multipart with attachments)
@@ -151,8 +153,16 @@ class NotesStore:
         self.db_path = root / "notes.db"
         self._lock = threading.Lock()
         with self._conn() as conn:
+            for attempt in range(10):
+                try:
+                    if conn.execute('PRAGMA journal_mode').fetchone()[0].lower()!='wal':
+                        conn.execute('PRAGMA journal_mode=WAL')
+                    break
+                except sqlite3.OperationalError as exc:
+                    if 'locked' not in str(exc).lower() or attempt==9:
+                        raise
+                    time.sleep(.02*(attempt+1))
             conn.executescript("""
-                PRAGMA journal_mode = WAL;
                 CREATE TABLE IF NOT EXISTS notes (
                     id          TEXT PRIMARY KEY,
                     sender_id   TEXT NOT NULL,
@@ -186,9 +196,14 @@ class NotesStore:
                 CREATE INDEX IF NOT EXISTS idx_notes_sender ON notes(sender_id, created_at DESC);
                 CREATE INDEX IF NOT EXISTS idx_files_note ON files(note_id);
             """)
+            conn.execute("BEGIN IMMEDIATE")
             cols = {r["name"] for r in conn.execute("PRAGMA table_info(notes)")}
             if "project" not in cols:                     # a notes.db from before projects existed
                 conn.execute("ALTER TABLE notes ADD COLUMN project TEXT NOT NULL DEFAULT ''")
+            if 'metadata_json' not in cols:
+                conn.execute("ALTER TABLE notes ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}'")
+        from .production_groups import ProductionGroups
+        self.groups = ProductionGroups(self._conn)
 
     @contextmanager
     def _conn(self) -> Iterator[sqlite3.Connection]:
@@ -214,22 +229,26 @@ class NotesStore:
 
     # -- writing --
     def create(self, sender_id: str, subject: str, body: str, recipients: List[Tuple[str, str]], spots: List[str],
-               reply_to: Optional[str], files: List[Dict[str, Any]], project: str = "") -> str:
+               reply_to: Optional[str], files: List[Dict[str, Any]], project: str = "", delivery=None, actor_host=False) -> str:
         """recipients: (user_id, kind). files: dicts with id, name, content_type, size, sha256, tmp (a written file)."""
         note_id = "n_" + secrets.token_hex(10)
         created = _now()
         with self._lock, self._conn() as conn:
             conn.execute("BEGIN IMMEDIATE")
             try:
+                if delivery and delivery['snapshot']:
+                    self.groups.guard(conn, delivery['snapshot'], sender_id, actor_host)
                 thread_id = note_id
                 if reply_to:
                     row = conn.execute("SELECT thread_id FROM notes WHERE id = ?", (reply_to,)).fetchone()
                     thread_id = row["thread_id"] if row else note_id
                 conn.execute("INSERT INTO notes (id, sender_id, subject, body, created_at, reply_to, thread_id, project) "
                              "VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (note_id, sender_id, subject, body, created, reply_to, thread_id, project))
+                if delivery:
+                    conn.execute('UPDATE notes SET metadata_json=? WHERE id=?',(json.dumps(delivery['metadata']),note_id))
                 spots_json = json.dumps(spots)
                 conn.executemany("INSERT INTO recipients (note_id, user_id, kind, spots) VALUES (?, ?, ?, ?)",
-                                 [(note_id, uid, kind, spots_json) for uid, kind in recipients])
+                                 [(note_id, uid, kind, json.dumps(delivery['positions'][uid]) if delivery else spots_json) for uid, kind in recipients])
                 folder = self.files / note_id
                 if files:
                     folder.mkdir(parents=True, exist_ok=False)
@@ -351,6 +370,21 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
         if with_email:
             out["email"] = p.get("email", "")
         return out
+
+    from .production_groups import create_group_router, resolve
+    router.include_router(create_group_router(store.groups, me, _json, userdb.list_profiles))
+
+    async def delivery_for(body, profile):
+        everyone=await userdb.list_profiles()
+        return await run_in_threadpool(resolve,store.groups,profile,body,everyone,spots)
+
+    @router.post('/api/notes/preview')
+    async def preview_note(request: Request, profile: dict = Depends(me)):
+        delivery=await delivery_for(await _json(request),profile)
+        by_id={p['user_id']:p for p in await userdb.list_profiles()}
+        return {'preview':delivery['preview'], 'recipients':[
+            dict(user_id=uid,display_name=by_id[uid]['display_name'],kind=kind,spots=delivery['positions'][uid])
+            for uid,kind in delivery['recipients'].items()], 'metadata':delivery['metadata']}
 
     # ---------------------------------------------------------------- profile
     @router.get("/api/profile/me")
@@ -493,6 +527,7 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
             "id": r["id"], "subject": r["subject"], "from": who(by_id, r["sender_id"]), "created_at": r["created_at"],
             "unread": not r["is_read"], "saved": bool(r["saved"]), "spots": json.loads(r["spots"] or "[]"),
             "files": r["file_count"], "reply_to": r["reply_to"], "kind": r["kind"], "project": r["project"],
+            "production": json.loads(r['metadata_json']),
         } for r in rows]
         return {"box": box, "notes": notes, "unread": sum(1 for n in notes if n["unread"])}
 
@@ -513,6 +548,7 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
             "is_sender": note["is_sender"], "spots": note["spots"], "unread": not note["is_read"], "saved": note["saved"],
             "reply_to": note["reply_to"], "thread_id": note["thread_id"], "project": note["project"],
             "files": [dict(f, url=f"/api/notes/{note['id']}/files/{f['id']}") for f in note["files"]],
+            "production": json.loads(note['metadata_json']),
         }
 
     @router.post("/api/notes/{note_id}/{action}")
@@ -570,23 +606,10 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
         project = _clean_text(body.get("project"), PROJECT_MAX, "The project", single_line=True)
         chosen_spots = spots.clean(body.get("spots"))
 
-        everyone = await userdb.list_profiles()
-        known = {p["user_id"] for p in everyone}
-        crew = [p["user_id"] for p in everyone if p["user_id"] != profile["user_id"]]
-        placed: Dict[str, str] = {}
-        for kind in KINDS:                                       # To beats CC beats BCC when someone is in two lists
-            listed = body.get(kind) or []
-            if not isinstance(listed, list) or not all(isinstance(x, str) for x in listed):
-                raise HTTPException(400, f"{kind} must be a list of user IDs")
-            for uid in listed:
-                for target in (crew if uid == PRODUCTION else [uid]):
-                    if target not in known:
-                        raise HTTPException(400, "One of the people on this note is not in the production")
-                    placed.setdefault(target, kind)
-        if not placed:
-            raise HTTPException(400, "Who is this note for? Add someone to To, CC or BCC")
-        if len(placed) > RECIPIENTS_MAX:
-            raise HTTPException(400, f"A note can go to at most {RECIPIENTS_MAX} people")
+        delivery=await delivery_for(body,profile)
+        placed=delivery['recipients']
+        if (body.get('group_id') or body.get('preview')) and body.get('preview')!=delivery['preview']:
+            raise HTTPException(409,'Recipients or membership changed; preview this note before sending')
 
         reply_to = body.get("reply_to")
         if reply_to is not None:
@@ -599,7 +622,7 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
         files = await _receive_files(uploads, incoming)
         try:
             note_id = await run_in_threadpool(store.create, profile["user_id"], subject, text,
-                                              list(placed.items()), chosen_spots, reply_to, files, project)
+                                              list(placed.items()), chosen_spots, reply_to, files, project, delivery, profile.get('role')=='owner')
         except Exception:
             for f in files:
                 try:

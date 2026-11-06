@@ -5,7 +5,7 @@ const message=value=>{$('status').textContent=value;};
 let prepared=null,popup=null,homeOrigin=null,pollTimer=null,polling=false;
 const consent={tos:true,recording:true,ai_disclosure:true,data_processing:true};
 async function api(path,body){
- const response=await fetch('/api/guests'+path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(20000),cache:'no-store'});
+ const response=await fetch('/api/guests/'+path.replace(/^\//,''),{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(20000),cache:'no-store'});
  const data=await response.json();if(!response.ok)throw Error(typeof data.detail==='string'?data.detail:'The visit request failed ('+response.status+')');
  return {data,response};
 }

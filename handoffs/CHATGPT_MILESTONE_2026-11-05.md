@@ -6,7 +6,7 @@
 **Owner:** Josie Curtsey Cobbley / Rearview Foresight  
 **Implementer:** GPT-6 / ChatGPT (this branch only)  
 **Master coordination:** [Beyond-October issue #1](https://github.com/whatsupjosie/Beyond-October/issues/1)  
-**Status:** SCOPE AGREED, NOT COMPLETE. This is a living work record. A separate **session-ending handoff** is required at the end of every work session, whether or not the milestone is complete.
+**Status:** SCOPED SOFTWARE WORK COMPLETE WITHIN THE AVAILABLE ENVIRONMENT. Final repaired-tree full confirmation: 2,363 passed, six skipped, sixteen subtests; Node 104 reported cases passed. Hardware/optional-model and advanced native-render exclusions remain explicit. See [the latest session-ending handoff](SESSION_ENDING_2026-11-05_SCOPE_COMPLETION.md). Earlier entries below are historical. This is a living work record. A separate **session-ending handoff** is required at the end of every work session, whether or not the milestone is complete.
 
 ## Exact stopping point chosen by the owner
 
@@ -36,42 +36,42 @@ Do **not** start experimental 3D/voxel builder, gamified onboarding, unrelated m
 - [x] Compare later recovered package against published integration tree path by path. November 5: both ZIPs compared by path and SHA-256; later source integrated, with exclusions and merged-file hashes recorded.
 - [x] Restore missing modules, browser workers/worklets and production-route mounts using semantic integration. See recording integration evidence and the session-ending handoff; this does not close the remaining acceptance gates.
 - [x] Validate authenticated distinct guest identities and role boundaries for participant audio. November 5 resumed checkpoint: two own-copy identities signed and admitted on a separate host; existing decoded-media recording/export acceptance passed with those guest leases. Browser tones replace physical microphones; hardware/network gates remain open.
-- [ ] Verify multi-source takes, untouched original media, program and independent stems, cancel/short stop/PANIC, timed capture, replay/export, crash/restart recovery and overlapping speech.
-- [ ] Run focused tests on **current changed tree**, plus relevant existing suites; record hardware/environment exclusions separately.
+- [x] Verify multi-source takes, untouched original media, program and independent stems, cancel/short stop/PANIC, timed capture, replay/export, crash/restart recovery and overlapping speech.
+- [x] Run focused tests on **current changed tree**, plus relevant existing suites; record hardware/environment exclusions separately.
 
 ### B. Human accounts and profiles
 - [x] Preserve permanent IDs through additive profile migration; own-copy keys and admission restart tests pass. Native cartridge portability remains open.
-- [ ] One local owner per installation, guest admission/waiting-room behavior, separate identity and privacy.
+- [x] One local owner per installation, guest admission/waiting-room behavior, separate identity and privacy.
 - [x] First-time profile flow: actual fresh-install browser journeys cover private/discoverable choice, optional-field skipping, permanent ID and requested app destination. Discovery is explicitly this host.
 - [x] Personal Me menu and singleton profile tray, editor, bounded metadata-stripped photos, revision-safe drafts and click-to-load reels tested. Guest picture transfer remains open.
-- [ ] Search/message/contact requests, accept/decline/block and authorized private communication as needed for first usable member journey.
-- [ ] Test privacy across guest/host, anonymous requests, searches, edits, migration and reload.
+- [x] Search/message/contact requests, accept/decline/block and authorized private communication as needed for first usable member journey.
+- [x] Test privacy across guest/host, anonymous requests, searches, edits, migration and reload.
 
 ### C. Production groups and notes
-- [ ] Group membership + roles and owner/host permissions.
-- [ ] Select whole production, department, individual or subset. Preview actual authorized recipients before send.
-- [ ] Let sender pick allowed spot; map to recipient's personal surface for per-person dressing rooms.
-- [ ] Preserve independent read, notes inbox/sent/saved, attachments, schedule updates and existing artwork.
-- [ ] Integrate minimal global message/notes indicators into Foresight's existing top bar and personal menu without breaking open trays or typing.
-- [ ] Test note delivery to sound engineer at audio console and entire production at each own mirror, including unauthorized access attempts.
+- [x] Group membership + roles and owner/host permissions.
+- [x] Select whole production, department, individual or subset. Preview actual authorized recipients before send.
+- [x] Let sender pick allowed spot; map to recipient's personal surface for per-person dressing rooms.
+- [x] Preserve independent read, notes inbox/sent/saved, attachments, schedule updates and existing artwork.
+- [x] Integrate minimal global message/notes indicators into Foresight's existing top bar and personal menu without breaking open trays or typing.
+- [x] Test note delivery to sound engineer at audio console and entire production at each own mirror, including unauthorized access attempts.
 
 ### D. Targeted debugging
-- [ ] Repeat functional API and actual UI/browser tests for recording.
-- [ ] Repeat account/profile privacy/first-run and guest tests.
-- [ ] Repeat group notes composition, placement, delivery and privacy tests.
-- [ ] Write defect → reproduction → changed files → proof of fix entries.
+- [x] Repeat functional API and actual UI/browser tests for recording.
+- [x] Repeat account/profile privacy/first-run and guest tests.
+- [x] Repeat group notes composition, placement, delivery and privacy tests.
+- [x] Write defect → reproduction → changed files → proof of fix entries.
 
 ### E. Whole-codebase debug round 1
-- [ ] Independently exercise all meaningful startup/integration, runtime/API, disk/recovery, auth, browser, audio, 2i and studio workflows supported by the environment.
-- [ ] Fix reproducible regressions; run focused suite and widest feasible whole-suite; record every skip and exception.
+- [x] Independently exercise all meaningful startup/integration, runtime/API, disk/recovery, auth, browser, audio, 2i and studio workflows supported by the environment.
+- [x] Fix reproducible regressions; run focused suite and widest feasible whole-suite; record every skip and exception.
 
 ### F. Whole-codebase debug round 2
-- [ ] Re-audit and retest on the **post-round-1** tree, focus on cross-feature boundaries (owner/guest, recording/notes, save/restore, offline, concurrent input).
-- [ ] Repair reproducible findings and rerun wide suite; do not reuse round-1 test evidence as the second round.
+- [x] Re-audit and retest on the **post-round-1** tree, focus on cross-feature boundaries (owner/guest, recording/notes, save/restore, offline, concurrent input).
+- [x] Repair reproducible findings and rerun wide suite; do not reuse round-1 test evidence as the second round.
 
 ### G. Session-ending handoff (every session); milestone scope stop after both rounds
-- [ ] At the end of **this and every subsequent session**, state what was done, what was actually tested, what failed, and what remains unverified or untouched. Include branch/commit, exact files and commands, known risks and blockers, with Linux/headless evidence distinguished from native Windows/real microphone/device checks. **Do not describe the work as complete merely because the session ends.**
-- [ ] Sign each session-ending handoff and link it from issue #1 for review and continuity. A subsequent session resumes the unfinished work rather than assuming completion.
+- [x] At the end of **this and every subsequent session**, state what was done, what was actually tested, what failed, and what remains unverified or untouched. Include branch/commit, exact files and commands, known risks and blockers, with Linux/headless evidence distinguished from native Windows/real microphone/device checks. **Do not describe the work as complete merely because the session ends.**
+- [x] Sign each session-ending handoff and link it from issue #1 for review and continuity. A subsequent session resumes the unfinished work rather than assuming completion.
 
 ## Evidence log
 
@@ -80,3 +80,9 @@ Do **not** start experimental 3D/voxel builder, gamified onboarding, unrelated m
 
 - 2026-11-05T11:01:13.772Z, Codex / ChatGPT Work: session PAUSED because the workspace became unavailable. Published recording/clacker application `f997d541` passed the full integration baseline: 2,328 passed, six skipped, zero failed, sixteen subtests passed, 921.01 s; final Node selection 37 passed. This is not either post-feature debug round. Initial profile backend work passed 15 tests locally, but its application changes remain uncommitted/unpublished; later auth/UI changes are unverified. See the session-ending handoff and `handoffs/PROFILE_WORK_RECOVERY_2026-11-05.md`. Groups, independent guests and both required post-feature rounds remain unfinished.
 
+
+## Completion evidence — November 5 Los Angeles session / November 6 UTC
+
+Signed: Codex / ChatGPT Work. Gates above are closed for their supported software/browser journeys, not as native hardware certification. Local final application `878ef65`, tree `e33526b9b2cba7da5f5df0030e6af6166a9cc761`. Groups, schedule/placement previews, contacts, durable cross-worker moderation and startup migrations completed; guest entry and real-host photos repaired. Round 1: 2,357 passed, six skipped, one failure and four teardown errors; fixes and targeted reruns documented. Round 2 initially: 2,362 passed, six skipped, one clacker timing failure; repaired callback timing, focused rerun passed. Final full confirmation: 2,363 passed, six skipped, zero failures/errors, 217 warnings, sixteen subtests, 963.46 seconds. All 29 Node files exited 0, 104 reported cases. See `evidence/scope-completion-2026-11-05/README.md` and the latest session-ending handoff for commands, source hashes, reproductions, repairs and exclusions.
+
+Native Windows/physical audio-video devices, WAN/cross-device timing, optional speech models, advanced native source-master/selective rendering, guest photo transfer, cartridge backup UX and global profile federation are not certified by these gates. The synchronization decision retains the tested shared-clock marker path; automatic three-probe calibration and compensation are documented design options, not implemented feature claims. No main merge, deployment or GitHub Actions. The scoped stopping point has been reached.

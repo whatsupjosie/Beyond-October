@@ -398,6 +398,9 @@ function menuModel(){
     {name: 'Me', items: [
       {label:'Your PubCast profile',run:()=>programs.open('human_profile')},
       {label:'Guests and invitations',run:()=>programs.open('human_visits')},
+      {label:'Sticky notes',run:()=>programs.open('production_notes')},
+      {label:'Production groups',run:()=>programs.open('production_groups')},
+      {label:'Contacts and messages',run:()=>programs.open('human_contacts')},
     ]},
     {name: 'Help', items: [
       {label: 'Keyboard and mouse', run: showShortcuts},
@@ -447,6 +450,20 @@ menuModel().forEach((m, i) => {
     if(e.key === 'Tab') closeMenus();
   });
 });
+// The indicator updates only its own label; open trays and typed input keep focus.
+const personalButton=[...bar.querySelectorAll('.menu-btn')].find(button=>button.textContent==='Me');
+async function refreshPersonalCounts(){
+  if(document.hidden||typeof window.ReachAuth?.getToken!=='function'||!window.ReachAuth.getToken())return;
+  try{const responses=await Promise.all([fetch('/api/notes?limit=500'),fetch('/api/chat/dm/pending')]);
+    if(responses.some(response=>!response.ok))throw Error('Notifications unavailable');
+    const [notes,contacts]=await Promise.all(responses.map(response=>response.json()));
+    const count=(notes.unread||0)+(contacts.count||0);
+    if(personalButton){personalButton.title='';personalButton.textContent=count?'Me · '+count:'Me';personalButton.setAttribute('aria-label','Me: '+(notes.unread||0)+' unread notes, '+(contacts.count||0)+' contact requests');}
+  }catch(_){if(personalButton){personalButton.title='Notification status unavailable';personalButton.setAttribute('aria-label','Me: notification status unavailable');}}
+}
+const personalPoll=setInterval(refreshPersonalCounts,20000);refreshPersonalCounts();
+addEventListener('focus',refreshPersonalCounts);document.addEventListener('visibilitychange',refreshPersonalCounts);
+addEventListener('pagehide',()=>clearInterval(personalPoll));
 addEventListener('pointerdown', e => { if(!e.target.closest('.menu')) closeMenus(); }, true);
 addEventListener('blur', () => closeMenus());
 

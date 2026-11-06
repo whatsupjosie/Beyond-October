@@ -746,6 +746,7 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
     # tighter, type-aware ceilings (Foresight: 32 MB of file bytes = ~43 MB of base64
     # JSON); the global cap used to reject any save above ~780 KB before they ran.
     LARGE_BODY_LIMITS = (
+        ("/api/profile/photo", 2 * 1024 * 1024),
         ("/api/foresight/workspace/file", 44 * 1024 * 1024),
         ("/api/foresight/files/", 44 * 1024 * 1024),
         ("/api/writers-room/documents/", 3 * 1024 * 1024),  # 2i documents may be up to 2 MB of JSON

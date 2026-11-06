@@ -1,5 +1,7 @@
 # Session-ending handoff — ChatGPT Work, November 5, 2026
 
+**Historical checkpoint. Superseded by [the scoped completion session-ending handoff](SESSION_ENDING_2026-11-05_SCOPE_COMPLETION.md), which records the later feature completion, both debugging rounds and successful full confirmation.**
+
 Signed: Codex / ChatGPT Work. This file is updated as work proceeds; session end
 does not imply milestone completion. Branch: `chatgpt-work-2026-11-05`.
 Starting head: `afa8971f11d09f63defc7553859002934d6df586`; integrated base `c82069b`.

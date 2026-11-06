@@ -134,13 +134,16 @@ def test_send_read_save_trash_and_bcc_privacy(env):
 def test_production_group_self_notes_replies_and_validation(env):
     client, as_, people, _ = env
     pete = as_("pete", "guest")
-    r = client.post("/api/notes", headers=pete, json={"subject": "Call time 6 am", "to": ["@production"]})
-    assert r.status_code == 201 and r.json()["recipients"] == 3                  # everyone but the sender
-    assert client.get("/api/notes", headers=pete).json()["notes"] == []
+    group=client.post('/api/production/groups',headers=as_('josie','owner'),json={'name':'Episode crew','members':[{'user_id':p['user_id']} for p in people.values()]}).json()
+    payload={'subject':'Call time 6 am','to':['@production'],'group_id':group['id']}
+    payload['preview']=client.post('/api/notes/preview',headers=pete,json=payload).json()['preview']
+    r = client.post('/api/notes',headers=pete,json=payload)
+    assert r.status_code == 201 and r.json()["recipients"] == 4                  # the selected whole group includes its sender
+    assert [n["subject"] for n in client.get("/api/notes", headers=pete).json()["notes"]] == ["Call time 6 am"]
     first = r.json()["id"]
     r = client.post("/api/notes", headers=pete, json={"subject": "Buy more coffee", "to": [people["pete"]["user_id"]]})
     assert r.status_code == 201
-    assert [n["subject"] for n in client.get("/api/notes", headers=pete).json()["notes"]] == ["Buy more coffee"]
+    assert [n["subject"] for n in client.get("/api/notes", headers=pete).json()["notes"]] == ["Buy more coffee", "Call time 6 am"]
     r = client.post("/api/notes", headers=as_("repete", "guest"),
                     json={"subject": "Re: Call time 6 am", "to": [people["pete"]["user_id"]], "reply_to": first})
     assert r.status_code == 201

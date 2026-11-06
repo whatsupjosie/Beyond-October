@@ -1,0 +1,5 @@
+PUBCAST_JWT_SECRET is not set — using a secure process-local secret. Tokens will not survive restart. Launch through run_pubpartner.py for a persistent secret.
+Expected group members 4 actual recipients 3
+Traceback (most recent call last):
+  File "<stdin>", line 12, in <module>
+AssertionError: Whole production omitted a member because that member was the sender

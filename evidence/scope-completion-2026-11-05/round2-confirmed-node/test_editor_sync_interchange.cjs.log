@@ -1,0 +1,82 @@
+TAP version 13
+# Subtest: clacker reference is exactly fifteen seconds and offset is microsecond-accurate
+ok 1 - clacker reference is exactly fifteen seconds and offset is microsecond-accurate
+  ---
+  duration_ms: 2.707345
+  type: 'test'
+  ...
+# Subtest: wrong clacker drift is rejected before corrupt project save
+ok 2 - wrong clacker drift is rejected before corrupt project save
+  ---
+  duration_ms: 0.734989
+  type: 'test'
+  ...
+# Subtest: clacker drift fit describes measured rate and maps correct media time
+ok 3 - clacker drift fit describes measured rate and maps correct media time
+  ---
+  duration_ms: 0.29864
+  type: 'test'
+  ...
+# Subtest: arbitrary 0.03 timing correction cannot affect another camera
+ok 4 - arbitrary 0.03 timing correction cannot affect another camera
+  ---
+  duration_ms: 0.206572
+  type: 'test'
+  ...
+# Subtest: rough-cut split, lift, ripple-delete and remove-gap preserve source originals
+ok 5 - rough-cut split, lift, ripple-delete and remove-gap preserve source originals
+  ---
+  duration_ms: 1.946087
+  type: 'test'
+  ...
+# Subtest: CMX3600 requires explicit supported non-drop timebase
+ok 6 - CMX3600 requires explicit supported non-drop timebase
+  ---
+  duration_ms: 0.27146
+  type: 'test'
+  ...
+# Subtest: CMX3600 yields source in/out and sequential record in/out
+ok 7 - CMX3600 yields source in/out and sequential record in/out
+  ---
+  duration_ms: 0.645734
+  type: 'test'
+  ...
+# Subtest: CMX3600 quantizes cumulative boundaries, not each cut independently
+ok 8 - CMX3600 quantizes cumulative boundaries, not each cut independently
+  ---
+  duration_ms: 5.555874
+  type: 'test'
+  ...
+# Subtest: sub-frame or negative-source EDL edits fail rather than silently change cuts
+ok 9 - sub-frame or negative-source EDL edits fail rather than silently change cuts
+  ---
+  duration_ms: 0.370429
+  type: 'test'
+  ...
+# Subtest: full sidecar retains manual microsecond offset and rejects unsupported master quality
+ok 10 - full sidecar retains manual microsecond offset and rejects unsupported master quality
+  ---
+  duration_ms: 0.790974
+  type: 'test'
+  ...
+# Subtest: simply tagging low-res footage as cinema master never clears provenance gate
+ok 11 - simply tagging low-res footage as cinema master never clears provenance gate
+  ---
+  duration_ms: 0.359943
+  type: 'test'
+  ...
+# Subtest: frame rounding, gap and shot event identifiers remain in handoff
+ok 12 - frame rounding, gap and shot event identifiers remain in handoff
+  ---
+  duration_ms: 0.651794
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 106.497512

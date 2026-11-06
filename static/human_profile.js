@@ -50,8 +50,8 @@ function buildFields(){
 function safeLink(value){try{const u=new URL(value);return ['https:','http:'].includes(u.protocol)&&!u.username&&!u.password?u:null;}catch(_){return null;}}
 function showCard(card){
  const target=$('card');target.replaceChildren();target.hidden=false;
- const title=document.createElement('h2');title.textContent=card.display_name;target.append(title);
- const id=document.createElement('p');id.className='identity';id.textContent=card.user_id;target.append(id);
+ const title=document.createElement('h2');title.textContent=card.display_name+' · Human';target.append(title);
+ const id=document.createElement('p');id.className='identity';id.textContent=card.user_id;target.append(id);const contact=document.createElement('a');contact.href='/static/human_contacts.html';contact.textContent='Contacts and private messages';target.append(contact);
  if(card.has_photo){const image=document.createElement('img');image.id='cardPhoto';image.alt='Profile picture';image.src='/api/profiles/'+encodeURIComponent(card.user_id)+'/photo';target.append(image);}
  for(const [key,value]of Object.entries(card.about||{})){
   const label=fields.find(f=>f[0]===key)?.[1]||key;const row=document.createElement('p');const name=document.createElement('strong');name.textContent=label+': ';row.append(name);

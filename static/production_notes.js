@@ -534,6 +534,8 @@
     if (n.is_sender) field("BCC", names(n.bcc));
     else if (n.you_were_bcc) field("BCC", "You");
     field("Project", n.project);
+    if(n.production?.group_name)field('Production',n.production.group_name);
+    if(n.production?.schedule){const event=n.production.schedule;field('Starts',new Date(event.starts_at).toLocaleString());field('Ends',new Date(event.ends_at).toLocaleString());field('Location',event.location);}
     field("Date", new Date(n.created_at * 1000).toLocaleString([], { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" }));
     scroll.appendChild(dl);
     scroll.appendChild(el("div", "pn-body", n.body));
@@ -565,6 +567,7 @@
 
   async function compose(o) {
     N.mode = "compose";
+    N.people = null;
     const crew = await people();
     if (!crew) { alertInLayer("Your crew list could not be loaded."); return; }
     if (!N.spotCatalog) { const r = await api("/api/notes/spots"); N.spotCatalog = r.ok ? r.data.spots : [{ id: "mirror", label: "Makeup mirror", always: true }]; }
@@ -578,6 +581,17 @@
     }
     const sheet = el("div", "pn-sheet"); sheet.dataset.paper = "compose";
     const form = el("form", "pn-form pn-scroll"); form.noValidate = true;
+    const groupReply = await api('/api/production/groups');
+    const groups = groupReply.ok ? groupReply.data.groups : [];
+    const groupSelect = el('select'); groupSelect.id='pnGroup';
+    groupSelect.add(new Option('Personal note (individual people)',''));
+    for(const group of groups) groupSelect.add(new Option(group.name,group.id));
+    if(re?.production?.group_id && groups.some(g=>g.id===re.production.group_id))groupSelect.value=re.production.group_id;
+    const groupLabel=el('label',null,'Production group');groupLabel.append(groupSelect);form.append(groupLabel);
+    let previewToken=null,previewRecipients=[],placements={};
+    const review=el('div','pn-review');review.setAttribute('aria-live','polite');
+    const invalidate=()=>{previewToken=null;review.replaceChildren();};
+    const selectedGroup=()=>groups.find(g=>g.id===groupSelect.value);
     const picker = (kind, label) => {
       const lab = el("div", "pn-row"); lab.appendChild(el("span", null, label));
       const box = el("div", "pn-picks");
@@ -585,14 +599,17 @@
         const b = btn(name, "pn-pick", () => { const on = !sel[kind].has(id); if (on) { sel[kind].add(id); for (const k of ["to", "cc", "bcc"]) if (k !== kind) sel[k].delete(id); } else sel[kind].delete(id); syncPicks(); });
         b.dataset.kind = kind; b.dataset.id = id; box.appendChild(b);
       };
-      make("@production", "Everyone");
-      for (const p of crew) make(p.user_id, p.user_id === N.me ? "Me" : p.display_name);
+      const group=selectedGroup();
+      if(group){make('@production','Everyone in '+group.name);
+        for(const department of [...new Set(group.members.map(m=>m.department).filter(Boolean))]) make('@department:'+department,department+' department');}
+      for (const p of crew.filter(p=>!group||group.members.some(m=>m.user_id===p.user_id))) make(p.user_id, p.user_id === N.me ? "Me" : p.display_name);
       lab.appendChild(box); return lab;
     };
-    const syncPicks = () => form.querySelectorAll(".pn-pick[data-kind]").forEach(b => b.setAttribute("aria-pressed", String(sel[b.dataset.kind].has(b.dataset.id))));
-    form.appendChild(picker("to", "To"));
-    form.appendChild(picker("cc", "CC"));
-    form.appendChild(picker("bcc", "BCC"));
+    const syncPicks = () => {invalidate();form.querySelectorAll('.pn-pick[data-kind]').forEach(b=>b.setAttribute('aria-pressed',String(sel[b.dataset.kind].has(b.dataset.id))));};
+    const recipientRows=el('div');form.append(recipientRows);
+    const rebuildRecipients=()=>{recipientRows.replaceChildren(picker('to','To'),picker('cc','CC'),picker('bcc','BCC'));syncPicks();};
+    groupSelect.onchange=()=>{for(const kind of ['to','cc','bcc'])sel[kind].clear();placements={};rebuildRecipients();};
+    rebuildRecipients();
     const subj = el("input", "pn-subject"); subj.type = "text"; subj.maxLength = 120; subj.required = true;
     subj.value = re ? (/^re:/i.test(re.subject) ? re.subject : "Re: " + re.subject).slice(0, 120) : "";
     const lsub = el("label", null, "Subject: this is what is written on the sticky note"); lsub.appendChild(subj); form.appendChild(lsub);
@@ -600,13 +617,18 @@
     const dl = el("datalist"); dl.id = "pnProjects"; proj.setAttribute("list", "pnProjects");
     for (const p of [...new Set(N.notes.map(n => n.project).filter(Boolean))]) { const op = el("option"); op.value = p; dl.appendChild(op); }
     const lproj = el("label", null, "Project (optional)"); lproj.appendChild(proj); lproj.appendChild(dl); form.appendChild(lproj);
+    const noteKind=el('select');noteKind.id='pnKind';noteKind.add(new Option('Sticky note','note'));noteKind.add(new Option('Schedule update','schedule'));
+    const kindLabel=el('label',null,'Message type');kindLabel.append(noteKind);form.append(kindLabel);
+    const timing=el('fieldset');timing.hidden=true;const start=el('input'),end=el('input'),location=el('input');start.type=end.type='datetime-local';start.id='pnStart';end.id='pnEnd';location.id='pnLocation';location.maxLength=200;
+    for(const [text,input] of [['Starts (your local time)',start],['Ends (your local time)',end],['Location',location]]){const label=el('label',null,text);label.append(input);timing.append(label);}form.append(timing);
+    noteKind.onchange=()=>{timing.hidden=noteKind.value!=='schedule';invalidate();};timing.oninput=invalidate;
     const body = el("textarea"); body.maxLength = 20000;
     if (re) body.value = "\n\n" + "On " + new Date(re.created_at * 1000).toLocaleString() + ", " + re.from.display_name + " wrote:\n" + re.body.split("\n").map(l => "> " + l).join("\n");
     const lbody = el("label", null, "Message"); lbody.appendChild(body); form.appendChild(lbody);
     const spotRow = el("div", "pn-row"); spotRow.appendChild(el("span", null, "Stick it to"));
     const spotBox = el("div", "pn-picks");
     for (const s of N.spotCatalog) {
-      const b = btn(s.label, "pn-pick", () => { if (s.always) return; spots.has(s.id) ? spots.delete(s.id) : spots.add(s.id); b.setAttribute("aria-pressed", String(spots.has(s.id))); });
+      const b = btn(s.label, "pn-pick", () => { if (s.always) return; spots.has(s.id) ? spots.delete(s.id) : spots.add(s.id); invalidate(); b.setAttribute("aria-pressed", String(spots.has(s.id))); });
       b.setAttribute("aria-pressed", String(spots.has(s.id))); if (s.always) { b.disabled = true; b.title = "Every note goes on the mirror"; }
       spotBox.appendChild(b);
     }
@@ -617,14 +639,36 @@
     emailRow.appendChild(emailBox); emailRow.appendChild(el("span", null, "Also send as email from my own email program"));
     form.appendChild(emailRow);
     const msg = el("div", "pn-msg"); msg.setAttribute("role", "status"); form.appendChild(msg);
+    form.append(review);
+    const noteData=()=>{
+      const note={subject:subj.value,project:proj.value,body:body.value,spots:[...spots],to:[...sel.to],cc:[...sel.cc],bcc:[...sel.bcc],placements,kind:noteKind.value};
+      if(groupSelect.value)note.group_id=groupSelect.value;
+      if(re)note.reply_to=re.id;
+      if(noteKind.value==='schedule'){
+        if(!start.value||!end.value)throw Error('Choose schedule start and end times.');
+        note.schedule={starts_at:new Date(start.value).toISOString(),ends_at:new Date(end.value).toISOString(),location:location.value};
+      }
+      return note;
+    };
+    const preview=async()=>{
+      const result=await api('/api/notes/preview',json(noteData()));if(!result.ok)throw Error(result.text);
+      previewToken=result.data.preview;previewRecipients=result.data.recipients;review.replaceChildren(el('h3',null,'Review actual recipients and locations'));
+      for(const person of previewRecipients){
+        const row=el('label',null,person.display_name+' · '+person.kind.toUpperCase());
+        const select=el('select');select.multiple=true;select.setAttribute('aria-label','Locations for '+person.display_name);
+        for(const spot of N.spotCatalog){const option=new Option(spot.label,spot.id);option.selected=person.spots.includes(spot.id);option.disabled=spot.always;select.add(option);}
+        select.onchange=()=>{placements[person.user_id]=['mirror',...[...select.selectedOptions].map(o=>o.value).filter(v=>v!=='mirror')];previewToken=null;msg.textContent='Locations changed. Preview recipients again before sending.';};
+        row.append(select);review.append(row);
+      }
+      msg.textContent='Recipients reviewed. Stick it to send.';
+    };
     sheet.appendChild(form);
     syncPicks();
 
     const actions = el("div", "pn-actions");
     const sendBtn = btn("Stick it", "pn-brass primary", async () => {
       msg.className = "pn-msg"; msg.textContent = "";
-      const note = { subject: subj.value, project: proj.value, body: body.value, spots: [...spots], to: [...sel.to], cc: [...sel.cc], bcc: [...sel.bcc] };
-      if (re) note.reply_to = re.id;
+      let note;try{note=noteData();if(note.group_id&&!previewToken){await preview();return;}if(previewToken)note.preview=previewToken;}catch(e){msg.textContent=e.message;return;}
       if (!note.subject.trim()) { msg.textContent = "Write a subject: it is what shows on the sticky note."; subj.focus(); return; }
       if (!note.to.length && !note.cc.length && !note.bcc.length) { msg.textContent = "Choose who the note is for."; return; }
       sendBtn.disabled = true; sendBtn.textContent = "Sticking…";
@@ -637,7 +681,8 @@
       if (!r.ok) { msg.textContent = r.text; return; }
       await refresh();
       if (!emailBox.checked) return openMenu();
-      const link = mailto(note, crew);
+      const emailNote=note.group_id?{...note,...Object.fromEntries(['to','cc','bcc'].map(kind=>[kind,previewRecipients.filter(p=>p.kind===kind).map(p=>p.user_id)]))}:note;
+      const link = mailto(emailNote, crew);
       msg.className = "pn-msg ok"; msg.textContent = "Stuck. " + (link.missing.length ? "No email address available to you for " + link.missing.join(", ") + ". " : "");
       if (link.href) {
         const a = el("a", "pn-mail", "Open the email copy in my email program"); a.href = link.href; msg.appendChild(el("br")); msg.appendChild(a);
@@ -645,6 +690,7 @@
       }
       actions.textContent = ""; actions.appendChild(btn("Back to notes", "pn-brass primary", () => openMenu()));
     });
+    actions.appendChild(btn('Preview recipients','pn-brass',()=>preview().catch(e=>{msg.textContent=e.message;})));
     actions.appendChild(sendBtn);
     actions.appendChild(btn("Cancel", "pn-brass", () => (N.openId && re ? openNote(re.id, false) : openMenu())));
     const frag = document.createDocumentFragment(); frag.appendChild(sheet); frag.appendChild(actions);
@@ -688,6 +734,6 @@
   poll();
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { pollDelay = POLL_MS; clearTimeout(pollTimer); poll(); } });
 
-  window.PubCastNotes = { drawScene, click, hotspotNotes, onView, refresh, open: openMenuPublic, openNote, state: N,
+  window.PubCastNotes = { drawScene, click, hotspotNotes, onView, refresh, open: openMenuPublic, openNote, compose, state: N,
     _noteQuad: noteQuad, _homography: homography };
 })();

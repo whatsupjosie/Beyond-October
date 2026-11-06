@@ -1,0 +1,17 @@
+TAP version 13
+# test_studio_console_hotspots_node.js passed
+# Subtest: /workspace/scratch/d6f0985b33b2/pubcast/tests/test_studio_console_hotspots_node.js
+ok 1 - /workspace/scratch/d6f0985b33b2/pubcast/tests/test_studio_console_hotspots_node.js
+  ---
+  duration_ms: 74.92371
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 84.072675

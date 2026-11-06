@@ -3,7 +3,7 @@
  * This does not assert clock synchronization with another physical device. */
 (function(global) {
   'use strict';
-  async function create(context, session, onFailure) {
+  async function create(context, session, onFailure, onMark) {
     await context.resume();
     await context.audioWorklet.addModule('/static/production25d_clacker_worklet.js');
     const originFrame = Math.round(context.sampleRate *
@@ -22,7 +22,7 @@
     });
     const silent = context.createGain(); silent.gain.value = 0;
     node.connect(destination); node.connect(silent); silent.connect(context.destination);
-    let closed = false, lastVideo = -1;
+    let closed = false, lastVideo = -1, reference = null;
     const record = (list, mark) => {
       // Bounded to one day, matching the recording duration contract.
       if (list.length >= 5761) { onFailure(Error('Clacker reference exceeds one day')); return; }
@@ -32,6 +32,13 @@
       if (closed) return;
       record(metadata.audioMarks, {sequence:event.data.sequence, frame:event.data.frame,
         productionUs:event.data.sequence * 15000000});
+      // A marker is a clock event, not a scene-render job. Paint it as soon as
+      // the audio-thread notification arrives instead of waiting for another
+      // complete Program/Preview render pass on the main thread.
+      if (reference && onMark) {
+        try { onMark(reference); }
+        catch (error) { fail('Clacker video marker failed: ' + error.message); }
+      }
     };
     const input = {id:'clacker-reference', label:'Clacker reference', kind:'sync-reference',
       reference:true, syncReferenceId:referenceId, rawStream:destination.stream};
@@ -42,7 +49,7 @@
     node.onprocessorerror = () => fail('Clacker audio processor failed');
     const clockChanged = () => { if (context.state !== 'running') fail('Recording audio clock stopped'); };
     context.addEventListener('statechange', clockChanged);
-    return {
+    reference = {
       input,
       get failed() { return !!input.failure; },
       paint(canvas, visible=true) {
@@ -75,6 +82,7 @@
         node.port.close();
       }
     };
+    return reference;
   }
   global.PubCast25DClacker = {create};
 })(window);

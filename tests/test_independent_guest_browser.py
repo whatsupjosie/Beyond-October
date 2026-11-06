@@ -55,6 +55,14 @@ def test_browser_invite_home_popup_owner_approval_and_revoke(tmp_path, productio
             visitor.wait_for_selector('#enter:visible', timeout=15000)
             assert visitor.evaluate('ReachAuth.getUser().user_id') == human['user_id']
             assert visitor.evaluate('document.documentElement.scrollWidth <= innerWidth')
+            private_note=host.post('/api/notes',headers=owner_headers,json={'subject':'Owner private mirror note','to':[owner['user_id']]})
+            assert private_note.status_code==201
+            visitor.click('#enter')
+            visitor.wait_for_function('document.documentElement.dataset.ready === "1"')
+            visitor.wait_for_function('window.PubCastWalk?.S.key === "green_room/main"')
+            visitor.evaluate("PubCastWalk.setView('dressing_room','wide',{})")
+            visitor.wait_for_function('window.PubCastNotes?.state.enabled')
+            assert not visitor.evaluate('PubCastNotes.state.notes.some(n=>n.subject==="Owner private mirror note")')
             visitor.goto(host_url+'/static/human_profile.html')
             visitor.wait_for_function('document.getElementById("status").textContent.includes("visiting card")')
             assert visitor.locator('#editor').is_hidden()
