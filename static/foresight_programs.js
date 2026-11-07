@@ -66,6 +66,7 @@
     {id: 'world', title: 'World', group: 'Studio Rooms', kind: 'page', url: '/static/world.html', w: 880, h: 580, minW: 520, minH: 360, shape: 'room', singleton: true},
     {id: 'pubworld_set', title: 'PubWorld Set', group: 'Studio Rooms', kind: 'page', url: '/static/pubworld_stage.html', w: 880, h: 580, minW: 520, minH: 360, shape: 'room', singleton: true},
     {id: 'bar', title: 'Bar', group: 'Studio Rooms', kind: 'page', url: '/static/bar.html', w: 780, h: 540, minW: 480, minH: 340, shape: 'room', singleton: true},
+    {id: 'primp', title: 'Primp', group: 'Programs', kind: 'page', url: '/static/primp.html', w: 1040, h: 700, minW: 360, minH: 480, shape: 'tool', singleton: true},
     {id: 'dressing', title: 'Dressing Room', group: 'Studio Rooms', kind: 'page', url: '/static/dressing.html', w: 780, h: 540, minW: 480, minH: 340, shape: 'room', singleton: true},
     {id: 'waiting_room', title: 'Waiting Room', group: 'Studio Rooms', kind: 'page', url: '/static/waiting_room.html', w: 720, h: 500, minW: 440, minH: 320, shape: 'room', singleton: true},
     {id: 'map', title: 'Map / Walk', group: 'Studio Rooms', kind: 'page', url: '/static/map.html', w: 780, h: 540, minW: 480, minH: 340, shape: 'room', singleton: true},
