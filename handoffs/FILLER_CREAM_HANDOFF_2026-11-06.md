@@ -38,6 +38,20 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own comm
 - `docs/filler_cream/`: `fixture_before.glb`, `fixture_after.glb`, `before_after_profile.png`
 - this handoff
 
+## End-to-end object pipeline (Josie, 2026-11-06)
+
+1. **Generate:** prompt the voxel object generator ("kitchen table style chair") and get a general voxel object. The existing entry point is `modules/voxel_llm_adapter.py` (cloud providers with a local fallback; returns a block list). Not yet checked: whether its block list goes straight into `pieces_from_voxel_set`.
+2. **Refine:** a more detailed prompt, and/or hand edits.
+3. **Finish:** Filler Cream (fill flush), then the Dremel for custom touches: carvings, the family name, pierced patterns, cut-through. All of these are layers over the untouched base, which can be saved as a reusable variant.
+4. **Bake to one mesh.** Voxels are for authoring only; they're too heavy to keep at runtime. Copies of a variant reuse one baked mesh (instancing).
+5. **Paint the mesh:** colour, image, texture or surface cover.
+
+Gaps this pipeline exposes (not built):
+- **No texture coordinates (UVs).** `voxel_studio.pack_glb` writes positions, normals and triangles only, so a baked mesh can't take an image texture yet. The bake step needs UVs (automatic unwrapping or box projection).
+- **Paint vs re-bake:** if a carving changes after painting, the mesh changes. Paint should be tied to the bake it was made on and flagged stale (the same contract as cream layers), not silently misplaced.
+- **Carved text:** the family name needs text turned into a stamp (font outlines). This is Dremel decision 6.
+- **Crisp edges** must survive the bake (see the sanding design).
+
 ## Implemented behaviour
 
 `compute_filler(pieces, FillerSelection)` works on one exposed face direction. Each column fits a weighted best-fit plane to the heights it can reach without crossing a mark, within half the fidelity span. The plane keeps its slope but is lifted to rest on the nearby outer block points; each point's pull fades with distance, so the surface is continuous with no lip at open ends. Cream fills up to it, capped at the highest nearby block. Cracks no wider than `max_gap` (2/64 block) fill from the pieces' base; wider gaps are openings and stay empty. `FillerCreamLayers` applies, replaces, removes and serialises layers; cream is computed from the original pieces only, so there's no buildup. `bake_with_filler` bakes through the existing `VoxelBaker` and `pack_glb`; with no cream it returns the original bytes exactly.
