@@ -29,9 +29,9 @@ How far one best fit reaches, tied to real size through the block:
 
 Any span in millimetres also works. Each blueprint part can carry a fidelity (`fidelity` in annotations or block metadata); the applicator (`FillerSelection.fidelity`) overrides it for one application. These values are starting points to judge by eye.
 
-## The rule
+## The rule (outer points, like wood filler wiped flush)
 
-On one exposed face at a time, each column of the selection asks: which nearby columns can I reach without crossing a marked edge, within half the fidelity span? It fits a best-fit plane to their heights. The weighting falls off with distance, so neighbouring fits blend with no creases. Cream fills from the block up to that plane, never higher than the highest nearby block. Where the plane runs below a block's corner, the corner stays: removing it is sanding.
+On one exposed face at a time, each column of the selection asks: which nearby columns can I reach without crossing a marked edge, within half the fidelity span? It fits a best-fit plane to their heights, weighted so neighbouring fits blend with no creases. Then it lifts that plane, keeping its slope, until it rests on the outermost block points nearby. Each point's pull fades with distance, so the surface stays continuous and the open end of a run gets no lip. Cream fills from the block up to that plane, never higher than the highest nearby block. The voxel points set the surface; the cream is wiped flush with them. Sanding is a separate tool (not built) for making an angle finer.
 
 Cracks: an empty gap no wider than `max_gap` (default 2/64 block) between two connected pieces fills from the pieces' base up to a straight line between them. Wider gaps are openings and stay empty.
 
@@ -57,10 +57,11 @@ For canonical voxel sets use `pieces_from_voxel_set(voxel_set)`; block metadata 
 
 ## Limits (measured, not guessed)
 
-- Fill only. On a staircase or a dip, the lower half of each step fills and about half the step remains at the riser. On bulges (top of a nose bridge, a kneecap) the best fit runs under the block corners, so their steps stay until a sanding tool exists. On the curve test, the surface came about 20% closer to the true curve, and the largest remaining step went from 1 to 0.78–1.0 fine units.
-- Filler boxes have flat tops at the working grid: a fine staircase, about 1 mm here.
+- On the curve test at high fidelity, the surface came 48% closer to the true curve (error 48.8 → 25.5), the largest step went from 1 to 0.55 fine units, and the cream never rose more than 0.11 fine units (under half a millimetre) above the true curve. Small steps remain because filler boxes have flat tops at the working grid; light sanding is the finishing step.
+- On convex areas the lifted plane can sit slightly above the true surface between block corners. That's bounded by the fidelity span and capped at the highest nearby block. Use higher fidelity on tight curves.
+- An unmarked big step (16 fine units in the fixture) blends into a steep ramp: monotone, with at most 2.4 per column. Mark it if it is a designed edge.
 - One face direction per call. Cream does not wrap from a top face onto a side face.
-- Barriers stop direct bridging between two pieces; a path around through a third piece of the same surface still connects them. Use different surface names when parts must never meet (eyelids).
+- Barriers stop direct bridging between two pieces; a path around through a third piece of the same surface still connects them. Use different surface names for parts that must never meet (eyelids).
 - The working grid follows the smallest piece and finest fidelity in the selection; it is not adaptive per area.
 - Wedges: `+y` face only, rotations about Y in 90° steps. Corner cuts are occluders (never filled).
 - Overlapping layers overlap as geometry; data never accumulates. Adjacent filler boxes keep shared inner faces.

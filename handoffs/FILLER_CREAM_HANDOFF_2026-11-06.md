@@ -1,84 +1,79 @@
 # Filler Cream — session handoff (2026-11-06)
 
-Branch: `claude-work` on whatsupjosie/Beyond-October. Code commit: `1bf605e5d035f05f536d78076b6ef7aca3e8725d`. This handoff is the next commit on the same branch.
+Repo: whatsupjosie/Beyond-October, branch `claude-work`. The commit SHA is in the chat and in `git log` (a file cannot contain its own commit's SHA). Earlier commits this session: `1bf605e` (first build), `c4793b9` (first handoff), `ec36c41` (revision 2).
 
-## Changed files (all new; no existing file was edited)
+## What Filler Cream is (Josie's design, settled in this session)
 
-- `modules/filler_cream.py` — core operation, layer store, adapters, GLB output
-- `modules/filler_cream_fixture.py` — 1/64 proof fixture as a real VoxelObject
-- `tests/test_filler_cream.py` — 13 focused tests
-- `tools/filler_cream_view.py` — writes before/after GLBs and a side-profile PNG
-- `docs/FILLER_CREAM.md` — usage, the interpolation rule, limits
-- `docs/filler_cream/` — fixture_before.glb, fixture_after.glb, before_after_profile.png
-- `handoffs/FILLER_CREAM_HANDOFF_2026-11-06.md` — this file
+- The voxel blueprint is the carving. It describes the real object, or the stylised version wanted. Voxels are always an approximation of it.
+- Filler Cream is like wood filler (sawdust and glue) spread into a scar and wiped flush with the surrounding surface. It fills the low spots between neighbouring surface voxels up to the surface set by the outer points of the voxels, never past it, and never into the hollow interior.
+- Everything is smoothed unless the blueprint marks it as designed: a keep tag (`preserve`, `recess`, `protrusion`, `edge`, `opening`), a different surface name (skin vs nail, upper vs lower eyelid), or a barrier pair. Step size alone never decides.
+- Smoothing is a chain of short local best fits. A fidelity gauge sets how far one fit reaches: few long fits on a potbelly, many short fits on a nose.
+- Fidelity is tied to real size through the existing 10 in PubBlock: very_high 3/64 block (about 12 mm), high 1/8 (32 mm), medium 1/4 (64 mm, the default), low 1/2 (127 mm), very_low 1 block (254 mm), or any span in mm. Blueprint parts carry a fidelity; the applicator overrides it for one application.
+- The finishing order is carve (voxels), cream (fill flush), sand (separate tool, removes material to fine-tune angles and silhouette, not built), then paint and polish (later).
+- Units stay the existing system: the 10 in block from `modules/voxel_set_contract.py`, 1/64 = 3.97 mm. Read from the contract, never copied.
 
-## What I found and reused
+## Files (all new; no existing file edited)
 
-- Units: `modules/voxel_set_contract.py` (10 in PubBlock; subdivisions 1 / 2 / 4 only). 1/64 does not exist in the contract. I did not add it; it is your call (one line in `PUB_BLOCK_SUBDIVISIONS`, and existing tests that list subdivisions would need updating).
-- Shapes, triangular cuts and the mesh pipeline: `modules/voxel_studio.py` — cube / wedge / corner_outer / corner_inner, `_shape_verts_faces`, `_compute_normals`, `VoxelBaker`, `pack_glb`. Filler geometry is built from the same cube table and normals routine and baked through `VoxelBaker` + `pack_glb`.
-- Block-kit floors: `modules/voxel_block_kit.py` (`stage_floor`, `make_voxel_set`) feed the large-floor test through the canonical contract.
-- Hollowing: `modules/wired/pubcast_voxel_hollow_patch.py` is a patch script, not a runtime API. Filler treats each piece as a surface shell piece and never fills below the shell base.
+- `modules/filler_cream.py`: core operation, fidelity gauge, layer store, adapters, GLB output
+- `modules/filler_cream_fixture.py`: 1/64 fixtures (stepped strip with protrusion, recess, opening and crack; fingertip; curve)
+- `tests/test_filler_cream.py`: 18 focused tests
+- `tools/filler_cream_view.py`: before/after GLBs and a side-profile PNG
+- `docs/FILLER_CREAM.md`: usage, the rule, measured limits
+- `docs/filler_cream/`: `fixture_before.glb`, `fixture_after.glb`, `before_after_profile.png`
+- this handoff
 
 ## Implemented behaviour
 
-One callable operation, `compute_filler(pieces, FillerSelection)`, plus `FillerCreamLayers` (apply / remove / regenerate) and `bake_with_filler(voxel_object, layers)`. Rule: half-run linear ramps on the lower piece toward an eligible higher neighbour, plus crack fill between eligible pieces, both bounded by the two neighbours' surfaces. Full rule and limits in `docs/FILLER_CREAM.md`.
+`compute_filler(pieces, FillerSelection)` works on one exposed face direction. Each column fits a weighted best-fit plane to the heights it can reach without crossing a mark, within half the fidelity span. The plane keeps its slope but is lifted to rest on the nearby outer block points; each point's pull fades with distance, so the surface is continuous with no lip at open ends. Cream fills up to it, capped at the highest nearby block. Cracks no wider than `max_gap` (2/64 block) fill from the pieces' base; wider gaps are openings and stay empty. `FillerCreamLayers` applies, replaces, removes and serialises layers; cream is computed from the original pieces only, so there's no buildup. `bake_with_filler` bakes through the existing `VoxelBaker` and `pack_glb`; with no cream it returns the original bytes exactly.
 
 ## Integration status
 
-Completed:
-- Reads `voxel_studio.VoxelObject` directly (`pieces_from_voxel_object`) and canonical voxel sets (`pieces_from_voxel_set`).
-- Output goes through the existing VoxelStudio baker and GLB packer. With no filler the bake is byte-identical to `VoxelBaker().bake(obj)`.
+Completed: reads `voxel_studio.VoxelObject` and canonical voxel sets (block kit floors); output goes through VoxelStudio's own cube table, normals, baker and GLB packer; block size comes from the contract.
 
-Prepared, not done:
-- No HTTP route in `main.py`, no change to `VoxelStudio`, no brush UI, no three.js / Rust renderer hookup.
-- Connection point: `VoxelStudio.bake_object` (modules/voxel_studio.py) — store `FillerCreamLayers.to_dict()` beside the object's source JSON and call `bake_with_filler` instead of `VoxelBaker.bake` when layers exist.
+Prepared, not done: no `main.py` route, no change to `VoxelStudio`, no applicator brush UI, no renderer hookup, no sanding.
 
-## Checks actually executed (this sandbox, Python 3.13, numpy 2.5.3, pytest 9.1.1)
+## Checks executed (this sandbox: Python 3.13, numpy 2.5.3, pytest 9.1.1; not GitHub, not Windows)
 
-- `python -m pytest -p no:cacheprovider tests/test_filler_cream.py -q` → 13 passed.
-- Existing voxel tests, unchanged: `tests/test_pubblock_voxel_block_kit.py tests/test_voxel_block_preview.py tests/test_voxel_set_contract.py` → 12 passed.
-- Wedge orientation: the model's wedge top matched `build_primitive_geometry` vertices for rotations 0 / 90 / 180 / 270 about Y (also a test).
-- `python tools/filler_cream_view.py` → 200 filler cells, grid 1 fine unit, 256 cubic fine units; PNG inspected by eye.
-- Not run: the full repo suite, Windows, any GitHub Actions.
+- `tests/test_filler_cream.py`: 18 passed. Together with the existing voxel tests (block kit, preview, contract): 30 passed, so no existing voxel test broke.
+- Wedge orientation checked against `build_primitive_geometry` for all four Y rotations.
+- View tool run and the PNG inspected by eye.
 
-What the tests prove: eligible steps get filler that never goes above the higher neighbour; the 16-unit protrusion edge, the tagged recess and the 12-unit opening get none; without the recess tag the pit would fill (so the tag is doing the work); the one-unit crack fills from the shell base; changing strip two leaves strip one's filler identical, and moving P0 changes only the P0/P1 fill; barriers and different surface ids stop bridging; filler stays inside the selection; re-applying three times gives the same fingerprint and volume with one layer; removing it restores the original bake byte for byte; the 24 × 24 block (20 ft) floor runs on a 1/8-block grid, not 1/64, and a level floor gains nothing.
+What the tests prove:
+- Steps smooth into an even ramp with no lip at the open end, never above nearby blocks.
+- An unmarked protrusion blends at its base as a continuous ramp and keeps its top; a marked one is untouched.
+- The marked recess and the opening stay intact; unmarked, the recess fills.
+- Skin, cuticle, nail and nail edge stay distinct when marked, and blend when unmarked.
+- Fidelity controls reach, and the applicator overrides the blueprint.
+- A designed wedge slope gains nothing.
+- Regions far apart don't affect each other.
+- Barriers and surface names block bridging, and nothing outside the selection changes.
+- Removing the cream restores the original bake byte for byte, and redoing it is identical with no buildup.
+- A 20 ft floor runs on a 1/8-block grid and stays level; a fractional crack in it fills level.
+- The curve test (high fidelity): 48% closer to the true curve (48.8 → 25.5), largest step 1 → 0.55 fine units, never more than 0.11 fine units above the curve.
 
 ## Observed in existing code (not changed)
 
-- `voxel_studio.pack_glb` pads the GLB JSON chunk with NUL bytes; glTF requires spaces. Strict loaders may reject these files. My reader tolerates it.
-- `pytest.ini` sets `asyncio_mode`; pytest-asyncio was not installed here, so pytest warns. Harmless for these tests.
+- `voxel_studio.pack_glb` pads the GLB JSON chunk with NUL bytes; glTF requires spaces. Strict loaders may reject these files.
+- `pytest.ini` sets `asyncio_mode`; pytest-asyncio isn't installed in this sandbox, so pytest warns. Harmless here.
 
 ## Limitations
 
-See `docs/FILLER_CREAM.md` → Limits. Biggest ones: one face orientation per call; flat-top filler leaves a fine staircase (sanding not built); recesses or slits shallower than `max_step` need an explicit tag, surface id or barrier.
+See `docs/FILLER_CREAM.md` → Limits:
+- small steps remain from flat-top filler boxes (sanding finishes them);
+- slight overshoot between corners on convex areas, bounded by fidelity;
+- one face direction per call (no wrapping from a top face onto a side face);
+- corner-cut pieces are skipped;
+- the working grid is not adaptive per area.
 
-## Smallest remaining step
+## Next steps, in order
 
-Wire the prepared connection point: in `VoxelStudio.bake_object`, load `filler/<object_id>.json` if present and bake with `bake_with_filler`. About ten lines in `modules/voxel_studio.py`, plus one test.
+1. Independent check by a reviewer that didn't write it: hunt for anything that breaks Josie's rules, and run it.
+2. Smallest wiring step: in `VoxelStudio.bake_object` (`modules/voxel_studio.py`), load `filler/<object_id>.json` when present and bake with `bake_with_filler`. About ten lines plus one test.
+3. Corner-cut pieces take cream instead of being skipped.
+4. The face study at 1/64: brow, eye sockets, nose, cheeks, lips and chin. Raw, neutral material and simple paint, from front, three-quarter and profile.
+5. Later: cream wrapping across faces, the applicator brush, sanding.
 
+## How to run (PowerShell 5, repo root)
 
----
-
-## Revision 2 (same day): best-fit rule, fidelity gauge, blueprint marks
-
-Josie's design decisions this revision implements:
-- The blueprint is the real (or stylised) object; voxels always approximate it. Every step is smoothed unless the blueprint marks it (keep tag, different surface_id, barrier). Step size no longer protects anything; `max_step` is only an explicit override, default off.
-- Smoothing is a chain of short local best fits (weighted least-squares planes that blend into each other), not straight ramps.
-- A fidelity gauge tied to real block size: very_high 3/64, high 1/8, medium 1/4 (default), low 1/2, very_low 1 block, or any span in mm. Blueprint parts carry a fidelity; the applicator overrides it.
-- Units stay the existing system: the 10 in PubBlock from voxel_set_contract.py, now imported rather than copied.
-
-Changed: `modules/filler_cream.py` (rule, fidelity, adapters), `modules/filler_cream_fixture.py` (fingertip and curve fixtures), `tests/test_filler_cream.py` (rewritten, 17 tests), `docs/FILLER_CREAM.md`, `docs/filler_cream/*` (regenerated).
-
-Checks executed in this sandbox: `tests/test_filler_cream.py` → 17 passed; existing voxel tests (block kit, preview, contract) → 12 passed, so 29 passed together. The view was regenerated and inspected.
-
-New tests prove:
-- skin, nail and nail edge stay distinct when marked, and blend when unmarked;
-- an unmarked protrusion blends at its base but keeps its top, and a marked one is untouched;
-- the marked recess and the opening stay intact;
-- fidelity controls reach: very_high stays within 3 columns of a ridge, low reaches past 10;
-- the applicator overrides blueprint fidelity;
-- a designed wedge slope gains nothing.
-
-Measured limit (needs Josie's decision): fill-only plus best fit leaves about half of each step on stairs and dips. On bulges, the fit runs under the block corners, so those steps stay. On the curve test, the error fell about 20% (48.8 → 38.9) and the largest step went from 1 to 0.78–1.0 fine units. Two ways forward: (a) fit to the outermost points locally, so cream fills right up to the block corners (smooth with fill only); or (b) keep this rule and build sanding to take the corners down.
-
-Smallest remaining step: Josie chooses (a) or (b); then wire `VoxelStudio.bake_object` to bake saved layers with `bake_with_filler`.
+    python -m pytest -p no:cacheprovider tests\test_filler_cream.py -q
+    python tools\filler_cream_view.py

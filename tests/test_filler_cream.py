@@ -62,8 +62,8 @@ def test_steps_are_smoothed_and_never_exceed_nearby_blocks():
     for c in layer.cells:
         assert c.top > c.base
         assert c.top <= max(tops[s] for s in c.sources) + 1e-9
-    row = [c.top for c in sorted(_strip(layer, 3, 4), key=lambda c: c.column) if c.column[0] < 8]
-    assert row == sorted(row), "cream rises toward the higher neighbour"
+    row = [c.top for c in sorted(_strip(layer, 3, 4), key=lambda c: c.column) if c.column[0] < 16]
+    assert row == sorted(row), "cream rises evenly up the staircase, no lip at the open end"
 
 
 def test_unmarked_protrusion_blends_at_its_base_but_keeps_its_top():
@@ -71,6 +71,9 @@ def test_unmarked_protrusion_blends_at_its_base_but_keeps_its_top():
     xs = {c.column[0] for c in _strip(layer, 0, 8)}
     assert any(24 <= x < 32 for x in xs), "approach to the protrusion is blended"
     assert not any(32 <= x < 40 for x in xs), "protrusion top untouched"
+    approach = [c.top for c in sorted(_strip(layer, 3, 4), key=lambda c: c.column) if 20 <= c.column[0] < 32]
+    assert approach == sorted(approach) and max(b - a for a, b in zip(approach, approach[1:])) < 3.0, \
+        "the blend up to the protrusion is a continuous ramp, not a cliff"
     _, marked = _run(annotations={"RECESS": {"tags": ["recess"]}, "PROT": {"tags": ["protrusion"]}})
     assert not any("PROT" in c.sources for c in marked.cells), "a marked protrusion is left exactly as built"
 
@@ -107,9 +110,13 @@ def test_short_best_fits_follow_a_curve():
         truth = true_curve(x + 0.5)
         before.append(abs(truth - h))
         after.append(abs(truth - max(h, filled.get(x, h))))
-    # Measured 2026-11-06: 48.8 -> 38.9 (about 20% closer to the true curve). Fill-only:
-    # where the fit runs under a block corner (convex areas) the corner stays.
-    assert sum(after) < 0.85 * sum(before), (sum(before), sum(after))
+    # Outer-points rule, measured 2026-11-06 at high fidelity: error 48.8 -> 25.5,
+    # largest step 1 -> 0.55, never more than 0.11 fine units above the true curve.
+    surface = [max(h, filled.get(x, h)) for x, h in enumerate(
+        next(t for _, (cx, t) in tops.items() if abs(cx - (x // 2 * 2 + 1)) < 1e-9) for x in range(96))]
+    assert sum(after) < 0.6 * sum(before), (sum(before), sum(after))
+    assert max(abs(surface[x + 1] - surface[x]) for x in range(95)) < 0.7
+    assert max(surface[x] - true_curve(x + 0.5) for x in range(96)) < 0.25
     assert max(filled.values()) <= max(t for _, t in tops.values())
 
 

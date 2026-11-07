@@ -36,10 +36,11 @@ outermost piece over it) and a surface height H.
    crossing a marked edge, within the fidelity radius R (half the fidelity
    span). Fit a weighted least-squares plane to their heights (weight falls
    off linearly with distance, so neighbouring fits blend with no creases)
-   and read it at c. The cream target is that value, capped at the highest
-   height in the neighbourhood. Cream fills from H(c) up to the target.
-   Where the fit runs below a block corner the corner stays: removing it is
-   sanding, not filling.
+   then lift it, keeping its slope, until it rests on the outermost block
+   point in the neighbourhood (the voxel points set the surface; cream is
+   wiped flush with them, like wood filler). Read it at c, capped at the
+   highest height in the neighbourhood. Cream fills from H(c) up to that.
+   Sanding (a separate tool, not built) removes material for finer angles.
 2. Crack. An empty run of columns between two eligible pieces no wider
    than max_gap fine units is filled from the shell base (max of the two
    pieces' bases) up to the straight line between the two surfaces. Wider
@@ -461,7 +462,16 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection) -
         sw = np.sqrt(arr[:, 3])
         design = np.column_stack([np.ones(len(arr)), arr[:, 0], arr[:, 1]]) * sw[:, None]
         coef, *_ = np.linalg.lstsq(design, arr[:, 2] * sw, rcond=None)
-        target = min(float(coef[0]), float(arr[:, 2].max()))
+        # Outer-points rule: keep the best-fit slope, lift the plane until it
+        # rests on the outermost block point in the neighbourhood (wood filler
+        # wiped flush with the surrounding surface), never above the highest one.
+        # Each point's pull on the lift fades linearly with its distance from
+        # c, so the surface stays continuous as columns move along, and a
+        # one-sided window (the open end of a run) cannot raise a lip.
+        fitted = coef[0] + coef[1] * arr[:, 0] + coef[2] * arr[:, 1]
+        fade = np.clip(1.0 - np.hypot(arr[:, 0], arr[:, 1]) / (reach + g), 0.0, 1.0)
+        lift = max(0.0, float(((arr[:, 2] - fitted) * fade).max()))
+        target = min(float(coef[0]) + lift, float(arr[:, 2].max()))
         offer(col, height[col], target, tuple(sorted(srcs)), "fit")
 
     # ── 6. cracks: short empty runs between two eligible pieces ──────────
