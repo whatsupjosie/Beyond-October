@@ -65,3 +65,6 @@ For canonical voxel sets use `pieces_from_voxel_set(voxel_set)`; block metadata 
 - The working grid follows the smallest piece and finest fidelity in the selection; it is not adaptive per area.
 - Wedges: `+y` face only, rotations about Y in 90° steps. Corner cuts are occluders (never filled).
 - Overlapping layers overlap as geometry; data never accumulates. Adjacent filler boxes keep shared inner faces.
+- Speed (measured, plain Python): a 128 × 128 column patch at 1/64 (about 51 cm square, wavy) takes 2.7 s at very_high, 8.4 s at high, and 22.7 s at medium. Fine for baking, too slow for a live brush. Speed-up path: compute the fits with array maths (numpy moment sums over the grid) where no marks cut the window.
+- Cracks use a straight line between their two edges, not the outer-points lift (they're at most 2/64 block wide).
+- A cube at a non-90° rotation becomes an occluder sized by its unrotated box.

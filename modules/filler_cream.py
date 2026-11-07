@@ -306,11 +306,14 @@ def _plane_axes(up: int) -> Tuple[int, int]:
     return a, b
 
 
-def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection) -> FillerLayer:
+def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
+                   _exhaustive: bool = False) -> FillerLayer:
     """Generate bounded filler for one selection. Pure and deterministic.
 
     ``pieces`` is the whole construction (selected and unselected); only
     pieces near the selection are rasterised. Pieces are never modified.
+    ``_exhaustive`` (tests only) fits every column instead of using the
+    candidate shortcut, to prove the shortcut never skips a column.
     """
     by_id: Dict[str, SurfacePiece] = {}
     for p in pieces:
@@ -415,9 +418,18 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection) -
             if connected(col, nb) and height[nb] > height[col] + _EPS:
                 frontier.append((col, radius(by_id[owner[col]])))
                 break
+    # A column can only gain cream if a higher column lies inside its own fit
+    # window (radius r_c + g/2). The step just before that higher column is a
+    # frontier column within that window, so every node of the window path is
+    # within 2 * (r_max + g/2) of it. Searching that far from each frontier
+    # column is therefore conservative for any mix of per-piece fidelities.
+    r_max = max(radius(by_id[pid]) for pid in selected)
     candidates: Dict[Tuple[int, int], None] = {}
-    for src_col, r in frontier:
-        reach = r + g
+    if _exhaustive:
+        candidates = {c: None for c in sorted(owner) if fillable(owner[c])}
+        frontier = []
+    for src_col, _r in frontier:
+        reach = 2.0 * (r_max + 0.5 * g)
         seen = {src_col}
         stack = [src_col]
         while stack:

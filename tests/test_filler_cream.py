@@ -244,3 +244,43 @@ def test_large_floor_uses_coarse_grid_and_stays_level():
     crack = [SurfacePiece("A", (0, 0, 0), (64, 64, 64)), SurfacePiece("B", (65, 0, 0), (64, 64, 64))]
     cl = _all(crack)
     assert cl.cells and all(c.top == 64.0 and c.base == 0.0 for c in cl.cells)
+
+
+def test_candidate_shortcut_matches_checking_every_column():
+    """Random scenes with mixed per-piece fidelity: the shortcut must equal
+    the exhaustive result exactly (this caught a real skip on 2026-11-06)."""
+    import random
+    stops = list(FIDELITY_STOPS)
+    for seed in range(12):
+        rng = random.Random(seed)
+        pieces = []
+        for i in range(10):
+            for j in range(3):
+                h = rng.randint(0, 6)
+                pieces.append(SurfacePiece(f"p{i}_{j}", (i * 4, h, j * 4), (4, 4, 4),
+                                           surface_id=rng.choice(["a", "a", "a", "b"]),
+                                           tags=frozenset(["recess"]) if rng.random() < 0.08 else frozenset(),
+                                           fidelity=rng.choice(stops)))
+        sel = FillerSelection(frozenset(p.piece_id for p in pieces))
+        assert compute_filler(pieces, sel).cells == compute_filler(pieces, sel, _exhaustive=True).cells, seed
+
+
+@pytest.mark.parametrize("face,axis_order,flip", [("+x", (1, 0, 2), 1), ("-y", (0, 1, 2), -1), ("-z", (0, 2, 1), -1)])
+def test_every_face_direction_matches_the_top_face(face, axis_order, flip):
+    """Rotate/mirror the stepped strip onto another face: same cream amount."""
+    base_pieces, base = _run()
+    moved = []
+    for p in base_pieces:
+        o = [p.origin[k] for k in axis_order]
+        s = [p.size[k] for k in axis_order]
+        up = face_axis = {"+x": 0, "-y": 1, "-z": 2}[face]
+        if flip < 0:
+            o[up] = -(o[up] + s[up])
+        moved.append(SurfacePiece(p.piece_id, tuple(o), tuple(s), p.shape if p.shape != "wedge" else "cube",
+                                  None, p.surface_id, p.tags, p.fidelity))
+    layer = compute_filler(moved, FillerSelection(frozenset(p.piece_id for p in moved), face=face))
+    assert len(layer.cells) == len(base.cells)
+    assert layer.volume() == pytest.approx(base.volume())
+    up = {"+x": 0, "-y": 1, "-z": 2}[face]
+    for (lo, hi), cell in zip(layer.boxes(), layer.cells):
+        assert hi[up] - lo[up] == pytest.approx(cell.top - cell.base)

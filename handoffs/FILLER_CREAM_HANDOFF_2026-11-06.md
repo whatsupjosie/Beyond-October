@@ -16,7 +16,7 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. The commit SHA is in th
 
 - `modules/filler_cream.py`: core operation, fidelity gauge, layer store, adapters, GLB output
 - `modules/filler_cream_fixture.py`: 1/64 fixtures (stepped strip with protrusion, recess, opening and crack; fingertip; curve)
-- `tests/test_filler_cream.py`: 17 focused tests
+- `tests/test_filler_cream.py`: 19 focused test functions (21 test cases)
 - `tools/filler_cream_view.py`: before/after GLBs and a side-profile PNG
 - `docs/FILLER_CREAM.md`: usage, the rule, measured limits
 - `docs/filler_cream/`: `fixture_before.glb`, `fixture_after.glb`, `before_after_profile.png`
@@ -34,7 +34,7 @@ Prepared, not done: no `main.py` route, no change to `VoxelStudio`, no applicato
 
 ## Checks executed (this sandbox: Python 3.13, numpy 2.5.3, pytest 9.1.1; not GitHub, not Windows)
 
-- `tests/test_filler_cream.py`: 17 passed. Together with the existing voxel tests (block kit, preview, contract): 29 passed, so no existing voxel test broke.
+- `tests/test_filler_cream.py`: 21 passed. Together with the existing voxel tests (block kit, preview, contract): 33 passed, so no existing voxel test broke.
 - Wedge orientation checked against `build_primitive_geometry` for all four Y rotations.
 - View tool run and the PNG inspected by eye.
 
@@ -50,6 +50,12 @@ What the tests prove:
 - Removing the cream restores the original bake byte for byte, and redoing it is identical with no buildup.
 - A 20 ft floor runs on a 1/8-block grid and stays level; a fractional crack in it fills level.
 - The curve test (high fidelity): 48% closer to the true curve (48.8 → 25.5), largest step 1 → 0.55 fine units, never more than 0.11 fine units above the curve.
+
+## Self-review (end of session) — found and fixed
+
+- Bug: the candidate shortcut sized its search by the fidelity of the lower piece at a step. With mixed per-piece fidelity it skipped columns that should get cream. Proven: the old search was wrong in 2 of 12 random mixed-fidelity scenes (29 columns skipped). Fixed with a search radius proven conservative (2 × (largest radius + half a column)). New test: on random scenes, the shortcut equals fitting every column.
+- Gap: only the top face (+y) had been tested. New test: the stepped strip rotated onto +x, -y and -z gives the same cream count and volume.
+- Measured speed (see docs Limits): too slow for a live brush at medium fidelity on face-sized patches. Not fixed; the speed-up path is noted.
 
 ## Observed in existing code (not changed)
 
