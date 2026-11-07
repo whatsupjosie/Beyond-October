@@ -19,6 +19,7 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. The commit SHA is in th
 - `tests/test_filler_cream.py`: 19 focused test functions (21 test cases)
 - `tools/filler_cream_view.py`: before/after GLBs and a side-profile PNG
 - `docs/FILLER_CREAM.md`: usage, the rule, measured limits
+- `docs/FILLER_CREAM_APPLICATOR_UI_SPEC.md`: applicator UI proposal (not built, awaiting Josie's review)
 - `docs/filler_cream/`: `fixture_before.glb`, `fixture_after.glb`, `before_after_profile.png`
 - this handoff
 
@@ -77,7 +78,8 @@ See `docs/FILLER_CREAM.md` → Limits:
 2. Smallest wiring step: in `VoxelStudio.bake_object` (`modules/voxel_studio.py`), load `filler/<object_id>.json` when present and bake with `bake_with_filler`. About ten lines plus one test.
 3. Corner-cut pieces take cream instead of being skipped.
 4. The face study at 1/64: brow, eye sockets, nose, cheeks, lips and chin. Raw, neutral material and simple paint, from front, three-quarter and profile.
-5. Later: cream wrapping across faces, the applicator brush, sanding.
+5. Applicator UI: proposal in `docs/FILLER_CREAM_APPLICATOR_UI_SPEC.md` (for Primp and set building), awaiting Josie's six decisions listed at its end. It needs the engine speed-up before a live brush.
+6. Later: cream wrapping across faces, sanding.
 
 ## How to run (PowerShell 5, repo root)
 
