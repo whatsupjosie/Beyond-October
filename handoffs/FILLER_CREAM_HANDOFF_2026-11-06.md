@@ -16,7 +16,7 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. The commit SHA is in th
 
 - `modules/filler_cream.py`: core operation, fidelity gauge, layer store, adapters, GLB output
 - `modules/filler_cream_fixture.py`: 1/64 fixtures (stepped strip with protrusion, recess, opening and crack; fingertip; curve)
-- `tests/test_filler_cream.py`: 18 focused tests
+- `tests/test_filler_cream.py`: 17 focused tests
 - `tools/filler_cream_view.py`: before/after GLBs and a side-profile PNG
 - `docs/FILLER_CREAM.md`: usage, the rule, measured limits
 - `docs/filler_cream/`: `fixture_before.glb`, `fixture_after.glb`, `before_after_profile.png`
@@ -34,7 +34,7 @@ Prepared, not done: no `main.py` route, no change to `VoxelStudio`, no applicato
 
 ## Checks executed (this sandbox: Python 3.13, numpy 2.5.3, pytest 9.1.1; not GitHub, not Windows)
 
-- `tests/test_filler_cream.py`: 18 passed. Together with the existing voxel tests (block kit, preview, contract): 30 passed, so no existing voxel test broke.
+- `tests/test_filler_cream.py`: 17 passed. Together with the existing voxel tests (block kit, preview, contract): 29 passed, so no existing voxel test broke.
 - Wedge orientation checked against `build_primitive_geometry` for all four Y rotations.
 - View tool run and the PNG inspected by eye.
 
