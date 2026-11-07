@@ -12,7 +12,8 @@ Finishing order: **carve** (voxel blueprint) → **cream** (fill flush) → **Dr
 
 - **Base architecture:** the pure, unedited voxel blueprint. It is never changed by finishing tools.
 - **Customization layers on top:** cream, Dremel strokes, and solid decorations (an engraved emblem, a carved pattern, a raised crest), built in real 3D geometry rather than painted on.
-- **Per instance:** one base design can be used many times. Most copies stay plain; a specific one gets its own customization layers (one box out of a hundred with an emblem cut into its lid). Customizations belong to the instance, not the shared base.
+- **Variants (reusable customized designs):** a base plus its customization layers can be saved under its own name. Example: the plain chair base + the Dremel-carved back = "Royal court chair". Make it once, then place 25 copies for the banquet. All 25 point at the one variant: edit the carving once and every copy updates, and the computer bakes the shape once and draws it 25 times, so copies are cheap.
+- **Per instance:** any single copy (of a base or a variant) can still get its own layers on top (one box out of a hundred with an emblem cut into its lid). Instance layers belong to that copy only.
 - **Paint** sits above all of it.
 
 Order on bake: base → cream → Dremel strokes and decorations → paint. Every layer can be switched off, removed or regenerated without touching the base.
@@ -21,7 +22,7 @@ Order on bake: base → cream → Dremel strokes and decorations → paint. Ever
 
 1. **The base is never edited.** Grinding is saved as its own layer of strokes on the instance, kept apart from the base blocks. Remove any stroke, or all of them, and the plain base is back exactly.
 2. **Tape protects.** Masking tape (marks) blocks the Dremel the same way it blocks cream: a taped nail edge, lip line or door moulding can't be ground unless the user lifts the tape.
-3. **Reshapes past the blueprint, stays closed.** The Dremel may cut as deep into the design as the artist wants: reshaping a nose, slimming a jaw, deepening an eye socket. Surface pieces are hollow shells, so when a cut goes deeper than the shell, the inside is treated as solid while carving and a new wall forms behind the cut. The object never ends up with an accidental hole. Cutting a real opening (a nostril, a keyhole) is a deliberate separate action.
+3. **Reshapes past the blueprint, stays closed.** The Dremel may cut as deep into the design as the artist wants: reshaping a nose, slimming a jaw, deepening an eye socket. Surface pieces are hollow shells, so when a cut goes deeper than the shell, the inside is treated as solid while carving and a new wall forms behind the cut. The object never ends up with an accidental hole. Going all the way through is a deliberate **Cut through** setting on the stroke (pierced chair backs, fretwork, keyholes, a nostril): the hole comes out clean, and its inside walls form solid so the piece stays a closed, solid object.
 4. **Local.** A bit only touches what it physically reaches.
 5. **Real units.** Every bit size is in mm or inches, tied to the 10 in PubBlock (1/64 block is about 4 mm).
 
@@ -58,6 +59,10 @@ Sizes: from 1/64 block (about 4 mm) up to a full block (254 mm), with named pres
 - **Reach:** a bit can only go as deep as its shaft clears. If the rim around the hole is narrower than the shaft, the cut stops at the depth where the shaft would touch the rim. Long-reach bits have slim shafts, so they get deeper.
 - The Dremel layer is a list of strokes; the result is recomputed from the original blocks plus cream plus strokes. Deterministic, removable, and stale-aware, like cream layers.
 - Works **without cream** too: grinding raw blocks cuts into them directly (the cut block is re-meshed as columns at bake).
+
+## Crisp edges
+
+Square, cone and needle bits leave sharp edges, and those must survive into the finished mesh. Plain marching cubes rounds sharp corners off, so the smooth-surface step (Filler Cream handoff plan) must use a sharp-feature method (dual contouring or sharp-feature surface nets) wherever an edge is taped or was cut by a crisp bit. Test: the pierced chair back keeps clean, sharp hole edges after baking.
 
 ## How it works on meshes (phase 2)
 
