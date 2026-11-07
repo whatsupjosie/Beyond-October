@@ -1,6 +1,20 @@
 # Filler Cream — session handoff (2026-11-06)
 
-Repo: whatsupjosie/Beyond-October, branch `claude-work`. The commit SHA is in the chat and in `git log` (a file cannot contain its own commit's SHA). Earlier commits this session: `1bf605e` (first build), `c4793b9` (first handoff), `ec36c41` (revision 2).
+Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own commit is the newest Filler Cream commit on that branch (a file can't contain its own commit's SHA; `git log -1 -- handoffs/FILLER_CREAM_HANDOFF_2026-11-06.md` shows it).
+
+## Reproduce exactly
+
+- **Base commit** (claude-work before this session): `295b556e27fe7436ac371d35cc3a141b9fb82a98`. Filler Cream needs these unchanged files from it: `modules/__init__.py`, `modules/voxel_studio.py`, `modules/voxel_set_contract.py`, `modules/voxel_block_kit.py`. The ZIP includes them (unchanged) so it runs on its own. Checked: a clean folder with only the ZIP's files passes all Filler Cream tests.
+- **Versions used:** Python 3.13.18, numpy 2.5.3, pytest 9.1.1, matplotlib 3.11.2 (view tool only).
+- **Exact test command** (PowerShell 5, repo root or the unzipped folder):
+
+      python -m pytest -p no:cacheprovider tests\test_filler_cream.py -q
+
+  Expected: 23 passed. In the repo, add the existing voxel tests to check nothing broke:
+
+      python -m pytest -p no:cacheprovider tests\test_filler_cream.py tests\test_pubblock_voxel_block_kit.py tests\test_voxel_block_preview.py tests\test_voxel_set_contract.py -q
+
+  Expected: 35 passed.
 
 ## What Filler Cream is (Josie's design, settled in this session)
 
@@ -16,7 +30,7 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. The commit SHA is in th
 
 - `modules/filler_cream.py`: core operation, fidelity gauge, layer store, adapters, GLB output
 - `modules/filler_cream_fixture.py`: 1/64 fixtures (stepped strip with protrusion, recess, opening and crack; fingertip; curve)
-- `tests/test_filler_cream.py`: 19 focused test functions (21 test cases)
+- `tests/test_filler_cream.py`: 21 focused test functions (23 test cases)
 - `tools/filler_cream_view.py`: before/after GLBs and a side-profile PNG
 - `docs/FILLER_CREAM.md`: usage, the rule, measured limits
 - `docs/FILLER_CREAM_APPLICATOR_UI_SPEC.md`: applicator UI proposal (not built, awaiting Josie's review)
@@ -35,7 +49,7 @@ Prepared, not done: no `main.py` route, no change to `VoxelStudio`, no applicato
 
 ## Checks executed (this sandbox: Python 3.13, numpy 2.5.3, pytest 9.1.1; not GitHub, not Windows)
 
-- `tests/test_filler_cream.py`: 21 passed. Together with the existing voxel tests (block kit, preview, contract): 33 passed, so no existing voxel test broke.
+- `tests/test_filler_cream.py`: 23 passed. Together with the existing voxel tests (block kit, preview, contract): 35 passed, so no existing voxel test broke.
 - Wedge orientation checked against `build_primitive_geometry` for all four Y rotations.
 - View tool run and the PNG inspected by eye.
 
@@ -57,6 +71,26 @@ What the tests prove:
 - Bug: the candidate shortcut sized its search by the fidelity of the lower piece at a step. With mixed per-piece fidelity it skipped columns that should get cream. Proven: the old search was wrong in 2 of 12 random mixed-fidelity scenes (29 columns skipped). Fixed with a search radius proven conservative (2 × (largest radius + half a column)). New test: on random scenes, the shortcut equals fitting every column.
 - Gap: only the top face (+y) had been tested. New test: the stepped strip rotated onto +x, -y and -z gives the same cream count and volume.
 - Measured speed (see docs Limits): too slow for a live brush at medium fidelity on face-sized patches. Not fixed; the speed-up path is noted.
+
+## Outside review (2026-11-06 evening): answers
+
+1. **Outermost surface per column.** Confirmed bug: a separate slab overhead dropped cream from 64 cells to 0. Fixed (only touching pieces cover a surface); test added. Still open by design: two selected surfaces stacked in one column. See the docs, "Surface isolation", and question A below.
+2. **Regeneration.** Implemented: layers save their settings and a source fingerprint; stale detection, regenerate and refresh are tested. Not yet automatic: the VoxelStudio hookup must call `refresh` before baking.
+3. **"Flush".** Defined in the docs, "What flush means": five guarantees, plus the one approximation (the contour between voxel points), with measured numbers.
+4. **Finished curved surface.** Not built. Plan below.
+5. **Reproducibility.** Base commit, versions and exact commands are now in this file; the ZIP carries the four base files.
+
+### Plan for a finished curved surface (not built)
+
+The boxes are an intermediate result. The finished surface should come from one volume: blocks plus cream from every face direction the region exposes (up to six calls, combined by taking the larger), with a single continuous mesh extracted from it. The repo already has marching cubes (`run5_pubworld_camera/marching_cubes.py`) to adapt, or surface nets for crisper taped edges. That one mesh wraps a cheek, nose or fingertip in all directions at once, with no seams between face directions and no flat-top stair. Taped edges must stay sharp through extraction; that needs feature-preserving extraction (to be tested on the fingertip).
+
+How much depends on sanding: removing the box stair and the seams between face directions is the job of surface extraction, not sanding. Sanding is still needed for (a) the slight overshoot on convex areas, and (b) artistic sharpening or softening.
+
+### Questions for Josie
+
+A. **Stacked surfaces in one selection** (floor under a ceiling slab, arm in front of torso, lower lip under upper lip). Options: (1) keep one surface per column and apply cream to each part separately, which works today; or (2) teach the engine to keep every exposed surface in a column as its own layer, which is the real fix. Recommendation: (2), before the face study, since lips, eyelids and fingers stack constantly.
+B. **Stale cream after a voxel edit:** regenerate automatically on bake, or show it as stale and let the user choose?
+C. **Finished surface:** approve the single-volume surface plan as the next engine block after the VoxelStudio hookup?
 
 ## Observed in existing code (not changed)
 

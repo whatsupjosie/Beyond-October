@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import math
 import time
 
@@ -284,3 +285,37 @@ def test_every_face_direction_matches_the_top_face(face, axis_order, flip):
     up = {"+x": 0, "-y": 1, "-z": 2}[face]
     for (lo, hi), cell in zip(layer.boxes(), layer.cells):
         assert hi[up] - lo[up] == pytest.approx(cell.top - cell.base)
+
+
+def test_a_ceiling_never_blocks_the_floor_beneath_it():
+    """Reviewer's case: a slab overhead (separated by air) used to zero the cream."""
+    two = [SurfacePiece("A", (0, 0, 0), (8, 8, 8)), SurfacePiece("B", (8, 2, 0), (8, 8, 8))]
+    sel = FillerSelection(frozenset({"A", "B"}))
+    alone = compute_filler(two, sel)
+    assert alone.cells
+    ceiling = compute_filler(two + [SurfacePiece("CEIL", (0, 40, 0), (16, 4, 8))], sel)
+    assert ceiling.cells == alone.cells
+    lid = compute_filler(two + [SurfacePiece("LID", (0, 8, 0), (8, 4, 8))], sel)
+    assert not any(c.column[0] < 8 for c in lid.cells), "a piece resting on the surface still covers it"
+
+
+def test_saved_layers_detect_stale_cream_and_regenerate():
+    from modules.filler_cream import layer_is_stale, regenerate
+    pieces, _ = pieces_from_voxel_object(build_fixture_object(), fixture_annotations())
+    sel = FillerSelection(frozenset({"P0", "P1", "P2", "P3"}), fidelity="high", barriers=frozenset({frozenset({"P2", "P3"})}))
+    store = FillerCreamLayers()
+    layer = store.apply("steps", pieces, sel)
+    saved = FillerLayer.from_dict(json.loads(json.dumps(layer.to_dict())))
+    assert saved.selection() == sel and saved.source_fingerprint == layer.source_fingerprint
+    assert not layer_is_stale(saved, pieces)
+    far = [p if p.piece_id != "Q1" else SurfacePiece("Q1", (8, 9, 40), (8, 8, 8)) for p in pieces]
+    assert not layer_is_stale(saved, far), "editing a piece that can't affect it leaves it fresh"
+    edited = [p if p.piece_id != "P1" else SurfacePiece("P1", (8, 5, 0), (8, 8, 8)) for p in pieces]
+    assert layer_is_stale(saved, edited) and store.stale(edited) == ["steps"]
+    fresh = regenerate(saved, edited)
+    assert fresh.cells == compute_filler(edited, sel).cells != layer.cells
+    assert store.refresh(edited) == {"steps": "regenerated"} and store.stale(edited) == []
+    gone = [p for p in pieces if p.piece_id != "P1"]
+    assert store.refresh(gone)["steps"].startswith("needs attention")
+    v1 = FillerLayer.from_dict({**layer.to_dict(), "version": 1, "selection": None, "source_fingerprint": ""})
+    assert layer_is_stale(v1, pieces)

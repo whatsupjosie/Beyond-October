@@ -216,6 +216,21 @@ class FillerSelection:
         if int(self.max_gap) < 0 or int(self.ramp_samples) < 1:
             raise FillerCreamError("max_gap must be >= 0 and ramp_samples >= 1")
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "piece_ids": sorted(self.piece_ids), "face": self.face,
+            "barriers": sorted(sorted(p) for p in self.barriers),
+            "max_step": self.max_step, "max_gap": int(self.max_gap),
+            "ramp_samples": int(self.ramp_samples), "fidelity": self.fidelity,
+        }
+
+    @classmethod
+    def from_dict(cls, d: Mapping[str, Any]) -> "FillerSelection":
+        return cls(frozenset(d["piece_ids"]), str(d.get("face", "+y")),
+                   frozenset(frozenset(p) for p in d.get("barriers") or ()),
+                   d.get("max_step"), int(d.get("max_gap", 2)), int(d.get("ramp_samples", 8)),
+                   d.get("fidelity"))
+
     def key(self) -> str:
         payload = {
             "piece_ids": sorted(self.piece_ids), "face": self.face,
@@ -247,6 +262,13 @@ class FillerLayer:
     grid_unit: int
     cells: Tuple[FillerCell, ...]
     selection_key: str
+    selection_json: str = ""        # full application settings, for regeneration
+    source_fingerprint: str = ""    # hash of every piece that could affect the result
+
+    def selection(self) -> "FillerSelection":
+        if not self.selection_json:
+            raise FillerCreamError("layer has no saved settings (v1 layer); it cannot be regenerated")
+        return FillerSelection.from_dict(json.loads(self.selection_json))
 
     def boxes(self) -> List[Tuple[Tuple[float, float, float], Tuple[float, float, float]]]:
         """Axis-aligned filler boxes (min, max) in fine units, real axes."""
@@ -273,9 +295,12 @@ class FillerLayer:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "kind": "filler_cream_layer", "version": 1,
+            "kind": "filler_cream_layer", "version": 2,
             "face": self.face, "grid_unit": self.grid_unit,
-            "fine_subdivision": FINE_SUBDIVISION, "selection_key": self.selection_key,
+            "fine_subdivision": FINE_SUBDIVISION, "block_meters": PUB_BLOCK_METERS,
+            "selection_key": self.selection_key,
+            "selection": json.loads(self.selection_json) if self.selection_json else None,
+            "source_fingerprint": self.source_fingerprint,
             "cells": [
                 {"column": list(c.column), "base": round(c.base, 9), "top": round(c.top, 9),
                  "sources": list(c.sources), "kind": c.kind}
@@ -285,13 +310,15 @@ class FillerLayer:
 
     @classmethod
     def from_dict(cls, d: Mapping[str, Any]) -> "FillerLayer":
-        if d.get("kind") != "filler_cream_layer" or int(d.get("version", 0)) != 1:
-            raise FillerCreamError("not a filler_cream_layer v1 payload")
+        if d.get("kind") != "filler_cream_layer" or int(d.get("version", 0)) not in (1, 2):
+            raise FillerCreamError("not a filler_cream_layer v1/v2 payload")
         cells = tuple(
             FillerCell(tuple(c["column"]), float(c["base"]), float(c["top"]), tuple(c["sources"]), str(c["kind"]))
             for c in d["cells"]
         )
-        return cls(str(d["face"]), int(d["grid_unit"]), cells, str(d["selection_key"]))
+        sel = d.get("selection")
+        return cls(str(d["face"]), int(d["grid_unit"]), cells, str(d["selection_key"]),
+                   json.dumps(sel, sort_keys=True) if sel else "", str(d.get("source_fingerprint") or ""))
 
     def fingerprint(self) -> str:
         return hashlib.sha256(json.dumps(self.to_dict(), sort_keys=True).encode()).hexdigest()
@@ -304,6 +331,34 @@ class FillerLayer:
 def _plane_axes(up: int) -> Tuple[int, int]:
     a, b = [ax for ax in (0, 1, 2) if ax != up]
     return a, b
+
+
+def _candidates(by_id: Mapping[str, SurfacePiece], selection: FillerSelection) -> List[SurfacePiece]:
+    """Every piece that can influence this selection's cream (the selection's
+    footprint grown by max_gap). This is also what the source fingerprint covers."""
+    up, _ = FACES[selection.face]
+    a, b = _plane_axes(up)
+    m = int(selection.max_gap) + 1
+    chosen = [by_id[pid] for pid in sorted(selection.piece_ids)]
+    a0 = min(p.origin[a] for p in chosen) - m
+    a1 = max(p.origin[a] + p.size[a] for p in chosen) + m
+    b0 = min(p.origin[b] for p in chosen) - m
+    b1 = max(p.origin[b] + p.size[b] for p in chosen) + m
+    return [p for _, p in sorted(by_id.items())
+            if p.origin[a] < a1 and p.origin[a] + p.size[a] > a0
+            and p.origin[b] < b1 and p.origin[b] + p.size[b] > b0]
+
+
+def source_fingerprint(pieces: Iterable[SurfacePiece], selection: FillerSelection) -> str:
+    """Hash of every piece that can influence this selection's cream, plus the
+    block size. Changes whenever regenerating could give a different result."""
+    by_id = {p.piece_id: p for p in pieces}
+    if selection.piece_ids - set(by_id):
+        return "missing-pieces"
+    recs = [[p.piece_id, list(p.origin), list(p.size), p.shape, p.wedge_high_side, p.surface_id,
+             sorted(p.tags), p.fidelity] for p in _candidates(by_id, selection)]
+    payload = {"block_m": PUB_BLOCK_METERS, "fine": FINE_SUBDIVISION, "pieces": recs}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
 
 
 def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
@@ -331,17 +386,8 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
 
     # ── 1. candidate pieces: selection bbox expanded by max_gap ───────────
     sel = [by_id[pid] for pid in sorted(selection.piece_ids)]
-    a0 = min(p.origin[a] for p in sel) - max_gap - 1
-    a1 = max(p.origin[a] + p.size[a] for p in sel) + max_gap + 1
-    b0 = min(p.origin[b] for p in sel) - max_gap - 1
-    b1 = max(p.origin[b] + p.size[b] for p in sel) + max_gap + 1
-    cands = [
-        p for pid, p in sorted(by_id.items())
-        if p.origin[a] < a1 and p.origin[a] + p.size[a] > a0
-        and p.origin[b] < b1 and p.origin[b] + p.size[b] > b0
-    ]
+    cands = _candidates(by_id, selection)
 
-    # ── 2. fidelity radius per piece, then the working grid ──────────────
     def radius(p: SurfacePiece) -> float:
         span = fidelity_span_fine(selection.fidelity if selection.fidelity is not None else p.fidelity)
         return span / 2.0
@@ -357,18 +403,43 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
     g = max(1, g)
 
     # ── 3. rasterise: outermost piece owns each column ───────────────────
+    # Selected pieces are rasterised first (outermost selected piece per
+    # column). An unselected piece covers a selected column only where it
+    # touches or buries that surface (its base is at or below it), so a
+    # ceiling or any slab separated by air never blocks the floor beneath.
+    # An empty column is claimed by an unselected piece only when that piece
+    # starts at or below the highest selected surface (it can block a crack
+    # at surface level, but not from far above).
     owner: Dict[Tuple[int, int], str] = {}
     height: Dict[Tuple[int, int], float] = {}
-    for p in cands:
+
+    def _columns(p: SurfacePiece):
         for i in range(p.origin[a] // g, (p.origin[a] + p.size[a]) // g):
             for j in range(p.origin[b] // g, (p.origin[b] + p.size[b]) // g):
-                pt = {a: (i + 0.5) * g, b: (j + 0.5) * g}
-                h = p.top_at(up, sign, pt)
-                col = (i, j)
-                cur = owner.get(col)
-                if cur is None or h > height[col] + _EPS or (abs(h - height[col]) <= _EPS and p.piece_id < cur):
-                    owner[col] = p.piece_id
-                    height[col] = h
+                yield (i, j), p.top_at(up, sign, {a: (i + 0.5) * g, b: (j + 0.5) * g})
+
+    for p in (q for q in cands if q.piece_id in selection.piece_ids):
+        for col, h in _columns(p):
+            cur = owner.get(col)
+            if cur is None or h > height[col] + _EPS or (abs(h - height[col]) <= _EPS and p.piece_id < cur):
+                owner[col] = p.piece_id
+                height[col] = h
+    sel_top = max(height.values()) if height else 0.0
+    claims: Dict[Tuple[int, int], Tuple[float, str]] = {}
+    for p in (q for q in cands if q.piece_id not in selection.piece_ids):
+        p_base = p.outward_span(up, sign)[0]
+        for col, h in _columns(p):
+            if col in owner:
+                if not (p_base <= height[col] + _EPS and h > height[col] + _EPS):
+                    continue
+            elif p_base > sel_top + _EPS:
+                continue
+            prev = claims.get(col)
+            if prev is None or h > prev[0] + _EPS or (abs(h - prev[0]) <= _EPS and p.piece_id < prev[1]):
+                claims[col] = (h, p.piece_id)
+    for col, (h, pid) in sorted(claims.items()):
+        owner[col] = pid
+        height[col] = h
 
     selected = selection.piece_ids
 
@@ -522,7 +593,22 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
                     offer(gc, base, ha + (hb - ha) * s / (gap_cols + 1), src, "crack")
 
     cells = tuple(best[c] for c in sorted(best))
-    return FillerLayer(face, g, cells, selection.key())
+    return FillerLayer(face, g, cells, selection.key(),
+                       json.dumps(selection.to_dict(), sort_keys=True), source_fingerprint(by_id.values(), selection))
+
+
+def layer_is_stale(layer: FillerLayer, pieces: Iterable[SurfacePiece]) -> bool:
+    """True when the voxels under this layer changed since it was made (or the
+    layer predates saved settings): its cream no longer matches the blueprint."""
+    if not layer.selection_json or not layer.source_fingerprint:
+        return True
+    return source_fingerprint(pieces, layer.selection()) != layer.source_fingerprint
+
+
+def regenerate(layer: FillerLayer, pieces: Iterable[SurfacePiece]) -> FillerLayer:
+    """Recompute a layer from its saved settings against the current voxels.
+    Raises FillerCreamError if a selected piece no longer exists."""
+    return compute_filler(pieces, layer.selection())
 
 
 class FillerCreamLayers:
@@ -539,6 +625,23 @@ class FillerCreamLayers:
         layer = compute_filler(pieces, selection)
         self._layers[str(name)] = layer
         return layer
+
+    def stale(self, pieces: Iterable[SurfacePiece]) -> List[str]:
+        plist = list(pieces)
+        return [k for k in sorted(self._layers) if layer_is_stale(self._layers[k], plist)]
+
+    def refresh(self, pieces: Iterable[SurfacePiece]) -> Dict[str, str]:
+        """Regenerate every stale layer. Returns {name: "regenerated" | reason}.
+        A layer whose selected pieces are gone is kept and reported, never guessed."""
+        plist = list(pieces)
+        out: Dict[str, str] = {}
+        for name in self.stale(plist):
+            try:
+                self._layers[name] = regenerate(self._layers[name], plist)
+                out[name] = "regenerated"
+            except FillerCreamError as exc:
+                out[name] = f"needs attention: {exc}"
+        return out
 
     def remove(self, name: str) -> bool:
         return self._layers.pop(str(name), None) is not None
@@ -716,6 +819,6 @@ def bake_with_filler(obj: Any, layers: Sequence[FillerLayer], world_position=(0.
 __all__ = [
     "DEFAULT_FIDELITY", "FACES", "FIDELITY_STOPS", "FINE_SUBDIVISION", "fidelity_span_fine", "FINE_UNIT_INCHES", "FINE_UNIT_MM", "KEEP_TAGS",
     "FillerCell", "FillerCreamError", "FillerCreamLayers", "FillerLayer", "FillerSelection",
-    "SurfacePiece", "bake_with_filler", "compute_filler", "filler_mesh_arrays", "parse_glb",
+    "SurfacePiece", "bake_with_filler", "compute_filler", "layer_is_stale", "regenerate", "source_fingerprint", "filler_mesh_arrays", "parse_glb",
     "pieces_from_voxel_object", "pieces_from_voxel_set",
 ]

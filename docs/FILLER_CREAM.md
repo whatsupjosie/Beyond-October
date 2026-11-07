@@ -55,6 +55,31 @@ No buildup: cream is computed from the original pieces only. Re-applying replace
 
 For canonical voxel sets use `pieces_from_voxel_set(voxel_set)`; block metadata `surface_id` (or `part`), `filler_tags`, `filler: "preserve"` and `fidelity` carry the marks.
 
+## What "flush" means: guaranteed vs approximate
+
+Guaranteed by construction and covered by tests:
+1. **Only adds.** A cream cell starts at its column's existing block surface (or, for a crack, the higher of the two pieces' bases) and ends above it.
+2. **Bounded.** Cream never rises above the highest block surface inside that column's own fit window (radius = half the fidelity span plus half a column), reached without crossing a mark. Crack cream never rises above the higher of its two edges.
+3. **Marks hold.** No fit window crosses a keep-tagged piece, a different surface name, a barrier pair, an unselected piece or an empty column.
+4. **Local.** A cell depends only on pieces inside its window (plus a crack's two edges, at most `max_gap` apart).
+5. **Reversible and deterministic.** It's computed from the original pieces only, and removing it restores the original bake byte for byte.
+
+Approximate, not guaranteed: **following the intended contour between voxel points.** The blueprint stores only voxels; it holds no curve between them. "Flush" is implemented as a local best-fit plane, lifted to rest on the nearby outer block points (each point's pull fades with distance). Between points it can sit slightly above where a designer pictured the curve on convex areas (measured: up to 0.11 fine units at high fidelity on the test curve, never past guarantee 2), and slightly below on concave areas. The flat-topped output boxes add a fine stair of at most (local slope × one grid column).
+
+## Surface isolation (one surface per column)
+
+Each call works on one face direction and keeps one surface per column.
+- **Fixed:** an unselected piece covers a selected surface only where it touches it (its base at or below that surface). A ceiling, shelf or slab separated by air no longer blocks the floor beneath. On empty columns, an unselected piece only matters if it starts at or below the highest selected surface.
+- **Still true:** inside one selection, if two selected surfaces face the same way and stack in the same column (a floor and the top of a ceiling slab, an arm held in front of the torso, the lower lip under the upper lip seen from above), only the outermost is creamed there. Today the way around it is to apply cream to each part as its own selection. Faces pointing different ways are already separate calls; a lip's underside faces down and the lower lip's top faces up.
+
+## Regeneration and invalidation contract
+
+- A saved layer (v2) stores its full application settings (`selection`) and a `source_fingerprint`: a hash of every piece that could influence it (the selection's footprint grown by `max_gap`), plus the block size.
+- `layer_is_stale(layer, pieces)` is true when any of those pieces changed (moved, resized, retagged, renamed part, new fidelity, removed). Editing pieces outside that footprint leaves the layer fresh.
+- `regenerate(layer, pieces)` recomputes from the saved settings. `FillerCreamLayers.stale(pieces)` lists stale layers; `refresh(pieces)` regenerates them. A layer whose selected pieces no longer exist is kept and reported as "needs attention", never guessed.
+- v1 layers (no saved settings) are always reported stale and can't be regenerated automatically.
+- Not automatic yet: nothing calls `refresh` when voxels are edited. The VoxelStudio hookup should call it before every bake.
+
 ## Limits (measured, not guessed)
 
 - On the curve test at high fidelity, the surface came 48% closer to the true curve (error 48.8 → 25.5), the largest step went from 1 to 0.55 fine units, and the cream never rose more than 0.11 fine units (under half a millimetre) above the true curve. Small steps remain because filler boxes have flat tops at the working grid; light sanding is the finishing step.
