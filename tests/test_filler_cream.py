@@ -319,3 +319,34 @@ def test_saved_layers_detect_stale_cream_and_regenerate():
     assert store.refresh(gone)["steps"].startswith("needs attention")
     v1 = FillerLayer.from_dict({**layer.to_dict(), "version": 1, "selection": None, "source_fingerprint": ""})
     assert layer_is_stale(v1, pieces)
+
+
+def test_generator_output_feeds_filler_cream():
+    from modules import voxel_llm_adapter as vla
+    from modules.filler_cream import pieces_from_generated_blocks
+    _, blocks = vla._local_generate("kitchen table style chair")
+    pieces, _ = pieces_from_generated_blocks(blocks)
+    assert len(pieces) == len(blocks)
+    layer = _all(pieces)
+    assert all(c.top > c.base for c in layer.cells)
+    seat_leg = [{"position": [0, 0, 0], "scale": [1, 1, 1], "material": "wood"},
+                {"position": [1, 0, 0], "scale": [1, 1, 1], "material": "metal"}]
+    p2, _ = pieces_from_generated_blocks(seat_leg)
+    assert {p.surface_id for p in p2} == {"wood", "metal"}
+
+
+def test_textured_bake_has_uvs_and_same_geometry():
+    import struct as _st
+    from modules.filler_cream import bake_textured
+    obj = build_fixture_object()
+    _, layer = _run(obj)
+    plain = parse_glb(bake_with_filler(obj, [layer]))
+    glb = bake_textured(obj, [layer])
+    v, n, f = parse_glb(glb)
+    assert np.allclose(v, plain[0]) and np.array_equal(f, plain[2])
+    jlen = _st.unpack_from("<I", glb, 12)[0]
+    gltf = json.loads(glb[20:20 + jlen].decode())
+    assert gltf["meshes"][0]["primitives"][0]["attributes"]["TEXCOORD_0"] == 2
+    assert glb[20:20 + jlen].rstrip(b" ").endswith(b"}") and b"\x00" not in glb[20:20 + jlen]
+    acc = gltf["accessors"][2]
+    assert acc["count"] == len(v) and acc["type"] == "VEC2"

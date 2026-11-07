@@ -4,17 +4,17 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own comm
 
 ## Reproduce exactly
 
-- **Base commit** (claude-work before this session): `295b556e27fe7436ac371d35cc3a141b9fb82a98`. Filler Cream needs these unchanged files from it: `modules/__init__.py`, `modules/voxel_studio.py`, `modules/voxel_set_contract.py`, `modules/voxel_block_kit.py`. The ZIP includes them (unchanged) so it runs on its own. Checked: a clean folder with only the ZIP's files passes all Filler Cream tests.
-- **Versions used:** Python 3.13.18, numpy 2.5.3, pytest 9.1.1, matplotlib 3.11.2 (view tool only).
+- **Base commit** (claude-work before this session): `295b556e27fe7436ac371d35cc3a141b9fb82a98`. Filler Cream needs these unchanged files from it: `modules/__init__.py`, `modules/voxel_studio.py`, `modules/voxel_set_contract.py`, `modules/voxel_block_kit.py`, `modules/voxel_llm_adapter.py`. The ZIP includes them (unchanged) so it runs on its own. Checked: a clean folder with only the ZIP's files passes all Filler Cream tests.
+- **Versions used:** Python 3.13.18, numpy 2.5.3, pytest 9.1.1, matplotlib 3.11.2 (view tool only). trimesh (latest from pip, 2026-11-06) was used once, outside the test suite, as an independent check that the textured GLB loads with its UVs.
 - **Exact test command** (PowerShell 5, repo root or the unzipped folder):
 
       python -m pytest -p no:cacheprovider tests\test_filler_cream.py -q
 
-  Expected: 23 passed. In the repo, add the existing voxel tests to check nothing broke:
+  Expected: 25 passed. In the repo, add the existing voxel tests to check nothing broke:
 
       python -m pytest -p no:cacheprovider tests\test_filler_cream.py tests\test_pubblock_voxel_block_kit.py tests\test_voxel_block_preview.py tests\test_voxel_set_contract.py -q
 
-  Expected: 35 passed.
+  Expected: 37 passed.
 
 ## What Filler Cream is (Josie's design, settled in this session)
 
@@ -30,12 +30,12 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own comm
 
 - `modules/filler_cream.py`: core operation, fidelity gauge, layer store, adapters, GLB output
 - `modules/filler_cream_fixture.py`: 1/64 fixtures (stepped strip with protrusion, recess, opening and crack; fingertip; curve)
-- `tests/test_filler_cream.py`: 21 focused test functions (23 test cases)
+- `tests/test_filler_cream.py`: 23 focused test functions (25 test cases)
 - `tools/filler_cream_view.py`: before/after GLBs and a side-profile PNG
 - `docs/FILLER_CREAM.md`: usage, the rule, measured limits
 - `docs/FILLER_CREAM_APPLICATOR_UI_SPEC.md`: applicator UI proposal (not built, awaiting Josie's review)
 - `docs/SANDING_TOOL_DESIGN.md`: sanding/grinding tool and bit kit proposal (not built, awaiting Josie's review)
-- `docs/filler_cream/`: `fixture_before.glb`, `fixture_after.glb`, `before_after_profile.png`
+- `docs/filler_cream/`: `fixture_before.glb`, `fixture_after.glb`, `fixture_after_textured.glb` (with UVs and a paintable material), `before_after_profile.png`
 - this handoff
 
 ## End-to-end object pipeline (Josie, 2026-11-06)
@@ -46,10 +46,12 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own comm
 4. **Bake to one mesh.** Voxels are for authoring only; they're too heavy to keep at runtime. Copies of a variant reuse one baked mesh (instancing).
 5. **Paint the mesh:** colour, image, texture or surface cover.
 
-Gaps this pipeline exposes (not built):
-- **No texture coordinates (UVs).** `voxel_studio.pack_glb` writes positions, normals and triangles only, so a baked mesh can't take an image texture yet. The bake step needs UVs (automatic unwrapping or box projection).
-- **Paint vs re-bake:** if a carving changes after painting, the mesh changes. Paint should be tied to the bake it was made on and flagged stale (the same contract as cream layers), not silently misplaced.
-- **Carved text:** the family name needs text turned into a stamp (font outlines). This is Dremel decision 6.
+Gaps this pipeline exposes:
+- **Texture coordinates: done.** `bake_textured(obj, layers)` bakes blocks plus cream into one mesh with box-projected UVs (one texture repeat per block, so wood grain and tile stay the same real size on every object) and a neutral "paintable" material. It's spec-clean (JSON padded with spaces) and verified loading in trimesh. `voxel_studio.pack_glb` is unchanged.
+- **Generator to Filler Cream: done.** `voxel_llm_adapter` writes `position: [x, y, z]` with `scale`, which the voxel contract rejects. `pieces_from_generated_blocks(blocks)` reads that format directly; each block's material becomes its surface name, so wood and metal never blend. Found while testing: the offline fallback generator returned a generic "Open Space" for "kitchen table style chair", because it doesn't know chairs; the cloud generators were not tested here.
+- **Paint vs re-bake (not built):** if a carving changes after painting, the mesh changes. Paint should be tied to the bake it was made on and flagged stale (the same contract as cream layers), not silently misplaced.
+- **Carved text (not built):** the family name needs text turned into a stamp (font outlines). This is Dremel decision 6.
+- **Box-projected UVs are a start, not an unwrap:** fine for wood grain, tile, stone and solid paint; a painted face or a logo across a curved surface will want a proper unwrap later.
 - **Crisp edges** must survive the bake (see the sanding design).
 
 ## Implemented behaviour
@@ -64,7 +66,8 @@ Prepared, not done: no `main.py` route, no change to `VoxelStudio`, no applicato
 
 ## Checks executed (this sandbox: Python 3.13, numpy 2.5.3, pytest 9.1.1; not GitHub, not Windows)
 
-- `tests/test_filler_cream.py`: 23 passed. Together with the existing voxel tests (block kit, preview, contract): 35 passed, so no existing voxel test broke.
+- `tests/test_filler_cream.py`: 25 passed. Together with the existing voxel tests (block kit, preview, contract): 37 passed, so no existing voxel test broke.
+- The textured GLB was loaded by trimesh (an independent reader): 16,056 vertices and 16,056 UV rows.
 - Wedge orientation checked against `build_primitive_geometry` for all four Y rotations.
 - View tool run and the PNG inspected by eye.
 

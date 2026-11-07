@@ -816,9 +816,97 @@ def bake_with_filler(obj: Any, layers: Sequence[FillerLayer], world_position=(0.
     return pack_glb(verts, normals, faces, obj.name)
 
 
+def pieces_from_generated_blocks(blocks: Sequence[Mapping[str, Any]], prefix: str = "g") -> Tuple[List[SurfacePiece], List[str]]:
+    """Convert voxel_llm_adapter output (``position`` [x, y, z] in blocks,
+    ``scale`` [sx, sy, sz], ``rotation``, ``material``, ``tags``) into pieces.
+    Each block's material becomes its surface name, so cream never blends a
+    wooden seat into a metal leg unless they share a material. Rotated blocks
+    become occluders. Returns (pieces, notes)."""
+    pieces: List[SurfacePiece] = []
+    notes: List[str] = []
+    for n, blk in enumerate(blocks):
+        pid = f"{prefix}{n}"
+        pos = blk.get("position") or [blk.get("x", 0), blk.get("y", 0), blk.get("z", 0)]
+        scale = blk.get("scale") or [1, 1, 1]
+        origin = tuple(_to_fine(v, f"{pid}.position") for v in pos)
+        size = tuple(_to_fine(v, f"{pid}.scale") for v in scale)
+        rotated = any(float(r) % 360 for r in (blk.get("rotation") or [0, 0, 0]))
+        shape = "occluder" if rotated or blk.get("type", "cube") != "cube" else "cube"
+        if shape == "occluder":
+            notes.append(f"{pid}: {blk.get('type', 'cube')} rot={blk.get('rotation')} kept as occluder")
+        tags = frozenset(t for t in (blk.get("tags") or ()) if t in KEEP_TAGS)
+        pieces.append(SurfacePiece(pid, origin, size, shape, None, str(blk.get("material") or "default"), tags,
+                                   blk.get("fidelity")))
+    return pieces, notes
+
+
+def box_uvs(verts, normals, repeat_per_block: float = 1.0):
+    """Box-projection texture coordinates: each vertex takes the two axes
+    across its face (by dominant normal). One texture repeat per block by
+    default, so wood grain or tile stays the same real size on every object."""
+    import numpy as np
+    v = np.asarray(verts, dtype=np.float64)
+    n = np.abs(np.asarray(normals, dtype=np.float64))
+    axis = n.argmax(axis=1)
+    uv = np.empty((len(v), 2), dtype=np.float32)
+    uv[axis == 0] = v[axis == 0][:, [2, 1]]
+    uv[axis == 1] = v[axis == 1][:, [0, 2]]
+    uv[axis == 2] = v[axis == 2][:, [0, 1]]
+    return (uv * float(repeat_per_block)).astype(np.float32)
+
+
+def pack_glb_uv(verts, normals, faces, uvs, name: str) -> bytes:
+    """glTF 2.0 binary with POSITION, NORMAL, TEXCOORD_0 and indices.
+    JSON padded with spaces as the spec requires (voxel_studio.pack_glb is
+    left unchanged)."""
+    import numpy as np
+    v = np.ascontiguousarray(verts, dtype=np.float32)
+    nm = np.ascontiguousarray(normals, dtype=np.float32)
+    uv = np.ascontiguousarray(uvs, dtype=np.float32)
+    ix = np.ascontiguousarray(faces, dtype=np.uint32).reshape(-1)
+
+    def pad(b: bytes, fill: bytes = b"\x00") -> bytes:
+        return b + fill * ((4 - len(b) % 4) % 4)
+
+    chunks = [pad(v.tobytes()), pad(nm.tobytes()), pad(uv.tobytes()), pad(ix.tobytes())]
+    offsets, off = [], 0
+    for c in chunks:
+        offsets.append(off)
+        off += len(c)
+    views = [{"buffer": 0, "byteOffset": offsets[k], "byteLength": len(chunks[k]),
+              **({"target": 34963} if k == 3 else {"target": 34962})} for k in range(4)]
+    acc = [
+        {"bufferView": 0, "componentType": 5126, "count": len(v), "type": "VEC3",
+         "min": v.min(axis=0).tolist() if len(v) else [0, 0, 0], "max": v.max(axis=0).tolist() if len(v) else [0, 0, 0]},
+        {"bufferView": 1, "componentType": 5126, "count": len(nm), "type": "VEC3"},
+        {"bufferView": 2, "componentType": 5126, "count": len(uv), "type": "VEC2"},
+        {"bufferView": 3, "componentType": 5125, "count": len(ix), "type": "SCALAR"},
+    ]
+    gltf = {"asset": {"version": "2.0", "generator": "PubCast filler_cream"},
+            "scene": 0, "scenes": [{"nodes": [0]}], "nodes": [{"mesh": 0, "name": name}],
+            "meshes": [{"name": name, "primitives": [{"attributes": {"POSITION": 0, "NORMAL": 1, "TEXCOORD_0": 2},
+                                                       "indices": 3, "material": 0}]}],
+            "materials": [{"name": "paintable", "pbrMetallicRoughness": {
+                "baseColorFactor": [0.8, 0.8, 0.8, 1.0], "metallicFactor": 0.0, "roughnessFactor": 0.8}}],
+            "accessors": acc, "bufferViews": views, "buffers": [{"byteLength": off}]}
+    js = pad(json.dumps(gltf, separators=(",", ":")).encode(), b" ")
+    binary = b"".join(chunks)
+    total = 12 + 8 + len(js) + 8 + len(binary)
+    return (struct.pack("<III", 0x46546C67, 2, total) + struct.pack("<II", len(js), 0x4E4F534A) + js
+            + struct.pack("<II", len(binary), 0x004E4942) + binary)
+
+
+def bake_textured(obj: Any, layers: Sequence[FillerLayer] = (), world_position=(0.0, 0.0, 0.0),
+                  repeat_per_block: float = 1.0) -> bytes:
+    """Bake blocks + cream into one mesh WITH texture coordinates, ready to
+    paint or take an image texture. Same geometry as bake_with_filler."""
+    v, n, f = parse_glb(bake_with_filler(obj, layers, world_position))
+    return pack_glb_uv(v, n, f, box_uvs(v, n, repeat_per_block), obj.name)
+
+
 __all__ = [
     "DEFAULT_FIDELITY", "FACES", "FIDELITY_STOPS", "FINE_SUBDIVISION", "fidelity_span_fine", "FINE_UNIT_INCHES", "FINE_UNIT_MM", "KEEP_TAGS",
     "FillerCell", "FillerCreamError", "FillerCreamLayers", "FillerLayer", "FillerSelection",
-    "SurfacePiece", "bake_with_filler", "compute_filler", "layer_is_stale", "regenerate", "source_fingerprint", "filler_mesh_arrays", "parse_glb",
+    "SurfacePiece", "bake_textured", "bake_with_filler", "box_uvs", "pack_glb_uv", "pieces_from_generated_blocks", "compute_filler", "layer_is_stale", "regenerate", "source_fingerprint", "filler_mesh_arrays", "parse_glb",
     "pieces_from_voxel_object", "pieces_from_voxel_set",
 ]
