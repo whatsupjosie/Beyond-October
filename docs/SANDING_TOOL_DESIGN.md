@@ -10,9 +10,9 @@ Finishing order: **carve** (voxel blueprint) → **cream** (fill flush) → **Dr
 
 ## Rules (same spirit as Filler Cream)
 
-1. **The blueprint is never edited.** Grinding is saved as its own layer of strokes, kept apart from the blocks. Remove any stroke, or all of them, and the original is back exactly.
+1. **Reversible by default.** Grinding is saved as its own layer of strokes, kept apart from the blocks. Remove any stroke, or all of them, and the original is back exactly. When the artist is happy, an explicit "Make permanent" can write the reshaped form into the blueprint as a new version (the old version is kept).
 2. **Tape protects.** Masking tape (marks) blocks the Dremel the same way it blocks cream: a taped nail edge, lip line or door moulding can't be ground unless the user lifts the tape.
-3. **Never breaks through by accident.** Grinding stops at a minimum wall thickness above the hollow inside of the shell. Cutting a real opening (a nostril, a keyhole) is carving, a deliberate separate action, not sanding.
+3. **Reshapes past the blueprint, stays closed.** The Dremel may cut as deep into the design as the artist wants: reshaping a nose, slimming a jaw, deepening an eye socket. Surface pieces are hollow shells, so when a cut goes deeper than the shell, the inside is treated as solid while carving and a new wall forms behind the cut. The object never ends up with an accidental hole. Cutting a real opening (a nostril, a keyhole) is a deliberate separate action.
 4. **Local.** A bit only touches what it physically reaches.
 5. **Real units.** Every bit size is in mm or inches, tied to the 10 in PubBlock (1/64 block is about 4 mm).
 
@@ -45,7 +45,7 @@ Sizes: from 1/64 block (about 4 mm) up to a full block (254 mm), with named pres
 
 - The same column layout Filler Cream uses: one face direction at a time; each column has a surface height (block plus any cream).
 - A bit placed at a point is a **solid shape** (flat-bottomed box, sphere, cylinder, cone) at that position and depth. A stroke is that shape swept along the path.
-- Each column's surface is lowered to where the swept shape cuts it, but never below the depth stop, the angle-guide plane, or the minimum wall thickness, and never inside taped parts.
+- Each column's surface is lowered to where the swept shape cuts it, but never below the depth stop or the angle-guide plane, and never inside taped parts. Cuts may go below the blueprint surface and past the shell; the interior counts as solid while carving and the wall re-forms behind the cut.
 - **Reach:** a bit can only go as deep as its shaft clears. If the rim around the hole is narrower than the shaft, the cut stops at the depth where the shaft would touch the rim. Long-reach bits have slim shafts, so they get deeper.
 - The Dremel layer is a list of strokes; the result is recomputed from the original blocks plus cream plus strokes. Deterministic, removable, and stale-aware, like cream layers.
 - Works **without cream** too: grinding raw blocks cuts into them directly (the cut block is re-meshed as columns at bake).
@@ -58,7 +58,7 @@ Two kinds of mesh:
 
 ## Build order
 
-1. Voxel phase: square, ball, cone and needle bits; grit; depth stop; tape; minimum wall; strokes as a reversible layer; tests (taped edge untouched, never breaks through, removing strokes restores the original, reach stops at a narrow rim).
+1. Voxel phase: square, ball, cone and needle bits; grit; depth stop; tape; cutting past the blueprint with the wall re-forming; strokes as a reversible layer; tests (reshaping a nose fixture past its blueprint, taped edge untouched, no accidental holes, removing strokes restores the original, reach stops at a narrow rim).
 2. Angle guide, barrel, bullnose and long-reach bits.
 3. Cutting the single volume and re-extracting the mesh (needs the smooth-surface plan from the Filler Cream handoff).
 4. Imported meshes.
@@ -67,6 +67,7 @@ Two kinds of mesh:
 
 1. **Name:** "the Dremel" as the working name? It's a brand name; for a shipped product you may want your own ("the Rotary", "the Grinder", something in PubCast's voice).
 2. **Passes:** should passes deepen with each stroke, like real sanding, or should each stroke cut only to its depth stop or guide plane, so going over the same spot twice does nothing extra? Real feel versus safety.
-3. **Minimum wall thickness:** a fixed value (for example 1/64 block) or set per part?
+3. **Make permanent:** should reshaping stay a reversible layer forever, or offer "Make permanent" (writes a new blueprint version, keeps the old one)?
+6. **Building up:** the Dremel only removes, and cream only fills up to the blueprint's surface. If a nose is too *small*, neither can make it bigger. Should cream get a "build up" mode (putty that can go past the blueprint), or should that be done by adding blocks?
 4. **Tape:** does one tape protect from both cream and the Dremel, or should there be separate tapes?
 5. **Bit kit:** anything missing from the list? Some real-world bits that could come later: wire brush (texture), engraving cutter, polishing felt (gloss).
