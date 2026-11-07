@@ -77,7 +77,7 @@ Two kinds of mesh:
 1. **Name:** "the Dremel" as the working name? It's a brand name; for a shipped product you may want your own ("the Rotary", "the Grinder", something in PubCast's voice).
 2. **Passes:** should passes deepen with each stroke, like real sanding, or should each stroke cut only to its depth stop or guide plane, so going over the same spot twice does nothing extra? Real feel versus safety.
 3. **Decided:** the base stays pure; reshaping and decoration are layers on the instance (no "Make permanent").
-6. **Building up:** the Dremel only removes, and cream only fills up to the blueprint's surface. If a nose is too *small*, neither can make it bigger. Should cream get a "build up" mode (putty that can go past the blueprint), or should that be done by adding blocks?
 4. **Tape:** does one tape protect from both cream and the Dremel, or should there be separate tapes?
-5. **Stamps:** should an emblem or pattern be a reusable stamp (draw or import it once, then engrave it into, or raise it from, any surface at any size)? Raised designs need the build-up question (6) answered.
+5. **Building up:** the Dremel only removes, and cream only fills up to the blueprint's surface. If a nose is too *small*, neither can make it bigger. Should cream get a "build up" mode (putty that can go past the blueprint), or should that be done by adding blocks?
+6. **Stamps:** should an emblem or pattern be a reusable stamp (draw or import it once, then engrave it into, or raise it from, any surface at any size)? Raised designs need the build-up question (5) answered.
 7. **Bit kit:** anything missing from the list? Some real-world bits that could come later: wire brush (texture), engraving cutter, polishing felt (gloss).
