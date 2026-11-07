@@ -79,6 +79,9 @@ FIDELITY_STOPS: Dict[str, float] = {
     "very_high": 3 / 64, "high": 1 / 8, "medium": 1 / 4, "low": 1 / 2, "very_low": 1.0,
 }
 DEFAULT_FIDELITY = "medium"
+# Bump whenever the cream rule changes, so saved layers made under an older
+# rule are reported stale instead of looking current.
+ENGINE_VERSION = "filler-cream/3 outer-points-fade"
 
 FACES: Dict[str, Tuple[int, int]] = {
     "+x": (0, 1), "-x": (0, -1),
@@ -297,7 +300,7 @@ class FillerLayer:
         return {
             "kind": "filler_cream_layer", "version": 2,
             "face": self.face, "grid_unit": self.grid_unit,
-            "fine_subdivision": FINE_SUBDIVISION, "block_meters": PUB_BLOCK_METERS,
+            "fine_subdivision": FINE_SUBDIVISION, "block_meters": PUB_BLOCK_METERS, "engine": ENGINE_VERSION,
             "selection_key": self.selection_key,
             "selection": json.loads(self.selection_json) if self.selection_json else None,
             "source_fingerprint": self.source_fingerprint,
@@ -352,12 +355,16 @@ def _candidates(by_id: Mapping[str, SurfacePiece], selection: FillerSelection) -
 def source_fingerprint(pieces: Iterable[SurfacePiece], selection: FillerSelection) -> str:
     """Hash of every piece that can influence this selection's cream, plus the
     block size. Changes whenever regenerating could give a different result."""
-    by_id = {p.piece_id: p for p in pieces}
+    by_id: Dict[str, SurfacePiece] = {}
+    for p in pieces:
+        if p.piece_id in by_id:
+            raise FillerCreamError(f"duplicate piece_id {p.piece_id!r}")
+        by_id[p.piece_id] = p
     if selection.piece_ids - set(by_id):
         return "missing-pieces"
     recs = [[p.piece_id, list(p.origin), list(p.size), p.shape, p.wedge_high_side, p.surface_id,
              sorted(p.tags), p.fidelity] for p in _candidates(by_id, selection)]
-    payload = {"block_m": PUB_BLOCK_METERS, "fine": FINE_SUBDIVISION, "pieces": recs}
+    payload = {"engine": ENGINE_VERSION, "block_m": PUB_BLOCK_METERS, "fine": FINE_SUBDIVISION, "pieces": recs}
     return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
 
 
@@ -780,6 +787,8 @@ def parse_glb(data: bytes):
     gltf = json.loads(data[20:20 + jlen].rstrip(b"\x00 ").decode())
     blen, _ = struct.unpack_from("<II", data, 20 + jlen)
     bin_data = data[28 + jlen:28 + jlen + blen]
+    if len(gltf.get("meshes", [])) != 1 or len(gltf["meshes"][0]["primitives"]) != 1:
+        raise FillerCreamError("expected exactly one mesh with one primitive; refusing to drop geometry")
     prim = gltf["meshes"][0]["primitives"][0]
 
     def read(acc_idx, dtype, width):
@@ -864,6 +873,10 @@ def pack_glb_uv(verts, normals, faces, uvs, name: str) -> bytes:
     nm = np.ascontiguousarray(normals, dtype=np.float32)
     uv = np.ascontiguousarray(uvs, dtype=np.float32)
     ix = np.ascontiguousarray(faces, dtype=np.uint32).reshape(-1)
+    if len(v) == 0 or len(ix) == 0:
+        raise FillerCreamError("nothing to bake: the mesh is empty")
+    if not (len(v) == len(nm) == len(uv)) or int(ix.max()) >= len(v):
+        raise FillerCreamError("mesh arrays disagree (vertex/normal/uv counts or index range)")
 
     def pad(b: bytes, fill: bytes = b"\x00") -> bytes:
         return b + fill * ((4 - len(b) % 4) % 4)
@@ -905,7 +918,7 @@ def bake_textured(obj: Any, layers: Sequence[FillerLayer] = (), world_position=(
 
 
 __all__ = [
-    "DEFAULT_FIDELITY", "FACES", "FIDELITY_STOPS", "FINE_SUBDIVISION", "fidelity_span_fine", "FINE_UNIT_INCHES", "FINE_UNIT_MM", "KEEP_TAGS",
+    "DEFAULT_FIDELITY", "ENGINE_VERSION", "FACES", "FIDELITY_STOPS", "FINE_SUBDIVISION", "fidelity_span_fine", "FINE_UNIT_INCHES", "FINE_UNIT_MM", "KEEP_TAGS",
     "FillerCell", "FillerCreamError", "FillerCreamLayers", "FillerLayer", "FillerSelection",
     "SurfacePiece", "bake_textured", "bake_with_filler", "box_uvs", "pack_glb_uv", "pieces_from_generated_blocks", "compute_filler", "layer_is_stale", "regenerate", "source_fingerprint", "filler_mesh_arrays", "parse_glb",
     "pieces_from_voxel_object", "pieces_from_voxel_set",

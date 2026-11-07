@@ -10,11 +10,11 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own comm
 
       python -m pytest -p no:cacheprovider tests\test_filler_cream.py -q
 
-  Expected: 25 passed. In the repo, add the existing voxel tests to check nothing broke:
+  Expected: 26 passed. In the repo, add the existing voxel tests to check nothing broke:
 
       python -m pytest -p no:cacheprovider tests\test_filler_cream.py tests\test_pubblock_voxel_block_kit.py tests\test_voxel_block_preview.py tests\test_voxel_set_contract.py -q
 
-  Expected: 37 passed.
+  Expected: 38 passed.
 
 ## What Filler Cream is (Josie's design, settled in this session)
 
@@ -30,7 +30,7 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own comm
 
 - `modules/filler_cream.py`: core operation, fidelity gauge, layer store, adapters, GLB output
 - `modules/filler_cream_fixture.py`: 1/64 fixtures (stepped strip with protrusion, recess, opening and crack; fingertip; curve)
-- `tests/test_filler_cream.py`: 23 focused test functions (25 test cases)
+- `tests/test_filler_cream.py`: 24 focused test functions (26 test cases)
 - `tools/filler_cream_view.py`: before/after GLBs and a side-profile PNG
 - `docs/FILLER_CREAM.md`: usage, the rule, measured limits
 - `docs/FILLER_CREAM_APPLICATOR_UI_SPEC.md`: applicator UI proposal (not built, awaiting Josie's review)
@@ -66,7 +66,7 @@ Prepared, not done: no `main.py` route, no change to `VoxelStudio`, no applicato
 
 ## Checks executed (this sandbox: Python 3.13, numpy 2.5.3, pytest 9.1.1; not GitHub, not Windows)
 
-- `tests/test_filler_cream.py`: 25 passed. Together with the existing voxel tests (block kit, preview, contract): 37 passed, so no existing voxel test broke.
+- `tests/test_filler_cream.py`: 26 passed. Together with the existing voxel tests (block kit, preview, contract): 38 passed, so no existing voxel test broke.
 - The textured GLB was loaded by trimesh (an independent reader): 16,056 vertices and 16,056 UV rows.
 - Wedge orientation checked against `build_primitive_geometry` for all four Y rotations.
 - View tool run and the PNG inspected by eye.
@@ -110,7 +110,16 @@ A. **Stacked surfaces in one selection** (floor under a ceiling slab, arm in fro
 B. **Stale cream after a voxel edit:** regenerate automatically on bake, or show it as stale and let the user choose?
 C. **Finished surface:** approve the single-volume surface plan as the next engine block after the VoxelStudio hookup?
 
+## Closing review (end of session): fixed
+
+- **Saved cream ignored rule changes.** `ENGINE_VERSION` is now part of every layer's fingerprint, so cream saved under an older rule reports stale. Bump it whenever the cream rule changes. Tested.
+- **The GLB reader could drop geometry.** It now refuses any GLB with more than one mesh or primitive instead of reading only the first. Today's baker always writes one, so nothing was lost.
+- **The textured writer could emit an invalid file.** It now raises on an empty mesh, or when vertex, normal and UV counts or indices disagree. Tested.
+- **The out-of-date check accepted duplicate piece ids** silently. It now raises, like `compute_filler`. Tested.
+
 ## Observed in existing code (not changed)
+
+- `VoxelBaker`'s docstring says it writes one mesh node per group; the code actually merges everything into one mesh with one primitive.
 
 - `voxel_studio.pack_glb` pads the GLB JSON chunk with NUL bytes; glTF requires spaces. Strict loaders may reject these files.
 - `pytest.ini` sets `asyncio_mode`; pytest-asyncio isn't installed in this sandbox, so pytest warns. Harmless here.

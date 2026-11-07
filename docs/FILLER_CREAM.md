@@ -74,7 +74,7 @@ Each call works on one face direction and keeps one surface per column.
 
 ## Regeneration and invalidation contract
 
-- A saved layer (v2) stores its full application settings (`selection`) and a `source_fingerprint`: a hash of every piece that could influence it (the selection's footprint grown by `max_gap`), plus the block size.
+- A saved layer (v2) stores its full application settings (`selection`) and a `source_fingerprint`: a hash of every piece that could influence it (the selection's footprint grown by `max_gap`), plus the block size and `ENGINE_VERSION`. So both a voxel edit and a change to the cream rule mark it stale.
 - `layer_is_stale(layer, pieces)` is true when any of those pieces changed (moved, resized, retagged, renamed part, new fidelity, removed). Editing pieces outside that footprint leaves the layer fresh.
 - `regenerate(layer, pieces)` recomputes from the saved settings. `FillerCreamLayers.stale(pieces)` lists stale layers; `refresh(pieces)` regenerates them. A layer whose selected pieces no longer exist is kept and reported as "needs attention", never guessed.
 - v1 layers (no saved settings) are always reported stale and can't be regenerated automatically.

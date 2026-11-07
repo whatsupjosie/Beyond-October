@@ -350,3 +350,18 @@ def test_textured_bake_has_uvs_and_same_geometry():
     assert glb[20:20 + jlen].rstrip(b" ").endswith(b"}") and b"\x00" not in glb[20:20 + jlen]
     acc = gltf["accessors"][2]
     assert acc["count"] == len(v) and acc["type"] == "VEC2"
+
+
+def test_engine_change_marks_saved_cream_stale_and_bad_inputs_raise(monkeypatch):
+    import modules.filler_cream as fc
+    pieces, _ = pieces_from_voxel_object(build_fixture_object(), fixture_annotations())
+    layer = compute_filler(pieces, FillerSelection(frozenset({"P0", "P1"})))
+    assert not fc.layer_is_stale(layer, pieces)
+    monkeypatch.setattr(fc, "ENGINE_VERSION", "filler-cream/next")
+    assert fc.layer_is_stale(layer, pieces), "a rule change must mark old cream stale"
+    with pytest.raises(FillerCreamError):
+        fc.source_fingerprint(pieces + [pieces[0]], FillerSelection(frozenset({"P0"})))
+    with pytest.raises(FillerCreamError):
+        fc.pack_glb_uv(np.zeros((0, 3)), np.zeros((0, 3)), np.zeros((0, 3)), np.zeros((0, 2)), "empty")
+    with pytest.raises(FillerCreamError):
+        fc.pack_glb_uv(np.zeros((3, 3)), np.zeros((3, 3)), np.array([[0, 1, 5]]), np.zeros((3, 2)), "bad")
