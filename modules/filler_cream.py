@@ -81,7 +81,7 @@ FIDELITY_STOPS: Dict[str, float] = {
 DEFAULT_FIDELITY = "medium"
 # Bump whenever the cream rule changes, so saved layers made under an older
 # rule are reported stale instead of looking current.
-ENGINE_VERSION = "filler-cream/3 outer-points-fade"
+ENGINE_VERSION = "filler-cream/4 outer-points-fade, ceiling-cap"
 
 FACES: Dict[str, Tuple[int, int]] = {
     "+x": (0, 1), "-x": (0, -1),
@@ -432,6 +432,14 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
                 owner[col] = p.piece_id
                 height[col] = h
     sel_top = max(height.values()) if height else 0.0
+    # Every candidate piece's base per column: cream is capped below the base
+    # of anything hanging over the surface across an air gap (a protected
+    # slab, a ceiling, a tabletop), so it can never penetrate solid material.
+    bases_by_col: Dict[Tuple[int, int], List[float]] = {}
+    for p in cands:
+        p_base = p.outward_span(up, sign)[0]
+        for col, _h in _columns(p):
+            bases_by_col.setdefault(col, []).append(p_base)
     claims: Dict[Tuple[int, int], Tuple[float, str]] = {}
     for p in (q for q in cands if q.piece_id not in selection.piece_ids):
         p_base = p.outward_span(up, sign)[0]
@@ -479,6 +487,9 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
     best: Dict[Tuple[int, int], FillerCell] = {}
 
     def offer(col: Tuple[int, int], base: float, top: float, src: Tuple[str, ...], kind: str) -> None:
+        above = [bb for bb in bases_by_col.get(col, ()) if bb >= base - _EPS]
+        if above:
+            top = min(top, min(above))
         if top <= base + _EPS:
             return
         prev = best.get(col)
@@ -650,6 +661,15 @@ class FillerCreamLayers:
                 out[name] = f"needs attention: {exc}"
         return out
 
+    def bake_layers(self, pieces: Iterable[SurfacePiece]) -> List[FillerLayer]:
+        """Layers ready to bake. Raises if any layer is stale (for example
+        one whose refresh failed); remove or fix it first."""
+        plist = list(pieces)
+        bad = self.stale(plist)
+        if bad:
+            raise FillerCreamError(f"stale cream layers block the bake: {bad}")
+        return self.layers()
+
     def remove(self, name: str) -> bool:
         return self._layers.pop(str(name), None) is not None
 
@@ -775,6 +795,18 @@ def filler_mesh_arrays(layers: Sequence[FillerLayer], world_position=(0.0, 0.0, 
     return _compute_normals(np.concatenate(verts), np.concatenate(faces))
 
 
+def _require_fresh(layers: Sequence[FillerLayer], pieces: Optional[Iterable[SurfacePiece]], unchecked: bool) -> None:
+    if not layers or unchecked:
+        return
+    if pieces is None:
+        raise FillerCreamError("pass the current pieces so stale cream can be refused (or unchecked=True)")
+    plist = list(pieces)
+    stale = [lay.selection_key for lay in layers if layer_is_stale(lay, plist)]
+    if stale:
+        raise FillerCreamError(f"refusing to bake {len(stale)} stale cream layer(s): {stale[:5]}; "
+                               "refresh them or remove them first")
+
+
 def parse_glb(data: bytes):
     """Read POSITION/NORMAL/indices back out of a VoxelStudio GLB."""
     import numpy as np
@@ -805,12 +837,18 @@ def parse_glb(data: bytes):
     return verts.copy(), normals.copy(), faces.copy()
 
 
-def bake_with_filler(obj: Any, layers: Sequence[FillerLayer], world_position=(0.0, 0.0, 0.0)) -> bytes:
+def bake_with_filler(obj: Any, layers: Sequence[FillerLayer], world_position=(0.0, 0.0, 0.0), *,
+                     pieces: Optional[Iterable[SurfacePiece]] = None, unchecked: bool = False) -> bytes:
     """Bake obj with the existing VoxelBaker, then append filler geometry.
 
+    Every layer is checked against ``pieces`` (the current pieces, built with
+    the same annotations used to make the layers) and the bake is refused if
+    any layer is stale: stale cream can never silently enter a bake.
+    ``unchecked=True`` skips the check explicitly (tests and tools only).
     With no filler cells this returns exactly VoxelBaker().bake(obj) bytes.
     The VoxelObject is never modified.
     """
+    _require_fresh(layers, pieces, unchecked)
     import numpy as np
     from .voxel_studio import VoxelBaker, pack_glb
 
@@ -910,10 +948,11 @@ def pack_glb_uv(verts, normals, faces, uvs, name: str) -> bytes:
 
 
 def bake_textured(obj: Any, layers: Sequence[FillerLayer] = (), world_position=(0.0, 0.0, 0.0),
-                  repeat_per_block: float = 1.0) -> bytes:
+                  repeat_per_block: float = 1.0, *, pieces: Optional[Iterable[SurfacePiece]] = None,
+                  unchecked: bool = False) -> bytes:
     """Bake blocks + cream into one mesh WITH texture coordinates, ready to
     paint or take an image texture. Same geometry as bake_with_filler."""
-    v, n, f = parse_glb(bake_with_filler(obj, layers, world_position))
+    v, n, f = parse_glb(bake_with_filler(obj, layers, world_position, pieces=pieces, unchecked=unchecked))
     return pack_glb_uv(v, n, f, box_uvs(v, n, repeat_per_block), obj.name)
 
 

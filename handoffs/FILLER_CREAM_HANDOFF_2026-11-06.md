@@ -10,11 +10,11 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own comm
 
       python -m pytest -p no:cacheprovider tests\test_filler_cream.py -q
 
-  Expected: 26 passed. In the repo, add the existing voxel tests to check nothing broke:
+  Expected: 28 passed. In the repo, add the existing voxel tests to check nothing broke:
 
       python -m pytest -p no:cacheprovider tests\test_filler_cream.py tests\test_pubblock_voxel_block_kit.py tests\test_voxel_block_preview.py tests\test_voxel_set_contract.py -q
 
-  Expected: 38 passed.
+  Expected: 40 passed.
 
 ## What Filler Cream is (Josie's design, settled in this session)
 
@@ -30,7 +30,7 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own comm
 
 - `modules/filler_cream.py`: core operation, fidelity gauge, layer store, adapters, GLB output
 - `modules/filler_cream_fixture.py`: 1/64 fixtures (stepped strip with protrusion, recess, opening and crack; fingertip; curve)
-- `tests/test_filler_cream.py`: 24 focused test functions (26 test cases)
+- `tests/test_filler_cream.py`: 26 focused test functions (28 test cases)
 - `tools/filler_cream_view.py`: before/after GLBs and a side-profile PNG
 - `docs/FILLER_CREAM.md`: usage, the rule, measured limits
 - `docs/FILLER_CREAM_APPLICATOR_UI_SPEC.md`: applicator UI proposal (not built, awaiting Josie's review)
@@ -66,7 +66,7 @@ Prepared, not done: no `main.py` route, no change to `VoxelStudio`, no applicato
 
 ## Checks executed (this sandbox: Python 3.13, numpy 2.5.3, pytest 9.1.1; not GitHub, not Windows)
 
-- `tests/test_filler_cream.py`: 26 passed. Together with the existing voxel tests (block kit, preview, contract): 38 passed, so no existing voxel test broke.
+- `tests/test_filler_cream.py`: 28 passed. Together with the existing voxel tests (block kit, preview, contract): 40 passed, so no existing voxel test broke.
 - The textured GLB was loaded by trimesh (an independent reader): 16,056 vertices and 16,056 UV rows.
 - Wedge orientation checked against `build_primitive_geometry` for all four Y rotations.
 - View tool run and the PNG inspected by eye.
@@ -110,6 +110,17 @@ A. **Stacked surfaces in one selection** (floor under a ceiling slab, arm in fro
 B. **Stale cream after a voxel edit:** regenerate automatically on bake, or show it as stale and let the user choose?
 C. **Finished surface:** approve the single-volume surface plan as the next engine block after the VoxelStudio hookup?
 
+## Completion requirements: Filler Cream is NOT complete until both land
+
+1. **Continuous surface extraction.** One closed mesh from blocks plus cream across every face direction, keeping sharp edges where taped or crisp-cut. This, not sanding, removes the flat-top box stair and the seams between face directions. Until then, output is boxes.
+2. **Stacked-surface support.** Every exposed surface in a column kept as its own layer (floor under a ceiling slab, an arm in front of the torso, lips, eyelids, fingers), so one selection can cream both. Until then, apply cream part by part.
+
+## Outside review 2 (2026-11-06, 20:03): fixed
+
+- **Protected slab over a small air gap was penetrated.** Reproduced: cream reached 9.68 inside a slab whose base is at 9. Fixed: in each column, cream is capped at the underside of any piece hanging over the surface (protected, selected or not). Regression test included, plus the same check for crack cream under a lid. `ENGINE_VERSION` bumped, so cream saved before this fix reports stale.
+- **Stale layers could enter a bake after a failed refresh.** Fixed: `bake_with_filler` and `bake_textured` now need the current pieces and refuse stale layers (only an explicit `unchecked=True` skips the check), and `FillerCreamLayers.bake_layers(pieces)` refuses too. Tested, including the failed-refresh case.
+- **Docs that gave stair removal to sanding** are corrected. The stair goes with surface extraction; sanding is for reshaping by choice and convex overshoot.
+
 ## Closing review (end of session): fixed
 
 - **Saved cream ignored rule changes.** `ENGINE_VERSION` is now part of every layer's fingerprint, so cream saved under an older rule reports stale. Bump it whenever the cream rule changes. Tested.
@@ -127,7 +138,7 @@ C. **Finished surface:** approve the single-volume surface plan as the next engi
 ## Limitations
 
 See `docs/FILLER_CREAM.md` → Limits:
-- small steps remain from flat-top filler boxes (sanding finishes them);
+- small steps remain from flat-top filler boxes (removed by continuous surface extraction, a completion requirement; not by sanding);
 - slight overshoot between corners on convex areas, bounded by fidelity;
 - one face direction per call (no wrapping from a top face onto a side face);
 - corner-cut pieces are skipped;

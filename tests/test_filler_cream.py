@@ -183,16 +183,16 @@ def test_removal_restores_original_and_regeneration_is_deterministic():
     pieces, _ = pieces_from_voxel_object(obj, fixture_annotations())
     sel = FillerSelection(frozenset(p.piece_id for p in pieces))
     first = store.apply("all", pieces, sel)
-    with_filler = bake_with_filler(obj, store.layers())
+    with_filler = bake_with_filler(obj, store.layers(), pieces=pieces)
     assert len(with_filler) > len(before_glb)
     assert obj.to_dict() == before_src
     for _ in range(3):
         again = store.apply("all", pieces, sel)
         assert again.fingerprint() == first.fingerprint() and again.volume() == first.volume()
     assert len(store.layers()) == 1
-    assert bake_with_filler(obj, store.layers()) == with_filler
+    assert bake_with_filler(obj, store.layers(), pieces=pieces) == with_filler
     assert store.remove("all") and store.layers() == []
-    assert bake_with_filler(obj, store.layers()) == before_glb
+    assert bake_with_filler(obj, store.layers(), pieces=pieces) == before_glb
     assert VoxelBaker().bake(obj) == before_glb
     assert FillerLayer.from_dict(first.to_dict()).fingerprint() == first.fingerprint()
 
@@ -200,7 +200,7 @@ def test_removal_restores_original_and_regeneration_is_deterministic():
 def test_filler_mesh_goes_through_existing_glb_pipeline():
     obj = build_fixture_object()
     _, layer = _run(obj)
-    glb = bake_with_filler(obj, [layer])
+    glb = bake_with_filler(obj, [layer], unchecked=True)
     bv, _, bf = parse_glb(VoxelBaker().bake(obj))
     v, n, f = parse_glb(glb)
     assert len(f) == len(bf) + 12 * len(layer.cells)
@@ -340,8 +340,8 @@ def test_textured_bake_has_uvs_and_same_geometry():
     from modules.filler_cream import bake_textured
     obj = build_fixture_object()
     _, layer = _run(obj)
-    plain = parse_glb(bake_with_filler(obj, [layer]))
-    glb = bake_textured(obj, [layer])
+    plain = parse_glb(bake_with_filler(obj, [layer], unchecked=True))
+    glb = bake_textured(obj, [layer], unchecked=True)
     v, n, f = parse_glb(glb)
     assert np.allclose(v, plain[0]) and np.array_equal(f, plain[2])
     jlen = _st.unpack_from("<I", glb, 12)[0]
@@ -365,3 +365,38 @@ def test_engine_change_marks_saved_cream_stale_and_bad_inputs_raise(monkeypatch)
         fc.pack_glb_uv(np.zeros((0, 3)), np.zeros((0, 3)), np.zeros((0, 3)), np.zeros((0, 2)), "empty")
     with pytest.raises(FillerCreamError):
         fc.pack_glb_uv(np.zeros((3, 3)), np.zeros((3, 3)), np.array([[0, 1, 5]]), np.zeros((3, 2)), "bad")
+
+
+
+def test_protected_slab_over_a_small_air_gap_is_never_penetrated():
+    """Regression (outside review, 2026-11-06): cream rose to 9.68 inside a
+    preserve-tagged slab whose base sits 1 unit above the surface."""
+    two = [SurfacePiece("A", (0, 0, 0), (8, 8, 8)), SurfacePiece("B", (8, 2, 0), (8, 8, 8))]
+    for tags in (frozenset({"preserve"}), frozenset()):
+        slab = SurfacePiece("SLAB", (0, 9, 0), (8, 4, 8), tags=tags)
+        layer = compute_filler(two + [slab], FillerSelection(frozenset({"A", "B"})))
+        under = [c for c in layer.cells if c.column[0] < 8]
+        assert under and all(c.top <= 9.0 + 1e-9 for c in under), "cream stops at the slab's underside"
+    crack = [SurfacePiece("L", (0, 0, 0), (8, 8, 8)), SurfacePiece("R", (9, 0, 0), (8, 8, 8)),
+             SurfacePiece("LID", (8, 6, 0), (1, 4, 8))]
+    cl = compute_filler(crack, FillerSelection(frozenset({"L", "R"})))
+    assert all(c.top <= 6.0 + 1e-9 for c in cl.cells if c.kind == "crack")
+
+
+def test_stale_cream_can_never_silently_enter_a_bake():
+    obj = build_fixture_object()
+    pieces, _ = pieces_from_voxel_object(obj, fixture_annotations())
+    store = FillerCreamLayers()
+    store.apply("steps", pieces, FillerSelection(frozenset({"P0", "P1"})))
+    with pytest.raises(FillerCreamError):
+        bake_with_filler(obj, store.layers())                    # no pieces given: refused
+    bake_with_filler(obj, store.bake_layers(pieces), pieces=pieces)  # fresh: fine
+    gone = [p for p in pieces if p.piece_id != "P1"]
+    assert store.refresh(gone)["steps"].startswith("needs attention")
+    with pytest.raises(FillerCreamError):
+        store.bake_layers(gone)                                  # failed refresh blocks the bake
+    with pytest.raises(FillerCreamError):
+        bake_with_filler(obj, store.layers(), pieces=gone)
+    from modules.filler_cream import bake_textured
+    with pytest.raises(FillerCreamError):
+        bake_textured(obj, store.layers(), pieces=gone)

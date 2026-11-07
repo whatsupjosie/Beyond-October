@@ -25,7 +25,7 @@ def main(out_dir: Path) -> None:
     pieces, _ = pieces_from_voxel_object(obj, fixture_annotations())
     layer = compute_filler(pieces, FillerSelection(frozenset(p.piece_id for p in pieces)))
     (out_dir / "fixture_before.glb").write_bytes(VoxelBaker().bake(obj))
-    (out_dir / "fixture_after.glb").write_bytes(bake_with_filler(obj, [layer]))
+    (out_dir / "fixture_after.glb").write_bytes(bake_with_filler(obj, [layer], pieces=pieces))
 
     import matplotlib
     matplotlib.use("Agg")
