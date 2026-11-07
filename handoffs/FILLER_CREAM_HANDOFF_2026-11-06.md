@@ -115,6 +115,17 @@ C. **Finished surface:** approve the single-volume surface plan as the next engi
 1. **Continuous surface extraction.** One closed mesh from blocks plus cream across every face direction, keeping sharp edges where taped or crisp-cut. This, not sanding, removes the flat-top box stair and the seams between face directions. Until then, output is boxes.
 2. **Stacked-surface support.** Every exposed surface in a column kept as its own layer (floor under a ceiling slab, an arm in front of the torso, lips, eyelids, fingers), so one selection can cream both. Until then, apply cream part by part.
 
+## Known weak spots (not bugs; tune next, in this order)
+
+1. **Speed:** per-column search and fit in plain Python. Vectorise (moment sums over the grid) for a live brush.
+2. **Empty-column claim rule:** compares an unselected piece's base to the highest selected surface overall, not the local one. In multi-level scenes a low shelf could block a crack. Make it local.
+3. **Cracks:** only found along grid axes (diagonal and L-shaped gaps missed), and filled with a straight line rather than the outer-points rule.
+4. **Barrier pairs can be bypassed** through a third piece of the same surface. Edge tape (from the UI spec) is the proper fix.
+5. **Grid follows the smallest piece** in the selection. Needs to adapt per area.
+6. **Mesh weight:** filler boxes keep shared inner faces (about 16k vertices on the small fixture). Surface extraction fixes it; greedy merging is the interim fix.
+7. **Saved layers list every source piece per cell.** This bloats on large low-fidelity areas; cap or summarise.
+8. **Small:** cubes at non-90° angles become box occluders; wedges only on `+y`; `ramp_samples` is a stale name; some tests use measured thresholds that must be re-measured if the rule changes.
+
 ## Outside review 3 (2026-11-06, 20:09): fixed
 
 - The reviewer ran the closeout2 package independently: 28/28 passed.
