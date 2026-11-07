@@ -8,9 +8,18 @@ A digital rotary tool (think Dremel) with a kit of interchangeable bits. It remo
 
 Finishing order: **carve** (voxel blueprint) → **cream** (fill flush) → **Dremel** (grind and sand) → **paint and polish**.
 
+## Layer stack (Josie, 2026-11-06)
+
+- **Base architecture:** the pure, unedited voxel blueprint. It is never changed by finishing tools.
+- **Customization layers on top:** cream, Dremel strokes, and solid decorations (an engraved emblem, a carved pattern, a raised crest), built in real 3D geometry rather than painted on.
+- **Per instance:** one base design can be used many times. Most copies stay plain; a specific one gets its own customization layers (one box out of a hundred with an emblem cut into its lid). Customizations belong to the instance, not the shared base.
+- **Paint** sits above all of it.
+
+Order on bake: base → cream → Dremel strokes and decorations → paint. Every layer can be switched off, removed or regenerated without touching the base.
+
 ## Rules (same spirit as Filler Cream)
 
-1. **Reversible by default.** Grinding is saved as its own layer of strokes, kept apart from the blocks. Remove any stroke, or all of them, and the original is back exactly. When the artist is happy, an explicit "Make permanent" can write the reshaped form into the blueprint as a new version (the old version is kept).
+1. **The base is never edited.** Grinding is saved as its own layer of strokes on the instance, kept apart from the base blocks. Remove any stroke, or all of them, and the plain base is back exactly.
 2. **Tape protects.** Masking tape (marks) blocks the Dremel the same way it blocks cream: a taped nail edge, lip line or door moulding can't be ground unless the user lifts the tape.
 3. **Reshapes past the blueprint, stays closed.** The Dremel may cut as deep into the design as the artist wants: reshaping a nose, slimming a jaw, deepening an eye socket. Surface pieces are hollow shells, so when a cut goes deeper than the shell, the inside is treated as solid while carving and a new wall forms behind the cut. The object never ends up with an accidental hole. Cutting a real opening (a nostril, a keyhole) is a deliberate separate action.
 4. **Local.** A bit only touches what it physically reaches.
@@ -67,7 +76,8 @@ Two kinds of mesh:
 
 1. **Name:** "the Dremel" as the working name? It's a brand name; for a shipped product you may want your own ("the Rotary", "the Grinder", something in PubCast's voice).
 2. **Passes:** should passes deepen with each stroke, like real sanding, or should each stroke cut only to its depth stop or guide plane, so going over the same spot twice does nothing extra? Real feel versus safety.
-3. **Make permanent:** should reshaping stay a reversible layer forever, or offer "Make permanent" (writes a new blueprint version, keeps the old one)?
+3. **Decided:** the base stays pure; reshaping and decoration are layers on the instance (no "Make permanent").
 6. **Building up:** the Dremel only removes, and cream only fills up to the blueprint's surface. If a nose is too *small*, neither can make it bigger. Should cream get a "build up" mode (putty that can go past the blueprint), or should that be done by adding blocks?
 4. **Tape:** does one tape protect from both cream and the Dremel, or should there be separate tapes?
-5. **Bit kit:** anything missing from the list? Some real-world bits that could come later: wire brush (texture), engraving cutter, polishing felt (gloss).
+5. **Stamps:** should an emblem or pattern be a reusable stamp (draw or import it once, then engrave it into, or raise it from, any surface at any size)? Raised designs need the build-up question (6) answered.
+7. **Bit kit:** anything missing from the list? Some real-world bits that could come later: wire brush (texture), engraving cutter, polishing felt (gloss).
