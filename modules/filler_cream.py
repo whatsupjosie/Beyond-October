@@ -17,34 +17,43 @@ units (1.0 / 0.5 / 0.25). The experimental fine resolution used here is
 = 3.96875 mm. All core geometry is integer fine units. The canonical voxel
 set contract still rejects subdivision 64; this module does not change it.
 
-Local interpolation rule (documented limits in docs/FILLER_CREAM.md)
-----------------------------------------------------------------------
+Design rule (Josie, 2026-11-06)
+-------------------------------
+The blueprint describes the real (or stylised) object; voxels are always an
+approximation of it. So every voxel step is treated as approximation and
+smoothed, unless the blueprint marks it as designed: a keep tag (preserve,
+recess, protrusion, edge, opening), a different surface_id (skin vs nail,
+upper vs lower eyelid) or an explicit barrier pair. Step size alone never
+protects or exposes anything (max_step exists only as an explicit override).
+
+Local best-fit rule (documented limits in docs/FILLER_CREAM.md)
+----------------------------------------------------------------
 Work is done on one exposed face orientation at a time (``+y`` = tops).
-The selection is rasterised into columns on that face. Each column has an
-owner (the outermost piece over it) and a surface height H.
+The selection is rasterised into columns; each column has an owner (the
+outermost piece over it) and a surface height H.
 
-1. Ramp (step fill). For a column c of piece A, look along each of the four
-   in-plane directions. Walk to the last column of A in that row (edge e);
-   the next column n belongs to piece B. If B is an eligible neighbour and
-   B is higher by a step D = H(n) - H(e) with 0 < D <= max_step, the cream
-   target at c is H(c) + D * (1 - d / w), where d is the distance from c to
-   the shared edge and w is half of A's run length in that row. The ramp
-   fades out at A's mid-run, is capped at max(H(c), H(n)), and only ever
-   adds material. The highest candidate over the four directions wins.
-2. Crack (lateral gap). An empty run of columns between two eligible pieces
-   no wider than max_gap fine units is filled from the shell base
-   (max of the two pieces' bases) up to the straight line between the two
-   bordering surface heights. Wider empty runs are openings and stay empty.
+1. Fit. For a column c, gather the columns reachable from c without
+   crossing a marked edge, within the fidelity radius R (half the fidelity
+   span). Fit a weighted least-squares plane to their heights (weight falls
+   off linearly with distance, so neighbouring fits blend with no creases)
+   and read it at c. The cream target is that value, capped at the highest
+   height in the neighbourhood. Cream fills from H(c) up to the target.
+   Where the fit runs below a block corner the corner stays: removing it is
+   sanding, not filling.
+2. Crack. An empty run of columns between two eligible pieces no wider
+   than max_gap fine units is filled from the shell base (max of the two
+   pieces' bases) up to the straight line between the two surfaces. Wider
+   empty runs are openings and stay empty.
 
-Eligible neighbour: both pieces selected, both supported shapes for this
-face, neither carries a keep tag, same surface_id, not an explicit barrier
-pair, and the step fits max_step (default: the thinner piece's thickness
-along the face normal). Spatial closeness alone never qualifies: pieces
-must touch column-to-column or sit across a crack no wider than max_gap.
+Fidelity is tied to real size through the PubBlock: very_high 3/64 block,
+high 1/8, medium 1/4, low 1/2, very_low 1 block, or any span in mm. Each
+blueprint part may carry a fidelity; the selection (applicator) may
+override it for one application. Short spans follow fine features (nose);
+long spans give broad, even curves (belly, floor).
 
-Each filler value depends only on piece A's own run and the single column
-across its edge, so influence never reaches past one piece width. A larger
-selection means more of these local fills, never deeper ones.
+Each filler value depends only on columns within R of it, reached without
+crossing a marked edge, so the nose tip cannot affect the eye corner. A
+larger selection means more local fits, never wider ones.
 
 The original pieces are never modified. Filler lives in a separate
 FillerLayer that is computed from the original pieces only (it never reads
@@ -59,10 +68,16 @@ import struct
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
+from .voxel_set_contract import PUB_BLOCK_INCHES, PUB_BLOCK_METERS  # the block's real size lives there
+
 FINE_SUBDIVISION = 64
-PUB_BLOCK_INCHES = 10.0
-FINE_UNIT_INCHES = PUB_BLOCK_INCHES / FINE_SUBDIVISION  # 0.15625
-FINE_UNIT_MM = FINE_UNIT_INCHES * 25.4                   # 3.96875
+FINE_UNIT_INCHES = PUB_BLOCK_INCHES / FINE_SUBDIVISION   # 0.15625 for the 10 in block
+FINE_UNIT_MM = PUB_BLOCK_METERS * 1000.0 / FINE_SUBDIVISION  # 3.96875
+# Fidelity stops as fractions of one PubBlock edge (span of one best fit).
+FIDELITY_STOPS: Dict[str, float] = {
+    "very_high": 3 / 64, "high": 1 / 8, "medium": 1 / 4, "low": 1 / 2, "very_low": 1.0,
+}
+DEFAULT_FIDELITY = "medium"
 
 FACES: Dict[str, Tuple[int, int]] = {
     "+x": (0, 1), "-x": (0, -1),
@@ -78,6 +93,19 @@ _DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))
 
 class FillerCreamError(ValueError):
     """Raised when pieces or a selection cannot be processed safely."""
+
+
+def fidelity_span_fine(fidelity: Any) -> float:
+    """Span of one best fit in fine units. Accepts a stop name or mm."""
+    if fidelity is None:
+        fidelity = DEFAULT_FIDELITY
+    if isinstance(fidelity, str):
+        if fidelity not in FIDELITY_STOPS:
+            raise FillerCreamError(f"fidelity must be one of {sorted(FIDELITY_STOPS)} or a span in mm")
+        return FIDELITY_STOPS[fidelity] * FINE_SUBDIVISION
+    if isinstance(fidelity, bool) or not isinstance(fidelity, (int, float)) or fidelity <= 0:
+        raise FillerCreamError("fidelity span in mm must be a positive number")
+    return float(fidelity) / FINE_UNIT_MM
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -101,8 +129,10 @@ class SurfacePiece:
     wedge_high_side: Optional[str] = None
     surface_id: str = "default"
     tags: frozenset = frozenset()
+    fidelity: Any = None   # stop name or span in mm; None = DEFAULT_FIDELITY
 
     def __post_init__(self) -> None:
+        fidelity_span_fine(self.fidelity)  # validate early
         if not isinstance(self.piece_id, str) or not self.piece_id:
             raise FillerCreamError("piece_id must be a non-empty string")
         for name, vec in (("origin", self.origin), ("size", self.size)):
@@ -152,8 +182,11 @@ class FillerSelection:
     piece_ids  — selected surface pieces (one face, one voxel, or a group).
     face       — exposed face orientation the cream is applied to.
     barriers   — explicit do-not-bridge pairs of piece ids.
-    max_step   — largest step (fine units) treated as a gap; None = the
-                 thinner piece's thickness along the face normal.
+    fidelity   — applicator override (stop name or mm) for this application;
+                 None = each piece's own fidelity.
+    max_step   — optional explicit override: steps taller than this (fine
+                 units) are not crossed. None (default) = the blueprint marks
+                 decide, not step size.
     max_gap    — widest lateral crack (fine units) that is filled; wider
                  empty runs are openings.
     ramp_samples — minimum columns across the smallest piece when choosing
@@ -166,8 +199,11 @@ class FillerSelection:
     max_step: Optional[int] = None
     max_gap: int = 2
     ramp_samples: int = 8
+    fidelity: Any = None
 
     def __post_init__(self) -> None:
+        if self.fidelity is not None:
+            fidelity_span_fine(self.fidelity)
         if self.face not in FACES:
             raise FillerCreamError(f"face must be one of {sorted(FACES)}")
         object.__setattr__(self, "piece_ids", frozenset(str(p) for p in self.piece_ids))
@@ -184,7 +220,7 @@ class FillerSelection:
             "piece_ids": sorted(self.piece_ids), "face": self.face,
             "barriers": sorted(sorted(p) for p in self.barriers),
             "max_step": self.max_step, "max_gap": int(self.max_gap),
-            "ramp_samples": int(self.ramp_samples),
+            "ramp_samples": int(self.ramp_samples), "fidelity": self.fidelity,
         }
         return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
 
@@ -198,8 +234,8 @@ class FillerCell:
     column: Tuple[int, int]
     base: float          # outward fine units
     top: float           # outward fine units, > base
-    sources: Tuple[str, str]
-    kind: str            # "ramp" | "crack"
+    sources: Tuple[str, ...]   # pieces whose heights shaped this cell
+    kind: str                  # "fit" | "crack"
 
 
 @dataclass(frozen=True)
@@ -301,13 +337,19 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection) -
         and p.origin[b] < b1 and p.origin[b] + p.size[b] > b0
     ]
 
-    # ── 2. working grid: largest unit that keeps every edge on the grid ───
+    # ── 2. fidelity radius per piece, then the working grid ──────────────
+    def radius(p: SurfacePiece) -> float:
+        span = fidelity_span_fine(selection.fidelity if selection.fidelity is not None else p.fidelity)
+        return span / 2.0
+
     g = 0
     for p in cands:
         for v in (p.origin[a], p.size[a], p.origin[b], p.size[b]):
             g = math.gcd(g, abs(v))
     min_plane = min(min(p.size[a], p.size[b]) for p in sel)
+    min_radius = min(radius(p) for p in sel)
     g = math.gcd(g, max(1, min_plane // int(selection.ramp_samples))) if g else 1
+    g = math.gcd(g, max(1, int(min_radius)))  # at least ~2 columns across the finest fit
     g = max(1, g)
 
     # ── 3. rasterise: outermost piece owns each column ───────────────────
@@ -326,9 +368,6 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection) -
 
     selected = selection.piece_ids
 
-    def thickness(p: SurfacePiece) -> int:
-        return p.size[up]
-
     def eligible(pa: str, pb: str) -> bool:
         if pa == pb or pa not in selected or pb not in selected:
             return False
@@ -339,53 +378,91 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection) -
             return False
         return frozenset((pa, pb)) not in selection.barriers
 
-    def step_limit(pa: str, pb: str) -> float:
-        if selection.max_step is not None:
-            return float(selection.max_step)
-        return float(min(thickness(by_id[pa]), thickness(by_id[pb])))
+    def fillable(pid: str) -> bool:
+        P = by_id[pid]
+        return pid in selected and P.supports(face) and not P.keep()
 
-    # ── 4. run lengths within each piece along the four directions ───────
-    runs: Dict[Tuple[int, int], Dict[Tuple[int, int], int]] = {}
-    for d in _DIRS:
-        dist: Dict[Tuple[int, int], int] = {}
-        for col in sorted(owner, key=lambda c: -(c[0] * d[0] + c[1] * d[1])):
-            nxt = (col[0] + d[0], col[1] + d[1])
-            dist[col] = dist[nxt] + 1 if owner.get(nxt) == owner[col] else 0
-        runs[d] = dist
+    def connected(x: Tuple[int, int], y: Tuple[int, int]) -> bool:
+        """May a fit reach from column x to its 4-neighbour y?"""
+        py = owner.get(y)
+        if py is None or not fillable(py):
+            return False
+        px = owner[x]
+        if px != py and not eligible(px, py):
+            return False
+        if selection.max_step is not None and abs(height[y] - height[x]) > selection.max_step + _EPS:
+            return False
+        return True
 
     best: Dict[Tuple[int, int], FillerCell] = {}
 
-    def offer(col: Tuple[int, int], base: float, top: float, src: Tuple[str, str], kind: str) -> None:
+    def offer(col: Tuple[int, int], base: float, top: float, src: Tuple[str, ...], kind: str) -> None:
         if top <= base + _EPS:
             return
         prev = best.get(col)
         if prev is None or top > prev.top + _EPS:
             best[col] = FillerCell(col, base, top, src, kind)
 
-    # ── 5. ramps on owned columns of selected pieces ──────────────────────
+    # ── 4. candidates: columns within reach of a higher connected neighbour
+    #       (a level surface does no work at all) ─────────────────────────
+    frontier: List[Tuple[Tuple[int, int], float]] = []
     for col in sorted(owner):
-        pa = owner[col]
-        if pa not in selected:
+        if not fillable(owner[col]):
             continue
-        hc = height[col]
         for d in _DIRS:
-            fwd = runs[d][col]
-            back = runs[(-d[0], -d[1])][col]
-            edge = (col[0] + d[0] * fwd, col[1] + d[1] * fwd)
-            nb = (edge[0] + d[0], edge[1] + d[1])
-            pb = owner.get(nb)
-            if pb is None or not eligible(pa, pb):
-                continue
-            step = height[nb] - height[edge]
-            if step <= _EPS or step > step_limit(pa, pb) + _EPS:
-                continue
-            dist_edge = fwd + 0.5
-            half_run = (fwd + back + 1) / 2.0
-            if dist_edge >= half_run:
-                continue
-            target = hc + step * (1.0 - dist_edge / half_run)
-            target = min(target, max(hc, height[nb]))
-            offer(col, hc, target, (pa, pb), "ramp")
+            nb = (col[0] + d[0], col[1] + d[1])
+            if connected(col, nb) and height[nb] > height[col] + _EPS:
+                frontier.append((col, radius(by_id[owner[col]])))
+                break
+    candidates: Dict[Tuple[int, int], None] = {}
+    for src_col, r in frontier:
+        reach = r + g
+        seen = {src_col}
+        stack = [src_col]
+        while stack:
+            x = stack.pop()
+            candidates[x] = None
+            for d in _DIRS:
+                y = (x[0] + d[0], x[1] + d[1])
+                if y in seen or not connected(x, y):
+                    continue
+                if math.hypot((y[0] - src_col[0]) * g, (y[1] - src_col[1]) * g) > reach:
+                    continue
+                seen.add(y)
+                stack.append(y)
+
+    # ── 5. local weighted best fit at each candidate column ──────────────
+    import numpy as np
+
+    for col in sorted(candidates):
+        r = radius(by_id[owner[col]])
+        reach = r + 0.5 * g
+        seen = {col}
+        stack = [col]
+        pts: List[Tuple[float, float, float, float]] = []
+        srcs = set()
+        while stack:
+            x = stack.pop()
+            du, dv = (x[0] - col[0]) * g, (x[1] - col[1]) * g
+            w = 1.0 - math.hypot(du, dv) / (reach + g)
+            pts.append((du, dv, height[x], w))
+            srcs.add(owner[x])
+            for d in _DIRS:
+                y = (x[0] + d[0], x[1] + d[1])
+                if y in seen or not connected(x, y):
+                    continue
+                if math.hypot((y[0] - col[0]) * g, (y[1] - col[1]) * g) > reach:
+                    continue
+                seen.add(y)
+                stack.append(y)
+        if len(pts) < 2:
+            continue
+        arr = np.array(sorted(pts), dtype=float)
+        sw = np.sqrt(arr[:, 3])
+        design = np.column_stack([np.ones(len(arr)), arr[:, 0], arr[:, 1]]) * sw[:, None]
+        coef, *_ = np.linalg.lstsq(design, arr[:, 2] * sw, rcond=None)
+        target = min(float(coef[0]), float(arr[:, 2].max()))
+        offer(col, height[col], target, tuple(sorted(srcs)), "fit")
 
     # ── 6. cracks: short empty runs between two eligible pieces ──────────
     max_cols = max_gap // g
@@ -414,7 +491,7 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection) -
                 if not eligible(pa, pb):
                     continue
                 ha, hb = height[col], height[far]
-                if abs(hb - ha) > step_limit(pa, pb) + _EPS:
+                if selection.max_step is not None and abs(hb - ha) > selection.max_step + _EPS:
                     continue
                 base = max(by_id[pa].outward_span(up, sign)[0], by_id[pb].outward_span(up, sign)[0])
                 src = (pa, pb) if pa < pb else (pb, pa)
@@ -481,7 +558,8 @@ def pieces_from_voxel_object(obj: Any, annotations: Optional[Mapping[str, Mappin
     Positions/sizes are block units (1.0 = 10 in). Supported: cubes at 90°
     rotations, wedges rotated only about Y in 90° steps. Corner cuts and
     other rotations become occluders (never filled, never anchor filler).
-    ``annotations`` maps primitive_id → {"surface_id": str, "tags": [...]};
+    ``annotations`` maps primitive_id → {"surface_id": str, "tags": [...],
+    "fidelity": stop name or mm};
     the default surface_id is the primitive's pivot group or "body".
     Returns (pieces, notes).
     """
@@ -506,7 +584,8 @@ def pieces_from_voxel_object(obj: Any, annotations: Optional[Mapping[str, Mappin
             kind, high = "wedge", wedge_sides[rot[1]]
         if kind == "occluder":
             notes.append(f"{prim.primitive_id}: {shape} rot={list(prim.rotation_deg)} kept as occluder (not filled)")
-        pieces.append(SurfacePiece(prim.primitive_id, origin, (s, s, s), kind, high, surface_id, tags))
+        pieces.append(SurfacePiece(prim.primitive_id, origin, (s, s, s), kind, high, surface_id, tags,
+                                   meta.get("fidelity")))
     return pieces, notes
 
 
@@ -514,7 +593,7 @@ def pieces_from_voxel_set(voxel_set: Mapping[str, Any]) -> List[SurfacePiece]:
     """Convert a canonical voxel set (voxel_set_contract) into SurfacePieces.
 
     Block metadata: ``surface_id`` (else ``part``, else "default") and
-    ``filler_tags`` (list) or ``filler: "preserve"``.
+    ``filler_tags`` (list) or ``filler: "preserve"``, and ``fidelity``.
     """
     from .voxel_set_contract import normalize_voxel_set
 
@@ -533,6 +612,7 @@ def pieces_from_voxel_set(voxel_set: Mapping[str, Any]) -> List[SurfacePiece]:
             f"b:{blk['x']},{blk['y']},{blk['z']}",
             (blk["x"] * k, blk["y"] * k, blk["z"] * k), (k, k, k), "cube", None,
             str(meta.get("surface_id") or meta.get("part") or "default"), frozenset(tags),
+            meta.get("fidelity"),
         ))
     return out
 
@@ -612,7 +692,7 @@ def bake_with_filler(obj: Any, layers: Sequence[FillerLayer], world_position=(0.
 
 
 __all__ = [
-    "FACES", "FINE_SUBDIVISION", "FINE_UNIT_INCHES", "FINE_UNIT_MM", "KEEP_TAGS",
+    "DEFAULT_FIDELITY", "FACES", "FIDELITY_STOPS", "FINE_SUBDIVISION", "fidelity_span_fine", "FINE_UNIT_INCHES", "FINE_UNIT_MM", "KEEP_TAGS",
     "FillerCell", "FillerCreamError", "FillerCreamLayers", "FillerLayer", "FillerSelection",
     "SurfacePiece", "bake_with_filler", "compute_filler", "filler_mesh_arrays", "parse_glb",
     "pieces_from_voxel_object", "pieces_from_voxel_set",

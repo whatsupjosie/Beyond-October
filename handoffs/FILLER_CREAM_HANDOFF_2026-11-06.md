@@ -55,3 +55,30 @@ See `docs/FILLER_CREAM.md` → Limits. Biggest ones: one face orientation per ca
 ## Smallest remaining step
 
 Wire the prepared connection point: in `VoxelStudio.bake_object`, load `filler/<object_id>.json` if present and bake with `bake_with_filler`. About ten lines in `modules/voxel_studio.py`, plus one test.
+
+
+---
+
+## Revision 2 (same day): best-fit rule, fidelity gauge, blueprint marks
+
+Josie's design decisions this revision implements:
+- The blueprint is the real (or stylised) object; voxels always approximate it. Every step is smoothed unless the blueprint marks it (keep tag, different surface_id, barrier). Step size no longer protects anything; `max_step` is only an explicit override, default off.
+- Smoothing is a chain of short local best fits (weighted least-squares planes that blend into each other), not straight ramps.
+- A fidelity gauge tied to real block size: very_high 3/64, high 1/8, medium 1/4 (default), low 1/2, very_low 1 block, or any span in mm. Blueprint parts carry a fidelity; the applicator overrides it.
+- Units stay the existing system: the 10 in PubBlock from voxel_set_contract.py, now imported rather than copied.
+
+Changed: `modules/filler_cream.py` (rule, fidelity, adapters), `modules/filler_cream_fixture.py` (fingertip and curve fixtures), `tests/test_filler_cream.py` (rewritten, 17 tests), `docs/FILLER_CREAM.md`, `docs/filler_cream/*` (regenerated).
+
+Checks executed in this sandbox: `tests/test_filler_cream.py` → 17 passed; existing voxel tests (block kit, preview, contract) → 12 passed, so 29 passed together. The view was regenerated and inspected.
+
+New tests prove:
+- skin, nail and nail edge stay distinct when marked, and blend when unmarked;
+- an unmarked protrusion blends at its base but keeps its top, and a marked one is untouched;
+- the marked recess and the opening stay intact;
+- fidelity controls reach: very_high stays within 3 columns of a ridge, low reaches past 10;
+- the applicator overrides blueprint fidelity;
+- a designed wedge slope gains nothing.
+
+Measured limit (needs Josie's decision): fill-only plus best fit leaves about half of each step on stairs and dips. On bulges, the fit runs under the block corners, so those steps stay. On the curve test, the error fell about 20% (48.8 → 38.9) and the largest step went from 1 to 0.78–1.0 fine units. Two ways forward: (a) fit to the outermost points locally, so cream fills right up to the block corners (smooth with fill only); or (b) keep this rule and build sanding to take the corners down.
+
+Smallest remaining step: Josie chooses (a) or (b); then wire `VoxelStudio.bake_object` to bake saved layers with `bake_with_filler`.

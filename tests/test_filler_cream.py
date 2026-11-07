@@ -1,28 +1,34 @@
-"""Focused tests for modules/filler_cream.py on the 1/64 proof fixture."""
+"""Focused tests for modules/filler_cream.py on the 1/64 proof fixtures."""
 from __future__ import annotations
 
 import copy
+import math
 import time
 
 import numpy as np
 import pytest
 
 from modules.filler_cream import (
-    FINE_SUBDIVISION, FINE_UNIT_MM, FillerCreamError, FillerCreamLayers, FillerLayer,
-    FillerSelection, SurfacePiece, bake_with_filler, compute_filler, parse_glb,
+    FIDELITY_STOPS, FINE_SUBDIVISION, FINE_UNIT_MM, FillerCreamError, FillerCreamLayers, FillerLayer,
+    FillerSelection, SurfacePiece, bake_with_filler, compute_filler, fidelity_span_fine, parse_glb,
     pieces_from_voxel_object, pieces_from_voxel_set,
 )
 from modules.filler_cream_fixture import (
-    CRACK_X, OPENING_X, RECESS_X, STRIP_ONE, build_fixture_object, fixture_annotations,
+    CRACK_X, OPENING_X, RECESS_X, STRIP_ONE, build_fixture_object, curve_pieces, finger_pieces,
+    fixture_annotations, true_curve,
 )
+from modules.voxel_set_contract import PUB_BLOCK_METERS
 from modules.voxel_studio import VoxelBaker, VoxelPrimitive, VoxelShape
+
+
+def _all(pieces, **kw):
+    return compute_filler(pieces, FillerSelection(frozenset(p.piece_id for p in pieces), **kw))
 
 
 def _run(obj=None, annotations=None, **sel_kw):
     obj = obj or build_fixture_object()
-    pieces, notes = pieces_from_voxel_object(obj, fixture_annotations() if annotations is None else annotations)
-    sel = FillerSelection(frozenset(p.piece_id for p in pieces), **sel_kw)
-    return pieces, compute_filler(pieces, sel)
+    pieces, _ = pieces_from_voxel_object(obj, fixture_annotations() if annotations is None else annotations)
+    return pieces, _all(pieces, **sel_kw)
 
 
 def _strip(layer, z_lo, z_hi):
@@ -33,81 +39,133 @@ def _tops(pieces):
     return {p.piece_id: p.origin[1] + p.size[1] for p in pieces}
 
 
-def test_units_match_existing_terminology():
+# ── units ──────────────────────────────────────────────────────────────────
+
+def test_units_come_from_the_existing_block():
     assert FINE_SUBDIVISION == 64
-    assert abs(FINE_UNIT_MM - 3.96875) < 1e-9  # 10 in / 64
-    for _, x, y, z, s in STRIP_ONE:  # fixture is whole fine units
+    assert FINE_UNIT_MM == pytest.approx(PUB_BLOCK_METERS * 1000 / 64) == pytest.approx(3.96875)
+    assert fidelity_span_fine("very_high") == 3 and fidelity_span_fine("high") == 8
+    assert fidelity_span_fine("very_low") == 64 and fidelity_span_fine(31.75) == pytest.approx(8)
+    assert list(FIDELITY_STOPS) == ["very_high", "high", "medium", "low", "very_low"]
+    with pytest.raises(FillerCreamError):
+        fidelity_span_fine("ultra")
+    for _, x, y, z, s in STRIP_ONE:
         assert all(isinstance(v, int) for v in (x, y, z, s))
 
 
-def test_eligible_steps_receive_bounded_filler():
+# ── core behaviour ─────────────────────────────────────────────────────────
+
+def test_steps_are_smoothed_and_never_exceed_nearby_blocks():
     pieces, layer = _run()
     tops = _tops(pieces)
-    sources = {c.sources for c in layer.cells if c.kind == "ramp"}
-    assert {("P0", "P1"), ("P1", "P2"), ("P2", "P3"), ("P8", "P7")} <= sources
+    assert {c.column[0] for c in _strip(layer, 0, 8) if c.column[0] < 8}, "P0 step gets cream"
     for c in layer.cells:
-        a, b = c.sources
         assert c.top > c.base
-        assert c.top <= max(tops[a], tops[b]) + 1e-9          # never beyond local contour
-        if c.kind == "ramp":
-            assert c.base == pytest.approx(tops[a])            # starts on the existing surface
-    # ramp rises monotonically toward the higher neighbour
-    row = [c.top for c in sorted(_strip(layer, 0, 1), key=lambda c: c.column) if c.sources == ("P0", "P1")]
-    assert row == sorted(row) and len(row) == 4
+        assert c.top <= max(tops[s] for s in c.sources) + 1e-9
+    row = [c.top for c in sorted(_strip(layer, 3, 4), key=lambda c: c.column) if c.column[0] < 8]
+    assert row == sorted(row), "cream rises toward the higher neighbour"
 
 
-def test_designed_edge_recess_and_opening_stay_intact():
+def test_unmarked_protrusion_blends_at_its_base_but_keeps_its_top():
     pieces, layer = _run()
     xs = {c.column[0] for c in _strip(layer, 0, 8)}
-    assert not any(RECESS_X[0] <= x < RECESS_X[1] for x in xs)      # recess untouched
-    assert not any(OPENING_X[0] <= x < OPENING_X[1] for x in xs)    # opening untouched
-    assert not any(("P3", "PROT") == c.sources for c in layer.cells)  # 16-unit designed edge kept
-    assert not any(32 <= x < 40 for x in xs)                         # protrusion top untouched
+    assert any(24 <= x < 32 for x in xs), "approach to the protrusion is blended"
+    assert not any(32 <= x < 40 for x in xs), "protrusion top untouched"
+    _, marked = _run(annotations={"RECESS": {"tags": ["recess"]}, "PROT": {"tags": ["protrusion"]}})
+    assert not any("PROT" in c.sources for c in marked.cells), "a marked protrusion is left exactly as built"
 
 
-def test_recess_protection_comes_from_the_explicit_tag():
-    _, untagged = _run(annotations={})
-    xs = {c.column[0] for c in _strip(untagged, 0, 8)}
-    assert any(RECESS_X[0] <= x < RECESS_X[1] for x in xs), "without the tag the 6-unit pit is fillable"
+def test_marked_recess_and_opening_stay_intact():
+    _, layer = _run()
+    xs = {c.column[0] for c in _strip(layer, 0, 8)}
+    assert not any(RECESS_X[0] <= x < RECESS_X[1] for x in xs)
+    assert not any(OPENING_X[0] <= x < OPENING_X[1] for x in xs)
+    _, unmarked = _run(annotations={})
+    assert any(RECESS_X[0] <= x < RECESS_X[1] for x in {c.column[0] for c in unmarked.cells}), \
+        "without the mark the recess would be filled: the blueprint mark is what protects it"
+
+
+def test_fingertip_skin_nail_and_nail_edge_stay_distinct():
+    marked = _all(finger_pieces(marked=True), fidelity="high")
+    for c in marked.cells:
+        surfaces = {("nail" if s.startswith("N") else "skin") for s in c.sources}
+        assert len(surfaces) == 1, f"cream crossed skin/nail at {c.column}"
+    assert not any(c.column[0] >= 56 and {"N2"} & set(c.sources) for c in marked.cells)
+    unmarked = _all(finger_pieces(marked=False), fidelity="high")
+    assert any({"S3", "N0"} <= set(c.sources) for c in unmarked.cells), \
+        "unmarked, the skin-to-nail drop would be smoothed away"
+
+
+def test_short_best_fits_follow_a_curve():
+    pieces = curve_pieces()
+    tops = {p.piece_id: (p.origin[0] + p.size[0] / 2, p.origin[1] + p.size[1]) for p in pieces}
+    layer = _all(pieces, fidelity="high")
+    filled = {c.column[0]: c.top for c in layer.cells if c.column[1] == 0}
+    before, after = [], []
+    for x in range(96):
+        h = next(t for pid, (cx, t) in tops.items() if abs(cx - (x // 2 * 2 + 1)) < 1e-9)
+        truth = true_curve(x + 0.5)
+        before.append(abs(truth - h))
+        after.append(abs(truth - max(h, filled.get(x, h))))
+    # Measured 2026-11-06: 48.8 -> 38.9 (about 20% closer to the true curve). Fill-only:
+    # where the fit runs under a block corner (convex areas) the corner stays.
+    assert sum(after) < 0.85 * sum(before), (sum(before), sum(after))
+    assert max(filled.values()) <= max(t for _, t in tops.values())
+
+
+def test_fidelity_controls_how_far_one_fit_reaches():
+    flat = [SurfacePiece(f"F{i}", (i * 2, 8, 0), (2, 2, 2)) for i in range(40)]
+    ridge = [SurfacePiece("R0", (80, 14, 0), (2, 2, 2)), SurfacePiece("R1", (82, 14, 0), (2, 2, 2))]
+    more = [SurfacePiece(f"G{i}", (84 + i * 2, 8, 0), (2, 2, 2)) for i in range(40)]
+    pieces = flat + ridge + more
+    fine = _all(pieces, fidelity="very_high")
+    broad = _all(pieces, fidelity="low")
+    reach = lambda L: max(min(abs(c.column[0] - 80), abs(c.column[0] - 83)) for c in L.cells)
+    assert reach(fine) <= 3 < 10 < reach(broad)
+    # applicator override beats the blueprint's per-piece fidelity
+    tagged = [SurfacePiece(p.piece_id, p.origin, p.size, fidelity="very_high") for p in pieces]
+    assert _all(tagged, fidelity="low").cells == broad.cells
+    assert _all(tagged).cells == fine.cells
 
 
 def test_crack_fills_from_shell_base_but_opening_does_not():
-    pieces, layer = _run()
+    _, layer = _run()
     crack = [c for c in layer.cells if c.kind == "crack"]
     assert crack and all(CRACK_X[0] <= c.column[0] < CRACK_X[1] for c in crack)
     assert all(c.base == pytest.approx(21.0) and c.top == pytest.approx(29.0) for c in crack)
-    _, wide = _run(max_gap=0)
-    assert not [c for c in wide.cells if c.kind == "crack"]
+    _, none = _run(max_gap=0)
+    assert not [c for c in none.cells if c.kind == "crack"]
 
 
-def test_unrelated_regions_do_not_influence_each_other():
+def test_unrelated_regions_and_distant_pieces_do_not_influence_each_other():
     _, base = _run()
     _, changed = _run(obj=build_fixture_object(strip_two_heights={"Q1": 6, "Q2": 1}))
     assert _strip(base, 0, 8) == _strip(changed, 0, 8)
     assert _strip(base, 40, 48) != _strip(changed, 40, 48)
-    # locality inside one strip: moving P0 only changes the P0/P1 fill
     obj = build_fixture_object()
-    obj.primitives[0].position = (0.0, 1 / FINE_SUBDIVISION, 0.0)
+    obj.primitives[0].position = (0.0, 1 / FINE_SUBDIVISION, 0.0)  # move P0
     _, moved = _run(obj=obj)
-    far = lambda L: [c for c in L.cells if c.column[0] >= 8]
+    far = lambda L: [c for c in L.cells if c.column[0] >= 20]
     assert far(base) == far(moved)
 
 
 def test_barriers_and_surface_ids_block_bridging():
     pieces, _ = _run()
-    sel = FillerSelection(frozenset(p.piece_id for p in pieces), barriers=frozenset({frozenset({"P0", "P1"})}))
-    layer = compute_filler(pieces, sel)
-    assert not any(c.sources == ("P0", "P1") for c in layer.cells)
+    layer = compute_filler(pieces, FillerSelection(frozenset(p.piece_id for p in pieces),
+                                                   barriers=frozenset({frozenset({"P0", "P1"})})))
+    assert not any({"P0", "P1"} <= set(c.sources) for c in layer.cells)
     _, split = _run(annotations={"RECESS": {"tags": ["recess"]}, "P1": {"surface_id": "lip_upper"}})
-    assert not any("P1" in c.sources for c in split.cells)
+    assert not any("P1" in c.sources and len(c.sources) > 1 for c in split.cells)
 
 
 def test_region_outside_selection_is_unchanged():
     pieces, _ = _run()
     layer = compute_filler(pieces, FillerSelection(frozenset({"P0", "P1"})))
-    assert {c.sources for c in layer.cells} == {("P0", "P1")}
+    assert layer.cells and all(set(c.sources) <= {"P0", "P1"} for c in layer.cells)
     assert {c.column[0] for c in layer.cells} <= set(range(0, 16))
 
+
+# ── reversibility and the mesh pipeline ───────────────────────────────────
 
 def test_removal_restores_original_and_regeneration_is_deterministic():
     obj = build_fixture_object()
@@ -119,25 +177,25 @@ def test_removal_restores_original_and_regeneration_is_deterministic():
     first = store.apply("all", pieces, sel)
     with_filler = bake_with_filler(obj, store.layers())
     assert len(with_filler) > len(before_glb)
-    assert obj.to_dict() == before_src                       # source never touched
-    for _ in range(3):                                        # re-apply: no buildup
+    assert obj.to_dict() == before_src
+    for _ in range(3):
         again = store.apply("all", pieces, sel)
         assert again.fingerprint() == first.fingerprint() and again.volume() == first.volume()
     assert len(store.layers()) == 1
     assert bake_with_filler(obj, store.layers()) == with_filler
     assert store.remove("all") and store.layers() == []
-    assert bake_with_filler(obj, store.layers()) == before_glb  # byte-identical original
+    assert bake_with_filler(obj, store.layers()) == before_glb
     assert VoxelBaker().bake(obj) == before_glb
     assert FillerLayer.from_dict(first.to_dict()).fingerprint() == first.fingerprint()
 
 
 def test_filler_mesh_goes_through_existing_glb_pipeline():
     obj = build_fixture_object()
-    pieces, layer = _run(obj)
+    _, layer = _run(obj)
     glb = bake_with_filler(obj, [layer])
-    bv, bn, bf = parse_glb(VoxelBaker().bake(obj))
+    bv, _, bf = parse_glb(VoxelBaker().bake(obj))
     v, n, f = parse_glb(glb)
-    assert len(f) == len(bf) + 12 * len(layer.cells)          # 12 triangles per filler box
+    assert len(f) == len(bf) + 12 * len(layer.cells)
     assert np.allclose(v[: len(bv)], bv) and int(f.max()) < len(v)
     assert np.allclose(np.linalg.norm(n, axis=1), 1.0, atol=1e-5)
 
@@ -150,6 +208,11 @@ def test_wedge_top_matches_voxel_studio_geometry():
         for x, y, z in v:
             if abs(y - 1.0) < 1e-5:
                 assert p.top_at(1, 1, {0: x * 64, 2: z * 64}) == pytest.approx(64.0)
+
+
+def test_a_designed_wedge_slope_gains_nothing():
+    w = [SurfacePiece("W", (0, 0, 0), (64, 64, 64), "wedge", "-x")]
+    assert _all(w, fidelity="high").cells == ()
 
 
 def test_unsupported_shapes_become_occluders():
@@ -168,12 +231,9 @@ def test_large_floor_uses_coarse_grid_and_stays_level():
     floor = make_voxel_set("floor_20ft", "20 ft floor", stage_floor(24, 24))  # 24 blocks = 20 ft
     pieces = pieces_from_voxel_set(floor)
     t0 = time.perf_counter()
-    layer = compute_filler(pieces, FillerSelection(frozenset(p.piece_id for p in pieces)))
-    elapsed = time.perf_counter() - t0
-    assert layer.grid_unit == 8          # 1/8 block columns, not 1/64
-    assert layer.cells == ()             # a level floor gains nothing
-    assert elapsed < 30.0
-    # a fractional crack in a floor is filled level with it
+    layer = _all(pieces, fidelity="very_low")
+    assert layer.grid_unit == 8 and layer.cells == ()
+    assert time.perf_counter() - t0 < 30.0
     crack = [SurfacePiece("A", (0, 0, 0), (64, 64, 64)), SurfacePiece("B", (65, 0, 0), (64, 64, 64))]
-    cl = compute_filler(crack, FillerSelection(frozenset({"A", "B"})))
+    cl = _all(crack)
     assert cl.cells and all(c.top == 64.0 and c.base == 0.0 for c in cl.cells)
