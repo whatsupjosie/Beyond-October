@@ -119,7 +119,7 @@ C. **Finished surface:** approve the single-volume surface plan as the next engi
 
 - The reviewer ran the closeout2 package independently: 28/28 passed.
 - **`pack_glb_uv` accepted malformed arrays.** A (3, 2) position array was written as VEC3 data. It now requires positions and normals shaped (N, 3), UVs (N, 2) and triangle indices (M, 3); finite numbers only; whole-number indices within range. Ten malformed-input cases are tested.
-- The ZIP now includes the three existing voxel test files, so the combined run can be checked from the ZIP alone.
+- The ZIP now includes two existing voxel test files (block kit, contract), so `python -m pytest -p no:cacheprovider tests -q` in the unzipped folder runs Filler Cream plus those two. `tests/test_voxel_block_preview.py` depends on a chain of other repo modules, so it runs only in the repo (the 50-test command above).
 
 ## Outside review 2 (2026-11-06, 20:03): fixed
 
