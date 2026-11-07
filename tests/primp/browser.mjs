@@ -69,7 +69,8 @@ document.getElementById('run').onclick = async () => {
    const root=new THREE.Group(), front=new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.MeshBasicMaterial()), back=new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.MeshBasicMaterial());front.position.z=.5;root.add(front,back);
    const camera=new THREE.PerspectiveCamera(45,1,.01,100);camera.position.z=3;camera.updateMatrixWorld();const target={material:front.material,uvName:'uv'};
    const hit=surfacePoint(root,target,new THREE.Vector2(0,0),camera);assert(hit&&Math.abs(hit.x-511.5)<1,'Front center mapping is wrong');
-   assert(surfacePoint(root,{material:back.material,uvName:'uv'},new THREE.Vector2(),camera)===null,'Paint penetrated front surface');front.visible=false;assert(surfacePoint(root,target,new THREE.Vector2(),camera)===null,'Invisible surface was painted');
+   assert(surfacePoint(root,{material:back.material,uvName:'uv'},new THREE.Vector2(),camera)===null,'Paint penetrated front surface');
+   const mapping=new THREE.Texture();mapping.flipY=false;mapping.offset.set(.2,.1);target.originalMap=mapping;const mapped=surfacePoint(root,target,new THREE.Vector2(),camera);assert(Math.abs(mapped.x-1023*.7)<1&&Math.abs(mapped.y-1023*.6)<1,'First stroke ignores original texture transform');mapping.dispose();front.visible=false;assert(surfacePoint(root,target,new THREE.Vector2(),camera)===null,'Invisible surface was painted');
    root.visible=false;assert(surfacePoint(root,{material:back.material,uvName:'uv'},new THREE.Vector2(),camera)===null,'Hidden ancestor was painted');dispose(root,[]);
  });
  await test('Base color factors preserve transparent pixels and makeup is not skin-tinted',()=>{

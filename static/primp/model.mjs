@@ -94,6 +94,7 @@ export function surfacePoint(root, target, ndc, camera) {
   if (material !== target.material) return null;
   const uv = (target.uvName === 'uv' ? hit.uv : hit.uv1)?.clone();
   if (!uv) return null;
-  if (target.texture) { target.texture.updateMatrix(); target.texture.transformUv(uv); }
+  const mapping = target.texture || target.originalMap;
+  if (mapping) { mapping.updateMatrix(); mapping.transformUv(uv); }
   return {x: bounded(uv.x, 0, 1) * (TEXTURE_SIZE - 1), y: bounded(uv.y, 0, 1) * (TEXTURE_SIZE - 1)};
 }

@@ -159,10 +159,11 @@ function setupPointers() {
     if (event.button !== 0 || !targets[active]) return;
     event.stopImmediatePropagation(); event.preventDefault();
     try {
-      const target = targets[active]; ensureSurface(target);
+      const target = targets[active];
       const point = hitPoint(event); if (!point) { status('Paint the selected surface, or select another surface from the list.'); return; }
       const layer = target.layers[layerIndex];
       if (!layer.visible || layer.opacity === 0) throw new Error('Show this layer and increase its opacity before painting.');
+      ensureSurface(target);
       layer.canvas ||= canvas();
       edit = new TileEdit(context(layer.canvas), () => composite(target)); pointer = event.pointerId;
       el.setPointerCapture(pointer); stamp(point); previous = point; composite(target);
@@ -193,7 +194,7 @@ async function restoreProject(value) {
     for (const saved of value.targets) {
       const target = parsed.targets[saved.id]; if (!target) throw new Error('A saved paint surface is missing from this avatar.');
       ensureSurface(target, parsed.targets);
-      for (let i = 0; i < saved.layers.length; i++) { const layer = saved.layers[i]; target.layers[i] = {...layer, canvas: layer.png ? await decodeLayer(layer.png) : null}; }
+      for (let i = 0; i < saved.layers.length; i++) { const layer = saved.layers[i]; target.layers[i] = {visible: layer.visible, opacity: layer.opacity, canvas: layer.png ? await decodeLayer(layer.png) : null}; }
     }
   } catch (e) { dispose(parsed.root, parsed.targets); throw e; }
   install(parsed, bytes, value.name); for (const t of targets) composite(t);
