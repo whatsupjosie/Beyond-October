@@ -400,3 +400,27 @@ def test_stale_cream_can_never_silently_enter_a_bake():
     from modules.filler_cream import bake_textured
     with pytest.raises(FillerCreamError):
         bake_textured(obj, store.layers(), pieces=gone)
+
+
+
+@pytest.mark.parametrize("bad", [
+    dict(verts=np.zeros((3, 2))),                       # reviewer's case: (3,2) written as VEC3
+    dict(normals=np.zeros((3, 4))),
+    dict(uvs=np.zeros((3, 3))),
+    dict(faces=np.array([0, 1, 2])),                    # not (M,3)
+    dict(faces=np.array([[0, 1, 2, 0]])),
+    dict(faces=np.array([[0, 1, -1]])),
+    dict(faces=np.array([[0.0, 1.5, 2.0]])),
+    dict(verts=np.array([[0, 0, 0], [1, 0, 0], [np.nan, 1, 0]], dtype=float)),
+    dict(uvs=np.array([[0, 0], [1, np.inf], [0, 1]], dtype=float)),
+    dict(verts=np.array([["a", "b", "c"]] * 3)),
+])
+def test_pack_glb_uv_rejects_malformed_arrays(bad):
+    from modules.filler_cream import pack_glb_uv
+    good = dict(verts=np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0]], dtype=float),
+                normals=np.array([[0, 0, 1]] * 3, dtype=float),
+                faces=np.array([[0, 1, 2]]), uvs=np.array([[0, 0], [1, 0], [0, 1]], dtype=float))
+    assert parse_glb(pack_glb_uv(good["verts"], good["normals"], good["faces"], good["uvs"], "ok"))[2].shape == (1, 3)
+    args = {**good, **bad}
+    with pytest.raises(FillerCreamError):
+        pack_glb_uv(args["verts"], args["normals"], args["faces"], args["uvs"], "bad")

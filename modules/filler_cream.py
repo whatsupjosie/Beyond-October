@@ -907,14 +907,33 @@ def pack_glb_uv(verts, normals, faces, uvs, name: str) -> bytes:
     JSON padded with spaces as the spec requires (voxel_studio.pack_glb is
     left unchanged)."""
     import numpy as np
-    v = np.ascontiguousarray(verts, dtype=np.float32)
-    nm = np.ascontiguousarray(normals, dtype=np.float32)
-    uv = np.ascontiguousarray(uvs, dtype=np.float32)
-    ix = np.ascontiguousarray(faces, dtype=np.uint32).reshape(-1)
-    if len(v) == 0 or len(ix) == 0:
+    def _shaped(name, arr, cols):
+        a = np.asarray(arr)
+        if a.ndim != 2 or a.shape[1] != cols:
+            raise FillerCreamError(f"{name} must be shaped (N, {cols}); got {a.shape}")
+        return a
+
+    v_in, n_in, uv_in = _shaped("positions", verts, 3), _shaped("normals", normals, 3), _shaped("uvs", uvs, 2)
+    f_in = _shaped("triangle indices", faces, 3)
+    for name, a in (("positions", v_in), ("normals", n_in), ("uvs", uv_in)):
+        if not np.issubdtype(a.dtype, np.number) or not np.all(np.isfinite(a)):
+            raise FillerCreamError(f"{name} must be finite numbers")
+    if len(v_in) == 0 or len(f_in) == 0:
         raise FillerCreamError("nothing to bake: the mesh is empty")
-    if not (len(v) == len(nm) == len(uv)) or int(ix.max()) >= len(v):
-        raise FillerCreamError("mesh arrays disagree (vertex/normal/uv counts or index range)")
+    if not (len(v_in) == len(n_in) == len(uv_in)):
+        raise FillerCreamError("positions, normals and uvs must have the same number of rows")
+    if np.issubdtype(f_in.dtype, np.integer):
+        f_int = f_in.astype(np.int64)
+    elif np.issubdtype(f_in.dtype, np.floating) and np.all(np.isfinite(f_in)) and np.all(f_in == np.round(f_in)):
+        f_int = f_in.astype(np.int64)
+    else:
+        raise FillerCreamError("triangle indices must be whole numbers")
+    if int(f_int.min()) < 0 or int(f_int.max()) >= len(v_in):
+        raise FillerCreamError("triangle indices out of range")
+    v = np.ascontiguousarray(v_in, dtype=np.float32)
+    nm = np.ascontiguousarray(n_in, dtype=np.float32)
+    uv = np.ascontiguousarray(uv_in, dtype=np.float32)
+    ix = np.ascontiguousarray(f_int, dtype=np.uint32).reshape(-1)
 
     def pad(b: bytes, fill: bytes = b"\x00") -> bytes:
         return b + fill * ((4 - len(b) % 4) % 4)

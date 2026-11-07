@@ -10,11 +10,11 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own comm
 
       python -m pytest -p no:cacheprovider tests\test_filler_cream.py -q
 
-  Expected: 28 passed. In the repo, add the existing voxel tests to check nothing broke:
+  Expected: 38 passed. In the repo, add the existing voxel tests to check nothing broke:
 
       python -m pytest -p no:cacheprovider tests\test_filler_cream.py tests\test_pubblock_voxel_block_kit.py tests\test_voxel_block_preview.py tests\test_voxel_set_contract.py -q
 
-  Expected: 40 passed.
+  Expected: 50 passed.
 
 ## What Filler Cream is (Josie's design, settled in this session)
 
@@ -30,7 +30,7 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own comm
 
 - `modules/filler_cream.py`: core operation, fidelity gauge, layer store, adapters, GLB output
 - `modules/filler_cream_fixture.py`: 1/64 fixtures (stepped strip with protrusion, recess, opening and crack; fingertip; curve)
-- `tests/test_filler_cream.py`: 26 focused test functions (28 test cases)
+- `tests/test_filler_cream.py`: 27 focused test functions (38 test cases)
 - `tools/filler_cream_view.py`: before/after GLBs and a side-profile PNG
 - `docs/FILLER_CREAM.md`: usage, the rule, measured limits
 - `docs/FILLER_CREAM_APPLICATOR_UI_SPEC.md`: applicator UI proposal (not built, awaiting Josie's review)
@@ -66,7 +66,7 @@ Prepared, not done: no `main.py` route, no change to `VoxelStudio`, no applicato
 
 ## Checks executed (this sandbox: Python 3.13, numpy 2.5.3, pytest 9.1.1; not GitHub, not Windows)
 
-- `tests/test_filler_cream.py`: 28 passed. Together with the existing voxel tests (block kit, preview, contract): 40 passed, so no existing voxel test broke.
+- `tests/test_filler_cream.py`: 38 passed. Together with the existing voxel tests (block kit, preview, contract): 50 passed, so no existing voxel test broke.
 - The textured GLB was loaded by trimesh (an independent reader): 16,056 vertices and 16,056 UV rows.
 - Wedge orientation checked against `build_primitive_geometry` for all four Y rotations.
 - View tool run and the PNG inspected by eye.
@@ -114,6 +114,12 @@ C. **Finished surface:** approve the single-volume surface plan as the next engi
 
 1. **Continuous surface extraction.** One closed mesh from blocks plus cream across every face direction, keeping sharp edges where taped or crisp-cut. This, not sanding, removes the flat-top box stair and the seams between face directions. Until then, output is boxes.
 2. **Stacked-surface support.** Every exposed surface in a column kept as its own layer (floor under a ceiling slab, an arm in front of the torso, lips, eyelids, fingers), so one selection can cream both. Until then, apply cream part by part.
+
+## Outside review 3 (2026-11-06, 20:09): fixed
+
+- The reviewer ran the closeout2 package independently: 28/28 passed.
+- **`pack_glb_uv` accepted malformed arrays.** A (3, 2) position array was written as VEC3 data. It now requires positions and normals shaped (N, 3), UVs (N, 2) and triangle indices (M, 3); finite numbers only; whole-number indices within range. Ten malformed-input cases are tested.
+- The ZIP now includes the three existing voxel test files, so the combined run can be checked from the ZIP alone.
 
 ## Outside review 2 (2026-11-06, 20:03): fixed
 
