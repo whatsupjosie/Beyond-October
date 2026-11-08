@@ -180,3 +180,109 @@ def test_the_camera_station_moves_a_real_camera_records_saves_and_plays_back_exa
     p1 = pose(base, cam); page.keyboard.down("KeyW"); settle(page, 500); page.keyboard.up("KeyW"); settle(page, 500); assert pose(base, cam) == p1
     assert httpx.delete(base + "/api/camera-moves/slide and zoom", headers=auth, timeout=10).status_code == 200
     assert known_only(page.problems) == []
+
+
+
+def test_vtr_upload_graphics_and_monitor_wiring(page, tmp_path):
+    """Real Chromium + real host: video upload -> VTR -> saved production state."""
+    import shutil
+
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        pytest.skip("FFmpeg unavailable: physical replay media fixture was not generated")
+
+    clip = tmp_path / "control-wiring.webm"
+    render = subprocess.run(
+        [ffmpeg, "-nostdin", "-y", "-loglevel", "error", "-f", "lavfi",
+         "-i", "color=c=black:s=64x64:r=12:d=0.4", "-an",
+         "-c:v", "libvpx", str(clip)],
+        capture_output=True, text=True, timeout=40, check=False,
+    )
+    assert render.returncode == 0, render.stderr
+    assert clip.read_bytes().startswith(bytes.fromhex("1a45dfa3"))
+
+    # Exercise the actual Dressing Room upload UI, including the target selector.
+    page.click('.nav-btn[data-room="dressing"]')
+    page.locator("#uploadTarget").select_option("vod")
+    page.locator("#uploadFile").set_input_files(str(clip))
+    page.locator('#upload-form button[type="submit"]').click()
+    page.wait_for_function(
+        "() => document.getElementById('upload-result').textContent.includes('Replay uploaded:')",
+        timeout=20000,
+    )
+    asset = page.locator("#vtr-asset").input_value()
+    assert asset.startswith("vod/") and asset.endswith(".webm")
+    media = httpx.head(page.base + "/assets/" + asset, timeout=10)
+    assert media.status_code == 200
+    assert media.headers.get("content-type", "").startswith("video/")
+
+    page.click('.nav-btn[data-room="control"]')
+    page.click('[data-station="vtr"]')
+    page.click("#vtr-load")
+    page.wait_for_function(
+        "() => document.querySelector('#station-vtr output')?.textContent.includes('verified')",
+        timeout=12000,
+    )
+    assert httpx.get(page.base + "/api/state/production", timeout=10).json()["on_air"] is False
+    page.click("#vtr-play")
+    page.wait_for_function(
+        "() => document.querySelector('#station-vtr output')?.textContent.includes('on air')",
+        timeout=12000,
+    )
+    active = httpx.get(page.base + "/api/state/production", timeout=10).json()
+    assert active["mode"] == "REPLAY"
+    assert active["on_air"] is True
+    assert active["replay_asset"] == asset
+    page.click("#vtr-stop")
+    page.wait_for_function(
+        "() => document.querySelector('#station-vtr output')?.textContent.includes('off air')",
+        timeout=12000,
+    )
+    assert httpx.get(page.base + "/api/state/production", timeout=10).json()["on_air"] is False
+
+    # The independent Chyron bug must survive the backend model, not just the DOM.
+    page.click('[data-station="chyron"]')
+    page.locator("#chy-lower").fill("Maya / Director")
+    page.locator("#chy-bug").fill("#PubCast")
+    page.click("#chy-apply")
+    page.wait_for_function(
+        "() => document.querySelector('#station-chyron output')?.textContent.includes('confirmed')",
+        timeout=12000,
+    )
+    graphics = httpx.get(page.base + "/api/state/production", timeout=10).json()
+    assert graphics["lower_third"] == "Maya / Director"
+    assert graphics["bug"] == "#PubCast"
+    page.click('.nav-btn[data-room="green"]')
+    assert page.locator("#program-bug").text_content() == "#PubCast"
+    assert page.locator("#program-bug").is_hidden()  # The program is off air.
+
+    page.click('.nav-btn[data-room="control"]')
+    page.click('[data-station="audio"]')
+    page.locator("#mixer-monitor").check()
+    assert page.locator("#pgm-monitor").evaluate("(node) => node.muted") is False
+    page.locator("#mixer-monitor-level").fill("25")
+    assert page.locator("#pgm-monitor").evaluate("(node) => node.volume") == pytest.approx(0.25)
+    assert page.locator("#mixer-afv").is_disabled()  # Unsupported effect must not be accepted as active.
+    assert not page.problems, page.problems
+
+
+def test_replay_upload_rejects_bad_content_and_oversize(host):
+    """A fake filename or overlarge payload never becomes a served replay."""
+    base, token = host
+    headers = {"Authorization": "Bearer " + token}
+    invalid = httpx.post(
+        base + "/api/upload", headers=headers, data={"target": "vod"},
+        files={"file": ("bad.webm", b"not video at all", "video/webm")}, timeout=20,
+    )
+    assert invalid.status_code == 400
+    too_big = httpx.post(
+        base + "/api/upload", headers=headers, data={"target": "vod"},
+        files={"file": ("large.webm", bytes.fromhex("1a45dfa3") + b"x" * (5 * 1024 * 1024), "video/webm")},
+        timeout=30,
+    )
+    assert too_big.status_code == 413
+    wrong_target = httpx.post(
+        base + "/api/upload", headers=headers, data={"target": "../vod"},
+        files={"file": ("clip.webm", bytes.fromhex("1a45dfa3") + b"x", "video/webm")}, timeout=10,
+    )
+    assert wrong_target.status_code == 400
