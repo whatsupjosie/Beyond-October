@@ -30,6 +30,13 @@ The grip is recognised from the hand's own shape: the thumb tip pressed onto the
 **The brush tip** (rule 2)
 The brush line lies along the top of the index finger: parallel to the whole finger (base knuckle to fingertip, not just the last joint), raised by about half the finger's thickness so it sits on top rather than through it, and anchored where the thumb pins it. Tip position = the point on that line level with the fingertip + 1 inch (25.4 mm) further along it (Josie, 2026-11-07). The inch is converted to screen distance using the hand's and face's own size on camera, so it stays a real inch at any distance from the camera. When holding a real pen or brush, a one-time calibration (touch the tip to your nose) measures its true length. An optional coloured dot on a held tip lets the camera lock onto the real tip instead of estimating it.
 
+**Showing the tool in the hand** (Josie, 2026-11-07)
+While the hand is in the correct grip, Primp draws the chosen tool (brush, pencil, sponge, lip brush) in the user's hand on screen, lying along the top of the index finger where the thumb pins it, so they can see exactly what they're working with.
+- It appears only while the grip is correct and fades out when the grip is released. Its presence is the user's confirmation that Primp sees the grip.
+- It shows the tool picked from the brush kit, at its real size.
+- The tip glows, or shows its colour, while it's painting, so the user can see the moment of contact.
+- It doubles as calibration: the user sees where Primp thinks the tip is and can adjust the length with a slider if it doesn't match their real pen or brush.
+
 **Painting**
 - While the grip is held, every frame where the tip is over the face paints at that spot.
 - Paint goes onto a **face map** (the face unwrapped into a flat sheet: lips, lids, brows, cheeks, forehead, jaw), not onto the video. So blush stays on the cheek when the head turns, and makeup survives the hand passing in front of the face.
