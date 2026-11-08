@@ -27,7 +27,7 @@
 
 ## Evidence — RAN here
 
-An isolated V8 source-execution harness ran the actual updated `static/control_stations.js` against a controlled DOM/fetch fake: **11 checks passed**. They covered normalized VTR loading off-air, Play/Stop state, bad path rejection, missing asset handling, unconfirmed-host rejection, Chyron field updates and feedback, and teleprompter start/stop status. The full `static/control_stations.js` and `static/app.js` were also compiled by the V8 parser after changes. These are *not* browser/HTTP/device tests.
+An isolated V8 source-execution harness ran the actual updated `static/control_stations.js` against a controlled DOM/fetch fake: **11 checks passed**. They covered normalized VTR loading off-air, Play/Stop state, bad path rejection, missing asset handling, unconfirmed-host rejection, Chyron field updates and feedback, and teleprompter start/stop status. Six additional isolated V8 assertions exercised the actual `static/app.js` production-state functions: legacy asset URLs resolve once, on-air replay becomes visible, off-air STOP pauses/hides it, on-air/off-air bug overlay behavior, and rejection of an external URL. Both full JavaScript files were also compiled by the V8 parser after changes. These are *not* browser/HTTP/device tests.
 
 ## WROTE, NOT RUN on a PubCast host
 
@@ -43,7 +43,7 @@ No real host, live media, browser, full regression run, Windows check or deploym
 ## Release blockers and intentionally unchanged systems
 
 - The shared mixer still lacks an authoritative AFV/VTR ducking contract; the checkbox is explicitly unavailable. Independent headphone/audio-monitor output routing is also not commissioned; this pass controls the existing Program video monitor only.
-- User-uploaded replay assets are **public to anyone with the host's asset URL**, and there is not yet a per-owner private media lifecycle (delete, retention, quota, audit). Use only intentionally shared production assets. Review before external deployment.
+- User-uploaded replay assets are **public to anyone with the host's asset URL**, and there is not yet a per-owner private media lifecycle (delete, retention, quota, audit). The asset directory may live outside the host-data checkpoint scope and needs an explicit backup/restore contract. Multipart parsing may spool request data before the 5 MiB file-size check, so full ingress/body-size defense also remains a release gate. Use only intentionally shared production assets. Review before external deployment.
 - The VTR accepts local files in common formats, not arbitrary remote links. Browser codec compatibility and actual A/V frame timing need device acceptance.
 - The 2.5D studio, Counter trays, notes, profiles, PubPartner, guest permissions, Primp, full editor and distributed workers were not re-audited or accepted by this change.
 - No main/integration merge, launch, release seal, or GitHub Actions run was performed. Claude's work and the parallel Primp branch remain separate.
