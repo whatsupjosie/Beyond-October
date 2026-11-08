@@ -96,6 +96,14 @@ Colour, opacity and finish (matte, satin, gloss, shimmer, metallic), with blendi
 **Teaching** (Primp's real-person purpose)
 Every stroke is recorded: path, direction, speed, how long the grip was held, and which brush. Technique guides compare strokes against the intended motion ("blend upward toward the temple", "short strokes along the lash line", "too much product on the lid") and give feedback. Strokes can be replayed and saved as looks.
 
+## Resolution (Josie, 2026-11-08)
+
+- **1/128 block (about 2 mm) is for Primp and close-ups only:** avatar faces shaped in Primp, makeup-related detail, and specific camera close-ups. Everything else stays at 1/64 or coarser. (1/128 is the next halving after 1/64, so every existing size still lines up on it.)
+- **Avatars:** the fine features (lip edges, eyelids, nostril rims, eye corners, nail edges) get 1/128 blocks, and the rest of the face stays 1/64. Filler Cream picks its working grid per selection, so the cost stays with those features. Keep fine features in their own selections, since one 1/128 piece inside a big selection makes the whole selection fine.
+- **Close-ups:** bake two versions of the face, standard (1/64) and close-up (1/128), and let camera distance pick which one is shown (the same idea as VoxelStudio's LOD tiers).
+- **Live makeup on a real person** uses no voxels. Sharpness there comes from the resolution of the face paint map, which should be high enough for sub-millimetre eyeliner.
+- **Needed to support it:** the voxel contract only knows full, half and quarter, so 1/64 and 1/128 need adding (Josie's call). Filler Cream's internal unit then moves from 1/64 to 1/128, with existing 1/64 work unchanged at double the numbers.
+
 ## Hurdles and recommendations (Claude's review, 2026-11-07; each is Josie's call)
 
 1. **One grip doesn't fit every tool.** Real artists hold a liner near the tip, a blending brush loosely at the end, a sponge in the fingertips. Recommendation: the perched-pencil grip as the default, with a grip profile per tool in the kit, so teaching doesn't train the wrong hold.
