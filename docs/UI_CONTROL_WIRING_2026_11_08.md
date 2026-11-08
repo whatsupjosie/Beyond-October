@@ -20,7 +20,7 @@
 - Dressing Room upload UI now checks `data.ok`, reports server errors, and inserts the returned asset path into the VTR input.
 - VTR validates local paths; rejects URLs, traversal and unsupported extensions; HEAD-checks served video; loads off-air; requires a loaded replay before Play; and verifies both HTTP and returned production-state fields. Status is visible and buttons re-enable on error.
 - The monitor now pauses/hides replay when taken off air, normalizes old/new asset path prefixes, avoids resetting unchanged video sources, and reports playback intervention where autoplay is blocked.
-- Chyron stores both lower third and independent, bounded `bug` state and renders the bug in the Green Room Program monitor and Studio preview when on air.
+- Chyron stores both lower third and independent, bounded `bug` state and renders the bug in the Green Room Program monitor and Studio preview when on air. The input is limited to 80 characters, and invalid persisted production fields now return an explicit HTTP 422 (without broadcasting a false success); a regression test checks state remains unchanged.
 - Production-station commands repaint local UI only after confirmed server state; WebSocket remains the cross-client authority.
 - Monitor Program checkbox/level actually mute and set gain of the existing **local Program video monitor**, without affecting the shared broadcast mixer. The VTR AFV checkbox is now disabled and labeled unavailable; **AFV is not implemented** rather than being a deceptive no-op.
 - Wardrobe and production-control forms require host acknowledgements and display errors/success. Display-name and badge lengths align with the host contract. The audio-mixer markup no longer contains literal escaped newlines.
