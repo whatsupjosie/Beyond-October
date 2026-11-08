@@ -424,3 +424,69 @@ def test_pack_glb_uv_rejects_malformed_arrays(bad):
     args = {**good, **bad}
     with pytest.raises(FillerCreamError):
         pack_glb_uv(args["verts"], args["normals"], args["faces"], args["uvs"], "bad")
+
+
+# ── 2026-11-07 hostile review ───────────────────────────────────────────────
+
+def test_rotated_piece_is_never_penetrated():
+    """A cube turned 45 degrees pokes below its unturned box; cream must stop
+    under the turned shape's lowest point, not the unturned box's base."""
+    from modules.voxel_studio import VoxelObject, build_primitive_geometry
+    f = 64.0
+    obj = VoxelObject(object_id="rot", name="rot", created_at=0.0)
+    obj.add_primitive(VoxelPrimitive(primitive_id="A", shape=VoxelShape.CUBE, size=8 / f, position=(0, 0, 0)))
+    obj.add_primitive(VoxelPrimitive(primitive_id="B", shape=VoxelShape.CUBE, size=8 / f, position=(8 / f, 4 / f, 0)))
+    obj.add_primitive(VoxelPrimitive(primitive_id="TURNED", shape=VoxelShape.CUBE, size=3 / f,
+                                     position=(4 / f, 11 / f, 0), rotation_deg=(0.0, 0.0, 45.0)))
+    pieces, notes = pieces_from_voxel_object(obj)
+    turned = {p.piece_id: p for p in pieces}["TURNED"]
+    v, _, _ = build_primitive_geometry(VoxelShape.CUBE, 3 / f, (0.0, 0.0, 45.0))
+    true_low = (11 / f + float(v[:, 1].min())) * f            # about 10.4, below the unturned base (11)
+    assert true_low < 11 and turned.origin[1] <= true_low + 1e-6 and turned.size[0] > 3
+    free = compute_filler([p for p in pieces if p.piece_id != "TURNED"], FillerSelection(frozenset({"A", "B"})))
+    layer = compute_filler(pieces, FillerSelection(frozenset({"A", "B"})))
+    g = layer.grid_unit
+    under = lambda L: [c for c in L.cells if turned.origin[0] <= c.column[0] * g < turned.origin[0] + turned.size[0]
+                       and c.column[1] * g < turned.size[2]]
+    assert any(c.top > true_low for c in under(free)), "without the piece, cream would rise into its space"
+    assert under(layer) and all(c.top <= true_low + 1e-9 for c in under(layer))
+
+
+def test_gap_claims_use_the_local_surface_not_the_highest_point():
+    """Multi-level scene: a shelf above a low crack must not block that crack
+    just because some other selected piece sits higher than the shelf."""
+    pieces = [SurfacePiece("L", (0, 0, 0), (8, 8, 8)), SurfacePiece("R", (9, 0, 0), (8, 8, 8)),
+              SurfacePiece("TALL", (40, 30, 0), (8, 10, 8)),
+              SurfacePiece("SHELF", (8, 20, 0), (1, 4, 8))]        # 12 units above the crack
+    layer = compute_filler(pieces, FillerSelection(frozenset({"L", "R", "TALL"})))
+    crack = [c for c in layer.cells if c.kind == "crack"]
+    assert crack and all(c.top == pytest.approx(8.0) for c in crack)
+
+
+def test_crossing_cracks_fill_at_the_intersection():
+    """A plus-shaped 1-unit gap: straight-line search can't see across the
+    centre (the gap runs on both axes); the diagonal search can."""
+    pieces = [SurfacePiece(f"c{i}_{j}", (i, 0, j), (1, 8, 1))
+              for i in range(9) for j in range(9) if i != 4 and j != 4]
+    sel = FillerSelection(frozenset(p.piece_id for p in pieces))
+    layer = compute_filler(pieces, sel)
+    filled = {c.column for c in layer.cells if c.kind == "crack"}
+    assert (4, 4) in filled
+    assert filled == {(i, 4) for i in range(9)} | {(4, j) for j in range(9)}
+    assert layer.cells == compute_filler(pieces, sel, _exhaustive=True).cells
+
+
+def test_cell_source_lists_are_capped():
+    from modules.filler_cream import MAX_SOURCES_PER_CELL
+    flat = [SurfacePiece(f"F{i}", (i, 8, 0), (1, 2, 1)) for i in range(60)]
+    bump = [SurfacePiece("BUMP", (60, 8, 0), (2, 6, 1))]
+    more = [SurfacePiece(f"G{i}", (62 + i, 8, 0), (1, 2, 1)) for i in range(60)]
+    layer = _all(flat + bump + more, fidelity="low")
+    assert layer.cells and all(len(c.sources) <= MAX_SOURCES_PER_CELL for c in layer.cells)
+    assert any(c.sources[-1].endswith("more") for c in layer.cells)
+
+
+def test_old_saved_selections_still_load():
+    old = {"piece_ids": ["P0", "P1"], "face": "+y", "barriers": [], "max_step": None, "max_gap": 2,
+           "ramp_samples": 4, "fidelity": "high"}
+    assert FillerSelection.from_dict(old).grid_samples == 4

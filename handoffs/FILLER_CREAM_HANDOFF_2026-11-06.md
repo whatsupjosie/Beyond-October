@@ -10,11 +10,11 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own comm
 
       python -m pytest -p no:cacheprovider tests\test_filler_cream.py -q
 
-  Expected: 38 passed. In the repo, add the existing voxel tests to check nothing broke:
+  Expected: 43 passed. In the repo, add the existing voxel tests to check nothing broke:
 
       python -m pytest -p no:cacheprovider tests\test_filler_cream.py tests\test_pubblock_voxel_block_kit.py tests\test_voxel_block_preview.py tests\test_voxel_set_contract.py -q
 
-  Expected: 50 passed.
+  Expected: 55 passed.
 
 ## What Filler Cream is (Josie's design, settled in this session)
 
@@ -30,7 +30,7 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own comm
 
 - `modules/filler_cream.py`: core operation, fidelity gauge, layer store, adapters, GLB output
 - `modules/filler_cream_fixture.py`: 1/64 fixtures (stepped strip with protrusion, recess, opening and crack; fingertip; curve)
-- `tests/test_filler_cream.py`: 27 focused test functions (38 test cases)
+- `tests/test_filler_cream.py`: 32 focused test functions (43 test cases)
 - `tools/filler_cream_view.py`: before/after GLBs and a side-profile PNG
 - `docs/FILLER_CREAM.md`: usage, the rule, measured limits
 - `docs/FILLER_CREAM_APPLICATOR_UI_SPEC.md`: applicator UI proposal (not built, awaiting Josie's review)
@@ -66,7 +66,7 @@ Prepared, not done: no `main.py` route, no change to `VoxelStudio`, no applicato
 
 ## Checks executed (this sandbox: Python 3.13, numpy 2.5.3, pytest 9.1.1; not GitHub, not Windows)
 
-- `tests/test_filler_cream.py`: 38 passed. Together with the existing voxel tests (block kit, preview, contract): 50 passed, so no existing voxel test broke.
+- `tests/test_filler_cream.py`: 43 passed. Together with the existing voxel tests (block kit, preview, contract): 55 passed, so no existing voxel test broke.
 - The textured GLB was loaded by trimesh (an independent reader): 16,056 vertices and 16,056 UV rows.
 - Wedge orientation checked against `build_primitive_geometry` for all four Y rotations.
 - View tool run and the PNG inspected by eye.
@@ -115,16 +115,26 @@ C. **Finished surface:** approve the single-volume surface plan as the next engi
 1. **Continuous surface extraction.** One closed mesh from blocks plus cream across every face direction, keeping sharp edges where taped or crisp-cut. This, not sanding, removes the flat-top box stair and the seams between face directions. Until then, output is boxes.
 2. **Stacked-surface support.** Every exposed surface in a column kept as its own layer (floor under a ceiling slab, an arm in front of the torso, lips, eyelids, fingers), so one selection can cream both. Until then, apply cream part by part.
 
+## Hostile review, 2026-11-07: fixed (each proven: new tests fail on the 11-06 code, pass now)
+
+- **Turned pieces could be penetrated (new finding).** A piece rotated off 90° was treated as its unturned box, so its corners stuck out past it and cream could enter them. Now: VoxelStudio pieces occlude with the exact box their turned geometry fills; generator blocks (rotation convention undefined) use a conservative box big enough for any turn. Test: the cream under a 45° cube stops below its true lowest corner.
+- **Speed.** Profiling showed over half the time went on re-checking the same neighbour connections about 7 million times on a 96 × 96 patch. Connections are now computed once per column, and eligibility is cached. Measured on the 128 × 128 face-sized patch, plain timing: medium 22.7 → 10.5 s, high 8.4 → 4.0 s, very high 2.7 → 1.6 s. About twice as fast; still not live-brush speed (that still needs the array-maths rewrite).
+- **The empty-column claim rule was global** (weak spot 2). It's now judged against the selected surface within crack reach. Test: a shelf above a low crack no longer blocks it just because another selected piece sits higher.
+- **Cracks only ran along grid axes** (weak spot 3). Each empty column now searches two straight and two diagonal lines, with diagonals measured at their true length. Test: a plus-shaped gap now fills at its centre, which neither straight line can see across. Results equal checking every column.
+- **Source lists bloated saved layers** (weak spot 7). Capped at 16 per cell (`MAX_SOURCES_PER_CELL`), with a "+N more" marker.
+- **Stale name** (weak spot 8): `ramp_samples` is now `grid_samples`; old saved selections still load.
+- `ENGINE_VERSION` bumped to 5, so cream saved before these fixes reports stale.
+
 ## Known weak spots (not bugs; tune next, in this order)
 
-1. **Speed:** per-column search and fit in plain Python. Vectorise (moment sums over the grid) for a live brush.
-2. **Empty-column claim rule:** compares an unselected piece's base to the highest selected surface overall, not the local one. In multi-level scenes a low shelf could block a crack. Make it local.
-3. **Cracks:** only found along grid axes (diagonal and L-shaped gaps missed), and filled with a straight line rather than the outer-points rule.
+1. **Speed (improved ~2× on 11-07, still not live):** the per-column search and fit are still plain Python. Vectorise (moment sums over the grid) for a live brush.
+2. ~~Empty-column claim rule~~: fixed 11-07 (local).
+3. **Cracks:** diagonal and crossing gaps are fixed (11-07). Still filled with a straight line rather than the outer-points rule.
 4. **Barrier pairs can be bypassed** through a third piece of the same surface. Edge tape (from the UI spec) is the proper fix.
 5. **Grid follows the smallest piece** in the selection. Needs to adapt per area.
 6. **Mesh weight:** filler boxes keep shared inner faces (about 16k vertices on the small fixture). Surface extraction fixes it; greedy merging is the interim fix.
-7. **Saved layers list every source piece per cell.** This bloats on large low-fidelity areas; cap or summarise.
-8. **Small:** cubes at non-90° angles become box occluders; wedges only on `+y`; `ramp_samples` is a stale name; some tests use measured thresholds that must be re-measured if the rule changes.
+7. ~~Source lists bloat~~: fixed 11-07 (capped at 16).
+8. **Small:** wedges only on `+y`; some tests use measured thresholds that must be re-measured if the rule changes. (Turned-piece occlusion and the stale name were fixed 11-07.)
 
 ## Outside review 3 (2026-11-06, 20:09): fixed
 

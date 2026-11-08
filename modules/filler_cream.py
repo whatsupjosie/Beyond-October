@@ -81,7 +81,8 @@ FIDELITY_STOPS: Dict[str, float] = {
 DEFAULT_FIDELITY = "medium"
 # Bump whenever the cream rule changes, so saved layers made under an older
 # rule are reported stale instead of looking current.
-ENGINE_VERSION = "filler-cream/4 outer-points-fade, ceiling-cap"
+ENGINE_VERSION = "filler-cream/5 outer-points-fade, ceiling-cap, local-claim, diagonal-cracks"
+MAX_SOURCES_PER_CELL = 16
 
 FACES: Dict[str, Tuple[int, int]] = {
     "+x": (0, 1), "-x": (0, -1),
@@ -193,7 +194,7 @@ class FillerSelection:
                  decide, not step size.
     max_gap    — widest lateral crack (fine units) that is filled; wider
                  empty runs are openings.
-    ramp_samples — minimum columns across the smallest piece when choosing
+    grid_samples — minimum columns across the smallest piece when choosing
                  the working grid.
     """
 
@@ -202,7 +203,7 @@ class FillerSelection:
     barriers: frozenset = frozenset()
     max_step: Optional[int] = None
     max_gap: int = 2
-    ramp_samples: int = 8
+    grid_samples: int = 8
     fidelity: Any = None
 
     def __post_init__(self) -> None:
@@ -216,22 +217,22 @@ class FillerSelection:
             raise FillerCreamError("selection is empty")
         if self.max_step is not None and int(self.max_step) <= 0:
             raise FillerCreamError("max_step must be positive")
-        if int(self.max_gap) < 0 or int(self.ramp_samples) < 1:
-            raise FillerCreamError("max_gap must be >= 0 and ramp_samples >= 1")
+        if int(self.max_gap) < 0 or int(self.grid_samples) < 1:
+            raise FillerCreamError("max_gap must be >= 0 and grid_samples >= 1")
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "piece_ids": sorted(self.piece_ids), "face": self.face,
             "barriers": sorted(sorted(p) for p in self.barriers),
             "max_step": self.max_step, "max_gap": int(self.max_gap),
-            "ramp_samples": int(self.ramp_samples), "fidelity": self.fidelity,
+            "grid_samples": int(self.grid_samples), "fidelity": self.fidelity,
         }
 
     @classmethod
     def from_dict(cls, d: Mapping[str, Any]) -> "FillerSelection":
         return cls(frozenset(d["piece_ids"]), str(d.get("face", "+y")),
                    frozenset(frozenset(p) for p in d.get("barriers") or ()),
-                   d.get("max_step"), int(d.get("max_gap", 2)), int(d.get("ramp_samples", 8)),
+                   d.get("max_step"), int(d.get("max_gap", 2)), int(d.get("grid_samples", d.get("ramp_samples", 8))),
                    d.get("fidelity"))
 
     def key(self) -> str:
@@ -239,7 +240,7 @@ class FillerSelection:
             "piece_ids": sorted(self.piece_ids), "face": self.face,
             "barriers": sorted(sorted(p) for p in self.barriers),
             "max_step": self.max_step, "max_gap": int(self.max_gap),
-            "ramp_samples": int(self.ramp_samples), "fidelity": self.fidelity,
+            "grid_samples": int(self.grid_samples), "fidelity": self.fidelity,
         }
         return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
 
@@ -405,7 +406,7 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
             g = math.gcd(g, abs(v))
     min_plane = min(min(p.size[a], p.size[b]) for p in sel)
     min_radius = min(radius(p) for p in sel)
-    g = math.gcd(g, max(1, min_plane // int(selection.ramp_samples))) if g else 1
+    g = math.gcd(g, max(1, min_plane // int(selection.grid_samples))) if g else 1
     g = math.gcd(g, max(1, int(min_radius)))  # at least ~2 columns across the finest fit
     g = max(1, g)
 
@@ -431,7 +432,7 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
             if cur is None or h > height[col] + _EPS or (abs(h - height[col]) <= _EPS and p.piece_id < cur):
                 owner[col] = p.piece_id
                 height[col] = h
-    sel_top = max(height.values()) if height else 0.0
+    max_cols = max_gap // g
     # Every candidate piece's base per column: cream is capped below the base
     # of anything hanging over the surface across an air gap (a protected
     # slab, a ceiling, a tabletop), so it can never penetrate solid material.
@@ -447,8 +448,18 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
             if col in owner:
                 if not (p_base <= height[col] + _EPS and h > height[col] + _EPS):
                     continue
-            elif p_base > sel_top + _EPS:
-                continue
+            else:
+                # An empty column only matters as a possible crack, so judge the
+                # piece against the selected surface right beside it (within
+                # crack reach), not the selection's highest point anywhere.
+                if max_cols < 1:
+                    continue
+                k = max_cols + 1
+                near = [height[(col[0] + di, col[1] + dj)]
+                        for di in range(-k, k + 1) for dj in range(-k, k + 1)
+                        if (col[0] + di, col[1] + dj) in height]
+                if not near or p_base > max(near) + _EPS:
+                    continue
             prev = claims.get(col)
             if prev is None or h > prev[0] + _EPS or (abs(h - prev[0]) <= _EPS and p.piece_id < prev[1]):
                 claims[col] = (h, p.piece_id)
@@ -458,7 +469,16 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
 
     selected = selection.piece_ids
 
+    _elig_cache: Dict[Tuple[str, str], bool] = {}
+
     def eligible(pa: str, pb: str) -> bool:
+        key = (pa, pb) if pa < pb else (pb, pa)
+        hit = _elig_cache.get(key)
+        if hit is None:
+            hit = _elig_cache[key] = _eligible(*key)
+        return hit
+
+    def _eligible(pa: str, pb: str) -> bool:
         if pa == pb or pa not in selected or pb not in selected:
             return False
         A, B = by_id[pa], by_id[pb]
@@ -468,9 +488,14 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
             return False
         return frozenset((pa, pb)) not in selection.barriers
 
+    _fill_cache: Dict[str, bool] = {}
+
     def fillable(pid: str) -> bool:
-        P = by_id[pid]
-        return pid in selected and P.supports(face) and not P.keep()
+        hit = _fill_cache.get(pid)
+        if hit is None:
+            P = by_id[pid]
+            hit = _fill_cache[pid] = pid in selected and P.supports(face) and not P.keep()
+        return hit
 
     def connected(x: Tuple[int, int], y: Tuple[int, int]) -> bool:
         """May a fit reach from column x to its 4-neighbour y?"""
@@ -483,6 +508,25 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
         if selection.max_step is not None and abs(height[y] - height[x]) > selection.max_step + _EPS:
             return False
         return True
+
+    # Every allowed step between neighbouring columns, worked out once. The
+    # searches below only walk this table (profiling showed the old per-step
+    # checks were over half the runtime).
+    adj: Dict[Tuple[int, int], Tuple[Tuple[int, int], ...]] = {}
+    for col in sorted(owner):
+        if fillable(owner[col]):
+            adj[col] = tuple(y for y in ((col[0] + d[0], col[1] + d[1]) for d in _DIRS) if connected(col, y))
+
+    _discs: Dict[float, frozenset] = {}
+
+    def disc(reach: float) -> frozenset:
+        """Column offsets whose centres lie within ``reach`` fine units."""
+        hit = _discs.get(reach)
+        if hit is None:
+            n = int(reach // g) + 1
+            hit = _discs[reach] = frozenset((di, dj) for di in range(-n, n + 1) for dj in range(-n, n + 1)
+                                            if math.hypot(di * g, dj * g) <= reach)
+        return hit
 
     best: Dict[Tuple[int, int], FillerCell] = {}
 
@@ -499,14 +543,9 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
     # ── 4. candidates: columns within reach of a higher connected neighbour
     #       (a level surface does no work at all) ─────────────────────────
     frontier: List[Tuple[Tuple[int, int], float]] = []
-    for col in sorted(owner):
-        if not fillable(owner[col]):
-            continue
-        for d in _DIRS:
-            nb = (col[0] + d[0], col[1] + d[1])
-            if connected(col, nb) and height[nb] > height[col] + _EPS:
-                frontier.append((col, radius(by_id[owner[col]])))
-                break
+    for col in sorted(adj):
+        if any(height[nb] > height[col] + _EPS for nb in adj[col]):
+            frontier.append((col, radius(by_id[owner[col]])))
     # A column can only gain cream if a higher column lies inside its own fit
     # window (radius r_c + g/2). The step just before that higher column is a
     # frontier column within that window, so every node of the window path is
@@ -517,18 +556,15 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
     if _exhaustive:
         candidates = {c: None for c in sorted(owner) if fillable(owner[c])}
         frontier = []
+    within = disc(2.0 * (r_max + 0.5 * g))
     for src_col, _r in frontier:
-        reach = 2.0 * (r_max + 0.5 * g)
         seen = {src_col}
         stack = [src_col]
         while stack:
             x = stack.pop()
             candidates[x] = None
-            for d in _DIRS:
-                y = (x[0] + d[0], x[1] + d[1])
-                if y in seen or not connected(x, y):
-                    continue
-                if math.hypot((y[0] - src_col[0]) * g, (y[1] - src_col[1]) * g) > reach:
+            for y in adj[x]:
+                if y in seen or (y[0] - src_col[0], y[1] - src_col[1]) not in within:
                     continue
                 seen.add(y)
                 stack.append(y)
@@ -543,17 +579,15 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
         stack = [col]
         pts: List[Tuple[float, float, float, float]] = []
         srcs = set()
+        window = disc(reach)
         while stack:
             x = stack.pop()
             du, dv = (x[0] - col[0]) * g, (x[1] - col[1]) * g
             w = 1.0 - math.hypot(du, dv) / (reach + g)
             pts.append((du, dv, height[x], w))
             srcs.add(owner[x])
-            for d in _DIRS:
-                y = (x[0] + d[0], x[1] + d[1])
-                if y in seen or not connected(x, y):
-                    continue
-                if math.hypot((y[0] - col[0]) * g, (y[1] - col[1]) * g) > reach:
+            for y in adj[x]:
+                if y in seen or (y[0] - col[0], y[1] - col[1]) not in window:
                     continue
                 seen.add(y)
                 stack.append(y)
@@ -573,42 +607,46 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
         fade = np.clip(1.0 - np.hypot(arr[:, 0], arr[:, 1]) / (reach + g), 0.0, 1.0)
         lift = max(0.0, float(((arr[:, 2] - fitted) * fade).max()))
         target = min(float(coef[0]) + lift, float(arr[:, 2].max()))
-        offer(col, height[col], target, tuple(sorted(srcs)), "fit")
+        names = sorted(srcs)
+        if len(names) > MAX_SOURCES_PER_CELL:  # keep saved layers small on broad areas
+            names = names[:MAX_SOURCES_PER_CELL - 1] + [f"+{len(names) - MAX_SOURCES_PER_CELL + 1} more"]
+        offer(col, height[col], target, tuple(names), "fit")
 
     # ── 6. cracks: short empty runs between two eligible pieces ──────────
-    max_cols = max_gap // g
+    # Cracks: every empty column near the selection looks both ways along
+    # four lines (two straight, two diagonal). If the nearest column each way
+    # is an eligible selected piece and the empty run between them is no
+    # wider than max_gap (diagonals measured at their true length), it fills
+    # from the shell base to the straight line between the two surfaces.
     if max_cols >= 1:
-        for col in sorted(owner):
-            pa = owner[col]
-            if pa not in selected:
-                continue
-            for d in ((1, 0), (0, 1)):
-                first = (col[0] + d[0], col[1] + d[1])
-                if first in owner:
+        k = max_cols + 1
+        empties = sorted({(c[0] + di, c[1] + dj) for c in owner if owner[c] in selected
+                          for di in range(-k, k + 1) for dj in range(-k, k + 1)} - set(owner))
+        for e in empties:
+            for d in ((1, 0), (0, 1), (1, 1), (1, -1)):
+                ends = []
+                for sgn in (-1, 1):
+                    found = None
+                    for step in range(1, k + 1):
+                        probe = (e[0] + sgn * d[0] * step, e[1] + sgn * d[1] * step)
+                        if probe in owner:
+                            found = (probe, step)
+                            break
+                    ends.append(found)
+                if ends[0] is None or ends[1] is None:
                     continue
-                k, far = 1, None
-                while k <= max_cols + 1:
-                    probe = (col[0] + d[0] * k, col[1] + d[1] * k)
-                    if probe in owner:
-                        far = probe
-                        break
-                    k += 1
-                if far is None:
+                (ca, ka), (cb, kb) = ends
+                run = ka + kb - 1
+                if run * g * math.hypot(d[0], d[1]) > max_gap + _EPS:
                     continue
-                gap_cols = k - 1
-                if gap_cols < 1 or gap_cols > max_cols:
-                    continue
-                pb = owner[far]
+                pa, pb = owner[ca], owner[cb]
                 if not eligible(pa, pb):
                     continue
-                ha, hb = height[col], height[far]
+                ha, hb = height[ca], height[cb]
                 if selection.max_step is not None and abs(hb - ha) > selection.max_step + _EPS:
                     continue
                 base = max(by_id[pa].outward_span(up, sign)[0], by_id[pb].outward_span(up, sign)[0])
-                src = (pa, pb) if pa < pb else (pb, pa)
-                for s in range(1, gap_cols + 1):
-                    gc = (col[0] + d[0] * s, col[1] + d[1] * s)
-                    offer(gc, base, ha + (hb - ha) * s / (gap_cols + 1), src, "crack")
+                offer(e, base, ha + (hb - ha) * ka / (ka + kb), (pa, pb) if pa < pb else (pb, pa), "crack")
 
     cells = tuple(best[c] for c in sorted(best))
     return FillerLayer(face, g, cells, selection.key(),
@@ -734,9 +772,18 @@ def pieces_from_voxel_object(obj: Any, annotations: Optional[Mapping[str, Mappin
             kind = "cube"
         elif shape == "wedge" and right_angles and rot[0] == 0 and rot[2] == 0:
             kind, high = "wedge", wedge_sides[rot[1]]
+        size3 = (s, s, s)
         if kind == "occluder":
             notes.append(f"{prim.primitive_id}: {shape} rot={list(prim.rotation_deg)} kept as occluder (not filled)")
-        pieces.append(SurfacePiece(prim.primitive_id, origin, (s, s, s), kind, high, surface_id, tags,
+            if not right_angles:
+                # A turned shape pokes out past its unturned box; occlude with the
+                # full axis-aligned box it actually fills, so cream can't enter it.
+                from .voxel_studio import build_primitive_geometry
+                verts, _, _ = build_primitive_geometry(prim.shape, prim.size, tuple(prim.rotation_deg))
+                lo = [math.floor((prim.position[k] + float(verts[:, k].min())) * FINE_SUBDIVISION + 1e-9) for k in range(3)]
+                hi = [math.ceil((prim.position[k] + float(verts[:, k].max())) * FINE_SUBDIVISION - 1e-9) for k in range(3)]
+                origin, size3 = tuple(lo), tuple(max(1, hi[k] - lo[k]) for k in range(3))
+        pieces.append(SurfacePiece(prim.primitive_id, origin, size3, kind, high, surface_id, tags,
                                    meta.get("fidelity")))
     return pieces, notes
 
@@ -878,6 +925,14 @@ def pieces_from_generated_blocks(blocks: Sequence[Mapping[str, Any]], prefix: st
         origin = tuple(_to_fine(v, f"{pid}.position") for v in pos)
         size = tuple(_to_fine(v, f"{pid}.scale") for v in scale)
         rotated = any(float(r) % 360 for r in (blk.get("rotation") or [0, 0, 0]))
+        if rotated:
+            # The generator's rotation convention isn't defined, so occlude
+            # conservatively: a box around the block's centre big enough for
+            # any turn (its full diagonal), so cream can never enter it.
+            half = math.ceil(math.sqrt(sum(sv * sv for sv in size)) / 2.0)
+            centre = [origin[k] + size[k] / 2.0 for k in range(3)]
+            origin = tuple(math.floor(centre[k] - half) for k in range(3))
+            size = (2 * half, 2 * half, 2 * half)
         shape = "occluder" if rotated or blk.get("type", "cube") != "cube" else "cube"
         if shape == "occluder":
             notes.append(f"{pid}: {blk.get('type', 'cube')} rot={blk.get('rotation')} kept as occluder")

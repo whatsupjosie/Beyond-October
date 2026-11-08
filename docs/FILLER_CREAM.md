@@ -33,7 +33,7 @@ Any span in millimetres also works. Each blueprint part can carry a fidelity (`f
 
 On one exposed face at a time, each column of the selection asks: which nearby columns can I reach without crossing a marked edge, within half the fidelity span? It fits a best-fit plane to their heights, weighted so neighbouring fits blend with no creases. Then it lifts that plane, keeping its slope, until it rests on the outermost block points nearby. Each point's pull fades with distance, so the surface stays continuous and the open end of a run gets no lip. Cream fills from the block up to that plane, never higher than the highest nearby block. The voxel points set the surface; the cream is wiped flush with them. Sanding is a separate tool (not built) for reshaping by choice and trimming slight convex overshoot; it is not how the box stair gets removed.
 
-Cracks: an empty gap no wider than `max_gap` (default 2/64 block) between two connected pieces fills from the pieces' base up to a straight line between them. Wider gaps are openings and stay empty.
+Cracks: an empty gap no wider than `max_gap` (default 2/64 block) between two connected pieces fills from the pieces' base up to a straight line between them. Each empty column searches two straight and two diagonal lines, with diagonals measured at their true length, so crossing and diagonal cracks fill too. Wider gaps are openings and stay empty.
 
 Locality: a fit only sees columns within its reach that it can get to without crossing a mark. The nose tip cannot affect the eye corner. A bigger selection means more local fits, not wider ones.
 
@@ -95,6 +95,6 @@ Each call works on one face direction and keeps one surface per column.
 - The working grid follows the smallest piece and finest fidelity in the selection; it is not adaptive per area.
 - Wedges: `+y` face only, rotations about Y in 90° steps. Corner cuts are occluders (never filled).
 - Overlapping layers overlap as geometry; data never accumulates. Adjacent filler boxes keep shared inner faces.
-- Speed (measured, plain Python): a 128 × 128 column patch at 1/64 (about 51 cm square, wavy) takes 2.7 s at very_high, 8.4 s at high, and 22.7 s at medium. Fine for baking, too slow for a live brush. Speed-up path: compute the fits with array maths (numpy moment sums over the grid) where no marks cut the window.
+- Speed (measured, plain Python, 11-07): a 128 × 128 column patch at 1/64 (about 51 cm square, wavy) takes 1.6 s at very_high, 4.0 s at high, and 10.5 s at medium (was 2.7 / 8.4 / 22.7). Fine for baking, too slow for a live brush. Speed-up path: compute the fits with array maths (numpy moment sums over the grid) where no marks cut the window.
 - Cracks use a straight line between their two edges, not the outer-points lift (they're at most 2/64 block wide).
-- A cube at a non-90° rotation becomes an occluder sized by its unrotated box.
+- A cube at a non-90° rotation becomes an occluder sized by the full box its turned shape fills (generator blocks: a conservative box for any turn), so cream can't enter it.
