@@ -229,6 +229,17 @@ def test_vtr_upload_graphics_and_monitor_wiring(page, tmp_path):
         "() => document.querySelector('#station-vtr output')?.textContent.includes('on air')",
         timeout=12000,
     )
+    # HEAD is insufficient: make Chromium actually decode and display the
+    # returned WebM, with the VTR command controlling the visible Green Room.
+    page.click('.nav-btn[data-room="green"]')
+    page.wait_for_function(
+        "() => { const v = document.getElementById('replay-video'); "
+        "return !v.classList.contains('hidden') && v.readyState >= 2 && v.videoWidth === 64; }",
+        timeout=20000,
+    )
+    assert page.locator("#program-badge").text_content() == "REPLAY"
+    page.click('.nav-btn[data-room="control"]')
+    page.click('[data-station="vtr"]')
     active = httpx.get(page.base + "/api/state/production", timeout=10).json()
     assert active["mode"] == "REPLAY"
     assert active["on_air"] is True
@@ -239,6 +250,10 @@ def test_vtr_upload_graphics_and_monitor_wiring(page, tmp_path):
         timeout=12000,
     )
     assert httpx.get(page.base + "/api/state/production", timeout=10).json()["on_air"] is False
+    page.click('.nav-btn[data-room="green"]')
+    assert page.locator("#replay-video").is_hidden()
+    assert page.locator("#replay-video").evaluate("(node) => node.paused") is True
+    page.click('.nav-btn[data-room="control"]')
 
     # The independent Chyron bug must survive the backend model, not just the DOM.
     page.click('[data-station="chyron"]')
@@ -288,3 +303,20 @@ def test_replay_upload_rejects_bad_content_and_oversize(host):
         files={"file": ("clip.webm", bytes.fromhex("1a45dfa3") + b"x", "video/webm")}, timeout=10,
     )
     assert wrong_target.status_code == 400
+
+    # Identical valid names must never clobber earlier files, including under
+    # parallel requests. Compare both returned URLs and original bytes.
+    payload = bytes.fromhex("1a45dfa3") + b"valid-upload-test"
+    def upload_again():
+        return httpx.post(
+            base + "/api/upload", headers=headers, data={"target": "vod"},
+            files={"file": ("repeat.webm", payload, "video/webm")}, timeout=20,
+        )
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        responses = list(executor.map(lambda _: upload_again(), range(3)))
+    assert [response.status_code for response in responses] == [200, 200, 200]
+    asset_paths = [response.json()["asset"] for response in responses]
+    assert len(set(asset_paths)) == 3
+    for asset in asset_paths:
+        assert httpx.get(base + "/assets/" + asset, timeout=10).content == payload
