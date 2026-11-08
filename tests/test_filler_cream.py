@@ -237,12 +237,17 @@ def test_a_designed_wedge_slope_gains_nothing():
 
 
 def test_unsupported_shapes_become_occluders():
+    """Corner cuts are supported since 2026-11-08; a corner turned off the
+    vertical axis is still an occluder."""
     obj = build_fixture_object()
     obj.add_primitive(VoxelPrimitive(primitive_id="CORNER", shape=VoxelShape.CORNER_OUTER, size=8 / 64,
                                      position=(96 / 64, 0.0, 0.0)))
+    obj.add_primitive(VoxelPrimitive(primitive_id="TIPPED", shape=VoxelShape.CORNER_INNER, size=8 / 64,
+                                     position=(112 / 64, 0.0, 0.0), rotation_deg=(90.0, 0.0, 0.0)))
     pieces, notes = pieces_from_voxel_object(obj)
-    assert any(n.startswith("CORNER") for n in notes)
-    assert {p.piece_id: p.shape for p in pieces}["CORNER"] == "occluder"
+    shapes = {p.piece_id: p.shape for p in pieces}
+    assert shapes["CORNER"] == "corner_outer"
+    assert shapes["TIPPED"] == "occluder" and any(n.startswith("TIPPED") for n in notes)
     with pytest.raises(FillerCreamError):
         pieces_from_voxel_object(type(obj)(primitives=[VoxelPrimitive(size=0.01)]))
 
@@ -617,3 +622,65 @@ def test_contract_voxel_sets_at_1_64_and_1_128_feed_filler_cream():
     # Measured 2026-11-08: 172.7 mm^3 (1/64 blocks) vs 195.0 mm^3 (1/128 blocks).
     # 1/128 pieces get 1/128 columns, which follow the ramp more closely.
     assert results[128] == pytest.approx(results[64], rel=0.15), results
+
+
+
+# ── 2026-11-08: corner-cut pieces take cream ────────────────────────────────
+
+def _ray_top(v, f, x, z):
+    """Highest point of VoxelStudio's actual triangles above (x, z)."""
+    best = None
+    for a, b, c in f:
+        A, B, C = v[a], v[b], v[c]
+        d = (B[0] - A[0]) * (C[2] - A[2]) - (C[0] - A[0]) * (B[2] - A[2])
+        if abs(d) < 1e-12:
+            continue
+        l1 = ((x - A[0]) * (C[2] - A[2]) - (C[0] - A[0]) * (z - A[2])) / d
+        l2 = ((B[0] - A[0]) * (z - A[2]) - (x - A[0]) * (B[2] - A[2])) / d
+        if l1 >= -1e-9 and l2 >= -1e-9 and l1 + l2 <= 1 + 1e-9:
+            y = A[1] + l1 * (B[1] - A[1]) + l2 * (C[1] - A[1])
+            best = y if best is None else max(best, y)
+    return best
+
+
+@pytest.mark.parametrize("shape", [VoxelShape.CORNER_OUTER, VoxelShape.CORNER_INNER])
+@pytest.mark.parametrize("turns", [0, 1, 2, 3])
+def test_corner_tops_match_voxel_studio_geometry(shape, turns):
+    from modules.voxel_studio import build_primitive_geometry
+    v, _, f = build_primitive_geometry(shape, 1.0, (0.0, 90.0 * turns, 0.0))
+    v = v.astype(float)
+    p = SurfacePiece("c", (0, 0, 0), (64, 64, 64), shape.value, y_turns=turns)
+    for x in np.linspace(0.02, 0.98, 9):
+        for z in np.linspace(0.02, 0.98, 9):
+            assert p.top_at(1, 1, {0: x * 64, 2: z * 64}) / 64 == pytest.approx(_ray_top(v, f, x, z), abs=1e-12)
+
+
+def test_corner_pieces_map_from_voxel_studio_and_take_cream():
+    f = float(FINE_SUBDIVISION)
+    from modules.voxel_studio import VoxelObject
+    obj = VoxelObject(object_id="corners", name="corners", created_at=0.0)
+    for i in range(6):                                            # a low floor row
+        obj.add_primitive(VoxelPrimitive(primitive_id=f"F{i}", shape=VoxelShape.CUBE, size=8 / f,
+                                         position=(i * 8 / f, 0.0, 0.0)))
+    obj.add_primitive(VoxelPrimitive(primitive_id="PEAK", shape=VoxelShape.CORNER_OUTER, size=8 / f,
+                                     position=(16 / f, 8 / f, 0.0), rotation_deg=(0.0, 90.0, 0.0)))
+    pieces, notes = pieces_from_voxel_object(obj)
+    peak = {p.piece_id: p for p in pieces}["PEAK"]
+    assert peak.shape == "corner_outer" and peak.y_turns == 1 and not notes
+    alone = _all([p for p in pieces if p.piece_id != "PEAK"], fidelity="high")
+    assert alone.cells == ()                                      # a flat floor gains nothing
+    layer = _all(pieces, fidelity="high")
+    assert layer.cells, "cream blends the floor up toward the corner piece"
+    assert max(c.top for c in layer.cells) <= 16 + 1e-9           # never above the corner's apex
+    assert not any("PEAK" == c.sources[0] and len(c.sources) == 1 for c in layer.cells), \
+        "a designed corner slope on its own gains nothing"
+    sel = FillerSelection(frozenset(p.piece_id for p in pieces), fidelity="high")
+    fast = {c.column: c for c in compute_filler(pieces, sel).cells}
+    careful = {c.column: c for c in compute_filler(pieces, sel, _careful_only=True).cells}
+    assert set(fast) == set(careful) and all(fast[k].top == pytest.approx(careful[k].top, abs=1e-9) for k in fast)
+
+
+def test_a_designed_corner_slope_gains_nothing():
+    for shape in ("corner_outer", "corner_inner"):
+        for k in range(4):
+            assert _all([SurfacePiece("C", (0, 0, 0), (64, 64, 64), shape, y_turns=k)], fidelity="high").cells == ()

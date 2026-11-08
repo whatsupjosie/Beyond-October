@@ -32,6 +32,9 @@ Work is done on one exposed face orientation at a time (``+y`` = tops).
 The selection is rasterised into columns; each column has an owner (the
 outermost piece over it) and a surface height H.
 
+0. Between pieces only. Cream fills between neighbouring pieces: a cell
+   whose window holds a single piece gains nothing, so a lone wedge or corner
+   cut keeps its exact designed slope and creases.
 1. Fit. For a column c, gather the columns reachable from c without
    crossing a marked edge, within the fidelity radius R (half the fidelity
    span). Fit a weighted least-squares plane to their heights (weight falls
@@ -86,7 +89,7 @@ FIDELITY_STOPS: Dict[str, float] = {
 DEFAULT_FIDELITY = "medium"
 # Bump whenever the cream rule changes, so saved layers made under an older
 # rule are reported stale instead of looking current.
-ENGINE_VERSION = "filler-cream/6 outer-points-fade, ceiling-cap, local-claim, diagonal-cracks, unit-1/128, real-size-grid"
+ENGINE_VERSION = "filler-cream/7 outer-points-fade, ceiling-cap, local-claim, diagonal-cracks, unit-1/128, real-size-grid, corners"
 MAX_SOURCES_PER_CELL = 16
 
 FACES: Dict[str, Tuple[int, int]] = {
@@ -94,7 +97,8 @@ FACES: Dict[str, Tuple[int, int]] = {
     "+y": (1, 1), "-y": (1, -1),
     "+z": (2, 1), "-z": (2, -1),
 }
-SUPPORTED_SHAPES = {"cube", "wedge"}
+SUPPORTED_SHAPES = {"cube", "wedge", "corner_outer", "corner_inner"}
+SLOPED_SHAPES = {"wedge", "corner_outer", "corner_inner"}   # top face varies; +y only
 WEDGE_HIGH_SIDES = {"-x", "+x", "-z", "+z"}
 KEEP_TAGS = frozenset({"preserve", "recess", "protrusion", "edge", "opening"})
 _EPS = 1e-9
@@ -140,6 +144,7 @@ class SurfacePiece:
     surface_id: str = "default"
     tags: frozenset = frozenset()
     fidelity: Any = None   # stop name or span in mm; None = DEFAULT_FIDELITY
+    y_turns: int = 0       # corner shapes: quarter turns about +y (VoxelStudio rotation_deg[1] / 90)
 
     def __post_init__(self) -> None:
         fidelity_span_fine(self.fidelity)  # validate early
@@ -152,6 +157,9 @@ class SurfacePiece:
             raise FillerCreamError(f"{self.piece_id}: size must be positive")
         if self.shape == "wedge" and self.wedge_high_side not in WEDGE_HIGH_SIDES:
             raise FillerCreamError(f"{self.piece_id}: wedge needs wedge_high_side in {sorted(WEDGE_HIGH_SIDES)}")
+        if isinstance(self.y_turns, bool) or int(self.y_turns) != self.y_turns or not 0 <= int(self.y_turns) <= 3:
+            raise FillerCreamError(f"{self.piece_id}: y_turns must be 0, 1, 2 or 3")
+        object.__setattr__(self, "y_turns", int(self.y_turns))
         object.__setattr__(self, "origin", tuple(int(v) for v in self.origin))
         object.__setattr__(self, "size", tuple(int(v) for v in self.size))
         object.__setattr__(self, "tags", frozenset(str(t) for t in self.tags))
@@ -159,7 +167,7 @@ class SurfacePiece:
     def supports(self, face: str) -> bool:
         if self.shape == "cube":
             return True
-        if self.shape == "wedge":
+        if self.shape in SLOPED_SHAPES:
             return face == "+y"
         return False
 
@@ -175,8 +183,21 @@ class SurfacePiece:
     def top_at(self, up: int, sign: int, point: Mapping[int, float]) -> float:
         """Outward surface height at an in-plane point (fine units)."""
         base, top = self.outward_span(up, sign)
-        if self.shape != "wedge" or not (up == 1 and sign > 0):
+        if self.shape not in SLOPED_SHAPES or not (up == 1 and sign > 0):
             return top
+        if self.shape != "wedge":
+            # VoxelStudio corner geometry (checked against its triangles in the
+            # tests): unit cube, rotated about its centre by y_turns x 90 deg.
+            # Map the world point back into the unrotated shape, then:
+            #   corner_outer (pyramid, apex over local (0, 0)): 1 - max(u, w)
+            #   corner_inner (flat over u + w <= 1, then sloping): min(1, 2 - u - w)
+            fx = (point[0] - self.origin[0]) / self.size[0] - 0.5
+            fz = (point[2] - self.origin[2]) / self.size[2] - 0.5
+            c, s = ((1, 0), (0, 1), (-1, 0), (0, -1))[self.y_turns]
+            u = min(1.0, max(0.0, c * fx - s * fz + 0.5))
+            w = min(1.0, max(0.0, s * fx + c * fz + 0.5))
+            rise = (1.0 - max(u, w)) if self.shape == "corner_outer" else min(1.0, 2.0 - u - w)
+            return base + self.size[1] * rise
         side = self.wedge_high_side
         axis = 0 if side.endswith("x") else 2
         frac = (point[axis] - self.origin[axis]) / self.size[axis]
@@ -383,7 +404,7 @@ def source_fingerprint(pieces: Iterable[SurfacePiece], selection: FillerSelectio
 
 
 def _fingerprint_of(cands: Sequence[SurfacePiece]) -> str:
-    recs = [[p.piece_id, list(p.origin), list(p.size), p.shape, p.wedge_high_side, p.surface_id,
+    recs = [[p.piece_id, list(p.origin), list(p.size), p.shape, p.wedge_high_side, p.y_turns, p.surface_id,
              sorted(p.tags), p.fidelity] for p in cands]
     payload = {"engine": ENGINE_VERSION, "block_m": PUB_BLOCK_METERS, "fine": FINE_SUBDIVISION, "pieces": recs}
     return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
@@ -684,6 +705,8 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
             ids = np.sort(np.stack([O_grid[I[gain] + o[0], J[gain] + o[1]] for o in offs], axis=1), axis=1)
             for row, k in enumerate(gain):
                 uniq = ids[row][np.concatenate(([True], ids[row][1:] != ids[row][:-1]))]
+                if len(uniq) < 2:
+                    continue        # one piece alone: its own surface is exact design
                 srcs_sorted = [names[x] for x in uniq]
                 if len(srcs_sorted) > MAX_SOURCES_PER_CELL:
                     srcs_sorted = srcs_sorted[:MAX_SOURCES_PER_CELL - 1] + [f"+{len(srcs_sorted) - MAX_SOURCES_PER_CELL + 1} more"]
@@ -727,6 +750,8 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
         lift = max(0.0, float(((arr[:, 2] - fitted) * fade).max()))
         target = min(float(coef[0]) + lift, float(arr[:, 2].max()))
         names = sorted(srcs)
+        if len(names) < 2:
+            continue                # one piece alone: its own surface is exact design
         if len(names) > MAX_SOURCES_PER_CELL:  # keep saved layers small on broad areas
             names = names[:MAX_SOURCES_PER_CELL - 1] + [f"+{len(names) - MAX_SOURCES_PER_CELL + 1} more"]
         offer(col, height[col], target, tuple(names), "fit")
@@ -869,8 +894,9 @@ def pieces_from_voxel_object(obj: Any, annotations: Optional[Mapping[str, Mappin
     """Convert a voxel_studio.VoxelObject into SurfacePieces.
 
     Positions/sizes are block units (1.0 = 10 in). Supported: cubes at 90°
-    rotations, wedges rotated only about Y in 90° steps. Corner cuts and
-    other rotations become occluders (never filled, never anchor filler).
+    rotations; wedges and both corner cuts rotated only about Y in 90° steps.
+    Other rotations become occluders (never filled, never anchor filler),
+    sized by the full box the turned shape fills.
     ``annotations`` maps primitive_id → {"surface_id": str, "tags": [...],
     "fidelity": stop name or mm};
     the default surface_id is the primitive's pivot group or "body".
@@ -895,6 +921,8 @@ def pieces_from_voxel_object(obj: Any, annotations: Optional[Mapping[str, Mappin
             kind = "cube"
         elif shape == "wedge" and right_angles and rot[0] == 0 and rot[2] == 0:
             kind, high = "wedge", wedge_sides[rot[1]]
+        elif shape in ("corner_outer", "corner_inner") and right_angles and rot[0] == 0 and rot[2] == 0:
+            kind = shape
         size3 = (s, s, s)
         if kind == "occluder":
             notes.append(f"{prim.primitive_id}: {shape} rot={list(prim.rotation_deg)} kept as occluder (not filled)")
@@ -907,7 +935,7 @@ def pieces_from_voxel_object(obj: Any, annotations: Optional[Mapping[str, Mappin
                 hi = [math.ceil((prim.position[k] + float(verts[:, k].max())) * FINE_SUBDIVISION - 1e-9) for k in range(3)]
                 origin, size3 = tuple(lo), tuple(max(1, hi[k] - lo[k]) for k in range(3))
         pieces.append(SurfacePiece(prim.primitive_id, origin, size3, kind, high, surface_id, tags,
-                                   meta.get("fidelity")))
+                                   meta.get("fidelity"), rot[1] // 90 if kind in ("corner_outer", "corner_inner") else 0))
     return pieces, notes
 
 

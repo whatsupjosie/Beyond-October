@@ -10,11 +10,11 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own comm
 
       python -m pytest -p no:cacheprovider tests\test_filler_cream.py -q
 
-  Expected: 48 passed. In the repo, add the existing voxel tests to check nothing broke:
+  Expected: 59 passed. In the repo, add the existing voxel tests to check nothing broke:
 
       python -m pytest -p no:cacheprovider tests\test_filler_cream.py tests\test_pubblock_voxel_block_kit.py tests\test_voxel_block_preview.py tests\test_voxel_set_contract.py tests\test_ready_wiring_routes.py tests\test_voxel_studio_filler.py -q
 
-  Expected: 73 passed. (The route tests need FastAPI and Starlette from `requirements.txt`.)
+  Expected: 83 passed. (The route tests need FastAPI and Starlette from `requirements.txt`.)
 
 ## What Filler Cream is (Josie's design, settled in this session)
 
@@ -184,8 +184,15 @@ See `docs/FILLER_CREAM.md` → Limits:
 - small steps remain from flat-top filler boxes (removed by continuous surface extraction, a completion requirement; not by sanding);
 - slight overshoot between corners on convex areas, bounded by fidelity;
 - one face direction per call (no wrapping from a top face onto a side face);
-- corner-cut pieces are skipped;
+- corner-cut pieces: supported since 2026-11-08 (+y face, quarter turns about +y);
 - the working grid is not adaptive per area.
+
+## Corner-cut pieces take cream: BUILT 2026-11-08
+
+- `corner_outer` (pyramid, apex over one corner: top = 1 − max(u, w)) and `corner_inner` (flat over half, then sloping: top = min(1, 2 − u − w)) are now surface pieces on the `+y` face, at any quarter turn about +y (`SurfacePiece.y_turns`). Checked against VoxelStudio's actual triangles at 1,352 points, 2 shapes × 4 turns: largest difference 2e-16. Turned off the vertical axis, they're still occluders.
+- **New rule found by the tests (from Josie's original definition, "fills the spaces between individual neighbouring surface voxel pieces"):** a cream cell needs at least two pieces in its window. A lone wedge or corner keeps its exact designed slope and creases; the outer-points rule had been rounding a corner's own internal ridge. Where a sloped piece meets its neighbours, cream still blends the join unless the edge is marked. Cube scenes are unaffected (identical in mm; the heart is unchanged).
+- `ENGINE_VERSION` 7 (corner support plus the fingerprint now includes `y_turns`).
+- Tests: geometry vs triangles (8 cases), VoxelStudio mapping and cream next to a corner, fast path vs careful path with corners, lone corners gain nothing.
 
 ## VoxelStudio hookup: BUILT 2026-11-08
 
