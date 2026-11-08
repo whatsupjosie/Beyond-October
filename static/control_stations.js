@@ -124,6 +124,8 @@ async function prodPatch(patch) {
       Object.entries(patch).some(([key, value]) => data[key] !== value)) {
     throw Error('Production command was not confirmed by the host');
   }
+  window.PubCastProductionView?.apply(data);
+  window.PubCastProductionView?.populate(data);
   return data;
 }
 
