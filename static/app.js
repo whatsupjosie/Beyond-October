@@ -126,6 +126,10 @@
     if (pre) pre.textContent = JSON.stringify(s, null, 2);
   }
 
+  // Station controls can update this preview immediately after a confirmed host write;
+  // WebSocket updates remain authoritative for other clients and rooms.
+  window.PubCastProductionView = Object.freeze({apply: applyProductionState, populate: populateControlForm});
+
   // Control form submit
   const controlForm = document.getElementById('control-form');
   if (controlForm) {
