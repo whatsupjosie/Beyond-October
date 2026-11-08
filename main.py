@@ -2228,6 +2228,9 @@ async def upload_file(request: Request, identity: Dict[str, Any] = Depends(requi
         if not size:
             raise HTTPException(400, "Cannot upload an empty file")
         if target == "vod":
+            import shutil
+            import subprocess
+
             with temporary.open("rb") as media:
                 magic = media.read(12)
             is_mp4 = extension == ".mp4" and len(magic) >= 8 and magic[4:8] == b"ftyp"
@@ -2235,6 +2238,38 @@ async def upload_file(request: Request, identity: Dict[str, Any] = Depends(requi
             is_ogg = extension == ".ogv" and magic.startswith(b"OggS")
             if not (is_mp4 or is_webm or is_ogg):
                 raise HTTPException(400, "Replay file content does not match its video format")
+            probe = shutil.which("ffprobe")
+            if not probe:
+                raise HTTPException(503, "Replay validation requires FFprobe on this host")
+            try:
+                inspected = subprocess.run(
+                    [probe, "-v", "error", "-nostdin", "-protocol_whitelist", "file,pipe",
+                     "-select_streams", "v:0",
+                     "-show_entries", "stream=codec_type,width,height:format=format_name",
+                     "-of", "json", str(temporary)],
+                    stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    timeout=10, check=False,
+                )
+            except subprocess.TimeoutExpired:
+                raise HTTPException(422, "Replay video inspection timed out")
+            except OSError:
+                raise HTTPException(503, "Replay video inspection could not run")
+            if inspected.returncode:
+                raise HTTPException(422, "Replay video container is not readable")
+            try:
+                inspected_data = json.loads(inspected.stdout)
+                streams = inspected_data.get("streams", [])
+                formats = set(str(inspected_data["format"]["format_name"]).split(","))
+                is_video = bool(streams and streams[0].get("codec_type") == "video"
+                                and int(streams[0].get("width") or 0) > 0
+                                and int(streams[0].get("height") or 0) > 0)
+                format_ok = bool(formats.intersection(
+                    {".mp4": {"mov", "mp4"}, ".webm": {"matroska", "webm"},
+                     ".ogv": {"ogg"}}[extension]))
+            except (TypeError, ValueError, KeyError, IndexError):
+                raise HTTPException(422, "Replay video inspection returned invalid metadata")
+            if not is_video or not format_ok:
+                raise HTTPException(422, "Replay must contain a supported video track")
 
         # A link publishes the already complete file atomically, without
         # overwriting any other upload if two names collide between checks.
