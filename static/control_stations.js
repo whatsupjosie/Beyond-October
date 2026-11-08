@@ -124,8 +124,8 @@ async function prodPatch(patch) {
       Object.entries(patch).some(([key, value]) => data[key] !== value)) {
     throw Error('Production command was not confirmed by the host');
   }
+  // Repaint live previews without overwriting another station's unsaved form.
   window.PubCastProductionView?.apply(data);
-  window.PubCastProductionView?.populate(data);
   return data;
 }
 
