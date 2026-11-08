@@ -1986,9 +1986,9 @@ app.mount("/2i-assets", StaticFiles(directory=str(Path(__file__).resolve().paren
 
 if STATIC_DIR.exists() and any(STATIC_DIR.iterdir()):
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-_assets_files = list(ASSETS_DIR.iterdir()) if ASSETS_DIR.exists() else []
-if _assets_files:
-    app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
+# ASSETS_DIR is created at startup. Mount it even when initially empty, or a
+# newly uploaded VTR clip cannot be played until the next server restart.
+app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
 
 # Conversation Ownership is a separate transcript/archive authority. It is
 # intentionally mounted outside the 2i manuscript and PubPartner memory seams.
@@ -2168,28 +2168,59 @@ async def set_user_state(request: Request, identity: Dict[str, Any] = Depends(cu
 
 @app.post("/api/upload")
 async def upload_file(request: Request, identity: Dict[str, Any] = Depends(require_role("mod"))):
-    """Accept a multipart file upload and save it to data/imports/."""
-    from fastapi import UploadFile, File, Form
-    import shutil, mimetypes
+    """Store bounded uploads in imports or the actual, browser-served VTR library."""
+    form = None
     try:
-        form   = await request.form()
+        form = await request.form()
         upload = form.get("file")
         target = str(form.get("target", "")).strip()
-        if not upload or not hasattr(upload, "filename"):
+        if not upload or not hasattr(upload, "filename") or not hasattr(upload, "read"):
             raise HTTPException(400, "No file provided")
+        if target not in {"", "vod"}:
+            raise HTTPException(400, "Unknown upload destination")
         safe_name = sanitize_filename(upload.filename or "upload") or "upload"
-        dest_dir  = DATA_DIR / "imports"
+        if target == "vod" and Path(safe_name).suffix.lower() not in {".mp4", ".webm", ".ogv"}:
+            raise HTTPException(400, "Replay uploads must be MP4, WebM or Ogg video")
+        dest_dir = ASSETS_DIR / "vod" if target == "vod" else DATA_DIR / "imports"
         dest_dir.mkdir(parents=True, exist_ok=True)
         dest_path = unique_child_path(dest_dir, safe_name)
-        with dest_path.open("wb") as out:
-            shutil.copyfileobj(upload.file, out)
+        size = 0
+        try:
+            with dest_path.open("xb") as out:
+                while True:
+                    chunk = await upload.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    size += len(chunk)
+                    if size > 5 * 1024 * 1024:
+                        raise HTTPException(413, "Upload exceeds the 5 MB limit")
+                    out.write(chunk)
+            if not size:
+                raise HTTPException(400, "Cannot upload an empty file")
+            if target == "vod":
+                with dest_path.open("rb") as media:
+                    magic = media.read(12)
+                is_mp4 = Path(safe_name).suffix.lower() == ".mp4" and len(magic) >= 8 and magic[4:8] == b"ftyp"
+                is_webm = Path(safe_name).suffix.lower() == ".webm" and magic.startswith(bytes.fromhex("1a45dfa3"))
+                is_ogg = Path(safe_name).suffix.lower() == ".ogv" and magic.startswith(b"OggS")
+                if not (is_mp4 or is_webm or is_ogg):
+                    raise HTTPException(400, "Replay file content does not match its video format")
+        except BaseException:
+            dest_path.unlink(missing_ok=True)
+            raise
         logger.info("Upload received: %s — %s (target=%s)", upload.filename, dest_path, target)
-        return {"ok": True, "filename": safe_name, "target": target, "size": dest_path.stat().st_size}
+        result = {"ok": True, "filename": dest_path.name, "target": target, "size": size}
+        if target == "vod":
+            result["asset"] = "vod/" + dest_path.name
+        return result
     except HTTPException:
         raise
-    except Exception as exc:
-        logger.error("Upload error: %s", exc)
-        raise HTTPException(500, str(exc))
+    except Exception:
+        logger.exception("Upload failed")
+        raise HTTPException(500, "Upload could not be saved")
+    finally:
+        if form is not None:
+            await form.close()
 
 
 @app.get("/api/bots")
