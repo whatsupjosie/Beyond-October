@@ -196,6 +196,22 @@ button[type="submit"] { border-color: var(--accent); color: var(--accent); }
   padding: 0.5rem 1.5rem;
   border-radius: var(--radius);
 }
+.program-bug {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 3;
+  max-width: 46%;
+  padding: 0.35rem 0.7rem;
+  overflow-wrap: anywhere;
+  background: rgba(0, 0, 0, 0.78);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.8rem;
+  pointer-events: none;
+}
 .lower-third {
   position: absolute;
   bottom: 1rem;
