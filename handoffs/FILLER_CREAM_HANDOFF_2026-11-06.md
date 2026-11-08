@@ -12,9 +12,9 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own comm
 
   Expected: 48 passed. In the repo, add the existing voxel tests to check nothing broke:
 
-      python -m pytest -p no:cacheprovider tests\test_filler_cream.py tests\test_pubblock_voxel_block_kit.py tests\test_voxel_block_preview.py tests\test_voxel_set_contract.py -q
+      python -m pytest -p no:cacheprovider tests\test_filler_cream.py tests\test_pubblock_voxel_block_kit.py tests\test_voxel_block_preview.py tests\test_voxel_set_contract.py tests\test_ready_wiring_routes.py -q
 
-  Expected: 58 passed.
+  Expected: 67 passed. (The route tests need FastAPI and Starlette from `requirements.txt`.)
 
 ## What Filler Cream is (Josie's design, settled in this session)
 
