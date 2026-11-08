@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {History, strokePoints, validateGLB, validateProject, bytesToBase64, base64ToBytes, softenPixels, bounded} from '../../static/primp/core.mjs';
+import {History, strokePoints, validateGLB, validateProject, bytesToBase64, base64ToBytes, softenPixels, bounded, LIMITS} from '../../static/primp/core.mjs';
 const bytes = new Uint8Array(readFileSync(new URL('../fixtures/avatars/mh_female.glb', import.meta.url)));
 const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
 
@@ -23,7 +23,7 @@ test('ten edits undo and redo exactly; branching discards redo and accounts memo
 test('memory cap evicts oldest edits; oversized edit never destroys history', () => {
  const h=new History(100);for(let i=0;i<3;i++)h.push({bytes:40,undo(){},redo(){}});assert.equal(h.bytes,80);assert.equal(h.past.length,2);assert.throws(()=>h.push({bytes:101}));assert.equal(h.bytes,80);
 });
-test('sparse pointer samples interpolate; UV seam never joins unrelated islands', () => {
+test('sparse pointer samples interpolate; large atlas jumps start a new segment', () => {
  assert.ok(strokePoints({x:0,y:0},{x:100,y:0},10).length>20);assert.equal(strokePoints({x:1,y:1},{x:1000,y:1000},10).length,1);
  assert.throws(()=>bounded(NaN,0,1));
 });
@@ -36,4 +36,30 @@ test('project schema enforces format, memory bounds, unique targets, and layer t
  assert.throws(()=>validateProject({...project,version:2}));
  const t={id:0,layers:Array.from({length:6},()=>({visible:true,opacity:1,png:null}))};assert.doesNotThrow(()=>validateProject({...project,targets:[t]}));assert.throws(()=>validateProject({...project,targets:[t,t]}));
  t.layers[0].opacity=NaN;assert.throws(()=>validateProject({...project,targets:[t]}));
+});
+
+test('large embedded avatars avoid regex stack overflow and enforce the byte limit', () => {
+ const large=new Uint8Array(5*1024*1024);large.fill(7);
+ assert.deepEqual(base64ToBytes(bytesToBase64(large)),large);
+ for(const invalid of ['AAA','A===','AA=A','AA==AAAA','AAAA\n','!!!!','===='])assert.throws(()=>base64ToBytes(invalid),/Invalid/);
+ assert.equal(base64ToBytes('AA==').length,1);
+ assert.equal(base64ToBytes('AAA=').length,2);
+ assert.throws(()=>base64ToBytes('A'.repeat(Math.ceil(LIMITS.source/3)*4+4)),/Invalid/);
+});
+test('failed undo or redo never silently loses its history entry',()=>{
+ const h=new History();let failUndo=true,failRedo=false;
+ h.push({bytes:4,undo(){if(failUndo)throw Error('undo failure');},redo(){if(failRedo)throw Error('redo failure');}});
+ assert.throws(()=>h.undo(),/undo failure/);assert.equal(h.past.length,1);assert.equal(h.future.length,0);
+ failUndo=false;h.undo();failRedo=true;assert.throws(()=>h.redo(),/redo failure/);assert.equal(h.past.length,0);assert.equal(h.future.length,1);assert.equal(h.bytes,4);
+});
+
+test('null paint surface records fail with an explicit validation error',()=>{
+ const value={format:'primp',version:1,name:'Look',source:bytesToBase64(bytes),targets:[null]};
+ assert.throws(()=>validateProject(value),/Invalid paint surfaces/);
+});
+test('failed history notifications roll the pixels/state back before reporting failure',()=>{
+ const h=new History();let value=1,undoFailure=true,redoFailure=false;
+ h.push({bytes:4,undo(){value=0;if(undoFailure)throw Error('undo notification');},redo(){value=1;if(redoFailure)throw Error('redo notification');}});
+ assert.throws(()=>h.undo(),/undo notification/);assert.equal(value,1);assert.equal(h.past.length,1);
+ undoFailure=false;h.undo();redoFailure=true;assert.throws(()=>h.redo(),/redo notification/);assert.equal(value,0);assert.equal(h.future.length,1);
 });

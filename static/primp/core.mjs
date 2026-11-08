@@ -7,7 +7,8 @@ export function bounded(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
-// A seam or interrupted hit starts a new segment; never draw across the atlas.
+// Interrupted hits and large atlas jumps start a new segment. Nearby UV islands
+// still require geometric island isolation; distance alone cannot identify them.
 export function strokePoints(a, b, radius, size = TEXTURE_SIZE) {
   const distance = a ? Math.hypot(b.x - a.x, b.y - a.y) : Infinity;
   if (!a || distance > size / 4) return [b];
@@ -24,8 +25,18 @@ export class History {
     this.past.push(command); this.bytes += command.bytes;
     while (this.past.length > this.steps || this.bytes > this.limit) this.bytes -= this.past.shift().bytes;
   }
-  undo() { const item = this.past.pop(); if (!item) return false; item.undo(); this.future.push(item); return true; }
-  redo() { const item = this.future.pop(); if (!item) return false; item.redo(); this.past.push(item); return true; }
+  undo() {
+    const item = this.past.at(-1); if (!item) return false;
+    try { item.undo(); }
+    catch (error) { try { item.redo(); } catch { /* Keep the original failure and entry. */ } throw error; }
+    this.past.pop(); this.future.push(item); return true;
+  }
+  redo() {
+    const item = this.future.at(-1); if (!item) return false;
+    try { item.redo(); }
+    catch (error) { try { item.undo(); } catch { /* Keep the original failure and entry. */ } throw error; }
+    this.future.pop(); this.past.push(item); return true;
+  }
   clear() { this.past = []; this.future = []; this.bytes = 0; }
 }
 
@@ -47,9 +58,11 @@ export class TileEdit {
     }
   }
   finish() {
-    const tiles = [...this.tiles.values()];
+    const tiles = [...this.tiles.values()].filter(t => {
+      t.after = this.context.getImageData(t.x, t.y, t.before.width, t.before.height);
+      return t.before.data.some((value, i) => value !== t.after.data[i]);
+    });
     if (!tiles.length) return null;
-    for (const t of tiles) t.after = this.context.getImageData(t.x, t.y, t.before.width, t.before.height);
     const apply = key => { for (const t of tiles) this.context.putImageData(t[key], t.x, t.y); this.changed(); };
     return {bytes: tiles.reduce((sum, t) => sum + t.before.data.byteLength + t.after.data.byteLength, 0), undo: () => apply('before'), redo: () => apply('after')};
   }
@@ -76,15 +89,21 @@ export function bytesToBase64(bytes) {
   return btoa(text);
 }
 export function base64ToBytes(text) {
-  if (typeof text !== 'string' || text.length > Math.ceil(LIMITS.source / 3) * 4 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(text)) throw new Error('Invalid embedded avatar.');
+  const invalid = () => { throw new Error('Invalid embedded avatar.'); };
+  if (typeof text !== 'string' || text.length % 4 !== 0 || text.length > Math.ceil(LIMITS.source / 3) * 4) invalid();
+  const padding = text.endsWith('==') ? 2 : text.endsWith('=') ? 1 : 0;
+  const body = text.slice(0, text.length - padding);
+  // A repeated capture group over a multi-megabyte string can overflow V8's stack.
+  if (/[^A-Za-z0-9+/]/.test(body) || text.length / 4 * 3 - padding > LIMITS.source) invalid();
   return Uint8Array.from(atob(text), char => char.charCodeAt(0));
 }
+
 export function validateProject(value) {
   if (!value || value.format !== 'primp' || value.version !== 1 || typeof value.name !== 'string' || value.name.length > 120 || !Array.isArray(value.targets) || value.targets.length > LIMITS.targets) throw new Error('Unsupported or invalid Primp project.');
   validateGLB(base64ToBytes(value.source).buffer);
   const seen = new Set();
   for (const t of value.targets) {
-    if (!Number.isSafeInteger(t.id) || t.id < 0 || seen.has(t.id) || !Array.isArray(t.layers) || t.layers.length !== LAYERS.length) throw new Error('Invalid paint surfaces.');
+    if (!t || typeof t !== 'object' || !Number.isSafeInteger(t.id) || t.id < 0 || seen.has(t.id) || !Array.isArray(t.layers) || t.layers.length !== LAYERS.length) throw new Error('Invalid paint surfaces.');
     seen.add(t.id);
     for (const l of t.layers) {
       if (!l || typeof l.visible !== 'boolean' || !Number.isFinite(l.opacity) || l.opacity < 0 || l.opacity > 1 || (l.png !== null && (typeof l.png !== 'string' || l.png.length > 8 * 1024 * 1024 || !l.png.startsWith('data:image/png;base64,iVBORw0KGgo')))) throw new Error('Invalid makeup layer.');

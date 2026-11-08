@@ -1,5 +1,7 @@
 # Primp: makeup tools and digital mirror
 
+Latest audit: [Troubleshooting round one](TROUBLESHOOTING_ROUND_1.md).
+
 Date: 2026-11-07. Status: **UNRELEASED — foundation checks pass; 3D user workflow acceptance is blocked.**
 
 This is the first implementation slice, not a declaration that Primp is finished or market ready. No camera coaching, teaching, geometry sculpting, payments, or social feature is represented by a nonfunctional control. Those features have not been added to the product.
@@ -22,6 +24,7 @@ The separate children's product stays separate. Adult Primp has no switch into a
 - `static/primp/app.mjs`: viewport, pointer interaction, UI state, bounded history, save/reopen, recovery scheduling, export.
 - `static/primp/model.mjs`: GLB validation/loading boundary, paint targets, compositing, original texture/color handling, surface raycasts, resource disposal.
 - `static/primp/core.mjs`: format limits, validation, interpolation, tile history, premultiplied-alpha blending.
+- `static/primp/files.mjs` and `recovery.mjs`: confirmed-save boundary and transactional recovery revision checks.
 - Counter program entry and Avatar Foundry link; existing profile, geometry, rig, and source assets are not replaced.
 
 Tools are a hard pencil/lip brush, radial powder brush, alpha-aware local blending, and paint-layer erasing. Foundation, contour, blush, eyeshadow, eyeliner, and lips are independent editable layers with visibility and opacity. These are paint categories, not automatic anatomical segmentation. Color contour does not alter the mesh. The later Dremel must edit both underlying voxels and continuous cream together, with atomic undo; it is not implemented here.
@@ -59,7 +62,7 @@ Camera coaching must abstain when tracking is unreliable or occluded. Hand landm
 
 ## Running
 
-Use the existing authenticated PubCast host and open `/static/primp.html`, or open Primp from the Counter / Avatar Foundry. The page itself needs no new backend or package install. Dependencies are the repository's local Three.js 0.160.0 modules and existing license/provenance files. Nothing downloads at application startup.
+Use the existing authenticated PubCast host and open `/static/primp.html`, or open Primp from the Counter / Avatar Foundry. The page itself needs no new backend or package install. Save uses a native file picker where supported; download-only browsers retain the unsaved warning because download completion cannot be confirmed. Dependencies are the repository's local Three.js 0.160.0 modules and existing license/provenance files. Nothing downloads at application startup.
 
 For isolated offline source inspection, serve the repository root with Python's built-in HTTP server and open the same path on localhost. This is not proof of authenticated host integration. Serving over file:// is unsupported because browser module loading requires an HTTP origin.
 
@@ -72,7 +75,7 @@ Focused checks: `node --test tests/primp/core.test.mjs`. The browser harness req
 - Source GLB: 30 MiB maximum; .primp file: 70 MiB maximum; up to four painted material surfaces. Paint layers are 1024 × 1024. Underlying skin texture dimensions are retained up to 4096 per dimension and within the explicit base/composite memory budget. Over-budget textures are rejected, never silently downsampled. Face-only/high-resolution makeup canvases require a future tested resolution policy.
 - Paint follows the avatar's UV layout. Mirrored/overlapping UVs share paint; atlas distortion and island-edge bleed need explicit visual acceptance and improved edge isolation before a commercial release. The seam guard prevents long connecting lines but does not solve all island-edge cases.
 - Material selection is manual. There is no automatic eye/lip/skin region classification, anatomical paint masking, or product finish simulation.
-- Local recovery is scoped to this browser origin and device, uses one recovery slot, and is not a permanent backup or a separate authenticated per-person vault. Portable look files are the owner-controlled save path. Cross-tab recovery conflict protection and account-scoped host integration remain open.
+- Local recovery is scoped to this browser origin and device, uses one recovery slot, and is not a permanent backup or a separate authenticated per-person vault. Portable look files are the owner-controlled save path. Updated writers now refuse stale recovery writes in one transaction; mixed-version writers and account-scoped host integration remain open.
 - Real phone/pen/touch performance, long-session memory, accessibility workflow, context restoration with an active model, and Windows acceptance remain open.
 - No full PubCast regression or real authenticated host launch was run for this slice. Two existing focused Node regressions passed.
 - No teaching, product database, camera access, Phantom gesture capture, coaching model, live classes, payment, or cloud sync implementation is claimed.

@@ -1,3 +1,4 @@
+import {readRecoveryRecord, writeRecoveryRecord} from '/static/primp/recovery.mjs';
 import * as THREE from 'three';
 import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
 import {History, TileEdit, TEXTURE_SIZE, bytesToBase64, base64ToBytes, validateProject, softenPixels} from '/static/primp/core.mjs';
@@ -90,6 +91,29 @@ document.getElementById('run').onclick = async () => {
  });
  await test('Malformed PNG dimensions rejected before decoding',async()=>{
    const small=document.createElement('canvas');small.width=small.height=2;let rejected=false;try{await decodeLayer(small.toDataURL());}catch{rejected=true;}assert(rejected,'Oversize/foreign texture schema accepted');
+ });
+ await test('Empty strokes do not consume undo; unchanged tiles are discarded',()=>{
+   const c=newCanvas(),ctx=c.getContext('2d',{willReadFrequently:true});
+   const empty=new TileEdit(ctx,()=>{});empty.capture(100,100,70);assert(empty.finish()===null,'Empty edit consumes undo');
+   const changed=new TileEdit(ctx,()=>{});changed.capture(100,100,70);ctx.fillStyle='#a3294a';ctx.fillRect(100,100,1,1);const command=changed.finish();assert(command.bytes===64*64*4*2,'Unchanged tiles retained');command.undo();assert(ctx.getImageData(100,100,1,1).data[3]===0,'Undo failed');command.redo();assert(ctx.getImageData(100,100,1,1).data[3]===255,'Redo failed');
+ });
+ await test('Production recovery blocks stale writes across two independent connections',async()=>{
+   const name=`primp-audit-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+   const open=()=>new Promise((resolve,reject)=>{const r=indexedDB.open(name,1);r.onupgradeneeded=()=>r.result.createObjectStore('looks');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+   const a=await open(),b=await open();
+   try {
+     const initial=await readRecoveryRecord(a);assert(initial.revision===0&&!initial.document,'Empty store is not empty');
+     await new Promise((resolve,reject)=>{const tx=a.transaction('looks','readwrite');tx.objectStore('looks').put({...look,name:'legacy'},'recovery');tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error);});
+     const left=await readRecoveryRecord(a),right=await readRecoveryRecord(b);assert(left.revision===0&&left.document.name==='legacy','Legacy recovery was not recognized');
+     const revision=await writeRecoveryRecord(a,{...look,name:'first editor'},left.revision);assert(revision===1,'Revision did not advance');
+     let conflict=false;try{await writeRecoveryRecord(b,{...look,name:'stale editor'},right.revision);}catch(e){conflict=/Another tab/.test(e.message);}assert(conflict,'Stale tab silently overwrote the recovery');
+     assert((await readRecoveryRecord(b)).document.name==='first editor','Conflict destroyed newer recovery');
+     const race=await Promise.allSettled([writeRecoveryRecord(a,{...look,name:'race a'},1),writeRecoveryRecord(b,{...look,name:'race b'},1)]);
+     assert(race.filter(r=>r.status==='fulfilled').length===1&&race.filter(r=>r.status==='rejected').length===1,'Concurrent writers both committed');
+     const winner=await readRecoveryRecord(a);assert(winner.revision===2,'Concurrent revision is incorrect');
+     let cloneFailed=false;try{await writeRecoveryRecord(a,{invalid:()=>{}},2);}catch{cloneFailed=true;}assert(cloneFailed,'Uncloneable payload did not fail');assert((await readRecoveryRecord(a)).document.name===winner.document.name,'Failed write destroyed previous recovery');
+     return 'legacy migration, stale-tab refusal, concurrent winner, and failed-write preservation passed';
+   } finally {a.close();b.close();}
  });
  if(parsed)dispose(parsed.root,parsed.targets);
  report.textContent+=`\nRESULT: ${passed} passed; ${failed} failed.\n3D RENDERING: not established by these tests.\n`;document.getElementById('run').disabled=false;

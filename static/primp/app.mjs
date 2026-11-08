@@ -1,3 +1,5 @@
+import {readRecoveryRecord, writeRecoveryRecord} from './recovery.mjs';
+import {saveLookFile} from './files.mjs';
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {parseAvatar, dispose, prepareSurface, composeSurface, decodeLayer, surfacePoint} from './model.mjs';
@@ -9,7 +11,7 @@ const history = new History();
 let renderer, scene, camera, controls, avatar, animations = [], source, source64, targets = [], active = 0, layerIndex = 5;
 let tool = 'lipstick', edit = null, previous = null, pointer = null, busy = false, dirty = false, comparing = false;
 let db = null, recoveryTimer, generation = 0, recoveryWrites = Promise.resolve();
-let graphicsReady = false, pendingFrame = null;
+let graphicsReady = false, pendingFrame = null, recoveryRevision = 0;
 const ndc = new THREE.Vector2();
 const viewport = $('viewport');
 
@@ -24,20 +26,22 @@ function safeName() { return ($('avatar-name').textContent || 'My look').replace
 function markChanged() { dirty = true; updateControls(); scheduleRecovery(); }
 function updateControls() {
   const loaded = !!avatar && graphicsReady;
-  for (const id of ['save', 'export', 'frame', 'face', 'compare', 'snapshot']) $(id).disabled = busy || !loaded;
+  for (const id of ['export', 'frame', 'face', 'compare', 'snapshot']) $(id).disabled = busy || !loaded;
+  $('save').disabled = busy || !avatar;
   const paintable = loaded && targets.length > 0 && !busy && !comparing;
   for (const id of ['surface', 'layer', 'layer-opacity', 'visible', 'brushes', 'clear']) $(id).disabled = !paintable;
-  $('undo').disabled = busy || comparing || !history.past.length;
-  $('redo').disabled = busy || comparing || !history.future.length;
+  $('undo').disabled = busy || !graphicsReady || comparing || !history.past.length;
+  $('redo').disabled = busy || !graphicsReady || comparing || !history.future.length;
   for (const id of ['avatar-file', 'project-file', 'welcome-file', 'recover']) $(id).disabled = busy || !graphicsReady;
   $('history-info').textContent = `${history.past.length} undo / ${history.future.length} redo · ${(history.bytes / 1048576).toFixed(1)} MiB`;
 }
-function run(action) {
+function run(action, needsGraphics = true) {
   return async (...args) => {
-    if (busy || !graphicsReady) return;
+    if (busy || (needsGraphics && !graphicsReady)) return;
     finishStroke(); busy = true; updateControls();
-    try { await action(...args); } catch (error) { console.error(error); status(error.message || 'The operation failed. Your current work is still open.', true); }
-    finally { busy = false; updateControls(); }
+    try { await action(...args); } catch (error) { if (error.name === 'AbortError') status('Save cancelled. Your work is still open.');
+      else { console.error(error); status(error.message || 'The operation failed. Your current work is still open.', true); } }
+    finally { busy = false; updateControls(); if (avatar && !graphicsReady) status('Graphics unavailable. Save your look before reloading.', true); }
   };
 }
 
@@ -141,13 +145,25 @@ function stamp(point) {
 }
 function finishStroke(cancel = false) {
   if (!edit) return;
-  const completed = edit; edit = null; previous = null;
-  if (cancel) completed.cancel(); else {
-    const command = completed.finish();
-    if (command) { try { history.push(command); markChanged(); } catch (e) { completed.cancel(); status(e.message, true); } }
+  const completed = edit, capturedPointer = pointer;
+  edit = null; previous = null; pointer = null;
+  try {
+    if (cancel) completed.cancel();
+    else {
+      const command = completed.finish();
+      if (command) { history.push(command); markChanged(); }
+    }
+  } catch (error) {
+    try { completed.cancel(); }
+    catch { markChanged(); }
+    status(`The stroke could not be completed: ${error.message}`, true);
+  } finally {
+    const el = renderer?.domElement;
+    if (capturedPointer !== null && el?.hasPointerCapture(capturedPointer)) el.releasePointerCapture(capturedPointer);
+    updateControls();
   }
-  pointer = null; updateControls();
 }
+
 function setupPointers() {
   const el = renderer.domElement;
   // Capture phase makes the paint/orbit decision before OrbitControls receives the event.
@@ -179,8 +195,8 @@ function setupPointers() {
     } catch (e) { finishStroke(true); status(e.message, true); }
   }, true);
   el.addEventListener('pointerup', event => { if (event.pointerId === pointer) { event.stopImmediatePropagation(); finishStroke(); } }, true);
-  el.addEventListener('pointercancel', () => finishStroke(true));
-  el.addEventListener('lostpointercapture', () => finishStroke());
+  el.addEventListener('pointercancel', event => { if (event.pointerId === pointer) finishStroke(true); });
+  el.addEventListener('lostpointercapture', event => { if (event.pointerId === pointer) finishStroke(); });
 }
 function project() {
   source64 ||= bytesToBase64(new Uint8Array(source));
@@ -198,7 +214,7 @@ async function restoreProject(value) {
     }
   } catch (e) { dispose(parsed.root, parsed.targets); throw e; }
   install(parsed, bytes, value.name); for (const t of targets) composite(t);
-  status('Editable look reopened.'); scheduleRecovery();
+  status('Editable look reopened.'); scheduleRecovery(); return true;
 }
 async function openProject(file) {
   if (!file) return; if (file.size > LIMITS.project) throw new Error('This project exceeds the 70 MiB limit.');
@@ -218,12 +234,11 @@ async function openDatabase() {
     request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error);
     request.onblocked = () => reject(new Error('Local recovery storage is blocked by another tab.'));
   });
-  const existing = await readRecovery(); $('recover').hidden = !existing;
+  const record = await readRecoveryRecord(db); recoveryRevision = record.revision;
+  const existing = record.document; $('recover').hidden = !existing;
   $('storage-status').textContent = existing ? 'A local recovery look is available. Open it with Recover local look.' : 'Local recovery is available. Save a look file for a portable copy.';
 }
-function readRecovery() {
-  return new Promise((resolve, reject) => { const request = db.transaction('looks').objectStore('looks').get('recovery'); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
-}
+
 function scheduleRecovery() {
   clearTimeout(recoveryTimer); if (!db || !avatar) return;
   const version = generation;
@@ -232,7 +247,7 @@ function scheduleRecovery() {
     recoveryWrites = recoveryWrites.catch(() => {}).then(async () => {
       if (version !== generation) return;
       const snapshot = project();
-      await new Promise((resolve, reject) => { const tx = db.transaction('looks', 'readwrite'); tx.objectStore('looks').put(snapshot, 'recovery'); tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); tx.onabort = () => reject(tx.error || new Error('Recovery write was interrupted.')); });
+      recoveryRevision = await writeRecoveryRecord(db, snapshot, recoveryRevision);
       if (version !== generation) return;
       $('storage-status').textContent = 'Local recovery saved on this device.'; $('recover').hidden = false;
     }).catch(error => { $('storage-status').textContent = `Local recovery failed: ${error.message}. Save a look file now.`; });
@@ -252,15 +267,40 @@ for (const button of document.querySelectorAll('[data-tool]')) button.onclick = 
 for (const button of document.querySelectorAll('[data-color]')) button.onclick = () => { $('color').value = button.dataset.color; };
 for (const id of ['avatar-file', 'welcome-file']) $(id).onchange = run(async () => { const file = $(id).files[0]; $(id).value = ''; await openAvatar(file); });
 $('project-file').onchange = run(async () => { const file = $('project-file').files[0]; $('project-file').value = ''; await openProject(file); });
-$('save').onclick = run(async () => { const blob = new Blob([JSON.stringify(project())], {type: 'application/json'}); if (blob.size > LIMITS.project) throw new Error('This look exceeds the portable project limit.'); download(blob, `${safeName()}.primp`); dirty = false; status('Look download prepared with original avatar and editable layers.'); });
+$('save').onclick = run(async () => {
+  const result = await saveLookFile(() => {
+    const blob = new Blob([JSON.stringify(project())], {type: 'application/json'});
+    if (blob.size > LIMITS.project) throw new Error('This look exceeds the portable project limit.');
+    return blob;
+  }, `${safeName()}.primp`, {
+    picker: window.showSaveFilePicker?.bind(window), download,
+  });
+  if (result.confirmed) { dirty = false; status('Editable look saved to your file.'); }
+  else status('Look download requested. Unsaved-work protection stays on because the browser cannot confirm completion.');
+}, false);
 $('export').onclick = run(exportAvatar);
-$('recover').onclick = run(async () => { if (!db) throw new Error('Local recovery is unavailable.'); const value = await readRecovery(); if (!value) throw new Error('No saved recovery look was found.'); await restoreProject(value); });
-$('undo').onclick = () => { finishStroke(); if (history.undo()) { markChanged(); status('Undid the last edit.'); } };
-$('redo').onclick = () => { finishStroke(); if (history.redo()) { markChanged(); status('Redid the edit.'); } };
+$('recover').onclick = run(async () => {
+  if (!db) throw new Error('Local recovery is unavailable.');
+  clearTimeout(recoveryTimer);
+  await recoveryWrites.catch(() => {});
+  try {
+    const record = await readRecoveryRecord(db);
+    if (!record.document) throw new Error('No saved recovery look was found.');
+    if (await restoreProject(record.document)) recoveryRevision = record.revision;
+  } finally { if (avatar) scheduleRecovery(); }
+});
+function applyHistory(direction) {
+  finishStroke();
+  try {
+    if (history[direction]()) { markChanged(); status(direction === 'undo' ? 'Undid the last edit.' : 'Redid the edit.'); }
+  } catch (error) { status(`Could not ${direction} this edit: ${error.message}`, true); }
+}
+$('undo').onclick = () => applyHistory('undo');
+$('redo').onclick = () => applyHistory('redo');
 $('clear').onclick = () => {
   finishStroke(); const target = targets[active], layer = target.layers[layerIndex]; if (!layer.canvas) return;
   const transaction = new TileEdit(context(layer.canvas), () => composite(target)); transaction.capture(TEXTURE_SIZE / 2, TEXTURE_SIZE / 2, TEXTURE_SIZE);
-  context(layer.canvas).clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE); const command = transaction.finish(); history.push(command); composite(target); markChanged();
+  context(layer.canvas).clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE); const command = transaction.finish(); if (command) { history.push(command); composite(target); markChanged(); }
 };
 $('frame').onclick = () => frame(); $('face').onclick = () => frame(true);
 $('compare').onclick = () => { finishStroke(); comparing = !comparing; $('compare').setAttribute('aria-pressed', String(comparing)); for (const t of targets) composite(t); updateControls(); };

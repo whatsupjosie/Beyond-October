@@ -4,6 +4,8 @@
 Starting source: `bfbdcf0676c11163063ef369cd419b5667792cfe`.
 This is an unreleased foundation, not a completed Primp product.
 
+Latest follow-up: [Troubleshooting round one](TROUBLESHOOTING_ROUND_1.md) records 17 passing Node entries and 14 passing browser foundation checks, plus repairs for large-avatar reopening, file saving, recovery conflicts, and undo. The counts below describe the earlier build session and are retained as history.
+
 ## Changed
 
 Added the real surface-painting modules and digital mirror page under `static/primp/` and `static/primp.html`. Added Primp to `static/foresight_programs.js` and a link in `static/avatar_foundry.html`. Added executable checks under `tests/primp/` and a product/decision/release ledger in this directory. No prior source assets, profiles, geometry engine, or original design documents were overwritten. A pre-existing unrelated untracked avatar recovery file was left untouched.
