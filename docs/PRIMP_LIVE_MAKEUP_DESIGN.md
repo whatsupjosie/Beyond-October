@@ -10,7 +10,8 @@ The user sits in front of a camera. Primp tracks their face and their hand. They
 
 1. **Pencil grip means tip down.** When the hand is in the position you'd hold a pencil in, the brush is touching and paints. When the hand leaves that position, the tip lifts.
 2. **The brush rests along the top of the index finger, pinned by the thumb,** lying along the finger's length the way a bird perches on a finger. It is not aimed out from the fingertip. **Its tip is 1 inch (25.4 mm) past the end of the finger.**
-3. **Invisible brush or held object.** The user can hold nothing (the imaginary brush), or hold a pen or a brush to mimic the motion.
+3. **Voice engages the stroke** (2026-11-07). The user takes the grip, leans closer and says **"engage"** (or "apply"). From then on the tool is applying through each forward stroke. It ends when the hand retreats without re-engaging a forward stroking motion within a couple of seconds, or immediately when the user says **"disengage"**.
+4. **Invisible brush or held object.** The user can hold nothing (the imaginary brush), or hold a pen or a brush to mimic the motion.
 
 ## What already exists in PubCast (checked 2026-11-07)
 
@@ -37,8 +38,17 @@ While the hand is in the correct grip, Primp draws the chosen tool (brush, penci
 - The tip glows, or shows its colour, while it's painting, so the user can see the moment of contact.
 - It doubles as calibration: the user sees where Primp thinks the tip is and can adjust the length with a slider if it doesn't match their real pen or brush.
 
+**Voice control** (rule 3)
+- A small offline word spotter (wake-word style) listens only for "engage", "apply" and "disengage". It reacts in a fraction of a second, with no internet and no full speech-to-text.
+- **"Disengage" contains "engage".** The spotter is trained on both words and waits about 0.3 s before acting on "engage", so "disengage" always wins and the brush never switches on mid-word.
+- It only listens while the grip is held and a face is in view, so a TV or another person can't trigger it.
+- **Retreat** means the tip moves away from the face by a set distance (confirmed by the hand shrinking on screen), with no new forward stroke within about 1.5 seconds. Both values are adjustable.
+- Audio is processed on the device: keyword only, nothing recorded.
+- A non-voice way to engage and disengage (a key, a tap, or a gesture with the other hand) gives the same mode for quiet rooms, shared spaces and users who can't or won't speak.
+- Caution: saying a word moves the lips. For lipstick, engage before the brush reaches the mouth.
+
 **Painting**
-- While the grip is held, every frame where the tip is over the face paints at that spot.
+- While engaged (rule 3), every frame where the tip is over the face paints at that spot.
 - Paint goes onto a **face map** (the face unwrapped into a flat sheet: lips, lids, brows, cheeks, forehead, jaw), not onto the video. So blush stays on the cheek when the head turns, and makeup survives the hand passing in front of the face.
 - The face map is held steady while the hand blocks part of the face.
 - **Mirror view** by default: moving the hand left moves it left on screen.
@@ -79,6 +89,19 @@ Colour, opacity and finish (matte, satin, gloss, shimmer, metallic), with blendi
 **Teaching** (Primp's real-person purpose)
 Every stroke is recorded: path, direction, speed, how long the grip was held, and which brush. Technique guides compare strokes against the intended motion ("blend upward toward the temple", "short strokes along the lash line", "too much product on the lid") and give feedback. Strokes can be replayed and saved as looks.
 
+## Hurdles and recommendations (Claude's review, 2026-11-07; each is Josie's call)
+
+1. **One grip doesn't fit every tool.** Real artists hold a liner near the tip, a blending brush loosely at the end, a sponge in the fingertips. Recommendation: the perched-pencil grip as the default, with a grip profile per tool in the kit, so teaching doesn't train the wrong hold.
+2. **The hand blocks the camera.** Near the eyes, the hand covers part of the face, and the thumb on top of the index finger can be hidden from a front camera. Tracking is weakest exactly where precision matters most; the face map must hold through it.
+3. **Fine lines.** Webcam tracking wobbles by a few millimetres, while eyeliner and lip lines need about one. Recommendation: **Practice mode** shows true accuracy; **Beauty mode** gently snaps strokes to the lash line or lip edge.
+4. **No touch feedback.** The tip glow helps; a soft sound on contact helps more.
+5. **Lighting and skin tone.** Test in dim rooms, on cheap webcams and across many skin tones, so it works for everyone.
+6. **Laptop load.** Face tracking, hand tracking, the voice spotter and live painting at once need frame-rate testing on modest laptops.
+7. **Left-handed users and a second hand** (holding a palette): choose a dominant hand, or allow either.
+8. **Calibration fatigue.** Defaults must be good enough to skip calibration.
+9. **Privacy (recommended as a rule):** live video and audio stay on the device, never uploaded, not recorded by default. Strokes are recorded, not faces.
+10. **Eye safety (recommended as a rule):** warn anyone holding a real pen or brush near the eyes, and suggest the invisible brush for eye work.
+
 ## Build order
 
 1. Hand tracking and pencil-grip detection on a laptop camera, with the tip drawn as a dot. Prove the grip switch and the tip position feel right.
@@ -89,7 +112,8 @@ Every stroke is recorded: path, direction, speed, how long the grip was held, an
 
 ## Decisions for Josie
 
-1. **Closeness check:** under rule 1, the tip paints wherever it is over the face on screen, even with the hand held well in front of the face. Add an optional check that the tip is also roughly at the face's depth (from the trackers' depth estimates, or a depth camera on phones that have one)? Your rule stays the default; the check would be a setting.
+1. **Closeness check:** largely answered by voice engage/disengage (rule 3). Still open: also require the tip to be near the face's depth while engaged, as an optional setting?
 2. **Pressure:** answered by "Reading the stroke": push depth first, then grip squeeze and speed toward the face. Open: should the user be able to turn pressure off (constant colour) for simpler use?
 3. **Which hand:** either hand, or a chosen dominant hand?
-4. **Teaching guides:** who writes the technique guides, and what's in the first set (for example a basic everyday look, a stage look)?
+4. **Tip length:** 1 inch past the fingertip (as written), or 1 inch from where the thumb pins the tool? The on-screen tool lets users fine-tune it either way.
+5. **Teaching guides:** who writes the technique guides, and what's in the first set (for example a basic everyday look, a stage look)?
