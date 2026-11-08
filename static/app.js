@@ -48,9 +48,18 @@
     } catch (e) { console.warn('[pubcast] Could not load production state', e); }
   }
 
+  function localReplayUrl(raw) {
+    const path = String(raw || '').trim().replace(/^\/?assets\//i, '');
+    if (!path || path.startsWith('/') || path.includes('\\') ||
+        /^[a-z][a-z\d+.-]*:/i.test(path) || /[?#\x00-\x1f]/.test(path) ||
+        path.split('/').some(segment => !segment || segment === '.' || segment === '..')) return '';
+    return '/assets/' + path.split('/').map(encodeURIComponent).join('/');
+  }
+
   function applyProductionState(s) {
     const onAir     = s.on_air || false;
     const lower     = s.lower_third || '';
+    const bug       = s.bug || '';
     const camera    = s.camera || 'wide';
     const lighting  = s.lighting || 'normal';
     const isReplay  = s.mode === 'REPLAY';
@@ -61,18 +70,34 @@
     const lowerEl   = document.getElementById('lower-third');
     const badge     = document.getElementById('program-badge');
 
+    if (badge) badge.textContent = onAir ? (isReplay ? 'REPLAY' : 'LIVE') : 'OFF';
     if (replay && liveBanner) {
-      if (isReplay && s.replay_asset) {
-        replay.src = `/assets/${s.replay_asset}`;
+      const url = isReplay && onAir ? localReplayUrl(s.replay_asset) : '';
+      if (url) {
+        if (replay.getAttribute('src') !== url) replay.src = url;
         replay.classList.remove('hidden');
         liveBanner.classList.add('hidden');
+        if (replay.paused) {
+          const playback = replay.play();
+          if (playback && typeof playback.catch === 'function') playback.catch(() => {
+            if (badge) badge.textContent = 'REPLAY — USE PLAYER CONTROLS';
+          });
+        }
       } else {
+        replay.pause();
         replay.classList.add('hidden');
         liveBanner.classList.toggle('hidden', !onAir);
+        if (onAir && isReplay && badge) badge.textContent = 'REPLAY ASSET UNAVAILABLE';
       }
     }
-    if (lowerEl)  lowerEl.textContent  = lower;
-    if (badge)    badge.textContent    = onAir ? 'LIVE' : 'OFF';
+    if (lowerEl) lowerEl.textContent = lower;
+    for (const id of ['program-bug', 'studio-bug']) {
+      const graphic = document.getElementById(id);
+      if (graphic) {
+        graphic.textContent = bug;
+        graphic.classList.toggle('hidden', !onAir || !bug);
+      }
+    }
 
     // Studio view
     const studioOnAir = document.getElementById('studio-onair');
@@ -92,6 +117,9 @@
     set('prod-onair',   String(!!s.on_air));
     set('prod-replay',  s.replay_asset || '');
     set('prod-lower',   s.lower_third  || '');
+    set('chy-lower',    s.lower_third  || '');
+    set('chy-bug',      s.bug || '');
+    set('vtr-asset',    s.replay_asset || '');
     set('prod-camera',  s.camera   || 'wide');
     set('prod-lighting',s.lighting || 'normal');
     const pre = document.getElementById('prod-json');
@@ -117,11 +145,26 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        if (res.ok) {
-          const data = await res.json();
-          populateControlForm(data.state || payload);
+        let data = null;
+        try { data = await res.json(); } catch (_) {}
+        if (!res.ok || !data || typeof data !== 'object') {
+          throw Error('Production state save rejected (HTTP ' + res.status + ')');
         }
-      } catch (e) { console.error('[pubcast] Control push failed', e); }
+        const confirmed = Object.entries(payload).every(([key,value]) => data[key] === value);
+        if (!confirmed) throw Error('The production host did not confirm all requested fields');
+        applyProductionState(data);
+        populateControlForm(data);
+      } catch (e) {
+        console.error('[pubcast] Control push failed', e);
+        let status = document.getElementById('control-form-status');
+        if (!status) {
+          status = document.createElement('output');
+          status.id = 'control-form-status';
+          status.setAttribute('role', 'status');
+          controlForm.appendChild(status);
+        }
+        status.textContent = e.message;
+      }
     });
   }
 
@@ -157,14 +200,22 @@
         avatar_color: document.getElementById('avatarColor')?.value || '#00e0ff',
         badge:        document.getElementById('badge')?.value        || '',
       };
-      updateMirror(u);
       try {
-        await fetch('/api/state/user', {
+        const response = await fetch('/api/state/user', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(u),
         });
-      } catch (e) { console.error('[pubcast] Wardrobe save failed', e); }
+        const saved = await response.json();
+        if (!response.ok || !saved.ok ||
+            saved.display_name !== u.display_name || saved.avatar_color !== u.avatar_color ||
+            saved.badge !== u.badge) throw Error('Host did not confirm the wardrobe save');
+        updateMirror(saved);
+      } catch (e) {
+        console.error('[pubcast] Wardrobe save failed', e);
+        const result = document.getElementById('wardrobe-result');
+        if (result) result.textContent = 'Save failed: ' + e.message;
+      }
     });
 
     // Live mirror preview on color change
@@ -190,9 +241,19 @@
         if (resultEl) resultEl.textContent = 'Uploading…';
         const res = await fetch('/api/upload', { method: 'POST', body: fd });
         const data = await res.json();
-        if (resultEl) resultEl.textContent = res.ok ? `✓ ${data.filename || 'uploaded'}` : `✗ ${data.error || 'failed'}`;
+        if (!res.ok || data.ok !== true) {
+          const reason = data.detail || data.error || 'upload rejected';
+          throw Error(typeof reason === 'string' ? reason : JSON.stringify(reason));
+        }
+        if (resultEl) resultEl.textContent = data.asset ?
+          '✓ Replay uploaded: ' + data.asset + '. Open Control Room > VTR, then Load.' :
+          '✓ Uploaded: ' + (data.filename || 'file');
+        if (data.asset) {
+          const assetInput = document.getElementById('vtr-asset');
+          if (assetInput) assetInput.value = data.asset;
+        }
       } catch (e) {
-        if (resultEl) resultEl.textContent = '✗ Upload failed';
+        if (resultEl) resultEl.textContent = '✗ Upload failed: ' + e.message;
         console.error('[pubcast] Upload error', e);
       }
     });
