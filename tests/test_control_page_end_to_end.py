@@ -292,6 +292,13 @@ def test_replay_upload_rejects_bad_content_and_oversize(host):
         files={"file": ("bad.webm", b"not video at all", "video/webm")}, timeout=20,
     )
     assert invalid.status_code == 400
+    fake_container = httpx.post(
+        base + "/api/upload", headers=headers, data={"target": "vod"},
+        files={"file": ("not-really-video.webm", bytes.fromhex("1a45dfa3") + b"garbage" * 4, "video/webm")},
+        timeout=20,
+    )
+    assert fake_container.status_code in {422, 503}  # 503 only if FFprobe is unavailable
+
     too_big = httpx.post(
         base + "/api/upload", headers=headers, data={"target": "vod"},
         files={"file": ("large.webm", bytes.fromhex("1a45dfa3") + b"x" * (5 * 1024 * 1024), "video/webm")},
@@ -304,15 +311,35 @@ def test_replay_upload_rejects_bad_content_and_oversize(host):
     )
     assert wrong_target.status_code == 400
 
-    # Identical valid names must never clobber earlier files, including under
-    # parallel requests. Compare both returned URLs and original bytes.
-    payload = bytes.fromhex("1a45dfa3") + b"valid-upload-test"
+
+
+def test_concurrent_replay_uploads_are_non_clobbering(host, tmp_path):
+    """Three real playable videos uploaded with one filename remain distinct."""
+    import shutil
+    from concurrent.futures import ThreadPoolExecutor
+
+    ffmpeg = shutil.which("ffmpeg")
+    ffprobe = shutil.which("ffprobe")
+    if not ffmpeg or not ffprobe:
+        pytest.skip("Video encoding/probing tools unavailable for real media test")
+
+    clip = tmp_path / "repeat.webm"
+    rendered = subprocess.run(
+        [ffmpeg, "-nostdin", "-y", "-loglevel", "error", "-f", "lavfi",
+         "-i", "color=c=black:s=64x64:r=12:d=0.4", "-an",
+         "-c:v", "libvpx", str(clip)],
+        capture_output=True, text=True, timeout=40, check=False,
+    )
+    assert rendered.returncode == 0, rendered.stderr
+    payload = clip.read_bytes()
+    base, token = host
+    headers = {"Authorization": "Bearer " + token}
+
     def upload_again():
         return httpx.post(
             base + "/api/upload", headers=headers, data={"target": "vod"},
-            files={"file": ("repeat.webm", payload, "video/webm")}, timeout=20,
+            files={"file": ("repeat.webm", payload, "video/webm")}, timeout=25,
         )
-    from concurrent.futures import ThreadPoolExecutor
     with ThreadPoolExecutor(max_workers=3) as executor:
         responses = list(executor.map(lambda _: upload_again(), range(3)))
     assert [response.status_code for response in responses] == [200, 200, 200]
