@@ -1168,9 +1168,73 @@ def bake_textured(obj: Any, layers: Sequence[FillerLayer] = (), world_position=(
     return pack_glb_uv(v, n, f, box_uvs(v, n, repeat_per_block), obj.name)
 
 
+# ══════════════════════════════════════════════════════════════════════════
+# PER-OBJECT STORE — what VoxelStudio keeps beside each object
+# ══════════════════════════════════════════════════════════════════════════
+
+class FillerStore:
+    """One object's cream: its named layers plus the blueprint marks (surface
+    names, tags, fidelity per primitive) the layers were made with. Saved as
+    ``<data_dir>/filler/<object_id>.json`` and written atomically, so a failed
+    write never damages the previous file."""
+
+    def __init__(self, layers: Optional[FillerCreamLayers] = None,
+                 annotations: Optional[Mapping[str, Mapping[str, Any]]] = None) -> None:
+        self.layers = layers or FillerCreamLayers()
+        self.annotations: Dict[str, Dict[str, Any]] = {k: dict(v) for k, v in dict(annotations or {}).items()}
+
+    def pieces(self, obj: Any) -> Tuple[List[SurfacePiece], List[str]]:
+        return pieces_from_voxel_object(obj, self.annotations)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"kind": "filler_cream_store", "version": 1,
+                "annotations": {k: self.annotations[k] for k in sorted(self.annotations)},
+                "layers": self.layers.to_dict()}
+
+    @classmethod
+    def from_dict(cls, d: Mapping[str, Any]) -> "FillerStore":
+        if d.get("kind") != "filler_cream_store" or int(d.get("version", 0)) != 1:
+            raise FillerCreamError("not a filler_cream_store v1 payload")
+        return cls(FillerCreamLayers.from_dict(d.get("layers") or {}), d.get("annotations") or {})
+
+    @classmethod
+    def load(cls, path: Any) -> "FillerStore":
+        from pathlib import Path as _P
+        path = _P(path)
+        if not path.exists():
+            return cls()
+        return cls.from_dict(json.loads(path.read_text(encoding="utf-8")))
+
+    def save(self, path: Any) -> None:
+        """Write to a temporary file, then swap it in. If anything fails, the
+        old file is left exactly as it was."""
+        import os
+        from pathlib import Path as _P
+        path = _P(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(path.name + ".tmp")
+        try:
+            tmp.write_text(json.dumps(self.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
+            os.replace(tmp, path)
+        finally:
+            if tmp.exists():
+                tmp.unlink()
+
+    def bake(self, obj: Any, world_position=(0.0, 0.0, 0.0)) -> Tuple[bytes, Dict[str, str]]:
+        """Bring stale layers up to date, then bake. Raises FillerCreamError if
+        any layer can't be regenerated (its report names it): stale cream
+        never silently enters a bake. Returns (glb, refresh report)."""
+        pieces, _ = self.pieces(obj)
+        report = self.layers.refresh(pieces)
+        failed = {k: v for k, v in report.items() if v != "regenerated"}
+        if failed:
+            raise FillerCreamError(f"cream needs attention before baking '{getattr(obj, 'name', '?')}': {failed}")
+        return bake_with_filler(obj, self.layers.bake_layers(pieces), world_position, pieces=pieces), report
+
+
 __all__ = [
     "DEFAULT_FIDELITY", "ENGINE_VERSION", "FACES", "FIDELITY_STOPS", "FINE_SUBDIVISION", "fidelity_span_fine", "FINE_UNIT_INCHES", "FINE_UNIT_MM", "KEEP_TAGS",
-    "FillerCell", "FillerCreamError", "FillerCreamLayers", "FillerLayer", "FillerSelection",
+    "FillerCell", "FillerCreamError", "FillerCreamLayers", "FillerStore", "FillerLayer", "FillerSelection",
     "SurfacePiece", "bake_textured", "bake_with_filler", "box_uvs", "pack_glb_uv", "pieces_from_generated_blocks", "compute_filler", "layer_is_stale", "regenerate", "source_fingerprint", "filler_mesh_arrays", "parse_glb",
     "pieces_from_voxel_object", "pieces_from_voxel_set",
 ]

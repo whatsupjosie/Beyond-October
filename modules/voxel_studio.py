@@ -909,12 +909,13 @@ class VoxelStudio:
         self._bake_dir   = data_dir / "bakes"
         self._scene_dir  = data_dir / "scenes"
         self._prim_dir   = data_dir / "primitives"
+        self._filler_dir = data_dir / "filler"       # Filler Cream per object (filler_cream.FillerStore)
         self._objects:   Dict[str, VoxelObject]  = {}
         self._session:   Optional[SceneSession]  = None
         self._baker      = VoxelBaker()
         self._destructor = DestructionEngine()
 
-        for d in (self._obj_dir, self._bake_dir, self._scene_dir, self._prim_dir):
+        for d in (self._obj_dir, self._bake_dir, self._scene_dir, self._prim_dir, self._filler_dir):
             d.mkdir(parents=True, exist_ok=True)
 
         self._load_objects()
@@ -952,6 +953,7 @@ class VoxelStudio:
             p = self._obj_dir / f"{object_id}.json"
             p.unlink(missing_ok=True)
             (self._bake_dir / f"{object_id}.glb").unlink(missing_ok=True)
+            (self._filler_dir / f"{object_id}.json").unlink(missing_ok=True)
             logger.info("Deleted object '%s'", obj.name)
             return True
         return False
@@ -963,18 +965,75 @@ class VoxelStudio:
         object_id: str,
         world_position: Tuple[float, float, float] = (0.0, 0.0, 0.0),
     ) -> Optional[Path]:
+        """Bake to bakes/<object_id>.glb. If the object has Filler Cream, stale
+        layers are regenerated first and baked in; if any can't be, this raises
+        filler_cream.FillerCreamError rather than baking without them."""
         obj = self.get_object(object_id)
         if obj is None:
             logger.error("bake_object: unknown object_id '%s'", object_id)
             return None
-        return self._baker.bake_to_file(obj, self._bake_dir, world_position)
+        path = self._filler_dir / f"{object_id}.json"
+        if not path.exists():
+            return self._baker.bake_to_file(obj, self._bake_dir, world_position)
+        from .filler_cream import FillerStore
+        store = FillerStore.load(path)
+        glb, report = store.bake(obj, world_position)
+        if report:
+            store.save(path)                      # keep the regenerated cream
+            logger.info("Filler Cream regenerated for '%s': %s", obj.name, sorted(report))
+        out = self._bake_dir / f"{obj.object_id}.glb"
+        out.write_bytes(glb)
+        logger.info("Baked '%s' with Filler Cream → %s  (%d bytes)", obj.name, out, len(glb))
+        return out
+
+    # ── Filler Cream ──────────────────────────────────────────────────────────
+
+    def apply_filler(self, object_id: str, name: str, selection: Any,
+                     annotations: Optional[Dict[str, Dict[str, Any]]] = None) -> Any:
+        """Apply (or replace) the cream layer ``name`` on an object. ``annotations``
+        (primitive_id -> surface_id / tags / fidelity) replace the stored marks
+        when given. Returns the new filler_cream.FillerLayer."""
+        from .filler_cream import FillerCreamError, FillerStore
+        obj = self.get_object(object_id)
+        if obj is None:
+            raise FillerCreamError(f"unknown object_id '{object_id}'")
+        path = self._filler_dir / f"{object_id}.json"
+        store = FillerStore.load(path)
+        if annotations is not None:
+            store.annotations = {k: dict(v) for k, v in annotations.items()}
+        pieces, _ = store.pieces(obj)
+        layer = store.layers.apply(name, pieces, selection)
+        store.save(path)
+        return layer
+
+    def remove_filler(self, object_id: str, name: str) -> bool:
+        from .filler_cream import FillerStore
+        path = self._filler_dir / f"{object_id}.json"
+        store = FillerStore.load(path)
+        removed = store.layers.remove(name)
+        if removed:
+            store.save(path)
+        return removed
+
+    def filler_status(self, object_id: str) -> Dict[str, str]:
+        """{layer name: "current" | "stale"} for an object's cream."""
+        from .filler_cream import FillerStore
+        obj = self.get_object(object_id)
+        path = self._filler_dir / f"{object_id}.json"
+        if obj is None or not path.exists():
+            return {}
+        store = FillerStore.load(path)
+        pieces, _ = store.pieces(obj)
+        stale = set(store.layers.stale(pieces))
+        return {k: ("stale" if k in stale else "current")
+                for k in sorted(store.to_dict()["layers"]["layers"])}
 
     def bake_all(self) -> int:
-        """Bake every loaded object. Returns count of successes."""
+        """Bake every loaded object (with its Filler Cream). Returns count of successes."""
         ok = 0
-        for obj in self._objects.values():
+        for obj in list(self._objects.values()):
             try:
-                self._baker.bake_to_file(obj, self._bake_dir)
+                self.bake_object(obj.object_id)
                 ok += 1
             except Exception as exc:
                 logger.warning("Bake failed for '%s': %s", obj.name, exc)

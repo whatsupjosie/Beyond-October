@@ -12,9 +12,9 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own comm
 
   Expected: 48 passed. In the repo, add the existing voxel tests to check nothing broke:
 
-      python -m pytest -p no:cacheprovider tests\test_filler_cream.py tests\test_pubblock_voxel_block_kit.py tests\test_voxel_block_preview.py tests\test_voxel_set_contract.py tests\test_ready_wiring_routes.py -q
+      python -m pytest -p no:cacheprovider tests\test_filler_cream.py tests\test_pubblock_voxel_block_kit.py tests\test_voxel_block_preview.py tests\test_voxel_set_contract.py tests\test_ready_wiring_routes.py tests\test_voxel_studio_filler.py -q
 
-  Expected: 67 passed. (The route tests need FastAPI and Starlette from `requirements.txt`.)
+  Expected: 73 passed. (The route tests need FastAPI and Starlette from `requirements.txt`.)
 
 ## What Filler Cream is (Josie's design, settled in this session)
 
@@ -62,7 +62,7 @@ Gaps this pipeline exposes:
 
 Completed: reads `voxel_studio.VoxelObject` and canonical voxel sets (block kit floors); output goes through VoxelStudio's own cube table, normals, baker and GLB packer; block size comes from the contract.
 
-Prepared, not done: no `main.py` route, no change to `VoxelStudio`, no applicator brush UI, no renderer hookup, no sanding.
+Prepared, not done: no `main.py` route, no applicator brush UI, no renderer hookup, no sanding. (VoxelStudio hookup: done 2026-11-08, see above.)
 
 ## Checks executed (this sandbox: Python 3.13, numpy 2.5.3, pytest 9.1.1; not GitHub, not Windows)
 
@@ -186,6 +186,14 @@ See `docs/FILLER_CREAM.md` → Limits:
 - one face direction per call (no wrapping from a top face onto a side face);
 - corner-cut pieces are skipped;
 - the working grid is not adaptive per area.
+
+## VoxelStudio hookup: BUILT 2026-11-08
+
+- `VoxelStudio` (`modules/voxel_studio.py`; the previous version is in git at 6a6498f) now keeps each object's cream in `<data_dir>/filler/<object_id>.json` (`filler_cream.FillerStore`: the layers plus the marks they were made with). The file is written atomically, so a failed write leaves the old file intact.
+- New methods: `apply_filler(object_id, name, selection, annotations=None)`, `remove_filler(object_id, name)`, `filler_status(object_id)` (`current` / `stale` per layer).
+- `bake_object` bakes cream in. Stale layers are regenerated first and the regenerated cream is saved. If any layer can't be regenerated (for example, a selected piece was deleted), it raises `FillerCreamError` and leaves the last good bake file untouched. `bake_all` goes through `bake_object` and counts those as failures. `delete_object` also deletes the cream file. Objects without cream bake exactly as before.
+- Tests: `tests/test_voxel_studio_filler.py` (6). Unchanged bake without cream; persistence across a restart; regeneration after an edit; blocked bake with the old file kept; failed-write rollback; delete.
+- Not built: a `main.py` route for applying cream (no UI calls it yet).
 
 ## 1/128 for Primp and close-ups: steps 1–4 BUILT 2026-11-08 (5–6 not built)
 
