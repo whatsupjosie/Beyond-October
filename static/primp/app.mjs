@@ -1,22 +1,24 @@
+import {verifiedRecoveryScope} from './session.mjs';
+import {retainIsland} from './uv-islands.mjs';
 import {readRecoveryRecord, writeRecoveryRecord} from './recovery.mjs';
 import {saveLookFile} from './files.mjs';
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {parseAvatar, dispose, prepareSurface, composeSurface, decodeLayer, surfacePoint} from './model.mjs';
 import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
-import {TEXTURE_SIZE, LAYERS, LIMITS, History, TileEdit, strokePoints, softenPixels, checkProjectSize, validateProject, bytesToBase64, base64ToBytes} from './core.mjs';
+import {TEXTURE_SIZE, LAYERS, LIMITS, History, TileEdit, allowPaintAllocation, strokePoints, softenPixels, checkProjectSize, validateProject, bytesToBase64, base64ToBytes} from './core.mjs';
 
 const $ = id => document.getElementById(id);
 const history = new History();
 let renderer, scene, camera, controls, avatar, animations = [], source, source64, targets = [], active = 0, layerIndex = 5;
 let tool = 'lipstick', edit = null, previous = null, pointer = null, busy = false, dirty = false, comparing = false;
 let db = null, recoveryTimer, generation = 0, recoveryWrites = Promise.resolve();
-let graphicsReady = false, pendingFrame = null, recoveryRevision = 0;
+let graphicsReady = false, pendingFrame = null, recoveryRevision = 0, recoveryScope;
 const ndc = new THREE.Vector2();
 const viewport = $('viewport');
 
 function status(message, error = false) { $('status').textContent = message; $('status').dataset.error = String(error); }
-function canvas() { const c = document.createElement('canvas'); c.width = c.height = TEXTURE_SIZE; return c; }
+function canvas(size = TEXTURE_SIZE) { const c = document.createElement('canvas'); c.width = c.height = size; return c; }
 function context(c) { return c.getContext('2d', {willReadFrequently: true}); }
 function download(blob, name) {
   const url = URL.createObjectURL(blob), a = document.createElement('a');
@@ -29,7 +31,9 @@ function updateControls() {
   for (const id of ['export', 'frame', 'face', 'compare', 'snapshot']) $(id).disabled = busy || !loaded;
   $('save').disabled = busy || !avatar;
   const paintable = loaded && targets.length > 0 && !busy && !comparing;
-  for (const id of ['surface', 'layer', 'layer-opacity', 'visible', 'brushes', 'clear']) $(id).disabled = !paintable;
+  for (const id of ['surface', 'detail', 'layer', 'layer-opacity', 'visible', 'brushes', 'clear']) $(id).disabled = !paintable;
+  $('detail').disabled = !paintable || !!targets[active]?.base;
+  for (const button of document.querySelectorAll('[data-base]')) button.disabled = busy || !graphicsReady;
   $('undo').disabled = busy || !graphicsReady || comparing || !history.past.length;
   $('redo').disabled = busy || !graphicsReady || comparing || !history.future.length;
   for (const id of ['avatar-file', 'project-file', 'welcome-file', 'recover']) $(id).disabled = busy || !graphicsReady;
@@ -109,10 +113,12 @@ async function openAvatar(file) {
   status(targets.length ? 'Avatar ready. Choose a surface and paint layer.' : 'This avatar has no paintable UV surfaces. You can still inspect and export it.', !targets.length);
   scheduleRecovery();
 }
-function ensureSurface(target, allTargets = targets) { return prepareSurface(target, allTargets, render); }
+function ensureSurface(target, allTargets = targets) { target.size ||= Number($('detail').value); return prepareSurface(target, allTargets, render); }
 function composite(target) { return composeSurface(target, comparing, render); }
 function syncLayerControls() {
   const layer = targets[active]?.layers[layerIndex];
+  $('detail').value = String(targets[active]?.size || 1024);
+  updateControls();
   $('layer-opacity').value = String((layer?.opacity ?? 1) * 100); $('visible').checked = layer?.visible ?? true;
 }
 function changeLayerProperty(property, value) {
@@ -129,23 +135,30 @@ function hitPoint(event) {
 }
 function stamp(point) {
   const radius = Number($('size').value), flow = Number($('flow').value) / 100, ctx = edit.context;
+  const target = targets[active], size = target.size || TEXTURE_SIZE;
+  const x = Math.max(0, Math.floor(point.x - radius - 1)), y = Math.max(0, Math.floor(point.y - radius - 1));
+  const width = Math.min(size - x, Math.ceil(radius * 2 + 3)), height = Math.min(size - y, Math.ceil(radius * 2 + 3));
+  const before = ctx.getImageData(x, y, width, height);
   edit.capture(point.x, point.y, radius);
+  if (tool === 'blend') {
+    const image = new ImageData(new Uint8ClampedArray(before.data), width, height);
+    retainIsland(image, null, target.atlas, point.chart, x, y);
+    softenPixels(image, point.x - x, point.y - y, radius, flow);
+    retainIsland(image, before, target.atlas, point.chart, x, y); ctx.putImageData(image, x, y); return;
+  }
   ctx.save();
   try {
     ctx.globalAlpha = flow; ctx.globalCompositeOperation = tool === 'erase' ? 'destination-out' : 'source-over';
-    if (tool === 'blend') {
-      const x = Math.max(0, Math.floor(point.x - radius)), y = Math.max(0, Math.floor(point.y - radius));
-      const w = Math.min(TEXTURE_SIZE - x, Math.ceil(radius * 2)), h = Math.min(TEXTURE_SIZE - y, Math.ceil(radius * 2));
-      const image = ctx.getImageData(x, y, w, h);
-      softenPixels(image, point.x - x, point.y - y, radius, flow);
-      ctx.putImageData(image, x, y); return;
-    } else if (tool === 'powder') {
+    if (tool === 'powder') {
       const gradient = ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, radius);
       gradient.addColorStop(0, $('color').value); gradient.addColorStop(1, `${$('color').value}00`); ctx.fillStyle = gradient;
     } else ctx.fillStyle = $('color').value;
     ctx.beginPath(); ctx.arc(point.x, point.y, radius, 0, Math.PI * 2); ctx.fill();
   } finally { ctx.restore(); }
+  const after = ctx.getImageData(x, y, width, height);
+  retainIsland(after, before, target.atlas, point.chart, x, y); ctx.putImageData(after, x, y);
 }
+
 function finishStroke(cancel = false) {
   if (!edit) return;
   const completed = edit, capturedPointer = pointer;
@@ -179,11 +192,12 @@ function setupPointers() {
     event.stopImmediatePropagation(); event.preventDefault();
     try {
       const target = targets[active];
-      const point = hitPoint(event); if (!point) { status('Paint the selected surface, or select another surface from the list.'); return; }
+      let point = hitPoint(event); if (!point) { status('Paint the selected surface, or select another surface from the list.'); return; }
       const layer = target.layers[layerIndex];
       if (!layer.visible || layer.opacity === 0) throw new Error('Show this layer and increase its opacity before painting.');
-      ensureSurface(target);
-      layer.canvas ||= canvas();
+      ensureSurface(target); point = hitPoint(event);
+      if (!point || !point.chart) throw new Error('A unique paint UV island could not be selected.');
+      if (!layer.canvas) { allowPaintAllocation(targets, target.size * target.size * 4); layer.canvas = canvas(target.size); }
       edit = new TileEdit(context(layer.canvas), () => composite(target)); pointer = event.pointerId;
       el.setPointerCapture(pointer); stamp(point); previous = point; composite(target);
     } catch (e) { status(e.message, true); finishStroke(true); }
@@ -193,7 +207,7 @@ function setupPointers() {
     event.stopImmediatePropagation(); event.preventDefault();
     try {
       const point = hitPoint(event); if (!point) { previous = null; return; }
-      for (const p of strokePoints(previous, point, Number($('size').value))) stamp(p);
+      for (const p of strokePoints(previous?.chart === point.chart ? previous : null, point, Number($('size').value), targets[active].size)) stamp(p);
       previous = point; composite(targets[active]);
     } catch (e) { finishStroke(true); status(e.message, true); }
   }, true);
@@ -203,10 +217,11 @@ function setupPointers() {
 }
 function project() {
   source64 ||= bytesToBase64(new Uint8Array(source));
-  const value = {format: 'primp', version: 1, name: safeName(), source: source64, targets: []};
+  const version = targets.some(t => t.base && t.size === 2048) ? 2 : 1;
+  const value = {format: 'primp', version, name: safeName(), source: source64, targets: []};
   checkProjectSize(value);
   for (const target of targets) if (target.base) {
-    const saved = {id: target.id, layers: []}; value.targets.push(saved);
+    const saved = {id: target.id, ...(version === 2 ? {size: target.size || 1024} : {}), layers: []}; value.targets.push(saved);
     for (const layer of target.layers) {
       saved.layers.push({visible: layer.visible, opacity: layer.opacity, png: layer.canvas?.toDataURL('image/png') ?? null});
       checkProjectSize(value);
@@ -222,8 +237,13 @@ async function restoreProject(value) {
   try {
     for (const saved of value.targets) {
       const target = parsed.targets[saved.id]; if (!target) throw new Error('A saved paint surface is missing from this avatar.');
+      target.size = value.version === 2 ? saved.size : TEXTURE_SIZE;
       ensureSurface(target, parsed.targets);
-      for (let i = 0; i < saved.layers.length; i++) { const layer = saved.layers[i]; target.layers[i] = {visible: layer.visible, opacity: layer.opacity, canvas: layer.png ? await decodeLayer(layer.png) : null}; }
+      for (let i = 0; i < saved.layers.length; i++) {
+        const layer = saved.layers[i];
+        if (layer.png) allowPaintAllocation(parsed.targets, target.size * target.size * 4);
+        target.layers[i] = {visible: layer.visible, opacity: layer.opacity, canvas: layer.png ? await decodeLayer(layer.png, target.size) : null};
+      }
     }
   } catch (e) { dispose(parsed.root, parsed.targets); throw e; }
   install(parsed, bytes, value.name); for (const t of targets) composite(t);
@@ -239,10 +259,14 @@ async function exportAvatar() {
   let result; try { result = await new GLTFExporter().parseAsync(avatar, {binary: true, animations, onlyVisible: false}); } finally { comparing = wasComparing; for (const t of targets) composite(t); }
   download(new Blob([result], {type: 'model/gltf-binary'}), `${safeName()}.glb`); status('Avatar export download prepared.');
 }
+async function checkRecoverySession() {
+  if (await verifiedRecoveryScope() !== recoveryScope) throw new Error('The signed-in account changed. Save this look to a file and reload Primp before using recovery.');
+}
 async function openDatabase() {
   if (!('indexedDB' in window)) throw new Error('Local recovery storage is unavailable. Save a look file to keep your work.');
+  recoveryScope = await verifiedRecoveryScope();
   db = await new Promise((resolve, reject) => {
-    const request = indexedDB.open('primp-mirror', 1);
+    const request = indexedDB.open(recoveryScope === 'standalone' ? 'primp-mirror' : `primp-mirror:${recoveryScope}`, 1);
     request.onupgradeneeded = () => request.result.createObjectStore('looks');
     request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error);
     request.onblocked = () => reject(new Error('Local recovery storage is blocked by another tab.'));
@@ -259,6 +283,7 @@ function scheduleRecovery() {
     if (version !== generation || edit) return;
     recoveryWrites = recoveryWrites.catch(() => {}).then(async () => {
       if (version !== generation) return;
+      await checkRecoverySession();
       const snapshot = project();
       recoveryRevision = await writeRecoveryRecord(db, snapshot, recoveryRevision);
       if (version !== generation) return;
@@ -267,6 +292,7 @@ function scheduleRecovery() {
   }, 600);
 }
 
+$('detail').onchange = () => { if (targets[active] && !targets[active].base) targets[active].size = Number($('detail').value); };
 $('layer').onchange = () => { finishStroke(); layerIndex = Number($('layer').value); syncLayerControls(); };
 $('surface').onchange = () => { finishStroke(); active = Number($('surface').value); syncLayerControls(); };
 $('layer-opacity').onchange = () => changeLayerProperty('opacity', Number($('layer-opacity').value) / 100);
@@ -279,6 +305,12 @@ for (const button of document.querySelectorAll('[data-tool]')) button.onclick = 
 };
 for (const button of document.querySelectorAll('[data-color]')) button.onclick = () => { $('color').value = button.dataset.color; };
 for (const id of ['avatar-file', 'welcome-file']) $(id).onchange = run(async () => { const file = $(id).files[0]; $(id).value = ''; await openAvatar(file); });
+for (const button of document.querySelectorAll('[data-base]')) button.onclick = run(async () => {
+  const name = button.dataset.base;
+  const response = await fetch(`/static/primp/avatars/${name}.glb`);
+  if (!response.ok) throw new Error('The prepared base could not be opened.');
+  await openAvatar(new File([await response.arrayBuffer()], `${name}.glb`, {type: 'model/gltf-binary'}));
+});
 $('project-file').onchange = run(async () => { const file = $('project-file').files[0]; $('project-file').value = ''; await openProject(file); });
 $('save').onclick = run(async () => {
   const result = await saveLookFile(() => {
@@ -297,6 +329,7 @@ $('recover').onclick = run(async () => {
   clearTimeout(recoveryTimer);
   await recoveryWrites.catch(() => {});
   try {
+    await checkRecoverySession();
     const record = await readRecoveryRecord(db);
     if (!record.document) throw new Error('No saved recovery look was found.');
     if (await restoreProject(record.document)) recoveryRevision = record.revision;
@@ -312,8 +345,8 @@ $('undo').onclick = () => applyHistory('undo');
 $('redo').onclick = () => applyHistory('redo');
 $('clear').onclick = () => {
   finishStroke(); const target = targets[active], layer = target.layers[layerIndex]; if (!layer.canvas) return;
-  const transaction = new TileEdit(context(layer.canvas), () => composite(target)); transaction.capture(TEXTURE_SIZE / 2, TEXTURE_SIZE / 2, TEXTURE_SIZE);
-  context(layer.canvas).clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE); const command = transaction.finish(); if (command) { history.push(command); composite(target); markChanged(); }
+  const transaction = new TileEdit(context(layer.canvas), () => composite(target)); transaction.capture(layer.canvas.width / 2, layer.canvas.height / 2, layer.canvas.width);
+  context(layer.canvas).clearRect(0, 0, layer.canvas.width, layer.canvas.height); const command = transaction.finish(); if (command) { history.push(command); composite(target); markChanged(); }
 };
 $('frame').onclick = () => frame(); $('face').onclick = () => frame(true);
 $('compare').onclick = () => { finishStroke(); comparing = !comparing; $('compare').setAttribute('aria-pressed', String(comparing)); for (const t of targets) composite(t); updateControls(); };

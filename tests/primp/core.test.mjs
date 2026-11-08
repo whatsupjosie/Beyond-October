@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {History, strokePoints, validateGLB, validateProject, bytesToBase64, base64ToBytes, softenPixels, bounded, LIMITS} from '../../static/primp/core.mjs';
+import {History, strokePoints, validateGLB, validateProject, bytesToBase64, base64ToBytes, softenPixels, bounded, LIMITS, allowPaintAllocation} from '../../static/primp/core.mjs';
 const bytes = new Uint8Array(readFileSync(new URL('../fixtures/avatars/mh_female.glb', import.meta.url)));
 const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
 
@@ -33,7 +33,7 @@ test('premultiplied blending softens alpha without black fringes', () => {
 });
 test('project schema enforces format, memory bounds, unique targets, and layer types', () => {
  const project={format:'primp',version:1,name:'Look',source:bytesToBase64(bytes),targets:[]};assert.equal(validateProject(project),project);
- assert.throws(()=>validateProject({...project,version:2}));
+ assert.throws(()=>validateProject({...project,version:3}));
  const t={id:0,layers:Array.from({length:6},()=>({visible:true,opacity:1,png:null}))};assert.doesNotThrow(()=>validateProject({...project,targets:[t]}));assert.throws(()=>validateProject({...project,targets:[t,t]}));
  t.layers[0].opacity=NaN;assert.throws(()=>validateProject({...project,targets:[t]}));
 });
@@ -69,4 +69,16 @@ test('portable payload budget counts UTF-8 names and all layers without serializ
  const exact=new TextEncoder().encode(JSON.stringify(value)).byteLength;
  assert.equal(checkProjectSize(value),exact);assert.equal(checkProjectSize(value,exact),exact);assert.throws(()=>checkProjectSize(value,exact-1),/portable project limit/);
  assert.equal(value.targets[0].layers[0].png,'data:image/png;base64,AAAA');
+});
+
+test('fine paint is explicit, versioned, bounded, and preserves island identity during interpolation',()=>{
+ const t={id:0,size:2048,layers:Array.from({length:6},()=>({visible:true,opacity:1,png:null}))};
+ const v={format:'primp',version:2,name:'Fine',source:bytesToBase64(bytes),targets:[t]};
+ assert.doesNotThrow(()=>validateProject(v));
+ assert.throws(()=>validateProject({...v,version:1}),/resolution/);
+ assert.throws(()=>validateProject({...v,targets:[{...t,size:4096}]}),/resolution/);
+ assert.ok(strokePoints({x:0,y:0,chart:7},{x:100,y:0,chart:7},10,2048).every(p=>p.chart===7));
+ const full=[{atlas:{mask:{byteLength:16*1024*1024}},layers:Array.from({length:6},()=>({canvas:{width:2048,height:2048}}))}];
+ assert.doesNotThrow(()=>allowPaintAllocation(full,16*1024*1024));
+ assert.throws(()=>allowPaintAllocation(full,16*1024*1024+1),/memory budget/);
 });

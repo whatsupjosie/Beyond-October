@@ -1,9 +1,10 @@
+import {buildIslandAtlas, retainIsland} from '/static/primp/uv-islands.mjs';
 import {imageDimensions} from '/static/primp/gltf-boundary.mjs';
 import {readRecoveryRecord, writeRecoveryRecord} from '/static/primp/recovery.mjs';
 import * as THREE from 'three';
 import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
 import {History, TileEdit, TEXTURE_SIZE, checkProjectSize, bytesToBase64, base64ToBytes, validateProject, softenPixels} from '/static/primp/core.mjs';
-import {parseAvatar, prepareSurface, composeSurface, decodeLayer, dispose, surfacePoint} from '/static/primp/model.mjs';
+import {parseAvatar, prepareSurface, composeSurface, decodeLayer, dispose, surfacePoint, preparePaintAtlas} from '/static/primp/model.mjs';
 const report = document.getElementById('results');
 let passed = 0, failed = 0;
 function assert(condition, message) { if (!condition) throw new Error(message); }
@@ -17,6 +18,53 @@ function transaction(db, mode, value, abort = false) { return new Promise((resol
 document.getElementById('run').onclick = async () => {
  document.getElementById('run').disabled = true; report.textContent = ''; passed = failed = 0;
  const c = document.getElementById('sample'), ctx = c.getContext('2d', {willReadFrequently:true});
+ await test('Prepared Manny and Sheila have unique paint UVs and retain their rig',async()=>{
+  for(const name of ['manny','sheila']) {
+   const response=await fetch(`/static/primp/avatars/${name}.glb`);assert(response.ok,'Missing prepared base');
+   const bytes=await response.arrayBuffer(), model=await parseAvatar(bytes);
+   try {
+    assert(model.targets.length===1,'Prepared base has no paint target');
+    const t=model.targets[0];t.size=2048;prepareSurface(t,model.targets);
+    assert(t.atlas.chartCount>0 && t.atlas.blocked.size===0,`${name}: overlapping charts ${[...t.atlas.blocked]}`);
+    for (const [mesh,faceMap] of t.atlas.faces) {
+     const pos=mesh.geometry.attributes.position, index=mesh.geometry.index;
+     for(let f=0;f<faceMap.length;f++) if(!t.atlas.validFaces[faceMap[f]]) {
+      const points=[0,1,2].map(j=>new THREE.Vector3().fromBufferAttribute(pos,index?index.getX(f*3+j):f*3+j));
+      const area=points[1].sub(points[0]).cross(points[2].sub(points[0])).length();
+      assert(area<1e-16,`${name}: a visible face has invalid UVs`);
+     }
+    }
+    assert(t.composite.width>=2048 && t.composite.height>=2048,'Fine paint was downsampled');
+    assert(stats(model.root).skinned>0 && stats(model.root).bones>0,'Rig lost');
+    const layer=document.createElement('canvas');layer.width=layer.height=2048;layer.getContext('2d').fillRect(123,234,1,1);
+    const restored=await decodeLayer(layer.toDataURL('image/png'),2048);
+    assert(restored.getContext('2d').getImageData(123,234,1,1).data[3]===255,'Fine pixel lost');
+   } finally {dispose(model.root,model.targets);}
+  }
+  return 'Both derived bases load, build nonoverlapping 2048 atlases, preserve bones/skinning, and retain fine pixels';
+ });
+ await test('Actual Canvas brush and blend cannot cross nearby UV islands',()=>{
+  const quad=(x,id)=>{const p=[[x,.1],[x+.02,.1],[x+.02,.12],[x,.12]];return [[0,1,2],[0,2,3]].map(ids=>({mesh:id,uv:ids.map(i=>p[i]),positions:ids.map(i=>[...p[i],0])}));};
+  const atlas=buildIslandAtlas([...quad(.1,0),...quad(.125,1)],1024),chart=atlas.charts[0];
+  const paint=newCanvas(),ctx=paint.getContext('2d');ctx.fillStyle='#00ff00';ctx.fillRect(128,102,21,21);
+  const before=ctx.getImageData(70,70,100,100);ctx.fillStyle='#ff0000';ctx.beginPath();ctx.arc(112,112,40,0,Math.PI*2);ctx.fill();
+  const after=ctx.getImageData(70,70,100,100);retainIsland(after,before,atlas,chart,70,70);ctx.putImageData(after,70,70);
+  assert(ctx.getImageData(112,112,1,1).data[0]===255,'Selected island was not painted');
+  assert(ctx.getImageData(135,112,1,1).data[1]===255,'Nearby island was overwritten');
+  const input=ctx.getImageData(70,70,100,100);retainIsland(input,null,atlas,chart,70,70);softenPixels(input,42,42,40,1);retainIsland(input,after,atlas,chart,70,70);
+  assert(input.data[((112-70)*100+135-70)*4+1]===255,'Blend damaged neighboring paint');
+  assert(input.data[((112-70)*100+112-70)*4+1]===0,'Blend sampled neighboring green');
+ });
+ await test('Version 2 fine project reopens with exact original bytes and fine layer pixels',async()=>{
+  const response=await fetch('/static/primp/avatars/sheila.glb'),bytes=new Uint8Array(await response.arrayBuffer());
+  const layer=document.createElement('canvas');layer.width=layer.height=2048;const ctx=layer.getContext('2d');ctx.fillStyle='#ff1278';ctx.fillRect(900,900,2,2);
+  const value={format:'primp',version:2,name:'Fine QA',source:bytesToBase64(bytes),targets:[{id:0,size:2048,layers:Array.from({length:6},(_,i)=>({visible:true,opacity:1,png:i===5?layer.toDataURL('image/png'):null}))}]};
+  const restored=validateProject(JSON.parse(JSON.stringify(value)));assert(equal(base64ToBytes(restored.source),bytes),'Source bytes changed');
+  const model=await parseAvatar(base64ToBytes(restored.source).buffer);
+  try {const t=model.targets[0];t.size=restored.targets[0].size;prepareSurface(t,model.targets);t.layers[5].canvas=await decodeLayer(restored.targets[0].layers[5].png,t.size);composeSurface(t);
+   assert(t.composite.width===2048,'Fine composite shrank');assert(equal(t.layers[5].canvas.getContext('2d').getImageData(900,900,2,2).data,ctx.getImageData(900,900,2,2).data),'Fine layer changed');
+  } finally {dispose(model.root,model.targets);}
+ });
  await test('Three paint attachment approaches', () => {
    const geometry = new THREE.PlaneGeometry(2,2,1,1), positions=geometry.attributes.position, uvs=geometry.attributes.uv;
    // A 6px liner mark fits between low-poly vertices; vertex color cannot represent it.
@@ -67,6 +115,19 @@ document.getElementById('run').onclick = async () => {
    const after=await parseAvatar(exported), s=stats(after.root);assert(JSON.stringify(s)===JSON.stringify(before),'Export altered rig/morph count');assert(after.animations.length===parsed.animations.length,'Animations lost');assert(after.targets[0].originalMap,'Paint texture lost');
    const t=after.targets[0];prepareSurface(t,after.targets);const pixel=t.base.getContext('2d').getImageData(200,350,1,1).data;assert(pixel[0]>pixel[1],'Export lost berry paint');dispose(after.root,after.targets);return `${exported.byteLength} bytes; ${JSON.stringify(s)}; ${after.animations.length} animation.`;
  });
+ await test('Cutout and fully transparent texels do not hide a paintable surface behind them',()=>{
+  const image=newCanvas(),ctx=image.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,400,1024);
+  const map=new THREE.CanvasTexture(image);map.flipY=false;
+  const front=new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.MeshBasicMaterial({map,alphaTest:.5})),back=new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.MeshBasicMaterial());front.position.z=.5;
+  const root=new THREE.Group();root.add(front,back);const camera=new THREE.PerspectiveCamera(45,1,.01,100);camera.position.z=3;camera.updateMatrixWorld();const target={material:back.material,uvName:'uv'};
+  assert(surfacePoint(root,target,new THREE.Vector2(),camera),'Cutout texel blocked the back surface');
+  ctx.fillRect(0,0,1024,1024);assert(surfacePoint(root,target,new THREE.Vector2(),camera)===null,'Opaque texel allowed painting through');
+  front.material.alphaTest=0;front.material.transparent=true;front.material.opacity=0;
+  assert(surfacePoint(root,target,new THREE.Vector2(),camera),'Zero-opacity front surface blocked paint');
+  front.material.opacity=.5;assert(surfacePoint(root,target,new THREE.Vector2(),camera)===null,'Semitransparent visible surface allowed painting through');
+  front.material.map=null;const alphaMap=new THREE.CanvasTexture(image);alphaMap.flipY=false;front.material.alphaMap=alphaMap;front.material.alphaTest=.5;ctx.fillStyle='#ff00ff';ctx.fillRect(0,0,1024,1024);
+  assert(surfacePoint(root,target,new THREE.Vector2(),camera),'Alpha map did not use its green channel');dispose(root,[]);map.dispose();
+ });
  await test('Real raycast paints selected front surface and blocks hidden/occluded surfaces',()=>{
    const root=new THREE.Group(), front=new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.MeshBasicMaterial()), back=new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.MeshBasicMaterial());front.position.z=.5;root.add(front,back);
    const camera=new THREE.PerspectiveCamera(45,1,.01,100);camera.position.z=3;camera.updateMatrixWorld();const target={material:front.material,uvName:'uv'};
@@ -109,12 +170,20 @@ document.getElementById('run').onclick = async () => {
      const revision=await writeRecoveryRecord(a,{...look,name:'first editor'},left.revision);assert(revision===1,'Revision did not advance');
      let conflict=false;try{await writeRecoveryRecord(b,{...look,name:'stale editor'},right.revision);}catch(e){conflict=/Another tab/.test(e.message);}assert(conflict,'Stale tab silently overwrote the recovery');
      assert((await readRecoveryRecord(b)).document.name==='first editor','Conflict destroyed newer recovery');
+     await new Promise((resolve,reject)=>{const tx=a.transaction('looks','readwrite');tx.objectStore('looks').put({...look,name:'old browser overwrite'},'recovery');tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error);});
+     assert((await readRecoveryRecord(b)).document.name==='first editor','Old browser overwrote the migrated record');
      const race=await Promise.allSettled([writeRecoveryRecord(a,{...look,name:'race a'},1),writeRecoveryRecord(b,{...look,name:'race b'},1)]);
      assert(race.filter(r=>r.status==='fulfilled').length===1&&race.filter(r=>r.status==='rejected').length===1,'Concurrent writers both committed');
      const winner=await readRecoveryRecord(a);assert(winner.revision===2,'Concurrent revision is incorrect');
      let cloneFailed=false;try{await writeRecoveryRecord(a,{invalid:()=>{}},2);}catch{cloneFailed=true;}assert(cloneFailed,'Uncloneable payload did not fail');assert((await readRecoveryRecord(a)).document.name===winner.document.name,'Failed write destroyed previous recovery');
      return 'legacy migration, stale-tab refusal, concurrent winner, and failed-write preservation passed';
    } finally {a.close();b.close();}
+ });
+ await test('Unprepared live vertex colors cannot silently tint the makeup',()=>{
+  const geometry=new THREE.PlaneGeometry(2,2);geometry.setAttribute('color',new THREE.BufferAttribute(new Float32Array(geometry.attributes.position.count*3).fill(.25),3));
+  const material=new THREE.MeshStandardMaterial({vertexColors:true}),mesh=new THREE.Mesh(geometry,material),target={material,meshes:[mesh],layers:[],base:null};
+  let refused=false;try{prepareSurface(target,[target]);}catch(e){refused=/live vertex colors/.test(e.message);}
+  assert(refused && !target.base && material.map===null && material.vertexColors,'Unsupported paint silently changed original colors');dispose(mesh,[]);
  });
  await test('Texture preparation rolls back material and allocations on failure',()=>{
    const material=new THREE.MeshStandardMaterial({color:'#663322'}),oldColor=material.color.getHex();

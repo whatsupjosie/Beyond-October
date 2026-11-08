@@ -14,7 +14,7 @@ export function strokePoints(a, b, radius, size = TEXTURE_SIZE) {
   const distance = a ? Math.hypot(b.x - a.x, b.y - a.y) : Infinity;
   if (!a || distance > size / 4) return [b];
   const count = Math.max(1, Math.ceil(distance / Math.max(1, radius * 0.25)));
-  return Array.from({length: count}, (_, i) => ({x: a.x + (b.x - a.x) * (i + 1) / count, y: a.y + (b.y - a.y) * (i + 1) / count}));
+  return Array.from({length: count}, (_, i) => ({x: a.x + (b.x - a.x) * (i + 1) / count, y: a.y + (b.y - a.y) * (i + 1) / count, ...(b.chart !== undefined ? {chart: b.chart} : {})}));
 }
 
 export class History {
@@ -92,27 +92,29 @@ export function base64ToBytes(text) {
 // second serialized string. Paint payloads and source are ASCII; names are UTF-8.
 export function checkProjectSize(value, limit = LIMITS.project) {
   let payload = value.source.length;
-  const targets = value.targets.map(t => ({id: t.id, layers: t.layers.map(layer => {
+  const targets = value.targets.map(t => ({id: t.id, ...(value.version === 2 ? {size: t.size} : {}), layers: t.layers.map(layer => {
     if (layer.png !== null) payload += layer.png.length;
     return {visible: layer.visible, opacity: layer.opacity, png: layer.png === null ? null : ''};
   })}));
-  const header = {format: 'primp', version: 1, name: value.name, source: '', targets};
+  const header = {format: 'primp', version: value.version, name: value.name, source: '', targets};
   const bytes = payload + new TextEncoder().encode(JSON.stringify(header)).byteLength;
   if (bytes > limit) throw new Error('This look exceeds the 70 MiB portable project limit. Your open work has not been discarded.');
   return bytes;
 }
 
 export function validateProject(value) {
-  if (!value || value.format !== 'primp' || value.version !== 1 || typeof value.name !== 'string' || value.name.length > 120 || !Array.isArray(value.targets) || value.targets.length > LIMITS.targets) throw new Error('Unsupported or invalid Primp project.');
+  if (!value || value.format !== 'primp' || ![1, 2].includes(value.version) || typeof value.name !== 'string' || value.name.length > 120 || !Array.isArray(value.targets) || value.targets.length > LIMITS.targets) throw new Error('Unsupported or invalid Primp project.');
   validateGLB(base64ToBytes(value.source).buffer);
   const seen = new Set();
   for (const t of value.targets) {
     if (!t || typeof t !== 'object' || !Number.isSafeInteger(t.id) || t.id < 0 || seen.has(t.id) || !Array.isArray(t.layers) || t.layers.length !== LAYERS.length) throw new Error('Invalid paint surfaces.');
     seen.add(t.id);
+    const size = value.version === 2 ? t.size : TEXTURE_SIZE;
+    if (![1024, 2048].includes(size) || (value.version === 1 && t.size !== undefined && t.size !== TEXTURE_SIZE)) throw new Error('Invalid paint resolution.');
     for (const layer of t.layers) {
       if (!layer || typeof layer.visible !== 'boolean' || !Number.isFinite(layer.opacity) || layer.opacity < 0 || layer.opacity > 1) throw new Error('Invalid makeup layer.');
       if (layer.png === null) continue;
-      if (typeof layer.png !== 'string' || layer.png.length > 8 * 1024 * 1024 || !layer.png.startsWith('data:image/png;base64,iVBORw0KGgo') || /[^A-Za-z0-9+/=]/.test(layer.png.slice(22))) throw new Error('Invalid makeup layer.');
+      if (typeof layer.png !== 'string' || layer.png.length > (size === 2048 ? 24 : 8) * 1024 * 1024 || !layer.png.startsWith('data:image/png;base64,iVBORw0KGgo') || /[^A-Za-z0-9+/=]/.test(layer.png.slice(22))) throw new Error('Invalid makeup layer.');
     }
   }
   checkProjectSize(value);
@@ -135,4 +137,11 @@ export function softenPixels(image, centerX, centerY, radius, flow) {
     for (let c = 0; c < 3; c++) output[i + c] = newA ? (data[i + c] * oldA * (1 - mix) + [r, g, b][c] / 9 * mix) / newA : 0;
   }
   data.set(output); return image;
+}
+
+export function paintMemoryBytes(targets) {
+  return targets.reduce((sum, target) => sum + (target.atlas?.mask.byteLength || 0) + target.layers.reduce((n, layer) => n + (layer.canvas ? layer.canvas.width * layer.canvas.height * 4 : 0), 0), 0);
+}
+export function allowPaintAllocation(targets, additionalBytes) {
+  if (paintMemoryBytes(targets) + additionalBytes > 128 * 1024 * 1024) throw new Error('The paint memory budget is full. Save the look before starting a new one.');
 }

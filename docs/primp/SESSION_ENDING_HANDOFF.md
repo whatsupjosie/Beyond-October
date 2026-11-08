@@ -1,3 +1,7 @@
+# November 8 continuation
+
+The current continuation is recorded in [GAP_CLOSURE_2026-11-08.md](GAP_CLOSURE_2026-11-08.md). The earlier report below is historical; its legacy-avatar, UV-mask, fixed-resolution, mixed-version recovery, account scoping, and host-dependency gaps have since been addressed. GPU/browser and physical-device acceptance remain open.
+
 # Primp session ending handoff
 
 2026-11-07. Branch: `gpt/primp-canvas-preparation-2026-11-07`.
