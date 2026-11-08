@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {parseAvatar, dispose, prepareSurface, composeSurface, decodeLayer, surfacePoint} from './model.mjs';
 import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
-import {TEXTURE_SIZE, LAYERS, LIMITS, History, TileEdit, strokePoints, softenPixels, validateProject, bytesToBase64, base64ToBytes} from './core.mjs';
+import {TEXTURE_SIZE, LAYERS, LIMITS, History, TileEdit, strokePoints, softenPixels, checkProjectSize, validateProject, bytesToBase64, base64ToBytes} from './core.mjs';
 
 const $ = id => document.getElementById(id);
 const history = new History();
@@ -130,18 +130,21 @@ function hitPoint(event) {
 function stamp(point) {
   const radius = Number($('size').value), flow = Number($('flow').value) / 100, ctx = edit.context;
   edit.capture(point.x, point.y, radius);
-  ctx.save(); ctx.globalAlpha = flow; ctx.globalCompositeOperation = tool === 'erase' ? 'destination-out' : 'source-over';
-  if (tool === 'blend') {
-    const x = Math.max(0, Math.floor(point.x - radius)), y = Math.max(0, Math.floor(point.y - radius));
-    const w = Math.min(TEXTURE_SIZE - x, Math.ceil(radius * 2)), h = Math.min(TEXTURE_SIZE - y, Math.ceil(radius * 2));
-    const image = ctx.getImageData(x, y, w, h);
-    softenPixels(image, point.x - x, point.y - y, radius, flow);
-    ctx.putImageData(image, x, y); ctx.restore(); return;
-  } else if (tool === 'powder') {
-    const gradient = ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, radius);
-    gradient.addColorStop(0, $('color').value); gradient.addColorStop(1, `${$('color').value}00`); ctx.fillStyle = gradient;
-  } else ctx.fillStyle = $('color').value;
-  ctx.beginPath(); ctx.arc(point.x, point.y, radius, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  ctx.save();
+  try {
+    ctx.globalAlpha = flow; ctx.globalCompositeOperation = tool === 'erase' ? 'destination-out' : 'source-over';
+    if (tool === 'blend') {
+      const x = Math.max(0, Math.floor(point.x - radius)), y = Math.max(0, Math.floor(point.y - radius));
+      const w = Math.min(TEXTURE_SIZE - x, Math.ceil(radius * 2)), h = Math.min(TEXTURE_SIZE - y, Math.ceil(radius * 2));
+      const image = ctx.getImageData(x, y, w, h);
+      softenPixels(image, point.x - x, point.y - y, radius, flow);
+      ctx.putImageData(image, x, y); return;
+    } else if (tool === 'powder') {
+      const gradient = ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, radius);
+      gradient.addColorStop(0, $('color').value); gradient.addColorStop(1, `${$('color').value}00`); ctx.fillStyle = gradient;
+    } else ctx.fillStyle = $('color').value;
+    ctx.beginPath(); ctx.arc(point.x, point.y, radius, 0, Math.PI * 2); ctx.fill();
+  } finally { ctx.restore(); }
 }
 function finishStroke(cancel = false) {
   if (!edit) return;
@@ -200,8 +203,18 @@ function setupPointers() {
 }
 function project() {
   source64 ||= bytesToBase64(new Uint8Array(source));
-  return {format: 'primp', version: 1, name: safeName(), source: source64, targets: targets.filter(t => t.base).map(t => ({id: t.id, layers: t.layers.map(l => ({visible: l.visible, opacity: l.opacity, png: l.canvas?.toDataURL('image/png') ?? null}))}))};
+  const value = {format: 'primp', version: 1, name: safeName(), source: source64, targets: []};
+  checkProjectSize(value);
+  for (const target of targets) if (target.base) {
+    const saved = {id: target.id, layers: []}; value.targets.push(saved);
+    for (const layer of target.layers) {
+      saved.layers.push({visible: layer.visible, opacity: layer.opacity, png: layer.canvas?.toDataURL('image/png') ?? null});
+      checkProjectSize(value);
+    }
+  }
+  return value;
 }
+
 async function restoreProject(value) {
   validateProject(value);
   if (dirty && !confirm('Replace this look? Save it first if you want to keep it.')) return;
@@ -250,7 +263,7 @@ function scheduleRecovery() {
       recoveryRevision = await writeRecoveryRecord(db, snapshot, recoveryRevision);
       if (version !== generation) return;
       $('storage-status').textContent = 'Local recovery saved on this device.'; $('recover').hidden = false;
-    }).catch(error => { $('storage-status').textContent = `Local recovery failed: ${error.message}. Save a look file now.`; });
+    }).catch(error => { if (version !== generation) return; $('storage-status').textContent = `Local recovery failed: ${error.message}. Save a look file now.`; });
   }, 600);
 }
 

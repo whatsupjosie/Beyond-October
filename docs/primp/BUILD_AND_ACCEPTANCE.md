@@ -1,6 +1,6 @@
 # Primp: makeup tools and digital mirror
 
-Latest audit: [Troubleshooting round one](TROUBLESHOOTING_ROUND_1.md).
+Latest audit: [Deep polish / round two](TROUBLESHOOTING_ROUND_2.md). Earlier: [round one](TROUBLESHOOTING_ROUND_1.md).
 
 Date: 2026-11-07. Status: **UNRELEASED — foundation checks pass; 3D user workflow acceptance is blocked.**
 
@@ -22,6 +22,7 @@ The separate children's product stays separate. Adult Primp has no switch into a
 
 - `static/primp.html`: responsive makeup workspace, local import/export, layer/tool controls, lighting controls, explicit failure states.
 - `static/primp/app.mjs`: viewport, pointer interaction, UI state, bounded history, save/reopen, recovery scheduling, export.
+- `static/primp/gltf-boundary.mjs`: bounded GLB metadata, graph, accessor, and image preflight.
 - `static/primp/model.mjs`: GLB validation/loading boundary, paint targets, compositing, original texture/color handling, surface raycasts, resource disposal.
 - `static/primp/core.mjs`: format limits, validation, interpolation, tile history, premultiplied-alpha blending.
 - `static/primp/files.mjs` and `recovery.mjs`: confirmed-save boundary and transactional recovery revision checks.
@@ -72,6 +73,7 @@ Focused checks: `node --test tests/primp/core.test.mjs`. The browser harness req
 
 - WebGL is required; this environment cannot create a context. UI responds with an error and disables unavailable controls. There is no fake avatar image behind the error.
 - The complete import → paint on a turning avatar → compare → save → reopen → export → restart flow has NOT been accepted in a functioning 3D viewport.
+- Import preflight caps metadata at 4 MiB, nodes at 2,048 / depth 128, estimated decoded accessor storage at 64 MiB, and total decoded image pixels at 16 megapixels. Unsupported compact matrix layouts and animated WebP are explicitly refused. The legacy Manny/Sheila assets lack required buffer references and paint UVs; their preparation remains open.
 - Source GLB: 30 MiB maximum; .primp file: 70 MiB maximum; up to four painted material surfaces. Paint layers are 1024 × 1024. Underlying skin texture dimensions are retained up to 4096 per dimension and within the explicit base/composite memory budget. Over-budget textures are rejected, never silently downsampled. Face-only/high-resolution makeup canvases require a future tested resolution policy.
 - Paint follows the avatar's UV layout. Mirrored/overlapping UVs share paint; atlas distortion and island-edge bleed need explicit visual acceptance and improved edge isolation before a commercial release. The seam guard prevents long connecting lines but does not solve all island-edge cases.
 - Material selection is manual. There is no automatic eye/lip/skin region classification, anatomical paint masking, or product finish simulation.

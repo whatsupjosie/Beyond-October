@@ -10,23 +10,25 @@ export async function parseAvatar(bytes) {
   manager.setURLModifier(url => { if (!url.startsWith('blob:') && !url.startsWith('data:')) throw new Error('External avatar resources are blocked.'); return url; });
   const gltf = await new GLTFLoader(manager).parseAsync(bytes.slice(0), '');
   const materials = new Map(), surfaces = [];
-  gltf.scene.updateMatrixWorld(true);
-  gltf.scene.traverse(mesh => {
-    if (!mesh.isMesh) return;
-    const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-    const copies = list.map(material => {
-      const copy = materials.get(material) || material.clone(); materials.set(material, copy);
-      const uvName = material.map?.channel ? `uv${material.map.channel}` : 'uv';
-      if (!surfaces.some(t => t.material === copy) && ['uv', 'uv1'].includes(uvName) && mesh.geometry.getAttribute(uvName) && !material.map?.isCompressedTexture) {
-        surfaces.push({id: surfaces.length, material: copy, originalMap: copy.map, originalColor: copy.color?.clone(), uvName, label: `${material.name || mesh.name || 'Surface'} · ${surfaces.length + 1}`, layers: LAYERS.map(() => ({canvas: null, visible: true, opacity: 1})), base: null, composite: null, texture: null});
-      }
-      return copy;
+  try {
+    gltf.scene.updateMatrixWorld(true);
+    gltf.scene.traverse(mesh => {
+      if (!mesh.isMesh) return;
+      const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      const copies = list.map(material => {
+        const copy = materials.get(material) || material.clone(); materials.set(material, copy);
+        const uvName = material.map?.channel ? `uv${material.map.channel}` : 'uv';
+        if (!surfaces.some(t => t.material === copy) && ['uv', 'uv1'].includes(uvName) && mesh.geometry.getAttribute(uvName) && !material.map?.isCompressedTexture) {
+          surfaces.push({id: surfaces.length, material: copy, originalMap: copy.map, originalColor: copy.color?.clone(), uvName, label: `${material.name || mesh.name || 'Surface'} · ${surfaces.length + 1}`, layers: LAYERS.map(() => ({canvas: null, visible: true, opacity: 1})), base: null, composite: null, texture: null});
+        }
+        return copy;
+      });
+      mesh.material = Array.isArray(mesh.material) ? copies : copies[0];
     });
-    mesh.material = Array.isArray(mesh.material) ? copies : copies[0];
-  });
-  const bounds = new THREE.Box3().setFromObject(gltf.scene), size = bounds.getSize(new THREE.Vector3());
-  if (bounds.isEmpty() || ![size.x, size.y, size.z].every(Number.isFinite) || size.length() < .00001) { dispose(gltf.scene, surfaces); throw new Error('The avatar has no usable visible geometry.'); }
-  return {root: gltf.scene, animations: gltf.animations, targets: surfaces};
+    const bounds = new THREE.Box3().setFromObject(gltf.scene), size = bounds.getSize(new THREE.Vector3());
+    if (bounds.isEmpty() || ![size.x, size.y, size.z].every(Number.isFinite) || size.length() < .00001) throw new Error('The avatar has no usable visible geometry.');
+    return {root: gltf.scene, animations: gltf.animations, targets: surfaces};
+  } catch (error) { dispose(gltf.scene, surfaces); throw error; }
 }
 export function dispose(root, surfaces) {
   const textures = new Set(), materials = new Set(), geometries = new Set();
@@ -59,15 +61,29 @@ export function prepareSurface(target, allTargets, changed = () => {}) {
     for (let i = 0; i < image.data.length; i += 4) for (let c = 0; c < 3; c++) image.data[i + c] = tables[c][image.data[i + c]];
     ctx.putImageData(image, 0, 0);
   }
-  target.base = base; target.composite = canvas(); target.composite.width = width; target.composite.height = height;
-  const texture = new THREE.CanvasTexture(target.composite), original = target.originalMap;
-  texture.colorSpace = THREE.SRGBColorSpace; texture.flipY = original?.flipY ?? false;
-  if (original) {
-    for (const prop of ['wrapS', 'wrapT', 'magFilter', 'minFilter', 'anisotropy', 'channel', 'rotation']) texture[prop] = original[prop];
-    texture.offset.copy(original.offset); texture.repeat.copy(original.repeat); texture.center.copy(original.center);
+  const composite = canvas(); composite.width = width; composite.height = height;
+  const texture = new THREE.CanvasTexture(composite), original = target.originalMap;
+  const previousMap = target.material.map, previousColor = target.material.color?.clone();
+  try {
+    texture.colorSpace = THREE.SRGBColorSpace; texture.flipY = original?.flipY ?? false;
+    if (original) {
+      for (const prop of ['wrapS', 'wrapT', 'magFilter', 'minFilter', 'anisotropy', 'channel', 'rotation']) texture[prop] = original[prop];
+      texture.offset.copy(original.offset); texture.repeat.copy(original.repeat); texture.center.copy(original.center);
+      texture.matrixAutoUpdate = original.matrixAutoUpdate;
+      texture.matrix.copy(original.matrix);
+    }
+    composeSurface({...target, base, composite, texture});
+    Object.assign(target, {base, composite, texture});
+    target.material.map = texture; target.material.color?.set(0xffffff); target.material.needsUpdate = true;
+    changed();
+  } catch (error) {
+    Object.assign(target, {base: null, composite: null, texture: null});
+    target.material.map = previousMap;
+    if (previousColor) target.material.color.copy(previousColor);
+    target.material.needsUpdate = true;
+    texture.dispose(); base.width = composite.width = 0;
+    throw error;
   }
-  target.texture = texture; target.material.map = texture; target.material.color?.set(0xffffff); target.material.needsUpdate = true;
-  composeSurface(target, false, changed);
 }
 export function composeSurface(target, comparing = false, changed = () => {}) {
   if (!target.base) return;
@@ -88,13 +104,17 @@ export async function decodeLayer(png) {
 export function surfacePoint(root, target, ndc, camera) {
   const ray = new THREE.Raycaster(); ray.setFromCamera(ndc, camera); root.updateMatrixWorld(true);
   const visible = object => { for (let node = object; node; node = node.parent) if (!node.visible) return false; return true; };
-  const hit = ray.intersectObject(root, true).find(h => visible(h.object) && h.face);
+  const hit = ray.intersectObject(root, true).find(h => {
+    if (!visible(h.object) || !h.face) return false;
+    const material = Array.isArray(h.object.material) ? h.object.material[h.face.materialIndex] : h.object.material;
+    return material?.visible !== false;
+  });
   if (!hit) return null;
   const material = Array.isArray(hit.object.material) ? hit.object.material[hit.face.materialIndex] : hit.object.material;
   if (material !== target.material) return null;
   const uv = (target.uvName === 'uv' ? hit.uv : hit.uv1)?.clone();
   if (!uv) return null;
   const mapping = target.texture || target.originalMap;
-  if (mapping) { mapping.updateMatrix(); mapping.transformUv(uv); }
+  if (mapping) { if (mapping.matrixAutoUpdate) mapping.updateMatrix(); mapping.transformUv(uv); }
   return {x: bounded(uv.x, 0, 1) * (TEXTURE_SIZE - 1), y: bounded(uv.y, 0, 1) * (TEXTURE_SIZE - 1)};
 }

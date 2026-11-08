@@ -63,3 +63,10 @@ test('failed history notifications roll the pixels/state back before reporting f
  assert.throws(()=>h.undo(),/undo notification/);assert.equal(value,1);assert.equal(h.past.length,1);
  undoFailure=false;h.undo();redoFailure=true;assert.throws(()=>h.redo(),/redo notification/);assert.equal(value,0);assert.equal(h.future.length,1);
 });
+test('portable payload budget counts UTF-8 names and all layers without serializing image strings',async()=>{
+ const {checkProjectSize}=await import('../../static/primp/core.mjs');
+ const value={format:'primp',version:1,name:'💄 café',source:'AAAA',targets:[{id:0,layers:[{visible:true,opacity:.5,png:'data:image/png;base64,AAAA'},{visible:false,opacity:0,png:null}]}]};
+ const exact=new TextEncoder().encode(JSON.stringify(value)).byteLength;
+ assert.equal(checkProjectSize(value),exact);assert.equal(checkProjectSize(value,exact),exact);assert.throws(()=>checkProjectSize(value,exact-1),/portable project limit/);
+ assert.equal(value.targets[0].layers[0].png,'data:image/png;base64,AAAA');
+});

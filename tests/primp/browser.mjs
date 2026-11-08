@@ -1,7 +1,8 @@
+import {imageDimensions} from '/static/primp/gltf-boundary.mjs';
 import {readRecoveryRecord, writeRecoveryRecord} from '/static/primp/recovery.mjs';
 import * as THREE from 'three';
 import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
-import {History, TileEdit, TEXTURE_SIZE, bytesToBase64, base64ToBytes, validateProject, softenPixels} from '/static/primp/core.mjs';
+import {History, TileEdit, TEXTURE_SIZE, checkProjectSize, bytesToBase64, base64ToBytes, validateProject, softenPixels} from '/static/primp/core.mjs';
 import {parseAvatar, prepareSurface, composeSurface, decodeLayer, dispose, surfacePoint} from '/static/primp/model.mjs';
 const report = document.getElementById('results');
 let passed = 0, failed = 0;
@@ -95,7 +96,7 @@ document.getElementById('run').onclick = async () => {
  await test('Empty strokes do not consume undo; unchanged tiles are discarded',()=>{
    const c=newCanvas(),ctx=c.getContext('2d',{willReadFrequently:true});
    const empty=new TileEdit(ctx,()=>{});empty.capture(100,100,70);assert(empty.finish()===null,'Empty edit consumes undo');
-   const changed=new TileEdit(ctx,()=>{});changed.capture(100,100,70);ctx.fillStyle='#a3294a';ctx.fillRect(100,100,1,1);const command=changed.finish();assert(command.bytes===64*64*4*2,'Unchanged tiles retained');command.undo();assert(ctx.getImageData(100,100,1,1).data[3]===0,'Undo failed');command.redo();assert(ctx.getImageData(100,100,1,1).data[3]===255,'Redo failed');
+   const changed=new TileEdit(ctx,()=>{});changed.capture(100,100,70);ctx.fillStyle='#a3294a';ctx.fillRect(100,100,1,1);const command=changed.finish();assert(command.bytes===64*64*4*2,'Unchanged tiles counted');assert(changed.tiles.size===1,'Unchanged buffers still retained');command.undo();assert(ctx.getImageData(100,100,1,1).data[3]===0,'Undo failed');command.redo();assert(ctx.getImageData(100,100,1,1).data[3]===255,'Redo failed');
  });
  await test('Production recovery blocks stale writes across two independent connections',async()=>{
    const name=`primp-audit-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -114,6 +115,26 @@ document.getElementById('run').onclick = async () => {
      let cloneFailed=false;try{await writeRecoveryRecord(a,{invalid:()=>{}},2);}catch{cloneFailed=true;}assert(cloneFailed,'Uncloneable payload did not fail');assert((await readRecoveryRecord(a)).document.name===winner.document.name,'Failed write destroyed previous recovery');
      return 'legacy migration, stale-tab refusal, concurrent winner, and failed-write preservation passed';
    } finally {a.close();b.close();}
+ });
+ await test('Texture preparation rolls back material and allocations on failure',()=>{
+   const material=new THREE.MeshStandardMaterial({color:'#663322'}),oldColor=material.color.getHex();
+   const t={material,originalMap:null,originalColor:material.color.clone(),layers:Array.from({length:6},()=>({canvas:null,visible:true,opacity:1})),base:null,composite:null,texture:null};
+   let failed=false;try{prepareSurface(t,[t],()=>{throw Error('injected preparation failure');});}catch(e){failed=/injected/.test(e.message);}assert(failed,'Failure injection did not run');assert(t.base===null&&t.composite===null&&t.texture===null,'Partial surface survived failure');assert(material.map===null&&material.color.getHex()===oldColor,'Original material was changed');
+   prepareSurface(t,[t]);assert(t.base&&t.texture,'Surface could not be prepared after rollback');t.texture.dispose();material.dispose();
+ });
+ await test('Real PNG, JPEG and WebP headers pass bounded dimension inspection',()=>{
+   const c=document.createElement('canvas');c.width=17;c.height=23;c.getContext('2d').fillRect(0,0,17,23);
+   for(const type of ['image/png','image/jpeg','image/webp']){const url=c.toDataURL(type);assert(url.startsWith(`data:${type};`),`${type} encoding unavailable`);const data=Uint8Array.from(atob(url.split(',')[1]),x=>x.charCodeAt(0));const size=imageDimensions(data);assert(size[0]===17&&size[1]===23,`${type} dimensions misread`);}
+ });
+ await test('Invisible materials do not block painting; explicit texture matrices are retained',()=>{
+   const root=new THREE.Group(),front=new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.MeshBasicMaterial()),back=new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.MeshBasicMaterial());front.position.z=.5;root.add(front,back);const camera=new THREE.PerspectiveCamera(45,1,.01,100);camera.position.z=3;camera.updateMatrixWorld();front.material.visible=false;
+   assert(surfacePoint(root,{material:back.material,uvName:'uv'},new THREE.Vector2(),camera),'Invisible material blocked back surface');front.material.visible=true;
+   const base=newCanvas(),map=new THREE.CanvasTexture(base);map.flipY=false;map.matrixAutoUpdate=false;map.matrix.setUvTransform(.2,.1,1,1,0,0,0);front.material.map=map;
+   const t={material:front.material,uvName:'uv',originalMap:map,originalColor:front.material.color.clone(),layers:Array.from({length:6},()=>({canvas:null,visible:true,opacity:1}))};
+   const before=surfacePoint(root,t,new THREE.Vector2(),camera);assert(Math.abs(before.x-1023*.7)<1,'Explicit original mapping was overwritten');prepareSurface(t,[t]);assert(t.texture.matrixAutoUpdate===false,'Matrix mode changed');const after=surfacePoint(root,t,new THREE.Vector2(),camera);assert(Math.abs(after.x-before.x)<.001&&Math.abs(after.y-before.y)<.001,'Prepared surface moved paint coordinates');dispose(root,[t]);
+ });
+ await test('Editable look budget matches actual UTF-8 file size and rejects overflow',()=>{
+   assert(look,'No editable look fixture');const size=new TextEncoder().encode(JSON.stringify(look)).byteLength;assert(checkProjectSize(look)===size,'Document budget differs from encoded file');let refused=false;try{checkProjectSize(look,size-1);}catch{refused=true;}assert(refused,'Oversized document was accepted');assert(look.targets[0].layers[5].png,'Budget failure discarded paint');
  });
  if(parsed)dispose(parsed.root,parsed.targets);
  report.textContent+=`\nRESULT: ${passed} passed; ${failed} failed.\n3D RENDERING: not established by these tests.\n`;document.getElementById('run').disabled=false;

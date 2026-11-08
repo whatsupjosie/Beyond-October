@@ -4,7 +4,7 @@
 Starting source: `bfbdcf0676c11163063ef369cd419b5667792cfe`.
 This is an unreleased foundation, not a completed Primp product.
 
-Latest follow-up: [Troubleshooting round one](TROUBLESHOOTING_ROUND_1.md) records 17 passing Node entries and 14 passing browser foundation checks, plus repairs for large-avatar reopening, file saving, recovery conflicts, and undo. The counts below describe the earlier build session and are retained as history.
+Latest follow-up: [Deep polish / troubleshooting round two](TROUBLESHOOTING_ROUND_2.md) records retained-buffer, import-boundary, staged-material, and project-budget repairs. The original session counts below are retained as history.
 
 ## Changed
 
