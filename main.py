@@ -2168,10 +2168,30 @@ async def set_user_state(request: Request, identity: Dict[str, Any] = Depends(cu
 
 @app.post("/api/upload")
 async def upload_file(request: Request, identity: Dict[str, Any] = Depends(require_role("mod"))):
-    """Store bounded uploads in imports or the actual, browser-served VTR library."""
+    """Bounded host upload with an atomic, non-overwriting final publication.
+
+    A replay is public media: it is not put under /assets until the completed
+    bytes have passed validation. Staging remains outside the mounted asset root.
+    """
+    import os
+    import tempfile
+
+    MAX_FILE_BYTES = 5 * 1024 * 1024
+    # Reject declared oversized requests before multipart parsing/spooling.
+    # Transfer-encoded requests still need an upstream request-body limit.
+    declared = request.headers.get("content-length")
+    if declared is not None:
+        try:
+            content_length = int(declared)
+        except ValueError:
+            raise HTTPException(400, "Invalid Content-Length")
+        if content_length < 0 or content_length > MAX_FILE_BYTES + 256 * 1024:
+            raise HTTPException(413, "Upload exceeds the 5 MB limit")
+
     form = None
+    temporary = None
     try:
-        form = await request.form()
+        form = await request.form(max_files=1, max_fields=1)
         upload = form.get("file")
         target = str(form.get("target", "")).strip()
         if not upload or not hasattr(upload, "filename") or not hasattr(upload, "read"):
@@ -2179,39 +2199,57 @@ async def upload_file(request: Request, identity: Dict[str, Any] = Depends(requi
         if target not in {"", "vod"}:
             raise HTTPException(400, "Unknown upload destination")
         safe_name = sanitize_filename(upload.filename or "upload") or "upload"
-        if target == "vod" and Path(safe_name).suffix.lower() not in {".mp4", ".webm", ".ogv"}:
+        if safe_name in {".", ".."}:
+            raise HTTPException(400, "Invalid filename")
+        extension = Path(safe_name).suffix.lower()
+        if target == "vod" and extension not in {".mp4", ".webm", ".ogv"}:
             raise HTTPException(400, "Replay uploads must be MP4, WebM or Ogg video")
+
         dest_dir = ASSETS_DIR / "vod" if target == "vod" else DATA_DIR / "imports"
         dest_dir.mkdir(parents=True, exist_ok=True)
-        dest_path = unique_child_path(dest_dir, safe_name)
+        # This sibling directory is not exposed by the /assets StaticFiles mount.
+        # Use the same filesystem so os.link can atomically publish validated bytes.
+        staging_dir = ASSETS_DIR.parent if target == "vod" else DATA_DIR
+        fd, temporary_name = tempfile.mkstemp(prefix=".pubcast-upload-", dir=staging_dir)
+        temporary = Path(temporary_name)
         size = 0
-        created = False
-        try:
-            with dest_path.open("xb") as out:
-                created = True
-                while True:
-                    chunk = await upload.read(1024 * 1024)
-                    if not chunk:
-                        break
-                    size += len(chunk)
-                    if size > 5 * 1024 * 1024:
-                        raise HTTPException(413, "Upload exceeds the 5 MB limit")
-                    out.write(chunk)
-            if not size:
-                raise HTTPException(400, "Cannot upload an empty file")
-            if target == "vod":
-                with dest_path.open("rb") as media:
-                    magic = media.read(12)
-                is_mp4 = Path(safe_name).suffix.lower() == ".mp4" and len(magic) >= 8 and magic[4:8] == b"ftyp"
-                is_webm = Path(safe_name).suffix.lower() == ".webm" and magic.startswith(bytes.fromhex("1a45dfa3"))
-                is_ogg = Path(safe_name).suffix.lower() == ".ogv" and magic.startswith(b"OggS")
-                if not (is_mp4 or is_webm or is_ogg):
-                    raise HTTPException(400, "Replay file content does not match its video format")
-        except BaseException:
-            # Do not delete another writer's file if exclusive creation lost a race.
-            if created:
-                dest_path.unlink(missing_ok=True)
-            raise
+        with os.fdopen(fd, "wb") as out:
+            while True:
+                chunk = await upload.read(1024 * 1024)
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > MAX_FILE_BYTES:
+                    raise HTTPException(413, "Upload exceeds the 5 MB limit")
+                out.write(chunk)
+            out.flush()
+            os.fsync(out.fileno())
+
+        if not size:
+            raise HTTPException(400, "Cannot upload an empty file")
+        if target == "vod":
+            with temporary.open("rb") as media:
+                magic = media.read(12)
+            is_mp4 = extension == ".mp4" and len(magic) >= 8 and magic[4:8] == b"ftyp"
+            is_webm = extension == ".webm" and magic.startswith(bytes.fromhex("1a45dfa3"))
+            is_ogg = extension == ".ogv" and magic.startswith(b"OggS")
+            if not (is_mp4 or is_webm or is_ogg):
+                raise HTTPException(400, "Replay file content does not match its video format")
+
+        # A link publishes the already complete file atomically, without
+        # overwriting any other upload if two names collide between checks.
+        for attempt in range(1000):
+            dest_path = unique_child_path(dest_dir, safe_name)
+            try:
+                os.link(temporary, dest_path)
+                break
+            except FileExistsError:
+                continue
+            except OSError:
+                raise HTTPException(503, "Storage does not support safe atomic upload publishing")
+        else:
+            raise HTTPException(409, "No unique upload filename could be allocated")
+
         logger.info("Upload received: %s — %s (target=%s)", upload.filename, dest_path, target)
         result = {"ok": True, "filename": dest_path.name, "target": target, "size": size}
         if target == "vod":
@@ -2223,9 +2261,10 @@ async def upload_file(request: Request, identity: Dict[str, Any] = Depends(requi
         logger.exception("Upload failed")
         raise HTTPException(500, "Upload could not be saved")
     finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
         if form is not None:
             await form.close()
-
 
 @app.get("/api/bots")
 async def list_bots(identity: Dict[str, Any] = Depends(current_identity)):
