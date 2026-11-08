@@ -289,6 +289,38 @@ async function applyMixer() {
     else mixerFeedback('Program, dialogue and music volumes applied to shared audio engine');
   } finally { btn.disabled = false; }
 }
+// Program monitoring is a separate, explicitly local listen path. It controls
+// the existing Program video element, never changes the broadcast's master mix.
+const localProgramMonitor = document.getElementById('pgm-monitor');
+const monitorSwitch = document.getElementById('mixer-monitor');
+const monitorLevel = document.getElementById('mixer-monitor-level');
+function updateLocalProgramMonitor() {
+  if (!monitorSwitch || !monitorLevel) return;
+  if (!localProgramMonitor) {
+    monitorSwitch.checked = false;
+    mixerFeedback('Program monitor video is unavailable on this page', true);
+    return;
+  }
+  const value = Number(monitorLevel.value);
+  localProgramMonitor.volume = Number.isFinite(value) ? Math.max(0, Math.min(1, value / 100)) : 0.8;
+  localProgramMonitor.muted = !monitorSwitch.checked;
+  if (monitorSwitch.checked) {
+    mixerFeedback(localProgramMonitor.srcObject || localProgramMonitor.currentSrc ?
+      'Local Program monitor enabled — use headphones to prevent feedback' :
+      'Local Program monitor armed; waiting for a live feed');
+  } else mixerFeedback('Local Program monitor muted');
+}
+monitorSwitch?.addEventListener('change', updateLocalProgramMonitor);
+monitorLevel?.addEventListener('input', updateLocalProgramMonitor);
+if (localProgramMonitor) localProgramMonitor.muted = true;
+// No shared AFV/VTR music-ducking contract exists yet. Never accept an inert
+// checkbox as an active production effect.
+const afvControl = document.getElementById('mixer-afv');
+if (afvControl) {
+  afvControl.checked = false;
+  afvControl.disabled = true;
+  afvControl.title = 'Unavailable: VTR-triggered music ducking requires shared mixer routing and verified recording';
+}
 document.getElementById('mixer-apply')?.addEventListener('click', () => applyMixer().catch(e => mixerFeedback(e.message,true)));
 document.querySelector('[data-station="mixer"]')?.addEventListener('click', () => {loadMixerState();});
 document.querySelector('[data-station="audio"]')?.addEventListener('click', () => {loadMixerState();});
