@@ -158,6 +158,8 @@
         if (!confirmed) throw Error('The production host did not confirm all requested fields');
         applyProductionState(data);
         populateControlForm(data);
+        const status = document.getElementById('control-form-status');
+        if (status) status.textContent = 'Production settings saved to the host.';
       } catch (e) {
         console.error('[pubcast] Control push failed', e);
         let status = document.getElementById('control-form-status');
@@ -215,6 +217,8 @@
             saved.display_name !== u.display_name || saved.avatar_color !== u.avatar_color ||
             saved.badge !== u.badge) throw Error('Host did not confirm the wardrobe save');
         updateMirror(saved);
+        const result = document.getElementById('wardrobe-result');
+        if (result) result.textContent = 'Wardrobe saved to the host.';
       } catch (e) {
         console.error('[pubcast] Wardrobe save failed', e);
         const result = document.getElementById('wardrobe-result');
