@@ -11,7 +11,8 @@ The user sits in front of a camera. Primp tracks their face and their hand. They
 1. **Pencil grip means tip down.** When the hand is in the position you'd hold a pencil in, the brush is touching and paints. When the hand leaves that position, the tip lifts.
 2. **The brush rests along the top of the index finger, pinned by the thumb,** lying along the finger's length the way a bird perches on a finger. It is not aimed out from the fingertip. **Its tip is 1 inch (25.4 mm) past the end of the finger.**
 3. **Voice engages the stroke** (2026-11-07). The user takes the grip, leans closer and says **"engage"** (or "apply"). From then on the tool is applying through each forward stroke. It ends when the hand retreats without re-engaging a forward stroking motion within a couple of seconds, or immediately when the user says **"disengage"**.
-4. **Invisible brush or held object.** The user can hold nothing (the imaginary brush), or hold a pen or a brush to mimic the motion.
+4. **Undo** (2026-11-07). Undo the last 10 moves, in case you streaked everything because you forgot to disengage.
+5. **Invisible brush or held object.** The user can hold nothing (the imaginary brush), or hold a pen or a brush to mimic the motion.
 
 ## What already exists in PubCast (checked 2026-11-07)
 
@@ -46,6 +47,12 @@ While the hand is in the correct grip, Primp draws the chosen tool (brush, penci
 - Audio is processed on the device: keyword only, nothing recorded.
 - A non-voice way to engage and disengage (a key, a tap, or a gesture with the other hand) gives the same mode for quiet rooms, shared spaces and users who can't or won't speak.
 - Caution: saying a word moves the lips. For lipstick, engage before the brush reaches the mouth.
+
+**Undo** (rule 4)
+- Every stroke is already recorded (for teaching), so undo simply rebuilds the face map from the remaining strokes: clean, with no leftover smear. Redo puts strokes back.
+- **Undo the last stroke** steps back one stroke at a time, through the last 10 (Josie's number).
+- **Undo the whole engage**: one command removes everything since the last "engage". That's the direct fix for forgetting to disengage, since a forgotten disengage makes one long accidental stroke run.
+- By voice ("undo", "redo", "undo all"; listened for only while a face is in view), by key or by button.
 
 **Painting**
 - While engaged (rule 3), every frame where the tip is over the face paints at that spot.
@@ -116,4 +123,5 @@ Every stroke is recorded: path, direction, speed, how long the grip was held, an
 2. **Pressure:** answered by "Reading the stroke": push depth first, then grip squeeze and speed toward the face. Open: should the user be able to turn pressure off (constant colour) for simpler use?
 3. **Which hand:** either hand, or a chosen dominant hand?
 4. **Tip length:** 1 inch past the fingertip (as written), or 1 inch from where the thumb pins the tool? The on-screen tool lets users fine-tune it either way.
-5. **Teaching guides:** who writes the technique guides, and what's in the first set (for example a basic everyday look, a stage look)?
+5. **Undo depth:** 10 as you said, or unlimited? Strokes are recorded anyway, so a longer history costs almost nothing.
+6. **Teaching guides:** who writes the technique guides, and what's in the first set (for example a basic everyday look, a stage look)?
