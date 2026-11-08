@@ -187,6 +187,18 @@ See `docs/FILLER_CREAM.md` → Limits:
 - corner-cut pieces are skipped;
 - the working grid is not adaptive per area.
 
+## Plan: 1/128 for Primp and close-ups (approved by Josie 2026-11-08; not built)
+
+Scope: Primp avatar faces (fine features), makeup-related detail and camera close-ups. Everything else stays at 1/64 or coarser. See `docs/PRIMP_LIVE_MAKEUP_DESIGN.md` → Resolution.
+
+1. **Voxel contract** (`modules/voxel_set_contract.py`): add `sixty_fourth: 64` and `one_twenty_eighth: 128` next to full, half and quarter. Update the existing contract and block-kit tests that list the subdivisions. Run all existing voxel tests.
+2. **Filler Cream's internal unit 1/64 → 1/128** (`FINE_SUBDIVISION = 128`, one fine unit = 1.984 mm). The adapters convert by 128; fidelity stops are already block fractions, so they're unchanged. Bump `ENGINE_VERSION` (all saved cream reports stale and regenerates).
+3. **Prove nothing moved:** for the same physical scene built at 1/64, the cream before and after the switch must match in real units (mm). Fixtures and measured test thresholds get converted, not loosened.
+4. **New 1/128 fixture:** a lip edge and an eyelid crease with marked edges. Cream smooths the stepping and keeps the marked lines sharp. Measure time and memory against the same feature at 1/64.
+5. **Close-up bake:** bake the face twice (standard 1/64, close-up 1/128) and pick the version by camera distance, on VoxelStudio's LOD tiers. This needs the VoxelStudio hookup first.
+6. **Live-makeup paint map:** a face paint-map resolution target for sub-millimetre lines (about 0.1 mm per pixel; roughly a 2048-pixel-wide map across a 20 cm face).
+7. **Known risk:** one 1/128 piece inside a big selection makes the whole selection fine (weak spot 5). Until the grid adapts per area, keep fine features in their own selections.
+
 ## Next steps, in order
 
 1. Independent check by a reviewer that didn't write it: hunt for anything that breaks Josie's rules, and run it.
