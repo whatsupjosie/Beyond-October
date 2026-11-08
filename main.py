@@ -2105,8 +2105,12 @@ async def get_production_state():
 async def update_production_state(request: Request, identity: Dict[str, Any] = Depends(require_role("mod"))):
     if not hub:
         raise HTTPException(503, "Hub not initialized")
-    body    = await _json_dict(request)
-    updated = hub.update_production_state(body)
+    body = await _json_dict(request)
+    from pydantic import ValidationError
+    try:
+        updated = hub.update_production_state(body)
+    except ValidationError:
+        raise HTTPException(422, "Invalid production state fields")
     await hub.broadcast_system_event({"type": "production_state", "payload": updated})
     # Also push to PubWorld map clients
     if _HAS_PUBWORLD_ROUTER and push_production_state_to_pubworld:
