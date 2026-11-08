@@ -10,7 +10,7 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own comm
 
       python -m pytest -p no:cacheprovider tests\test_filler_cream.py -q
 
-  Expected: 46 passed. In the repo, add the existing voxel tests to check nothing broke:
+  Expected: 48 passed. In the repo, add the existing voxel tests to check nothing broke:
 
       python -m pytest -p no:cacheprovider tests\test_filler_cream.py tests\test_pubblock_voxel_block_kit.py tests\test_voxel_block_preview.py tests\test_voxel_set_contract.py -q
 
@@ -30,7 +30,7 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own comm
 
 - `modules/filler_cream.py`: core operation, fidelity gauge, layer store, adapters, GLB output
 - `modules/filler_cream_fixture.py`: 1/64 fixtures (stepped strip with protrusion, recess, opening and crack; fingertip; curve)
-- `tests/test_filler_cream.py`: 35 focused test functions (46 test cases)
+- `tests/test_filler_cream.py`: 37 focused test functions (48 test cases)
 - `tools/filler_cream_view.py`: before/after GLBs and a side-profile PNG
 - `docs/FILLER_CREAM.md`: usage, the rule, measured limits
 - `docs/FILLER_CREAM_APPLICATOR_UI_SPEC.md`: applicator UI proposal (not built, awaiting Josie's review)
@@ -66,7 +66,7 @@ Prepared, not done: no `main.py` route, no change to `VoxelStudio`, no applicato
 
 ## Checks executed (this sandbox: Python 3.13, numpy 2.5.3, pytest 9.1.1; not GitHub, not Windows)
 
-- `tests/test_filler_cream.py`: 46 passed. Together with the existing voxel tests (block kit, preview, contract): 58 passed, so no existing voxel test broke.
+- `tests/test_filler_cream.py`: 48 passed. Together with the existing voxel tests (block kit, preview, contract) and the route tests: 67 passed, so no existing voxel test broke.
 - The textured GLB was loaded by trimesh (an independent reader): 16,056 vertices and 16,056 UV rows.
 - Wedge orientation checked against `build_primitive_geometry` for all four Y rotations.
 - View tool run and the PNG inspected by eye.
@@ -187,7 +187,17 @@ See `docs/FILLER_CREAM.md` → Limits:
 - corner-cut pieces are skipped;
 - the working grid is not adaptive per area.
 
-## Plan: 1/128 for Primp and close-ups (approved by Josie 2026-11-08; not built)
+## 1/128 for Primp and close-ups: steps 1–4 BUILT 2026-11-08 (5–6 not built)
+
+- **1. Contract (done):** `PUB_BLOCK_SUBDIVISIONS` gains `sixty_fourth: 64` and `one_twenty_eighth: 128`, and the validation message lists the allowed values. `tests/test_ready_wiring_routes.py` was updated. Its 7 tests now actually run here: FastAPI and Starlette were installed from `requirements.txt` (versions per that file). Before that, they errored in this sandbox with or without the change.
+- **2. Internal unit 1/128 (done):** `FINE_SUBDIVISION = 128`. Crack limit default `DEFAULT_MAX_GAP` = 1/32 block (unchanged real size). Saved selections record `fine_subdivision`; older payloads (1/64, unrecorded) are converted on load. `ENGINE_VERSION` 6. **Working grid made real-size:** the old rule rounded in whole units, so at the finer unit it sampled 1/64 scenes twice as finely, which changed results slightly and doubled cost. Now sampling never refines past 1/64 block, and only 1/128 pieces make the grid finer.
+- **3. Nothing moved (proven):** the committed 1/64 engine and the new engine, run side by side, give identical cream in millimetres on the fixture strips (432 and 232 cells) and the fingertip (128 and 192 cells). The heart reproduces exactly (1,492 blocks, 1,050 cells). The curve reproduces exactly (error 48.75 → 25.55, largest step 0.548, overshoot 0.111). Fixtures keep their real size via `S = FINE_SUBDIVISION // 64`; tests were converted, not loosened.
+- **4. 1/128 fixture (done):** `lip_and_lid_pieces(step)` (lip border, eyelid, a marked crease, brow). Measured mean distance from the designed shape: 1/64 blocks plus cream 1.35 mm; 1/128 blocks plus cream 0.73 mm. Cream never crossed parts or touched the crease. Under 0.1 s either way. A contract voxel set at 1/64 and at 1/128 both feed Filler Cream (172.7 vs 195.0 mm³ of cream on the same real shape; 1/128 columns follow the ramp more closely).
+- **5. Close-up bake (not built):** needs the VoxelStudio hookup.
+- **6. Live-makeup paint map (spec only):** about 0.1 mm per pixel.
+- **7. Risk (unchanged):** one 1/128 piece in a big selection makes the whole selection fine; keep fine features in their own selections.
+
+## Plan: 1/128 for Primp and close-ups (approved by Josie 2026-11-08)
 
 Scope: Primp avatar faces (fine features), makeup-related detail and camera close-ups. Everything else stays at 1/64 or coarser. See `docs/PRIMP_LIVE_MAKEUP_DESIGN.md` → Resolution.
 

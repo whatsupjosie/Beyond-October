@@ -1,7 +1,8 @@
 # PubCast AI — filler_cream_fixture.py
 # Copyright © 2024–2026 Josie Curtsey Cobbley · Rearview Foresight
 # Feic Mo Chroí™ — See My Heart
-"""Inspectable Filler Cream proof fixtures at 1/64 linear resolution.
+"""Inspectable Filler Cream proof fixtures. Designed in 1/64-block units; S scales them to the internal unit,
+so they keep the same real size.
 
 Built as a real voxel_studio.VoxelObject so it runs through the existing
 baker. Every position and size is a whole number of 1/64-block fine units
@@ -26,6 +27,11 @@ from __future__ import annotations
 from typing import Dict, List, Tuple
 
 from .filler_cream import FINE_SUBDIVISION
+
+# The tables below are written in 1/64-block units (the unit when they were
+# designed). S converts them to the engine's internal unit, so every fixture
+# keeps the same real size whatever FINE_SUBDIVISION is.
+S = FINE_SUBDIVISION // 64
 from .voxel_studio import VoxelObject, VoxelPrimitive, VoxelShape
 
 # (primitive_id, x, y, z, size) in fine units
@@ -38,9 +44,9 @@ STRIP_ONE: List[Tuple[str, int, int, int, int]] = [
 STRIP_TWO: List[Tuple[str, int, int, int, int]] = [
     ("Q0", 0, 0, 40, 8), ("Q1", 8, 3, 40, 8), ("Q2", 16, 5, 40, 8),
 ]
-OPENING_X = (56, 68)
-CRACK_X = (84, 85)
-RECESS_X = (40, 48)
+OPENING_X = (56 * S, 68 * S)
+CRACK_X = (84 * S, 85 * S)
+RECESS_X = (40 * S, 48 * S)
 ANNOTATIONS: Dict[str, Dict] = {"RECESS": {"tags": ["recess"]}}
 
 
@@ -52,6 +58,7 @@ def build_fixture_object(strip_two_heights: Dict[str, int] | None = None) -> Vox
     overrides = dict(strip_two_heights or {})
     for pid, x, y, z, s in STRIP_ONE + STRIP_TWO:
         y = overrides.get(pid, y)
+        x, y, z, s = x * S, y * S, z * S, s * S
         obj.add_primitive(VoxelPrimitive(primitive_id=pid, shape=VoxelShape.CUBE, size=s / f,
                                          position=(x / f, y / f, z / f)))
     return obj
@@ -73,11 +80,11 @@ def finger_pieces(marked: bool = True):
     rows = [("S0", 0, 20, "skin"), ("S1", 8, 21, "skin"), ("S2", 16, 22, "skin"), ("S3", 24, 22, "skin"),
             ("N0", 32, 21, "nail"), ("N1", 40, 21, "nail"), ("N2", 48, 20, "nail"),
             ("T0", 56, 17, "skin"), ("T1", 64, 16, "skin")]
-    return [SurfacePiece(pid, (x, top - 8, 0), (8, 8, 8), surface_id=(surf if marked else "finger"))
+    return [SurfacePiece(pid, (x * S, (top - 8) * S, 0), (8 * S, 8 * S, 8 * S), surface_id=(surf if marked else "finger"))
             for pid, x, top, surf in rows]
 
 
-def curve_pieces(width: int = 2, length: int = 96):
+def curve_pieces(width: int = 2 * S, length: int = 96 * S):
     """A smooth bridge-like curve approximated by fine blocks sitting under
     it (block tops = floor of the true curve at each block centre)."""
     import math
@@ -85,15 +92,61 @@ def curve_pieces(width: int = 2, length: int = 96):
     out = []
     for i in range(length // width):
         cx = i * width + width / 2
-        top = int(math.floor(true_curve(cx)))
+        top = S * int(math.floor(true_curve(cx) / S))   # blocks stay 1/64 steps, as designed
         out.append(SurfacePiece(f"C{i}", (i * width, top - width, 0), (width, width, width)))
     return out
 
 
 def true_curve(x: float) -> float:
+    """The intended curve, in internal fine units (designed in 1/64 units)."""
     import math
-    return 10.0 + 14.0 * math.sin(math.pi * x / 96.0) ** 2
+    return S * (10.0 + 14.0 * math.sin(math.pi * (x / S) / 96.0) ** 2)
+
+
+
+
+
+def lip_and_lid_pieces(step: int):
+    """A lip edge and an eyelid crease, built from blocks ``step`` internal
+    units wide (1 = 1/128 block, about 2 mm; 2 = 1/64, about 4 mm).
+    Profile along x, one row 8 units deep (fine units, +y up):
+      skin above the lip  x 0..12   surface "skin"
+      upper lip           x 12..32  surface "lip_upper", rolling out from a
+                                    designed border at x = 12
+      eyelid              x 40..60  surface "lid"
+      crease              x 60..62  tagged "edge" (the designed fold)
+      brow skin           x 62..82  surface "brow"
+    Block tops are the true curve rounded down to whole blocks."""
+    import math
+    from .filler_cream import SurfacePiece
+    pieces = []
+
+    def run(prefix, x0, x1, surface, curve, tags=frozenset()):
+        for x in range(x0, x1, step):
+            top = step * int(math.floor(curve(x + step / 2.0) / step))
+            pieces.append(SurfacePiece(f"{prefix}{x}", (x, top - 8, 0), (step, 8, 8), surface_id=surface, tags=tags))
+
+    run("skin", 0, 12, "skin", lip_true_curve)
+    run("lip", 12, 32, "lip_upper", lip_true_curve)
+    run("lid", 40, 60, "lid", lip_true_curve)
+    run("crease", 60, 62, "lid", lip_true_curve, frozenset({"edge"}))
+    run("brow", 62, 82, "brow", lip_true_curve)
+    return pieces
+
+
+def lip_true_curve(x: float) -> float:
+    """The designed profile (fine units) for lip_and_lid_pieces."""
+    import math
+    if x < 12:
+        return 20.0 + 0.25 * x
+    if x < 32:
+        return 25.0 + 4.0 * math.sin(math.pi * (x - 12) / 20.0)
+    if x < 60:
+        return 22.0 + 3.0 * math.sin(math.pi * (x - 40) / 40.0)
+    if x < 62:
+        return 21.0
+    return 21.0 + 0.2 * (x - 62)
 
 
 __all__ = ["ANNOTATIONS", "CRACK_X", "OPENING_X", "RECESS_X", "STRIP_ONE", "STRIP_TWO",
-           "build_fixture_object", "curve_pieces", "finger_pieces", "fixture_annotations", "true_curve"]
+           "build_fixture_object", "lip_and_lid_pieces", "lip_true_curve", "curve_pieces", "finger_pieces", "fixture_annotations", "true_curve"]

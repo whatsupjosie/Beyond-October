@@ -45,7 +45,7 @@ def test_voxel_block_kit_status_endpoint_reports_pubblocks(client_no_lifespan):
     assert data["available"] is True
     assert data["read_only"] is True
     assert data["base_block_inches"] == 10
-    assert data["subdivisions"] == {"full": 1, "half": 2, "quarter": 4}
+    assert data["subdivisions"] == {"full": 1, "half": 2, "quarter": 4, "sixty_fourth": 64, "one_twenty_eighth": 128}
     assert data["unit_inches"]["quarter"] == 2.5
     assert "guide_grid" in data["builders"]
     assert data["creates_map_rooms"] is False

@@ -12,10 +12,10 @@ Units
 Existing PubCast terminology (verified in modules/voxel_set_contract.py and
 modules/voxel_studio.py): one PubBlock is 10 inches (0.254 m); subdivisions
 are full = 1, half = 2, quarter = 4. VoxelStudio sizes are floats in block
-units (1.0 / 0.5 / 0.25). The experimental fine resolution used here is
-1/64 of a block edge: FINE_SUBDIVISION = 64, one fine unit = 0.15625 inch
-= 3.96875 mm. All core geometry is integer fine units. The canonical voxel
-set contract still rejects subdivision 64; this module does not change it.
+units (1.0 / 0.5 / 0.25). The internal unit is 1/128 of a block edge (FINE_SUBDIVISION = 128, one fine
+unit = 0.078125 inch = 1.984 mm; it was 1/64 until 2026-11-08). 1/64 work uses
+even numbers. All core geometry is integer fine units. The canonical voxel
+set contract accepts 64 and 128 since 2026-11-08.
 
 Design rule (Josie, 2026-11-06)
 -------------------------------
@@ -71,9 +71,14 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from .voxel_set_contract import PUB_BLOCK_INCHES, PUB_BLOCK_METERS  # the block's real size lives there
 
-FINE_SUBDIVISION = 64
-FINE_UNIT_INCHES = PUB_BLOCK_INCHES / FINE_SUBDIVISION   # 0.15625 for the 10 in block
-FINE_UNIT_MM = PUB_BLOCK_METERS * 1000.0 / FINE_SUBDIVISION  # 3.96875
+# Internal unit: 1/128 block (about 2 mm), so Primp faces and close-ups can use
+# 1/128 pieces (Josie, 2026-11-08). 1/64 work is unchanged: it simply uses even
+# numbers internally. Was 1/64 until 2026-11-08.
+FINE_SUBDIVISION = 128
+LEGACY_FINE_SUBDIVISION = 64                               # unit of payloads saved before 2026-11-08
+FINE_UNIT_INCHES = PUB_BLOCK_INCHES / FINE_SUBDIVISION     # 0.078125 for the 10 in block
+FINE_UNIT_MM = PUB_BLOCK_METERS * 1000.0 / FINE_SUBDIVISION  # 1.984375
+DEFAULT_MAX_GAP = FINE_SUBDIVISION // 32                   # 1/32 block, about 8 mm (unchanged in real size)
 # Fidelity stops as fractions of one PubBlock edge (span of one best fit).
 FIDELITY_STOPS: Dict[str, float] = {
     "very_high": 3 / 64, "high": 1 / 8, "medium": 1 / 4, "low": 1 / 2, "very_low": 1.0,
@@ -81,7 +86,7 @@ FIDELITY_STOPS: Dict[str, float] = {
 DEFAULT_FIDELITY = "medium"
 # Bump whenever the cream rule changes, so saved layers made under an older
 # rule are reported stale instead of looking current.
-ENGINE_VERSION = "filler-cream/5 outer-points-fade, ceiling-cap, local-claim, diagonal-cracks"
+ENGINE_VERSION = "filler-cream/6 outer-points-fade, ceiling-cap, local-claim, diagonal-cracks, unit-1/128, real-size-grid"
 MAX_SOURCES_PER_CELL = 16
 
 FACES: Dict[str, Tuple[int, int]] = {
@@ -193,7 +198,7 @@ class FillerSelection:
                  units) are not crossed. None (default) = the blueprint marks
                  decide, not step size.
     max_gap    — widest lateral crack (fine units) that is filled; wider
-                 empty runs are openings.
+                 empty runs are openings. Default 1/32 block (about 8 mm).
     grid_samples — minimum columns across the smallest piece when choosing
                  the working grid.
     """
@@ -202,7 +207,7 @@ class FillerSelection:
     face: str = "+y"
     barriers: frozenset = frozenset()
     max_step: Optional[int] = None
-    max_gap: int = 2
+    max_gap: int = DEFAULT_MAX_GAP
     grid_samples: int = 8
     fidelity: Any = None
 
@@ -226,14 +231,25 @@ class FillerSelection:
             "barriers": sorted(sorted(p) for p in self.barriers),
             "max_step": self.max_step, "max_gap": int(self.max_gap),
             "grid_samples": int(self.grid_samples), "fidelity": self.fidelity,
+            "fine_subdivision": FINE_SUBDIVISION,
         }
 
     @classmethod
     def from_dict(cls, d: Mapping[str, Any]) -> "FillerSelection":
+        """Lengths saved in another unit (payloads from before 2026-11-08 were
+        1/64 and carry no unit) are converted, so they keep their real size."""
+        saved_fine = int(d.get("fine_subdivision", LEGACY_FINE_SUBDIVISION))
+        k = FINE_SUBDIVISION / saved_fine
+
+        def length(v, default):
+            return default if v is None else max(0, int(round(float(v) * k)))
+
+        max_step = d.get("max_step")
         return cls(frozenset(d["piece_ids"]), str(d.get("face", "+y")),
                    frozenset(frozenset(p) for p in d.get("barriers") or ()),
-                   d.get("max_step"), int(d.get("max_gap", 2)), int(d.get("grid_samples", d.get("ramp_samples", 8))),
-                   d.get("fidelity"))
+                   None if max_step is None else max(1, length(max_step, None)),
+                   length(d.get("max_gap"), DEFAULT_MAX_GAP),
+                   int(d.get("grid_samples", d.get("ramp_samples", 8))), d.get("fidelity"))
 
     def key(self) -> str:
         payload = {
@@ -409,15 +425,22 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
         span = fidelity_span_fine(selection.fidelity if selection.fidelity is not None else p.fidelity)
         return span / 2.0
 
-    g = 0
+    # Working grid: the widest column that (1) divides every piece edge, so
+    # rasterising is exact, and (2) is no wider than the sampling cap (about
+    # grid_samples columns across the smallest piece, and no wider than the
+    # finest fit radius). Sampling alone never refines past 1/64 block; only
+    # finer pieces (1/128, Primp and close-ups) make the grid finer. So
+    # 1/64 work costs and behaves the same as before the unit became 1/128.
+    geo = 0
     for p in cands:
         for v in (p.origin[a], p.size[a], p.origin[b], p.size[b]):
-            g = math.gcd(g, abs(v))
+            geo = math.gcd(geo, abs(v))
+    geo = geo or 1
     min_plane = min(min(p.size[a], p.size[b]) for p in sel)
     min_radius = min(radius(p) for p in sel)
-    g = math.gcd(g, max(1, min_plane // int(selection.grid_samples))) if g else 1
-    g = math.gcd(g, max(1, int(min_radius)))  # at least ~2 columns across the finest fit
-    g = max(1, g)
+    sample_floor = max(1, FINE_SUBDIVISION // LEGACY_FINE_SUBDIVISION)
+    cap = max(sample_floor, min(min_plane // int(selection.grid_samples), int(min_radius)))
+    g = max(d for d in range(1, min(geo, cap) + 1) if geo % d == 0)
 
     # ── 3. rasterise: outermost piece owns each column ───────────────────
     # Selected pieces are rasterised first (outermost selected piece per

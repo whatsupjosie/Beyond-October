@@ -16,7 +16,9 @@ from typing import Any, Dict, Iterable, List, Mapping, Tuple
 
 PUB_BLOCK_INCHES = 10
 PUB_BLOCK_METERS = 0.254
-PUB_BLOCK_SUBDIVISIONS = {"full": 1, "half": 2, "quarter": 4}
+# Fine levels added 2026-11-08 (Josie): 1/64 (~4 mm) for detail work and
+# 1/128 (~2 mm) for Primp faces, makeup detail and close-ups only.
+PUB_BLOCK_SUBDIVISIONS = {"full": 1, "half": 2, "quarter": 4, "sixty_fourth": 64, "one_twenty_eighth": 128}
 DEFAULT_UNIT_PROFILE = "pub_block_10in"
 DEFAULT_SUBDIVISION = 1
 
@@ -84,7 +86,7 @@ def pub_block_measurement(subdivision: int = DEFAULT_SUBDIVISION) -> Dict[str, A
 
     subdivision = _as_int(subdivision, "subdivision")
     if subdivision not in set(PUB_BLOCK_SUBDIVISIONS.values()):
-        raise VoxelSetValidationError("subdivision must be 1, 2, or 4")
+        raise VoxelSetValidationError("subdivision must be one of " + ", ".join(str(v) for v in sorted(set(PUB_BLOCK_SUBDIVISIONS.values()))))
     unit_inches = PUB_BLOCK_INCHES / subdivision
     return {
         "unit_profile": DEFAULT_UNIT_PROFILE,

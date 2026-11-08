@@ -13,7 +13,9 @@ Ways to mark a designed edge, dip or opening:
 
 ## Units (from the existing system)
 
-The size comes from `modules/voxel_set_contract.py`: one PubBlock is 10 in (0.254 m). Filler Cream works in 1/64 of a block, 3.96875 mm, and reads the block size from the contract, never from its own copy.
+The size comes from `modules/voxel_set_contract.py`: one PubBlock is 10 in (0.254 m). The contract accepts full, half, quarter, 1/64 and 1/128 (the last two added 2026-11-08). Filler Cream's internal unit is 1/128 of a block (1.984 mm; it was 1/64 until 2026-11-08), and it reads the block size from the contract, never from its own copy. 1/128 pieces are for Primp faces, makeup detail and close-ups; everything else stays at 1/64 or coarser.
+
+The working grid is real-size: sampling never refines past 1/64 block, so only 1/128 pieces make the grid finer. 1/64 work behaves and costs the same as before the unit change (proven: identical cream in millimetres on all fixtures, and the heart reproduces exactly). Lengths saved before the change (1/64 units, no unit recorded) are converted on load.
 
 ## Fidelity gauge
 

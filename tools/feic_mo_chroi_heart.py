@@ -19,7 +19,9 @@ sys.path.insert(0, str(ROOT))
 
 import numpy as np  # noqa: E402
 
-from modules.filler_cream import FillerSelection, SurfacePiece, compute_filler  # noqa: E402
+from modules.filler_cream import FINE_SUBDIVISION, FillerSelection, SurfacePiece, compute_filler  # noqa: E402
+
+S = FINE_SUBDIVISION // 64  # the heart is built from 1/64 blocks, whatever the internal unit
 
 
 def build_heart(n: int = 56):
@@ -33,7 +35,7 @@ def build_heart(n: int = 56):
             if f < 0:
                 h = int(math.floor(6 + 14 * (-f) ** 0.22))  # dome, whole 1/64 blocks
                 heights[i, j] = h
-                pieces.append(SurfacePiece(f"h{i}_{j}", (i, h - 4, j), (1, 4, 1)))
+                pieces.append(SurfacePiece(f"h{i}_{j}", (i * S, (h - 4) * S, j * S), (S, 4 * S, S)))
     return heights, pieces
 
 
@@ -45,9 +47,10 @@ def main(out: Path) -> None:
 
     raw, pieces = build_heart()
     layer = compute_filler(pieces, FillerSelection(frozenset(p.piece_id for p in pieces), fidelity="high"))
+    assert layer.grid_unit == S, "one column per 1/64 block"
     creamed = raw.copy()
     for c in layer.cells:
-        creamed[c.column] = max(creamed[c.column], c.top)
+        creamed[c.column] = max(creamed[c.column], c.top / S)
 
     gold = LinearSegmentedColormap.from_list("gold", ["#2a1f12", "#8a6a2e", "#d8af5b", "#f3e3b5"])
     light = LightSource(azdeg=315, altdeg=40)
