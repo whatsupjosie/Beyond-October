@@ -311,6 +311,17 @@ def test_replay_upload_rejects_bad_content_and_oversize(host):
     )
     assert wrong_target.status_code == 400
 
+    # Invalid production graphics must fail as a client error without a
+    # state update, and valid control-plane data must remain recoverable.
+    before = httpx.get(base + "/api/state/production", timeout=10).json()
+    bad_graphic = httpx.post(
+        base + "/api/state/production", headers=headers,
+        json={"bug": "A" * 81}, timeout=10,
+    )
+    assert bad_graphic.status_code == 422
+    after = httpx.get(base + "/api/state/production", timeout=10).json()
+    assert after == before
+
 
 
 def test_concurrent_replay_uploads_are_non_clobbering(host, tmp_path):
