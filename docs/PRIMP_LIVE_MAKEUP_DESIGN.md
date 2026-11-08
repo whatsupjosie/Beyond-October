@@ -9,7 +9,7 @@ The user sits in front of a camera. Primp tracks their face and their hand. They
 ## Josie's rules (2026-11-07)
 
 1. **Pencil grip means tip down.** When the hand is in the position you'd hold a pencil in, the brush is touching and paints. When the hand leaves that position, the tip lifts.
-2. **The tip extends from the index fingertip,** in a straight line along the index finger, the way a pencil would rest on that finger. **Default: 1 inch (25.4 mm) past the fingertip.**
+2. **The brush rests along the top of the index finger, pinned by the thumb,** lying along the finger's length the way a bird perches on a finger. It is not aimed out from the fingertip. **Its tip is 1 inch (25.4 mm) past the end of the finger.**
 3. **Invisible brush or held object.** The user can hold nothing (the imaginary brush), or hold a pen or a brush to mimic the motion.
 
 ## What already exists in PubCast (checked 2026-11-07)
@@ -25,10 +25,10 @@ The user sits in front of a camera. Primp tracks their face and their hand. They
 - Hand: MediaPipe's hand tracker (21 points per hand, ordinary camera). It's the same family of tools, offline and free.
 
 **Pencil grip detection** (rule 1)
-The grip is recognised from the hand's own shape: thumb tip pressed toward the index finger near its last joint, index and middle fingers partly curled, ring and little fingers tucked. A short hold (a few frames) before switching on or off stops flicker.
+The grip is recognised from the hand's own shape: the thumb tip pressed onto the top of the index finger (pinning the brush there), the index finger extended or gently curved, and the other fingers relaxed or tucked. A short hold (a few frames) before switching on or off stops flicker.
 
 **The brush tip** (rule 2)
-Tip position = index fingertip + (direction of the index finger's last segment × brush length). The invisible brush is 1 inch (25.4 mm) long by default (Josie, 2026-11-07). The inch is converted to screen distance using the hand's and face's own size on camera, so it stays a real inch at any distance from the camera. When holding a real pen or brush, a one-time calibration (touch the tip to your nose) measures its true length. An optional coloured dot on a held tip lets the camera lock onto the real tip instead of estimating it.
+The brush line lies along the top of the index finger: parallel to the whole finger (base knuckle to fingertip, not just the last joint), raised by about half the finger's thickness so it sits on top rather than through it, and anchored where the thumb pins it. Tip position = the point on that line level with the fingertip + 1 inch (25.4 mm) further along it (Josie, 2026-11-07). The inch is converted to screen distance using the hand's and face's own size on camera, so it stays a real inch at any distance from the camera. When holding a real pen or brush, a one-time calibration (touch the tip to your nose) measures its true length. An optional coloured dot on a held tip lets the camera lock onto the real tip instead of estimating it.
 
 **Painting**
 - While the grip is held, every frame where the tip is over the face paints at that spot.
