@@ -35,9 +35,9 @@
         <div>
           <h3>Wardrobe</h3>
           <form id="wardrobe-form"><div id="wardrobe-result" role="status" aria-live="polite"></div>
-            <label>Display Name <input type="text" id="displayName" /></label>
+            <label>Display Name <input type="text" id="displayName" maxlength="64" /></label>
             <label>Avatar Color <input type="color" id="avatarColor" value="#00e0ff" /></label>
-            <label>Badge <input type="text" id="badge" /></label>
+            <label>Badge <input type="text" id="badge" maxlength="32" /></label>
             <div class="row">
               <button type="submit">Save</button>
             </div>
@@ -47,10 +47,11 @@
             <input type="file" id="uploadFile" />
             <select id="uploadTarget">
               <option value="">My Uploads</option>
-              <option value="vod">Replay (assets/vod)</option>
+              <option value="vod">Replay (served from this host)</option>
             </select>
             <button type="submit">Upload</button>
-            <div id="upload-result"></div>
+            <div id="upload-result" role="status" aria-live="polite"></div>
+            <p class="muted small">Replay uploads are available through the host’s public /assets/ URL. Do not upload private media here.</p>
           </form>
         </div>
       </div>
