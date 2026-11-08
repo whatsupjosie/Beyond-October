@@ -2185,8 +2185,10 @@ async def upload_file(request: Request, identity: Dict[str, Any] = Depends(requi
         dest_dir.mkdir(parents=True, exist_ok=True)
         dest_path = unique_child_path(dest_dir, safe_name)
         size = 0
+        created = False
         try:
             with dest_path.open("xb") as out:
+                created = True
                 while True:
                     chunk = await upload.read(1024 * 1024)
                     if not chunk:
@@ -2206,7 +2208,9 @@ async def upload_file(request: Request, identity: Dict[str, Any] = Depends(requi
                 if not (is_mp4 or is_webm or is_ogg):
                     raise HTTPException(400, "Replay file content does not match its video format")
         except BaseException:
-            dest_path.unlink(missing_ok=True)
+            # Do not delete another writer's file if exclusive creation lost a race.
+            if created:
+                dest_path.unlink(missing_ok=True)
             raise
         logger.info("Upload received: %s — %s (target=%s)", upload.filename, dest_path, target)
         result = {"ok": True, "filename": dest_path.name, "target": target, "size": size}
