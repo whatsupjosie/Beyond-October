@@ -10,11 +10,11 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own comm
 
       python -m pytest -p no:cacheprovider tests\test_filler_cream.py -q
 
-  Expected: 43 passed. In the repo, add the existing voxel tests to check nothing broke:
+  Expected: 46 passed. In the repo, add the existing voxel tests to check nothing broke:
 
       python -m pytest -p no:cacheprovider tests\test_filler_cream.py tests\test_pubblock_voxel_block_kit.py tests\test_voxel_block_preview.py tests\test_voxel_set_contract.py -q
 
-  Expected: 55 passed.
+  Expected: 58 passed.
 
 ## What Filler Cream is (Josie's design, settled in this session)
 
@@ -30,7 +30,7 @@ Repo: whatsupjosie/Beyond-October, branch `claude-work`. This handoff's own comm
 
 - `modules/filler_cream.py`: core operation, fidelity gauge, layer store, adapters, GLB output
 - `modules/filler_cream_fixture.py`: 1/64 fixtures (stepped strip with protrusion, recess, opening and crack; fingertip; curve)
-- `tests/test_filler_cream.py`: 32 focused test functions (43 test cases)
+- `tests/test_filler_cream.py`: 35 focused test functions (46 test cases)
 - `tools/filler_cream_view.py`: before/after GLBs and a side-profile PNG
 - `docs/FILLER_CREAM.md`: usage, the rule, measured limits
 - `docs/FILLER_CREAM_APPLICATOR_UI_SPEC.md`: applicator UI proposal (not built, awaiting Josie's review)
@@ -66,7 +66,7 @@ Prepared, not done: no `main.py` route, no change to `VoxelStudio`, no applicato
 
 ## Checks executed (this sandbox: Python 3.13, numpy 2.5.3, pytest 9.1.1; not GitHub, not Windows)
 
-- `tests/test_filler_cream.py`: 43 passed. Together with the existing voxel tests (block kit, preview, contract): 55 passed, so no existing voxel test broke.
+- `tests/test_filler_cream.py`: 46 passed. Together with the existing voxel tests (block kit, preview, contract): 58 passed, so no existing voxel test broke.
 - The textured GLB was loaded by trimesh (an independent reader): 16,056 vertices and 16,056 UV rows.
 - Wedge orientation checked against `build_primitive_geometry` for all four Y rotations.
 - View tool run and the PNG inspected by eye.
@@ -115,6 +115,22 @@ C. **Finished surface:** approve the single-volume surface plan as the next engi
 1. **Continuous surface extraction.** One closed mesh from blocks plus cream across every face direction, keeping sharp edges where taped or crisp-cut. This, not sanding, removes the flat-top box stair and the seams between face directions. Until then, output is boxes.
 2. **Stacked-surface support.** Every exposed surface in a column kept as its own layer (floor under a ceiling slab, an arm in front of the torso, lips, eyelids, fingers), so one selection can cream both. Until then, apply cream part by part.
 
+## Resource pass, 2026-11-07 (evening): wasteful code fixed, same results
+
+Profiled first; fixed what actually cost time or memory.
+- **Fit stage: fast path.** Away from marks, edges and holes, a column's window is the full disc, so its weighted plane comes from moment sums over the grid. The normal matrix is the same for every such column and is inverted once. Only columns near a mark, edge or hole take the careful per-column search.
+- **Candidates:** one grid dilation instead of one search per frontier column. That's a superset, which is safe (proof in the code comment).
+- **Each piece's columns** are computed once, not three times. The **crack search** starts only from edge columns. The **fingerprint** reuses the candidate list.
+- **Mesh:** the shared `voxel_studio._compute_normals` loops per triangle in Python (3.78 s for 14,554 boxes). Filler Cream now uses its own vectorised `_flat_normals`: 0.07 s, byte-identical output, including degenerate triangles. The shared routine is unchanged; it slows every VoxelStudio bake the same way, so swapping it is a one-line candidate for its owner.
+- **Memory:** the fast path works in batches of 4,096 columns (`FAST_PATH_BATCH`) to cap peak memory.
+- **Same answers, proven.** Against the previous code on 40 random scenes (marks, mixed fidelity, wedges, holes) and the face patch: identical columns and sources, heights equal to about 1e-14. New tests: fast path vs careful path, batching vs whole, and vectorised normals vs the original. Rule unchanged, so `ENGINE_VERSION` is unchanged.
+- **Measured** (128 × 128 face-sized patch, about 51 cm square, timed per fidelity in separate processes; process peak memory includes 26 MB for the pieces themselves):
+  - very high: 1.6 s → 0.48 s, 79 MB
+  - high: 4.0 s → 0.76 s, 93 MB
+  - medium: 10.5 s → 2.03 s, 120 MB
+  - low: 9.10 s, 240 MB
+- **Still slow:** low fidelity, at the edges of a surface. A window that runs past the surface edge falls back to the careful search, and at low fidelity that edge band is wide (about 7,400 of 16,384 columns here). Next step: extend the fast path to windows clipped by an edge when no mark or hole is inside.
+
 ## Hostile review, 2026-11-07: fixed (each proven: new tests fail on the 11-06 code, pass now)
 
 - **Turned pieces could be penetrated (new finding).** A piece rotated off 90° was treated as its unturned box, so its corners stuck out past it and cream could enter them. Now: VoxelStudio pieces occlude with the exact box their turned geometry fills; generator blocks (rotation convention undefined) use a conservative box big enough for any turn. Test: the cream under a 45° cube stops below its true lowest corner.
@@ -127,7 +143,7 @@ C. **Finished surface:** approve the single-volume surface plan as the next engi
 
 ## Known weak spots (not bugs; tune next, in this order)
 
-1. **Speed (improved ~2× on 11-07, still not live):** the per-column search and fit are still plain Python. Vectorise (moment sums over the grid) for a live brush.
+1. **Speed:** medium is now about 5× faster than on 11-06 (fast path). Remaining: low fidelity near surface edges (careful path), and true live-brush rates, which need incremental updates under the brush rather than recomputing the whole selection.
 2. ~~Empty-column claim rule~~: fixed 11-07 (local).
 3. **Cracks:** diagonal and crossing gaps are fixed (11-07). Still filled with a straight line rather than the outer-points rule.
 4. **Barrier pairs can be bypassed** through a third piece of the same surface. Edge tape (from the UI spec) is the proper fix.

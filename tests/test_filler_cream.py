@@ -490,3 +490,59 @@ def test_old_saved_selections_still_load():
     old = {"piece_ids": ["P0", "P1"], "face": "+y", "barriers": [], "max_step": None, "max_gap": 2,
            "ramp_samples": 4, "fidelity": "high"}
     assert FillerSelection.from_dict(old).grid_samples == 4
+
+
+# ── 2026-11-07 resource pass ────────────────────────────────────────────────
+
+def test_fast_path_matches_the_careful_per_column_search():
+    """The moment-sum fast path must give the same cream as walking every
+    window: same columns, same sources, heights equal to rounding."""
+    import random
+    stops = list(FIDELITY_STOPS)
+    for seed in range(15):
+        rng = random.Random(100 + seed)
+        pieces = []
+        for i in range(12):
+            for j in range(6):
+                if rng.random() < 0.06:
+                    continue
+                shape, side = ("wedge", rng.choice(["-x", "+x", "-z", "+z"])) if rng.random() < 0.1 else ("cube", None)
+                pieces.append(SurfacePiece(f"p{i}_{j}", (i * 4, rng.randint(0, 8), j * 4), (4, 4, 4), shape, side,
+                                           rng.choice(["a", "a", "a", "b"]),
+                                           frozenset(["recess"]) if rng.random() < 0.05 else frozenset(),
+                                           rng.choice(stops)))
+        sel = FillerSelection(frozenset(p.piece_id for p in pieces))
+        fast = {c.column: c for c in compute_filler(pieces, sel).cells}
+        careful = {c.column: c for c in compute_filler(pieces, sel, _careful_only=True).cells}
+        assert set(fast) == set(careful), seed
+        for k in fast:
+            assert fast[k].sources == careful[k].sources and fast[k].kind == careful[k].kind
+            assert fast[k].top == pytest.approx(careful[k].top, abs=1e-9)
+
+
+def test_fast_path_batches_give_the_same_answer(monkeypatch):
+    import modules.filler_cream as fc
+    pieces = curve_pieces()
+    sel = FillerSelection(frozenset(p.piece_id for p in pieces), fidelity="high")
+    whole = compute_filler(pieces, sel).cells
+    monkeypatch.setattr(fc, "FAST_PATH_BATCH", 7)
+    assert compute_filler(pieces, sel).cells == whole
+
+
+def test_vectorised_normals_match_voxel_studio_exactly():
+    from modules.filler_cream import _flat_normals
+    from modules.voxel_studio import _compute_normals
+    _, layer = _run()
+    from modules.voxel_studio import VoxelShape as VS, _shape_verts_faces
+    uv, uf = _shape_verts_faces(VS.CUBE)
+    bx = layer.boxes()
+    lo = np.array([b[0] for b in bx]) / 64.0
+    ext = np.array([b[1] for b in bx]) / 64.0 - lo
+    V = (uv[None] * ext[:, None] + lo[:, None]).reshape(-1, 3)
+    F = (uf[None] + (np.arange(len(bx)) * len(uv))[:, None, None]).reshape(-1, 3)
+    for got, want in zip(_flat_normals(V, F), _compute_normals(V, F)):
+        assert np.array_equal(got, want)
+    deg = np.array([[0, 0, 0], [1, 0, 0], [2, 0, 0], [0, 1, 0]], float)
+    for got, want in zip(_flat_normals(deg, np.array([[0, 1, 2], [0, 1, 3]])),
+                         _compute_normals(deg, np.array([[0, 1, 2], [0, 1, 3]]))):
+        assert np.array_equal(got, want)

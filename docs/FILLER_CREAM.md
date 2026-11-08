@@ -95,6 +95,6 @@ Each call works on one face direction and keeps one surface per column.
 - The working grid follows the smallest piece and finest fidelity in the selection; it is not adaptive per area.
 - Wedges: `+y` face only, rotations about Y in 90° steps. Corner cuts are occluders (never filled).
 - Overlapping layers overlap as geometry; data never accumulates. Adjacent filler boxes keep shared inner faces.
-- Speed (measured, plain Python, 11-07): a 128 × 128 column patch at 1/64 (about 51 cm square, wavy) takes 1.6 s at very_high, 4.0 s at high, and 10.5 s at medium (was 2.7 / 8.4 / 22.7). Fine for baking, too slow for a live brush. Speed-up path: compute the fits with array maths (numpy moment sums over the grid) where no marks cut the window.
+- Speed (measured, plain Python, 11-07): a 128 × 128 column patch at 1/64 (about 51 cm square, wavy) takes 0.48 s at very_high, 0.76 s at high, 2.0 s at medium and 9.1 s at low (11-06: 2.7 / 8.4 / 22.7 s). Low is slowest because windows clipped by the surface edge use the careful per-column path. Fine for baking, too slow for a live brush. Speed-up path: compute the fits with array maths (numpy moment sums over the grid) where no marks cut the window.
 - Cracks use a straight line between their two edges, not the outer-points lift (they're at most 2/64 block wide).
 - A cube at a non-90° rotation becomes an occluder sized by the full box its turned shape fills (generator blocks: a conservative box for any turn), so cream can't enter it.

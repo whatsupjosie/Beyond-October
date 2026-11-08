@@ -363,20 +363,29 @@ def source_fingerprint(pieces: Iterable[SurfacePiece], selection: FillerSelectio
         by_id[p.piece_id] = p
     if selection.piece_ids - set(by_id):
         return "missing-pieces"
+    return _fingerprint_of(_candidates(by_id, selection))
+
+
+def _fingerprint_of(cands: Sequence[SurfacePiece]) -> str:
     recs = [[p.piece_id, list(p.origin), list(p.size), p.shape, p.wedge_high_side, p.surface_id,
-             sorted(p.tags), p.fidelity] for p in _candidates(by_id, selection)]
+             sorted(p.tags), p.fidelity] for p in cands]
     payload = {"engine": ENGINE_VERSION, "block_m": PUB_BLOCK_METERS, "fine": FINE_SUBDIVISION, "pieces": recs}
     return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
 
 
+FAST_PATH_BATCH = 4096   # columns per batch in the fast path; caps peak memory
+
+
 def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
-                   _exhaustive: bool = False) -> FillerLayer:
+                   _exhaustive: bool = False, _careful_only: bool = False) -> FillerLayer:
     """Generate bounded filler for one selection. Pure and deterministic.
 
     ``pieces`` is the whole construction (selected and unselected); only
     pieces near the selection are rasterised. Pieces are never modified.
     ``_exhaustive`` (tests only) fits every column instead of using the
     candidate shortcut, to prove the shortcut never skips a column.
+    ``_careful_only`` (tests only) disables the moment-sum fast path, to prove
+    it gives the same cream as the per-column search.
     """
     by_id: Dict[str, SurfacePiece] = {}
     for p in pieces:
@@ -421,10 +430,17 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
     owner: Dict[Tuple[int, int], str] = {}
     height: Dict[Tuple[int, int], float] = {}
 
-    def _columns(p: SurfacePiece):
-        for i in range(p.origin[a] // g, (p.origin[a] + p.size[a]) // g):
-            for j in range(p.origin[b] // g, (p.origin[b] + p.size[b]) // g):
-                yield (i, j), p.top_at(up, sign, {a: (i + 0.5) * g, b: (j + 0.5) * g})
+    _col_cache: Dict[str, List[Tuple[Tuple[int, int], float]]] = {}
+
+    def _columns(p: SurfacePiece) -> List[Tuple[Tuple[int, int], float]]:
+        """Each piece's columns and surface heights, computed once."""
+        hit = _col_cache.get(p.piece_id)
+        if hit is None:
+            hit = _col_cache[p.piece_id] = [
+                ((i, j), p.top_at(up, sign, {a: (i + 0.5) * g, b: (j + 0.5) * g}))
+                for i in range(p.origin[a] // g, (p.origin[a] + p.size[a]) // g)
+                for j in range(p.origin[b] // g, (p.origin[b] + p.size[b]) // g)]
+        return hit
 
     for p in (q for q in cands if q.piece_id in selection.piece_ids):
         for col, h in _columns(p):
@@ -556,23 +572,103 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
     if _exhaustive:
         candidates = {c: None for c in sorted(owner) if fillable(owner[c])}
         frontier = []
-    within = disc(2.0 * (r_max + 0.5 * g))
-    for src_col, _r in frontier:
-        seen = {src_col}
-        stack = [src_col]
-        while stack:
-            x = stack.pop()
-            candidates[x] = None
-            for y in adj[x]:
-                if y in seen or (y[0] - src_col[0], y[1] - src_col[1]) not in within:
-                    continue
-                seen.add(y)
-                stack.append(y)
-
-    # ── 5. local weighted best fit at each candidate column ──────────────
     import numpy as np
 
+    # Grid view of the owned columns, padded so window shifts never wrap.
+    pad = int((2.0 * (r_max + 0.5 * g)) // g) + 2
+    ci0 = min(c[0] for c in owner) - pad if owner else 0
+    cj0 = min(c[1] for c in owner) - pad if owner else 0
+    ni = (max(c[0] for c in owner) - ci0 + pad + 1) if owner else 1
+    nj = (max(c[1] for c in owner) - cj0 + pad + 1) if owner else 1
+    fill_mask = np.zeros((ni, nj), dtype=bool)
+    for col in adj:
+        fill_mask[col[0] - ci0, col[1] - cj0] = True
+
+    def dilate(mask: "np.ndarray", offsets) -> "np.ndarray":
+        out = np.zeros_like(mask)
+        for di, dj in offsets:
+            out[max(0, di):ni + min(0, di), max(0, dj):nj + min(0, dj)] |= \
+                mask[max(0, -di):ni + min(0, -di), max(0, -dj):nj + min(0, -dj)]
+        return out
+
+    if not _exhaustive and frontier:
+        # Every column within reach of a frontier column, as one grid dilation.
+        # This is a superset of the old per-frontier search (it ignores marks),
+        # which is safe: a column with no higher column in its own window
+        # caps at its own height and gains nothing.
+        fmask = np.zeros((ni, nj), dtype=bool)
+        for col, _r in frontier:
+            fmask[col[0] - ci0, col[1] - cj0] = True
+        near = dilate(fmask, disc(2.0 * (r_max + 0.5 * g))) & fill_mask
+        candidates = {(int(i) + ci0, int(j) + cj0): None for i, j in zip(*np.nonzero(near))}
+
+    # ── fast path: windows that are a full, unmarked disc ────────────────────
+    # A column whose whole disc is owned by fillable pieces with every step
+    # between neighbours allowed has the full disc as its window, so its
+    # weighted plane comes from moment sums over the grid (the normal matrix
+    # is the same for every such column and is inverted once). Same rule and
+    # weights as the per-column search below, without walking it.
+    H_grid = np.zeros((ni, nj))
+    O_grid = np.full((ni, nj), -1, dtype=np.int64)
+    names = sorted(by_id)
+    name_ix = {n: k for k, n in enumerate(names)}
+    for col, h in height.items():
+        H_grid[col[0] - ci0, col[1] - cj0] = h
+        O_grid[col[0] - ci0, col[1] - cj0] = name_ix[owner[col]]
+    unclean = ~fill_mask.copy()
+    for col, nbrs in adj.items():
+        if len(nbrs) < 4:
+            unclean[col[0] - ci0, col[1] - cj0] = True
+    slow: List[Tuple[int, int]] = []
+    groups: Dict[float, List[Tuple[int, int]]] = {}
     for col in sorted(candidates):
+        groups.setdefault(radius(by_id[owner[col]]), []).append(col)
+    for r, cols in sorted(groups.items()):
+        reach = r + 0.5 * g
+        offs = sorted(disc(reach))
+        if len(offs) < 3 or _careful_only:
+            slow.extend(cols)
+            continue
+        blocked = dilate(unclean, offs)
+        I = np.array([c[0] - ci0 for c in cols])
+        J = np.array([c[1] - cj0 for c in cols])
+        fast = ~blocked[I, J]
+        slow.extend(c for c, f in zip(cols, fast) if not f)
+        if not fast.any():
+            continue
+        I_all, J_all = I[fast], J[fast]
+        du = np.array([o[0] * g for o in offs], dtype=float)
+        dv = np.array([o[1] * g for o in offs], dtype=float)
+        w = 1.0 - np.hypot(du, dv) / (reach + g)
+        M = np.array([[w.sum(), (w * du).sum(), (w * dv).sum()],
+                      [(w * du).sum(), (w * du * du).sum(), (w * du * dv).sum()],
+                      [(w * dv).sum(), (w * du * dv).sum(), (w * dv * dv).sum()]])
+        Minv = np.linalg.inv(M)
+        # Batches bound memory at about K x FAST_PATH_BATCH values per array.
+        for start in range(0, len(I_all), FAST_PATH_BATCH):
+            I = I_all[start:start + FAST_PATH_BATCH]
+            J = J_all[start:start + FAST_PATH_BATCH]
+            Hk = np.stack([H_grid[I + o[0], J + o[1]] for o in offs])          # (K, n)
+            rhs = np.stack([w @ Hk, (w * du) @ Hk, (w * dv) @ Hk])            # (3, n)
+            c0, c1, c2 = Minv @ rhs
+            fitted = c0[None, :] + du[:, None] * c1[None, :] + dv[:, None] * c2[None, :]
+            lift = np.maximum(0.0, ((Hk - fitted) * w[:, None]).max(0))
+            target = np.minimum(c0 + lift, Hk.max(0))
+            del fitted
+            gain = np.nonzero(target > H_grid[I, J] + _EPS)[0]
+            if not len(gain):
+                continue
+            ids = np.sort(np.stack([O_grid[I[gain] + o[0], J[gain] + o[1]] for o in offs], axis=1), axis=1)
+            for row, k in enumerate(gain):
+                uniq = ids[row][np.concatenate(([True], ids[row][1:] != ids[row][:-1]))]
+                srcs_sorted = [names[x] for x in uniq]
+                if len(srcs_sorted) > MAX_SOURCES_PER_CELL:
+                    srcs_sorted = srcs_sorted[:MAX_SOURCES_PER_CELL - 1] + [f"+{len(srcs_sorted) - MAX_SOURCES_PER_CELL + 1} more"]
+                col = (int(I[k]) + ci0, int(J[k]) + cj0)
+                offer(col, height[col], float(target[k]), tuple(srcs_sorted), "fit")
+
+    # ── careful path: windows touched by a mark, an edge or a hole ──────────
+    for col in slow:
         r = radius(by_id[owner[col]])
         reach = r + 0.5 * g
         seen = {col}
@@ -620,7 +716,11 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
     # from the shell base to the straight line between the two surfaces.
     if max_cols >= 1:
         k = max_cols + 1
-        empties = sorted({(c[0] + di, c[1] + dj) for c in owner if owner[c] in selected
+        # Only owned columns on an edge (an empty 8-neighbour) can have an empty
+        # column within reach along a straight or diagonal line.
+        edge = [c for c in owner if owner[c] in selected and any(
+            (c[0] + di, c[1] + dj) not in owner for di in (-1, 0, 1) for dj in (-1, 0, 1))]
+        empties = sorted({(c[0] + di, c[1] + dj) for c in edge
                           for di in range(-k, k + 1) for dj in range(-k, k + 1)} - set(owner))
         for e in empties:
             for d in ((1, 0), (0, 1), (1, 1), (1, -1)):
@@ -650,7 +750,7 @@ def compute_filler(pieces: Iterable[SurfacePiece], selection: FillerSelection,
 
     cells = tuple(best[c] for c in sorted(best))
     return FillerLayer(face, g, cells, selection.key(),
-                       json.dumps(selection.to_dict(), sort_keys=True), source_fingerprint(by_id.values(), selection))
+                       json.dumps(selection.to_dict(), sort_keys=True), _fingerprint_of(cands))
 
 
 def layer_is_stale(layer: FillerLayer, pieces: Iterable[SurfacePiece]) -> bool:
@@ -820,26 +920,41 @@ def pieces_from_voxel_set(voxel_set: Mapping[str, Any]) -> List[SurfacePiece]:
 # MESH — feed filler into the existing VoxelStudio GLB pipeline
 # ══════════════════════════════════════════════════════════════════════════
 
+def _flat_normals(verts, faces):
+    """Vectorised equivalent of voxel_studio._compute_normals: flat normals,
+    three vertices per triangle, degenerate triangles dropped, same order and
+    dtypes. The original loops per triangle in Python and is left unchanged."""
+    import numpy as np
+    v = np.asarray(verts, dtype=np.float64)
+    f = np.asarray(faces, dtype=np.int64).reshape(-1, 3)
+    v0, v1, v2 = v[f[:, 0]], v[f[:, 1]], v[f[:, 2]]
+    n = np.cross(v1 - v0, v2 - v0)
+    mag = np.linalg.norm(n, axis=1)
+    keep = mag >= 1e-9
+    n = n[keep] / mag[keep][:, None]
+    tri = np.stack([v0[keep], v1[keep], v2[keep]], axis=1)          # (T, 3, 3)
+    out_v = tri.reshape(-1, 3).astype(np.float32)
+    out_n = np.repeat(n, 3, axis=0).astype(np.float32)
+    out_f = np.arange(len(out_v), dtype=np.uint32).reshape(-1, 3)
+    return out_v, out_n, out_f
+
+
 def filler_mesh_arrays(layers: Sequence[FillerLayer], world_position=(0.0, 0.0, 0.0)):
     """(verts, normals, faces) for filler boxes in block units, built with
     voxel_studio's own cube table and flat-normal routine."""
     import numpy as np
-    from .voxel_studio import VoxelShape, _compute_normals, _shape_verts_faces
+    from .voxel_studio import VoxelShape, _shape_verts_faces
 
     unit_v, unit_f = _shape_verts_faces(VoxelShape.CUBE)
-    scale = 1.0 / FINE_SUBDIVISION
-    wp = np.array(world_position, dtype=float)
-    verts, faces, n = [], [], 0
-    for layer in layers:
-        for lo, hi in layer.boxes():
-            lo_b = np.array(lo) * scale
-            ext = (np.array(hi) - np.array(lo)) * scale
-            verts.append(unit_v * ext + lo_b + wp)
-            faces.append(unit_f + n)
-            n += len(unit_v)
-    if not verts:
+    boxes = [bx for layer in layers for bx in layer.boxes()]
+    if not boxes:
         return (np.zeros((0, 3), np.float32), np.zeros((0, 3), np.float32), np.zeros((0, 3), np.uint32))
-    return _compute_normals(np.concatenate(verts), np.concatenate(faces))
+    scale = 1.0 / FINE_SUBDIVISION
+    lo = np.array([bx[0] for bx in boxes], dtype=np.float64) * scale            # (N, 3)
+    ext = np.array([bx[1] for bx in boxes], dtype=np.float64) * scale - lo     # (N, 3)
+    verts = unit_v[None, :, :] * ext[:, None, :] + lo[:, None, :] + np.asarray(world_position, dtype=float)
+    faces = unit_f[None, :, :] + (np.arange(len(boxes)) * len(unit_v))[:, None, None]
+    return _flat_normals(verts.reshape(-1, 3), faces.reshape(-1, 3))
 
 
 def _require_fresh(layers: Sequence[FillerLayer], pieces: Optional[Iterable[SurfacePiece]], unchecked: bool) -> None:
