@@ -24,6 +24,7 @@ class ProductionState(BaseModel):
     on_air: bool = False
     replay_asset: str = ""       # e.g. assets/vod/demo.mp4 (relative to root)
     lower_third: str = ""
+    bug: str = Field(default="", max_length=80)  # independent top-right program graphic
     camera: str = "wide"         # 'wide' | 'closeup' | 'overhead'
     lighting: str = "normal"     # 'normal' | 'warm' | 'cool'
     # These cues cross the persisted Hub boundary. Without explicit fields,
