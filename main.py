@@ -2243,7 +2243,7 @@ async def upload_file(request: Request, identity: Dict[str, Any] = Depends(requi
                 raise HTTPException(503, "Replay validation requires FFprobe on this host")
             try:
                 inspected = subprocess.run(
-                    [probe, "-v", "error", "-nostdin", "-protocol_whitelist", "file,pipe",
+                    [probe, "-v", "error", "-protocol_whitelist", "file,pipe",
                      "-select_streams", "v:0",
                      "-show_entries", "stream=codec_type,width,height:format=format_name",
                      "-of", "json", str(temporary)],
