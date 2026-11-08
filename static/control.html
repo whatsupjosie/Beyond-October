@@ -66,6 +66,7 @@
             <video id="replay-video" controls class="hidden"></video>
             <div id="live-banner" class="live">ON AIR</div>
             <div id="lower-third" class="lower-third"></div>
+            <div id="program-bug" class="program-bug hidden"></div>
           </div>
         </div>
         <div>
@@ -82,6 +83,7 @@
       <div id="studio-stage">
         <div id="studio-onair" class="onair hidden">ON AIR</div>
         <div id="studio-lower-third" class="lower-third"></div>
+        <div id="studio-bug" class="program-bug hidden"></div>
         <div id="studio-camera" class="camera">Camera: <span id="camera-mode">wide</span></div>
         <div id="studio-lighting" class="lighting">Lighting: <span id="lighting-mode">normal</span></div>
       </div>
@@ -336,7 +338,7 @@
         <div class="panel">
           <h3>VTR</h3>
           <div class="row" style="gap:6px;align-items:center;flex-wrap:wrap;">
-            <input id="vtr-asset" placeholder="assets/vod/clip.mp4" style="min-width:260px;" />
+            <input id="vtr-asset" placeholder="vod/clip.mp4 (uploaded replay asset)" style="min-width:260px;" />
             <button id="vtr-load">Load</button>
             <button id="vtr-play">Play</button>
             <button id="vtr-stop">Stop</button>
