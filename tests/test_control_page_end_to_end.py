@@ -260,7 +260,9 @@ def test_vtr_upload_graphics_and_monitor_wiring(page, tmp_path):
     page.click('[data-station="audio"]')
     page.locator("#mixer-monitor").check()
     assert page.locator("#pgm-monitor").evaluate("(node) => node.muted") is False
-    page.locator("#mixer-monitor-level").fill("25")
+    page.locator("#mixer-monitor-level").evaluate(
+        "(node) => { node.value = '25'; node.dispatchEvent(new Event('input', {bubbles: true})); }"
+    )
     assert page.locator("#pgm-monitor").evaluate("(node) => node.volume") == pytest.approx(0.25)
     assert page.locator("#mixer-afv").is_disabled()  # Unsupported effect must not be accepted as active.
     assert not page.problems, page.problems
