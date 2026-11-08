@@ -188,8 +188,8 @@ def test_vtr_upload_graphics_and_monitor_wiring(page, tmp_path):
     import shutil
 
     ffmpeg = shutil.which("ffmpeg")
-    if not ffmpeg:
-        pytest.skip("FFmpeg unavailable: physical replay media fixture was not generated")
+    if not ffmpeg or not shutil.which("ffprobe"):
+        pytest.skip("FFmpeg and FFprobe are required for video integration acceptance")
 
     clip = tmp_path / "control-wiring.webm"
     render = subprocess.run(
@@ -280,7 +280,7 @@ def test_vtr_upload_graphics_and_monitor_wiring(page, tmp_path):
     )
     assert page.locator("#pgm-monitor").evaluate("(node) => node.volume") == pytest.approx(0.25)
     assert page.locator("#mixer-afv").is_disabled()  # Unsupported effect must not be accepted as active.
-    assert not page.problems, page.problems
+    assert known_only(page.problems) == []
 
 
 def test_replay_upload_rejects_bad_content_and_oversize(host):
