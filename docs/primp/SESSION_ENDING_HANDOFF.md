@@ -1,3 +1,7 @@
+# Chromium continuation — November 9
+
+Current executed results: [CHROMIUM_ACCEPTANCE_2026-11-09.md](CHROMIUM_ACCEPTANCE_2026-11-09.md). Fourteen Chromium acceptance tests (including the twenty-three-check foundation harness) and thirty-six Node tests pass. The original-material comparison fix and real-browser tests are saved on the existing work branch. Hardware/native-dialog/product limits remain explicit. Earlier sections below are historical.
+
 # November 8 continuation
 
 The current continuation is recorded in [GAP_CLOSURE_2026-11-08.md](GAP_CLOSURE_2026-11-08.md). The earlier report below is historical; its legacy-avatar, UV-mask, fixed-resolution, mixed-version recovery, account scoping, and host-dependency gaps have since been addressed. GPU/browser and physical-device acceptance remain open.

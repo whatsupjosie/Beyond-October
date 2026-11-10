@@ -1,0 +1,7 @@
+# Tested lab dependencies; install alongside the canonical runtime requirements.
+# Chromium itself and axe-core are selected explicitly by the test runner.
+playwright==1.65.0
+pytest-playwright==0.10.0
+pytest==9.2.0
+pytest-asyncio==1.4.1.post1
+Pillow==13.0.0
