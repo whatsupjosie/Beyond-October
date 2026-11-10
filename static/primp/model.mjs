@@ -123,7 +123,14 @@ export function composeSurface(target, comparing = false, changed = () => {}) {
   if (!target.base) return;
   const ctx = context(target.composite); ctx.clearRect(0, 0, target.composite.width, target.composite.height); ctx.drawImage(target.base, 0, 0, target.composite.width, target.composite.height);
   if (!comparing) for (const layer of target.layers) if (layer.canvas && layer.visible) { ctx.globalAlpha = layer.opacity; ctx.drawImage(layer.canvas, 0, 0, target.composite.width, target.composite.height); }
-  ctx.globalAlpha = 1; target.texture.needsUpdate = true; changed();
+  ctx.globalAlpha = 1; target.texture.needsUpdate = true;
+  // Compare and fully hidden paint use the exact imported material appearance.
+  const original = comparing || !target.layers.some(layer => layer.canvas && layer.visible && layer.opacity > 0);
+  const map = original ? target.originalMap || null : target.texture;
+  if (target.material.map !== map) { target.material.map = map; target.material.needsUpdate = true; }
+  if (original && target.originalColor) target.material.color.copy(target.originalColor);
+  else target.material.color?.set(0xffffff);
+  changed();
 }
 export async function decodeLayer(png, size = TEXTURE_SIZE) {
   if (![1024, 2048].includes(size)) throw new Error('Unsupported paint resolution.');
