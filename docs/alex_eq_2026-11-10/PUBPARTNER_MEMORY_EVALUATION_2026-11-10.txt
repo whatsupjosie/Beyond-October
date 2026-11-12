@@ -1,0 +1,126 @@
+PUBPARTNER CARTRIDGE AND PERSISTENT MEMORY: EVALUATION
+Written 2026-11-10 by Claude Fable 5.2 for the owner of Rearview Foresight. Plain text so it can be copied whole.
+Source: Beyond-October, branch gpt/control-ui-wiring-2026-11-08, commit e86d20b, as packaged in Alex_EQ_Study_2026-11-10.
+
+MARKS
+  RAN = I executed it today.   READ = I read that code myself.   NOT READ = not in the package or not opened.
+  FROM EARLIER CHATS = something you told Claude before, not checked against code today.
+
+WHAT I READ AND RAN
+  READ in full: pubpartner_vessel/models.py, runtime.py, context.py. READ in part: pubpartner_vessel/memory.py (event recording, retrieval, visibility; about 330 of 819 lines); pubpartner_core.py (the vault, build_turn_packet, run_turn, saved history, turn log; about 650 of 1,683 lines); the cartridge and vessel lines of main.py.
+  RAN: the verbatim vault and the saved-history reader, with synthetic turns (script attached: run_vault_and_history_check.py).
+  COULD NOT RUN: the cartridge itself. The package is missing pubpartner_vessel/store.py, search.py and errors.py, so the vessel cannot open here.
+  NOT READ (not in the package): pubpartner_cartridges.py, pubpartner/cartridge.py, pubpartner_routes.py, the provider dispatcher, the profile store, the receipts store, jeremy_cricket.py, the docking node, and the vessel's own tests.
+
+==========================================================================
+1. THE SHORT ANSWER
+==========================================================================
+Saving works. Remembering the work does not, yet.
+  - Every PubPartner turn is written to disk as it happens, and your own words are kept exactly and tamper-evidently. That part is strong.
+  - What comes back to the model is thin: the last four exchanges of the same session, cut short. A new session starts with none of the conversation.
+  - What persists across sessions is the relationship side (explicit "always / don't / I prefer" lessons, Alex's memories). What was discussed, established and worked on is saved but never brought back.
+  - The cartridge memory is wired for Alex only. Other cartridges do not get one.
+  - There is no way today to use the pipeline without a character. Every turn gets a friend profile, Alex's reading, and a voice rewrite.
+So the system currently remembers in the opposite order from what you just asked for: interpersonal first, work last. The good news is that the pieces you need already exist and are well made. They need to be pointed at the work.
+
+==========================================================================
+2. WHAT EXISTS, PIECE BY PIECE
+==========================================================================
+THE RECORD OF YOUR WORDS (VerbatimVault)   strong
+  RAN: seven awkward texts (trailing newline, Windows line endings, leading spaces, curly quotes, emoji, accents, 200,000 characters) all came back exactly, 7 of 7. After I edited one saved file by hand, the audit reported the session as not ok and the vault refused to load that file (hash mismatch).
+  READ: writes are atomic, each record has a hash, each session has a hash-chained audit, and an existing record can never be overwritten.
+
+THE RECORD OF THE REPLY   weaker than it should be
+  READ: the vault stores only your side. The reply is kept in the session's turn log (full text; RAN: 2,008 of 2,008 characters), in the relationship encounter record, and in the Blackbox if attached. None of those is sealed the way your words are.
+  READ: the reply is written at the very end of run_turn, after the receipt, the encounter record and lesson extraction. Two of those steps are not protected. If either fails, the reply is never saved and never shown, even though the model produced it.
+
+WHAT THE MODEL IS GIVEN BACK
+  Same session. RAN: after twelve exchanges, four came back. Your text was cut from 1,512 to 700 characters and the reply from 2,008 to 900. Replies from the offline or mock provider are skipped. This is what happens when the caller passes no history of its own; what the screen passes is in pubpartner_routes.py, NOT READ.
+  New session. RAN: nothing of the conversation comes back.
+  Across sessions the model receives only "memories":
+    - Jeremy's keeper: every user turn is filed as a pointer plus its first 500 characters; up to six are recalled by word match. READ: with scoped_memory on (main.py line 1093) the keeper is keyed by user + friend + project + room together, so something filed in one project or room is invisible in another.
+    - Alex's own memory: up to three items. READ: AlexCore stores every user message with an estimated emotional tone.
+    - Explicit lessons and guidance: lines matched by pattern ("always", "don't", "I prefer").
+    - The cartridge (vessel): claims that came from those explicit lessons, nothing else.
+    - A docking node, if one is configured. main.py does not pass one, so it is off here.
+  Nothing anywhere extracts "we decided X", "this file is now version Y", or "this question is still open". The model's side of the work is never recalled at all.
+
+THE CARTRIDGE (.pubpartner vessel)   good design, narrow use
+  READ: one SQLite file holding identity, a ledger of observed events, and claims built from evidence. Claims have levels (tentative, corroborated, confirmed, rejected, superseded), evidence for and against, a scope (global, project, session, room) and a visibility. Jokes, quotes and fiction are discounted. Private memory is withheld from shared rooms. The prompt carries a note when recall was incomplete, so "not found" is not mistaken for "never happened". This is careful work.
+  READ: recall is by shared words between the current message and the stored text. It will miss a memory that is worded differently. (search.py NOT READ; it may do more.)
+  READ: there is no size limit on what is compiled: up to 40 claims and 20 events, each event up to 32,768 characters. The code says the limit belongs to the provider boundary (NOT READ). On a small local model this could overflow.
+  READ: main.py mounts exactly one vessel, at pubpartner/vessels/alex.pubpartner (line 1088), and the vessel is used only when the friend is Alex. A comment at line 2026 says new cartridges are "each registered as a friend; never the Alex vessel". So other cartridges get a profile and the keeper, but no evidence ledger of their own.
+  A difference from your stated design. FROM EARLIER CHATS: you described a small swappable Cartridge plus a separate, growable Memory Card hash-linked to it. In this branch identity and memory live in the same file. That may be intended; it is worth a decision.
+
+COPIES
+  READ: one message from you lands in up to six places under different rules: the vault (exact), Jeremy's keeper (first 500 characters), AlexCore memory (full text plus an emotion estimate), the relationship encounter, the turn log (by reference), and the Blackbox. If you ever say "forget that", it has to reach all of them. Nothing I read does that.
+
+SPEED ON LONG CHATS
+  READ: the turn log is one growing file per session, and the whole file is read on every turn to find the last 40 rows. Your sessions are long. This will slow down.
+
+==========================================================================
+3. WHAT YOU ASKED FOR, AND WHAT IS MISSING FOR IT
+==========================================================================
+A. Persistent memory for each cartridge.   Exists for Alex only.
+   Missing: mount a memory per cartridge and person instead of one fixed path.
+
+B. The same for any model you work with regularly, saving each chat as you go.   Not possible today.
+   READ: build_turn_packet always resolves a friend (Alex by default), always runs Alex's analysis, and run_turn always passes the reply through the voice step (its own rule is named "every_response_passes_personalization") and always records a relationship encounter.
+   Missing: a plain mode with the character switched off.
+   Chats you have in other apps (ChatGPT, Claude, Gemini in a browser) never touch PubPartner. FROM EARLIER CHATS: that is your OmniVault recorder idea. Nothing in this package does it.
+
+C. Only what was discussed, established and worked on; not the personality, quirks or interpersonal history.   The store for this does not exist.
+   Missing: a work memory that belongs to you and the project, not to a character.
+
+==========================================================================
+4. WHAT I RECOMMEND: THREE SHELVES
+==========================================================================
+Keep everything that exists. Sort it onto three shelves, and let each way of working take down only the shelves it should.
+
+SHELF 1. THE RECORD. Every chat, both sides, exact, sealed, with any model.
+  Reuse: the vault as it is. It already has a "kind" and a "parent" field. Store the reply in it too, linked to the message it answers, and store it the moment it arrives, before anything else can fail.
+  Result: one function can hand back a whole chat in order, or export it as text.
+
+SHELF 2. THE WORK LOG. Per project: what was discussed, what was established, what was worked on (files, versions), what is still open.
+  Belongs to you, not to a character. Every line points back to the exact turn in the record that it came from.
+  Reuse: the vessel's evidence ledger. It already has claims with levels, evidence and a project scope. A work line starts as tentative and becomes confirmed when you agree or it comes up again.
+  Filled by: a model answering a short fixed form at the end of an exchange (decisions, facts agreed, files touched, open questions, next step), the same pattern as the reading form. With no model available, the record is still saved and can still be searched.
+  Beside it: your standing working rules (for example PowerShell 5, plain text, no code blocks). These are yours, not a character's.
+
+SHELF 3. THE RELATIONSHIP. Per cartridge and person: interpersonal memory, lessons, voice.
+  This is what exists today. It stays private to that cartridge.
+
+TWO WAYS OF WORKING
+  Partner mode (a cartridge such as Alex): all three shelves.
+  Plain mode (any model): shelves 1 and 2 only. No friend profile, no voice rewrite, no reading of your state, no emotion estimate stored, no relationship record.
+
+CHATS FROM OTHER APPS, cheapest first
+  a. Use those models through PubPartner in plain mode with your own keys. Capture is then automatic. (main.py has a key manager; I did not read it.)
+  b. Import: paste or load an exported chat into the record through the same writer.
+  c. The live recorder (OmniVault). The largest piece. Later.
+
+==========================================================================
+5. THE SMALLEST ORDER OF WORK (nothing here is started)
+==========================================================================
+  0. Look before building, per your rule. FROM EARLIER CHATS, these may already do part of this: context_manager.py in Pub-Partner-Base-Horizon (history compression, 18 tests); the MemoryGate capture-and-promote pipeline, which you noted has no destination (the work log could be that destination); SessionResurrector in PubCast; the docking node. And in this repo, NOT READ: pubpartner_cartridges.py, pubpartner/cartridge.py, pubpartner_vessel/store.py and search.py.
+  1. Save the reply into the vault the moment it arrives. Test: stop the program right after the model answers; the reply is on disk and its hash verifies.
+  2. One reader that returns a whole chat in order, and an export to text. Test: export equals what was typed and received, character for character.
+  3. Replace the four-exchange, cut-short window with one that fits the model's real limit: recent turns exact, older turns summarized. Reuse context_manager.py if step 0 finds it sound.
+  4. Plain mode: one switch that turns the character off. Test: in plain mode nothing is written to Alex's memory or the relationship store, and the prompt contains no friend profile.
+  5. The work log: the form, the lines, their link to the record, and bringing the project's lines into the prompt. Test: start a new session and ask "where were we on X"; the answer comes from confirmed lines, each traceable to a turn.
+  6. A memory per cartridge and person, mounted by cartridge instead of one fixed path.
+  7. Import of chats from other apps.
+  8. Search across the record. FROM EARLIER CHATS: by word, phrase, quote or date, forgiving of misspellings.
+  9. One "forget" that reaches every copy.
+
+==========================================================================
+6. DECISIONS THAT ARE YOURS
+==========================================================================
+  1. Is the work log shared, so that Alex and a plain model both see what was worked on with the other? My recommendation: shared. The work is yours. The alternative is one log per model.
+  2. Do your standing working rules load in plain mode? My recommendation: yes. They are rules about the work, not personality.
+  3. Which projects may be sent to an outside model at all. The work log has to go to whichever model is doing the work.
+  4. Cartridge and Memory Card as two files (your stated design) or one file (this branch).
+  5. Who confirms a work-log line: you, or automatically when it comes up a second time. My recommendation: automatic for "worked on" lines (files and versions), you for "established" lines (decisions).
+  6. In plain mode, should the exact chat still be kept in the Blackbox as well as the vault?
+
+If you want, the next thing I would build is steps 1, 2 and 4, as new standalone code with tests, the same way as the reading module. Step 0 comes first and needs the files listed there.

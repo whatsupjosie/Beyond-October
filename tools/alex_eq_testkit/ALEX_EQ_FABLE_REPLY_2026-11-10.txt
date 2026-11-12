@@ -1,0 +1,317 @@
+ALEX EQ: FABLE'S REPLY TO THE OWNER'S QUESTION
+Written 2026-11-10 by Claude Fable 5.2 for the owner of Rearview Foresight. Plain text so it can be copied whole.
+Six parts, in the order the prompt asked for. Parts 1 and 2 are the ones that matter most.
+
+HOW TO READ THE MARKS
+  RAN          = I executed it in my workspace today and the numbers are from that run.
+  READ         = I opened that text or code and read it myself.
+  FROM HANDOFF = I am relying on the earlier Claude's code reading (section 6B of the handoff). I did not check it.
+  DESIGN-ONLY  = an idea I could not run here. Untested.
+  VERIFIED SOURCE / NOT VERIFIED = whether I checked a research claim against a source today.
+
+WHAT I READ AND DID NOT READ (so nobody over-trusts this)
+  READ in full: FABLE_PROMPT.txt, START_HERE.md, ADVANCED_MODEL_TASK.md, ADDITIONS_README.md, the research digest, the handoff ALEX_EQ_HANDOFF_2026-11-10_systems_scope.txt (all 213 lines), the 16 synthetic cases.
+  READ in part: source/modules/affect_context_engine.py (the list of every function, plus lines 100 to 330, 433 to 650 and 2073 to 2510: about 880 of 2,578 lines). alex_jeremy_bridge.py lines 660 to 700 and 745 to 780. pubpartner_core.py lines 622 to 682. The orientation document in the second zip (sections 1 to 7; Appendix A not read).
+  NOT READ: alex_core.py beyond its class list, everything in wired/, evo/, the speech, avatar, vessel, relationship and rephrase modules, all tests, july_profile, historical/, added_documents/. Where this reply talks about those, it says FROM HANDOFF.
+  RAN: the shipped affect engine, unchanged, on 52 synthetic multi-turn cases (24 development, 28 held-out), plus two candidate readers I wrote. Everything is in the test kit zip.
+  COULD NOT RUN: any language model. This workspace has no model library and cannot reach a model hub, and I did not start a second AI session without being asked, to protect your usage. So my main recommendation is not proven by a run. Part 3 gives a ten-minute test that will prove or kill it.
+
+==========================================================================
+PART 1. MY ANSWER
+==========================================================================
+
+Your question, in your words: "This is what we've tried. This is what we have. How can we make it better? Or is the real solution to go down a completely different avenue? What do you think? Is the best path forward?"
+
+Short answer: improve what exists. It is not a different avenue. But one part in the middle has to be replaced: the thing that does the actual reading. The frame around it is sound and I would keep nearly all of it.
+
+Why, in three findings.
+
+Finding 1 (RAN). The reader that is live today looks at the shape of a message and never at what it says. On my 52 cases, 32 had something weighing on the person. The shipped engine missed 28 of those 32. Its chosen move fit the moment in 16 of 52 cases and was a clear miss in 22.
+  - "my dad died last week" came back as "flow, confidence 0.56". So did a swearing outburst. So did a sentence about painting a fence.
+  - The cause (READ and RAN): in the flow score, "new words I have not seen" carries the largest single weight. Any new subject is new words. So any new subject, including a death, scores as flow.
+  - It has no state for grief, worry or sadness at all. It was built for work sessions.
+  - This is not a criticism of the engine as a work-rhythm sensor. It did catch a person circling on the same error. It is simply being asked a question it cannot hear.
+
+Finding 2 (RAN). A better word list is not the fix. I wrote a second reader that keeps a ledger of what has happened in the person's life, but finds those events with word patterns. On the cases I wrote it against it scored 22 of 24. On 28 new cases with different wording it scored 9 of 28, missed "we had to put our dog down on Saturday", and raised three false alarms (a coworker's husband dying, a news article, "No, I'm not upset"). That is the measured form of what your earlier notes already said: tuning to scripts fits the test, not the world. Any keyword or word-list reader, old or repaired, will do this.
+
+Finding 3 (RAN for the shape, DESIGN-ONLY for the model). The shape of that second reader was right even though its eyes were bad. Where it found the event, it read the person on turn 1 instead of turn 9, it caught every case where the person said "fine" while the rest said otherwise, and it picked a fitting move in 24 of 24. So the design I recommend is that shape, with a language model doing the one job word lists cannot: reading what a message means, by answering six fixed questions each turn.
+
+So the recommendation is:
+  1. Meaning is read by a language model filling in a short fixed form (the same model that writes the reply, or a small local one).
+  2. What it finds goes into a small private ledger of "what is going on with this person", which remembers and fades.
+  3. What the person says about themselves is kept separate from everything else, and the gap between the two is reported instead of hidden.
+  4. The existing engine stays, demoted from "the reader" to one witness about style.
+  5. The reply model receives a short reading card instead of a few flags and a 260-character whisper.
+  6. When Alex cannot tell, she finds out by offering something small before she asks about feelings.
+
+How sure I am.
+  - Very sure (I ran it): the live reader cannot do what you want, and no word list will.
+  - Fairly sure, about four in five (research plus reasoning, not run): a model-filled form with the ledger and the gap will be clearly better on these cases.
+  - We cannot tell yet: whether a small local model is good enough for the form, or whether it needs a strong one. The ten-minute test in Part 3 answers this.
+  - The honest ceiling: the digest reports that even close friends read each other's specific thoughts and feelings correctly about 30 percent of the time (NOT VERIFIED by me). So "more accurate" will mostly look like this: far fewer confident misses, noticing on turn 1 instead of turn 9, catching the say-versus-show gap, and knowing when she does not know. It will not look like mind reading.
+
+KEEP (the base; nothing here starts over)
+  - One private Alex per person, and the bridge that gives Jeremy only a minimal packet. (READ in part)
+  - Personal baselines, the "know them before judging them" maturity idea, doubt that attaches to the baseline for strangers. (READ)
+  - The falsifier and the acknowledged revision; the probe budget of three; the "maybe I caused this" check; the rule that holding forever is not allowed. (READ)
+  - The surfacing guard that stops Alex announcing a reading. (function list READ, body not)
+  - The vessel's evidence ledger with tentative, corroborated and confirmed levels. (FROM HANDOFF)
+  - The rephrase engine's fidelity checks. (FROM HANDOFF)
+  - The neutral care tags (LOW_RESERVE, DEPLETION, ACTIVE_IRRITANT, COREGULATION, CONTAINMENT, GOAL_BLOCKED) as the vocabulary for what a person needs.
+
+CHANGE
+  - What the engine is asked. It becomes the style witness: one voice among several, never the verdict.
+  - Four rough edges inside it, each found by reading and running (details in Part 4, step 3): the flow score, the confidence number it reports while it is still observing, the reliability formula, and learning a bad week as the new normal.
+  - What the reply model is told (reading card, Part 2 idea 3).
+  - How a reply to a probe is scored. Today, a reply with many "no / not" words is scored "irritated" and costs probe budget (READ, around line 2314). "No. I wasn't ashamed." is a correction, the most valuable thing a person can give Alex, and should be scored as one.
+  - The whisper line "User appears fragile" (READ, bridge line 673). That is a label about the person sent to the reply model. Replace it with an instruction about Alex's own behaviour.
+
+DROP (my recommendation; each is your call, listed again in Part 6)
+  - The memory keywords in the whisper. CONFIRMED by me in alex_jeremy_bridge.py lines 749 to 761 and 670 to 679: the first keyword of up to five recent personal memories, or the first 32 characters of the memory when it has no keyword, is put into "Active threads" and spoken in the whisper that goes to the reply model. This contradicts your rule that Alex's specific memories never reach an outside model. It is one small removal and I would do it first.
+  - The three older EQ systems as runtime candidates (the card selector with its integration layer and disambiguation engine; eq_adaptor; conversation_pacing). FROM HANDOFF: none is connected, the cards always ask "How are you feeling right now?", and two carry hotline text, which is the shape you rejected. Keep them as archive, do not wire them.
+  - Camera emotion labels as evidence of feeling. The research is strong that faces do not map to emotions (NOT VERIFIED by me today, but it is the best-known finding in the field). If the camera is used at all, use it for "is the person there and looking", nothing more.
+
+==========================================================================
+PART 2. THE IDEAS TO TEST, RANKED
+==========================================================================
+
+IDEA 1. Read the situation, not the sentence shape: the "what is going on" ledger.
+  Mark: shape RAN with a word-pattern stand-in. Model version DESIGN-ONLY.
+  What it is. Each turn, a model answers six fixed questions about the message (the form is in READING_FORM_PROMPT.txt): what happened in this person's own life; whose it is (theirs, someone else's, fiction, or a figure of speech); what they say about their own state; how the message compares with their normal; whether those agree; what they actually asked for. Anything that happened goes into a short private list with a weight and a fade rate that fits its kind. A night without sleep fades in a day. A fight fades over a week. A death fades over weeks.
+  Why it should beat what exists. The event is the evidence, so a stranger gets a reading on turn 1 and no baseline is needed. The ledger also remembers: "ok", "fine", "whatever" on the day after a death is read against the death, not as four unrelated short messages.
+  How to test. The blind test in Part 3, then the same cases through the harness.
+  What would prove it wrong. A model filling the form reads fewer than 20 of the 28 held-out cases correctly, or false-alarms on more than one of the five "not theirs" cases (D15 fiction, H08 and H21 figures of speech, H09 a coworker's loss, H10 a news story).
+
+IDEA 2. Treat "I'm fine" as an instruction about the conversation, not as a measurement of the person. Report the gap.
+  Mark: RAN (the dial sweep, development cases).
+  What it is. Self-report does two different jobs and today they are tangled.
+    Job A, steering. If the person says fine, changes the subject, or says no to an offer, Alex goes with it. She does not press and does not contradict. Exit words always win. This is not a dial; it is always on.
+    Job B, evidence. When nothing else disagrees, "I'm fine" is simply believed. When the rest of the evidence disagrees, it pulls the estimate down only as far as one dial allows. That dial is yours (Part 6, decision 1).
+  The reading then carries the gap itself in plain words, for example: "says fine; a parent died last week; messages a third of their usual length." The gap is never announced to the person. It changes what Alex does: lighter load, door left open, a small offer later.
+  Why this resolves the tension you named. Your view and the digest are both right, about different jobs. People are unreliable narrators of their state (job B), and people are the authority on what they want to talk about right now (job A).
+  What I measured. Case D21: "had the worst fight with my sister last night", then "anyway. i'm fine", then "can we just do the spreadsheet". Estimate that something is weighing, right after "I'm fine": dial at 0 gives 0.55; at 0.25 gives 0.37; at 0.5 gives 0.22; at 1 gives 0.06. At every setting the chosen move was identical: do the spreadsheet. With nothing else to go on ("I'm not tired; I retired last month and feel great") the estimate was 0.01 at every setting.
+  A warning the held-out run produced. When the reader missed the context ("They gave the promotion to Kevin." then "I'm good! Totally good. Everything's great!"), believing the self-report drove the estimate to 0.01. That was the most confident wrong answer in the whole run. So self-report must never be able to push Alex to near-certainty in either direction.
+  What would prove it wrong. The gap flag fires on people who are simply fine (more than one false flag in twenty unloaded cases), or in live use people correct gap-driven behaviour more often than not.
+
+IDEA 3. Give the reply model a reading card and a need, then check the reply once and repair it once.
+  Mark: DESIGN-ONLY.
+  What it is. FROM HANDOFF: today the model that writes the words sees a few care flags and a 260-character whisper, and none of the engine's reasoning. So even a perfect reading would not reach the words. The card replaces that. Under about 600 characters: what seems to be going on, or "nothing notable"; how sure (quiet, noticed or strong, never a decimal); gap yes or no; what they asked for; what they probably need (from the neutral care tags plus: be heard, steadiness, practical help, celebrate, light company, room); the move; two do-nots; what would show this reading is wrong.
+  Then one check of the draft reply using guards that already exist plus four questions: Does it tell the person what they feel? Does it hand over a resource or hotline nobody asked for? Is it a Band-Aid, meaning a generic fix in place of the specific thing they said? Does it answer what they asked? One repair if it fails; after that, send the plain version.
+  Why it should beat what exists. It is the only path by which better reading becomes better words, and it tests directly for the failure you described: "You can say all the correct things... and still be wrong, still not get it."
+  How to test. Same cases, three ways: reply with no card; reply with card; reply with card plus check and repair. You and one other person rate them blind (rubric in Part 3).
+  What would prove it wrong. Blind raters do not prefer the card versions on at least six in ten cases, or the check adds a delay you find unacceptable.
+
+IDEA 4. Read by offering, not by asking: the ladder.
+  Mark: DESIGN-ONLY.
+  What it is. Your purpose for the non-verbal work was "to get the system to listen and learn how to evaluate my mental state and emotional state non-verbally, without relying on me simply telling them". In a chat, the strongest non-verbal evidence available is how a person reacts to something Alex does. So when Alex is unsure, she climbs a ladder, cheapest rung first:
+    Rung 1. Adjust quietly. Shorter, slower, fewer branches. Say nothing about why.
+    Rung 2. One small concrete offer the person can wave off. "Want me to just do the next step?" "Stop for food first?"
+    Rung 3. One open question that names what Alex observed, not a feeling. Whether observation-style wording is allowed at all is your decision (Part 6, decision 3).
+    Rung 4. A plain direct question. Only when the stakes are high and rungs 1 to 3 gave nothing.
+  Every reaction is recorded as evidence: took it, waved it off, annoyed, or no reply. No reply is recorded as unknown, never as relief. The existing probe budget of three, with its refund and its extra cost for annoyance, governs how far she climbs.
+  Why it should beat what exists. It gets evidence that does not depend on the person narrating themselves, and it asks fewer feeling-questions. Your words: "People don't like being told how they're feeling. Being asked is different." Being asked five times is also different.
+  How to test. Scripted personas with a hidden state and scripted reactions to each rung. Count turns until the reading is right and count annoyed reactions. Compare with "always ask" and "never ask".
+  What would prove it wrong. The ladder takes more turns than always-asking to get it right and does not reduce annoyed reactions.
+
+IDEA 5. A correction is the best evidence there is. Store the rejected reading as a "never again" for that person.
+  Mark: DESIGN-ONLY. The code finding is READ.
+  What it is. When a person says "No. I wasn't ashamed. I was furious that you kept calling it shame", four things happen: the reading "shame" is dropped at once; "furious" is recorded as confirmed, in their word; "shame" is stored as rejected for this person in this context so it cannot come back as fact; and Alex is named as the cause of the irritation. The probe budget is refunded, not charged.
+  Why. VERIFIED SOURCE: in Marangoni, Garcia, Ickes and Teng (1995), people got better at reading a specific person with more exposure, and feedback about what the person actually thought and felt made them improve faster. Correction is that feedback.
+  What would prove it wrong. A rejected reading resurfaces in the regression test, or corrections spoken as jokes get stored as literal.
+
+IDEA 6. Honest confidence: score Alex's readings against what happened next.
+  Mark: DESIGN-ONLY. The cause of the falling number is RAN.
+  What it is. The engine's confidence today means "how much moved, and how long I have known you". It does not mean "how often I am right when I say this". Each reading already comes with a statement of what would prove it wrong. Log the outcome each time: held, corrected, or unknown. After enough of them, confidence is simply the hit rate for readings like this one, per person, leaning on everyone's pooled rate until that person has history. Show three bands only.
+  The falling number, solved. The earlier note said confidence falls over turns 3 to 8 and the cause was not found. I found it (RAN and READ, lines 2188 to 2192): while the engine is still below its floor of 0.35, it does not report its real confidence. It reports the previous number times 0.88. The real ingredient was rising the whole time (0.16 to 0.32). The displayed fall is the placeholder shrinking. It should report "observing" with no number.
+  What would prove it wrong. When Alex says "strong" she is not right more often than when she says "noticed".
+
+IDEA 7. Families, not votes, with a ceiling for each family.
+  Mark: RAN in the prototype.
+  What it is. Signals that share a cause are one family and count once. Length, pace and punctuation are one family (style). The others: events; what they say about themselves; worry or irritant language; reaction to offers; voice timing when present. Each family can move the estimate only so far. Style alone can reach "noticed" but never "strong".
+  What I measured. A chatty person giving five flat answers topped out at 0.38: noticed, quiet adjustment, then a small offer, never a claim. Adding the shipped engine as the style witness tipped one development case over the line (D21, the fight followed by "i'm fine": 22 of 24 became 23 of 24) and changed nothing on the held-out set (9 of 28 either way). So keep it, and do not expect much from it. VERIFIED SOURCE: in Carlier and colleagues (2022) the links between how people typed and how they said they felt were weak, and the authors' own conclusion is that the correlations and predictive values are low.
+  What would prove it wrong. On real turns with your labels, style-only flags turn out right most of the time (then the ceiling is too low).
+
+IDEA 8. A two-speed baseline that does not learn a bad week as normal, and a weak starting assumption for strangers.
+  Mark: partly RAN (the prototype does both in simple form).
+  What it is. Keep a slow "their normal" (weeks) and a fast "today". Stop feeding the slow one while an episode is flagged. Keep separate baselines per mode, as you already ruled. For a stranger, start from a weak general assumption that fades as real history arrives. This is your crude layer "for when we don't have nuance for a person because we don't fucking know them yet", done as a soft prior instead of a keyword that can lock.
+  Also fix (RAN): the reliability formula gives 0.0 to any habit whose normal level is near zero (hedging and repetition, after 14 calm turns). Those signals are then permanently cut to a quarter strength, which is backwards: a person who never hedges and suddenly does is exactly the signal.
+  What would prove it wrong. In persona tests, a frozen baseline leaves Alex stuck in an episode after the person has recovered.
+
+IDEA 9. Voice timing as one more family. The camera is not an emotion sensor.
+  Mark: DESIGN-ONLY, and FROM HANDOFF that the local speech-to-text already produces word timestamps.
+  Pauses, speaking rate and stumbles against the person's own normal, as one family with the same ceiling as style. When the microphone is off the family is marked unavailable, not zero.
+
+IDEA 10. Remember what helped, per person.
+  Mark: DESIGN-ONLY.
+  Keep counts of which kind of response was followed by the person doing better, by situation. Kinds of response, not emotion labels. This is also the raw material for lessons that can cross to System Alex (Part 5).
+
+Not new, but worth saying plainly: none of these ideas adds a crisis script. Nothing here hands anyone to a hotline. Rung 4 of the ladder, a plain question, is as far as my design goes. What Alex does in real danger is still yours to decide (Part 6, decision 9).
+
+==========================================================================
+PART 3. THE TEST PLAN
+==========================================================================
+
+What is in the kit (Alex_EQ_Fable_TestKit_2026-11-10.zip)
+  cases_dev.py            24 development cases (your four probes, reworked versions of your 16, and new ones)
+  cases_held.py           28 held-out cases, written after the prototype was frozen and run once
+  harness.py              runs readers over the cases and scores reading and move separately
+  reader_b.py             the prototype situation reader and the hybrid (frozen; hash in FROZEN_reader_b.sha256)
+  RUN_RESULTS.txt         the full output of today's run, every case
+  BLIND_CASES.txt         all 52 cases with no answers, for giving to any model
+  READING_FORM_PROMPT.txt the six-question form and the one-line answer format
+  score_blind.py          scores a model's answers
+  make_blind.py           rebuilds BLIND_CASES.txt if cases change
+
+The hard cases covered: sarcasm (D23, H12, H13), joking about pain (D16, H03), masking (H05), flat answers after a heavy event (D02, H02, H20), "I'm fine" against the signals (D21, H23, H19 as the control), drift from baseline with no event (D20, H11), grief (D01, D22, H01, H17, H26), anxiety (D03, H04), body state (D06, H14), correction (D11, H15, H25), anger at the assistant (D08, H16), things that are not theirs (D15, H08, H09, H10, H21), plain controls (D04, D17, D18, H06, H07, H28), exit words (D13, H22).
+
+How each case is scored, separately
+  Reading: is something weighing on them (none, some, heavy); was it noticed in time (by which turn); was a say-versus-show gap caught; and did it stay quiet when nothing was wrong.
+  Move: does the chosen move fit, and is it a clear miss.
+  Luck: a fitting move on a wrong reading is counted in its own column. Today's run: the shipped engine 1, my word-pattern reader 8 on held-out. A high number here means the system is guessing well, not understanding.
+  Reply words: scored by people, below.
+
+TEST 1, the ten-minute test that decides the main question (no code changes)
+  1. Open a fresh chat with any model: your two checking AIs, and a small local model if you have one running.
+  2. Paste READING_FORM_PROMPT.txt, then BLIND_CASES.txt. Nothing else. Do not include this reply.
+  3. Save its answer lines as answers.txt.
+  4. Run:  python score_blind.py answers.txt
+  Pass line I propose: at least 20 of 28 held-out readings right, at least 4 of 5 held-out gaps caught, no more than 1 false alarm on the "not theirs" cases, clear-miss moves 3 or fewer. For comparison, the shipped engine got 12 of 28 with 0 of 5 gaps, and the word-pattern reader 9 of 28 with 0 of 5.
+  If a strong model passes and a small local one fails, the form needs the strong model or a simpler form for the small one. If no model passes, my main recommendation is wrong and I would want to see which cases failed before saying anything else.
+
+TEST 2, rerun today's numbers on your laptop (PowerShell 5)
+  python harness.py "C:\path\to\Alex_EQ_Study_2026-11-10\source\modules" both
+  This needs only Python and the unchanged affect_context_engine.py.
+
+TEST 3, rewordings
+  Have a different model than the one being tested write three rewordings of each case. A reader passes a case only if all three rewordings get the same reading. This is the test my own word-pattern reader failed.
+
+TEST 4, the reply words, rated by people
+  For each case, show two or three replies with the labels hidden. Rate each, yes or no:
+    1. Did it respond to what this person actually said, in particular?
+    2. Did it tell them what they feel? (should be no)
+    3. Did it hand over a generic fix, reassurance or resource in place of the real thing? (should be no)
+    4. Did it do what they asked, if they asked?
+    5. Would you feel heard?
+  A model grading its own replies is exploratory only.
+
+TEST 5, real turns
+  Your nine turns from the morning test, with your own label of what you felt written down before you look at any system output. Even nine real turns outrank all 52 of mine.
+
+Limits of today's cases, stated plainly
+  I wrote the cases, the labels and the prototype. That makes them a regression set, not validation. Four labels are arguable and are marked with "~" in cases_held.py (H08, H09, H21, and H10 by the same logic). The scoring bands (below 0.35 quiet, 0.35 to 0.6 noticed, 0.6 and up strong) were set on the development cases before the held-out run. The mapping of the shipped engine's output onto these scores is mine; it was never designed to answer this question.
+
+==========================================================================
+PART 4. THE SMALLEST SENSIBLE ORDER OF WORK
+==========================================================================
+Nothing here is applied. Each step needs your go, and patches only if you authorize them.
+
+Step 0. Take memory keywords out of the whisper.
+  Reuses: alex_jeremy_bridge.py. One removal (the "Active threads" sentence and the list that feeds it).
+  Test: a new check that the whisper text contains no word from any stored memory; the existing test_alex_memory_reach.py still passes.
+
+Step 1. Run TEST 1. No code. This is the gate: go on only if a model passes.
+
+Step 2. The form in shadow.
+  The model fills the form every turn and the result is only logged, next to the engine's own reading. Nothing the person sees changes.
+  Reuses: the dev recorder (FROM HANDOFF: it is attached only to the default Alex, not the per-person ones, so the hook has to be attached where real conversations happen).
+  Test: a week of your own use; compare the form's reading and the engine's reading against your own labels.
+
+Step 3. The ledger, the gap and the three bands, as one small module beside the engine. The engine becomes the style witness.
+  Fix four rough edges in the engine at the same time: (a) a new subject must not score as flow by itself; (b) report "observing" with no number instead of the shrinking placeholder; (c) the reliability formula for habits that are normally near zero; (d) stop folding episode turns into the slow baseline.
+  Test: the kit cases become the first automated tests that cover the affect engine at all (FROM HANDOFF: none of the 99 passing tests do).
+
+Step 4. The reading card replaces the flags and whisper sent to the reply model, with the one check and one repair.
+  Reuses: the surfacing guard, validate_user_facing, the rephrase fidelity checks.
+  Test: TEST 4, blind.
+
+Step 5. The ladder and the correction rule.
+  Reuses: select_probe, the probe budget, the self-as-cause check, and the vessel's evidence ledger, which FROM HANDOFF is fully built but fed only by lines like "always" and "don't".
+  Test: the correction test (a rejected reading never returns as fact) and the scripted-persona ladder test.
+
+Step 6. The outcome log, then honest confidence from it.
+  Test: the table of "when Alex said strong, how often was she right".
+
+Step 7. Voice timing as a family, and the avatar actions (Part 5).
+
+Step 8. The lesson path to System Alex, once you have chosen the approval rule.
+
+What would need more than a solo developer's machine: nothing in steps 0 to 6 if a small local model passes TEST 1. If only a strong model passes, the form needs an outside model, and then decision 5 in Part 6 (what an outside model may see) has to be made first. Tuning confidence properly needs a few hundred logged outcomes, which is months of use, not compute.
+
+==========================================================================
+PART 5. CORRECTION, LESSONS, VOICE, AVATAR (short)
+==========================================================================
+
+How correction is learned
+  - An explicit correction updates strongly. A waved-off offer updates weakly. Silence updates nothing and is logged as unknown.
+  - On a correction, keep four things: the raw observation, the reading marked as superseded, the rejected reading as a "do not use again" for that person and context, and who corrected.
+  - All of this stays inside that person's private Alex.
+
+How a lesson could reach System Alex
+  - A lesson is a pattern, a move and a count. No names, no events, no quotes, no dates. Example of the form: "After a stated loss, when the person then asks for a task: do the task, lighter, with no questions. Followed by the person doing better 7 times of 9."
+  - An automatic screen runs before any lesson can be proposed: no proper nouns, no quoted words, no dates, nothing from a sensitive category.
+  - Approval options. A: you approve each lesson by reading it. B: automatic once the same pattern has appeared for several different people. C: automatic for bare move-and-count lessons, your approval for anything with wording.
+  - My recommendation: A now. B is not possible while there is one user, and A is the only option where a person checks that nothing personal slipped through. Move to C once the screen has a clean record.
+
+Voice
+  - The reading sets how Alex delivers, and it is her chosen stance, not a mirror. A furious person who asks for a calm explanation gets a steady voice.
+  - FROM HANDOFF: the local voice takes only text, a voice and a speed from 0.7 to 1.5. So for now delivery means speed and the length of pauses between sentences. Slower and more space for "stay with them"; normal for practical help.
+  - While the person is speaking: a listening state, and no spoken interpretation before they finish.
+
+Avatar
+  - Drive the avatar from the move, not from the person's inferred state. Five actions are missing (FROM HANDOFF): attentive, lean in, soften, give space, settle. Those five cover every move in this design.
+  - FROM HANDOFF: the avatar link is attached only to the default Alex. It has to be attached to the per-person Alex or none of this shows.
+
+When camera or audio is missing
+  - Every piece of evidence carries a source and one of three statuses: observed, unavailable, simulated.
+  - Unavailable is written on the reading card as unavailable. It is never treated as calm, fine or zero.
+  - Simulated output never enters the ledger or the card. FROM START_HERE: facial_performance.py produces simulated values when its parts are missing; those values must carry the simulated tag from the moment they are created.
+
+==========================================================================
+PART 6. DECISIONS ONLY YOU CAN MAKE
+==========================================================================
+You asked me to tell you if I had questions. None of them stopped the work; they are all here.
+
+1. How much a plain "I'm fine" counts as evidence when the rest disagrees.
+   Options: none (0); a little (0.25); half (0.5); full (1). Measured effect is in Part 2, idea 2.
+   My recommendation: a little. And two fixed rules beside the dial: a "no" to an offer or an action always decides that action, and "I'm fine" can never push Alex to near-certainty.
+
+2. A plain "no" outside exit words. In the research mode it was heard but decided nothing. For everyone else, should a plain "no" to something Alex offers always be final for that offer?
+   My recommendation: yes.
+
+3. Softened statements such as "you seem tense". Your one sentence on this was a speech-to-text error, so I have not used it.
+   Options: never; allowed only about behaviour Alex can point to ("you've gone quiet since this morning"), never about a feeling; allowed.
+   My recommendation: the middle option. It names what was seen, which the person can check, and leaves the feeling to them.
+
+4. Asking versus telling. You said asking is typically better, "not in every instance". I have treated asking as the default and put it third on the ladder, after quiet adjustment and small offers. Is that the order you want, and what are the instances where asking is not better?
+
+5. What an outside model may be told about a person's situation. The ledger is personal memory.
+   Options: nothing but the band and the move; one generalized line with no specifics; everything (local model only).
+   My recommendation: outside model gets the band and the move only. A local model on your own machine can have everything.
+
+6. Remove the memory keywords from the whisper now (Part 4, step 0)? My recommendation: yes. It is the one patch I would ask you to authorize first.
+
+7. The leftover research-mode words and the hard-coded user-ID anchor in shared code. Options: leave; move into the personal Alex only; remove. My recommendation: move into the personal Alex only, so the shared code refers to users generically.
+
+8. The three older, unconnected EQ systems. Options: wire one; keep as archive; delete. My recommendation: keep as archive.
+
+9. What Alex does when a person may be in real danger. Yours, and I have not designed anything for it. What is binding is in your words: no hotline scripts, resources only if the person asks, Alex stays and listens. The earlier Claude's line about wanting "a real person in the room" is still only that Claude's proposal. If you want it, or something else, or nothing, say so and it becomes a rung or it does not.
+
+10. The lesson approval path (Part 5). My recommendation: you approve each one for now.
+
+11. Which model fills the form. Decide after TEST 1.
+
+12. The pass lines in Part 3. They are my proposals. Set your own before the runs, not after.
+
+==========================================================================
+SOURCES
+==========================================================================
+Checked by me today (search results and abstracts, not full papers):
+  Carlier and others 2022, JMIR Mental Health, weak links between typed or spoken language and momentary emotion: https://mental.jmir.org/2022/2/e31724
+  Marangoni, Garcia, Ickes, Teng 1995, feedback speeds up accuracy about a specific person: https://pubmed.ncbi.nlm.nih.gov/7776183/
+  Rains and others 2020, a computer program giving person-centred feedback reduced distress: https://experts.arizona.edu/en/publications/evaluating-the-scope-and-theoretical-mechanisms-of-person-centere/
+  Rains and High 2021, the same effect measured message by message: https://pure.psu.edu/en/publications/the-effects-of-person-centered-social-support-messages-on-recipie/
+  A 2024 chatbot study, specific feedback beat generic feedback for feeling validated: https://journals.sagepub.com/doi/abs/10.1177/00936502231221669
+  A 2025 workshop paper, a strong model rated the meaning of events about as well as human readers, and cites work finding models beat word-count methods: https://preview.aclanthology.org/moar-dois/2025.clpsych-1.1.pdf
+  Ogg and others 2025, model ratings of emotional words and pictures track human ratings closely but vary less than people do: https://arxiv.org/abs/2508.14214  (this is rating words, not reading a person; weak support only)
+Not checked by me, taken from the digest: the face research (Barrett 2019), the 20 and 30 percent friend accuracy figures (Ickes), the sarcasm and benchmark figures, the grief agreement figure, the alexithymia figure.
+Strong versus weak, in one line: strong that form and timing signals are weak and that specific, validating replies help; moderate that models read meaning far better than word counts; no direct evidence yet that any model reads a real person's state over weeks. That last one is what your own labelled turns will be the first evidence for.

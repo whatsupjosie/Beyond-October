@@ -1,0 +1,28 @@
+--- a/modules/alex_jeremy_bridge.py	2026-11-10 17:05:42.917788101 -0800
++++ b/modules/alex_jeremy_bridge.py	2026-11-10 17:05:42.929719948 -0800
+@@ -746,20 +746,16 @@
+             pace = "slow"
+ 
+         recent = alex.memory.recall(days_back=14, limit=5)
+-        active_threads = []
++        # Private memory text must never leave Alex. This packet is written to the shared
++        # packet file and its "active_threads" are spoken in jeremy_whisper(), which goes to
++        # the reply model. So no keyword and no memory content is copied here: only how many
++        # memories there are and of what type.
++        active_threads: List[str] = []
+         recent_memory_types = []
+-        seen = set()
+         for mem in recent:
+             memory_type = getattr(getattr(mem, "memory_type", None), "value", "")
+             if memory_type and memory_type not in recent_memory_types:
+                 recent_memory_types.append(memory_type)
+-            if mem.keywords:
+-                key = mem.keywords[0]
+-            else:
+-                key = mem.content[:32]
+-            if key not in seen:
+-                active_threads.append(key)
+-                seen.add(key)
+ 
+         packet = {
+             "user_id": user_id,

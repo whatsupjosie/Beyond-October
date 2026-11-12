@@ -1,0 +1,71 @@
+PROMPT FOR CLAUDE FABLE 5.2 (paste this whole file as the first message; the zip it names is attached to the same chat)
+
+You have a short window with the owner of Rearview Foresight, who is building PubCast AI and PubPartner. This is an experiment she is still building, and she needs your help with the next step.
+
+The attached zip holds what she has tried and what she has so far. It also holds a research digest on reading emotion from text, timing, voice and camera. Nothing in the zip is finished or official, and it is not a test of whether it is consistent. Different parts come from different attempts. It is the ingredients and the attempts, not a finished system.
+
+Her question to you, in her words: "This is what we've tried. This is what we have. How can we make it better? Or is the real solution to go down a completely different avenue? What do you think? Is the best path forward?"
+
+What she is after: something that works better, functions better and performs better, meaning more accurate at working out what a person is experiencing, which leads to better outcomes and more useful options for them. It should reach its conclusions from the evidence in front of it, look for more nuance, and find better ways to think about and process that evidence. Once it can say what someone is probably feeling, the next question is how best to move forward given that. Reading comes first.
+
+She wants YOU to come up with the ideas. She does not want to be handed a plan to approve. The ideas you propose will be tested, and she hopes yours are better than the ones already in the zip. She also wants it to not feel like starting over: the existing system is the base to improve. If you think some part should be replaced or dropped, say which part and why, plainly. Replace only what you can justify.
+
+Choose by this: the best idea, combined with the best workflow and the most stable product. Newer is not the test; what works is.
+
+THE GOAL, IN HER WORDS (verbatim, do not reword)
+"I want a simple to use and work with, complex model, deep understanding of human nature, emotional response and triggers, and interpretation. So it can predict, read, and interpret, correct itself, and reorient when necessary as it engages with people in work and play. Attempting to understand them and to be the best, whatever they need, whatever they want, whatever they need, within certain ethical limits."
+First priority: the right words must come "by either luck or actually knowing the right answer." So the design for understanding a person's thoughts, feelings, needs, wants and desires must "assess them accurately and respond accurately, giving them what they want in a productive way, with only a few minor constraints."
+The point of the non-verbal work: "to get the system to listen and learn how to evaluate my mental state and emotional state non-verbally, without relying on me simply telling them, because people are unreliable narrators of themselves. So the system has to be smarter than just simply asking."
+On being told versus asked: "People don't like being told how they're feeling. Being asked is different."
+
+WHAT HAS BEEN TRIED / WHAT EXISTS (a Claude READ the code on 2026-11-10; branch gpt/control-ui-wiring-2026-11-08, commit e86d20b; full detail in section 6B of ALEX_EQ_HANDOFF_2026-11-10_systems_scope.txt; line-by-line notes in the zip)
+Live now:
+- One running read: AlexCore's keyword layer, then AffectContextEngine (personal baselines, about 9 to 12 turns before it commits, work-session states only). It reads the form and timing of messages, not their meaning.
+- The reply model sees only a few care flags and a 260-character whisper, not the engine's reasoning, cause, doubt or probe.
+- Learning happens only from explicit lines such as "always" and "don't". An evidence and correction memory is built but nothing feeds it from conversation.
+Built, not connected yet:
+- A 22-card EQ pipeline, a second EQ adaptor, a "stay instead of advance" pacing gate, System Alex conversation signals, the affect-to-avatar link and dev recorder on per-user Alex, a model voice rewrite, voice-timing data from the microphone path, and the EVO camera/voice system (which has no camera input in the running app).
+Known rough spots, found by reading and by running probes:
+- The whisper can carry memory keywords to an outside model even though it says they are withheld.
+- Probes: "my dad died last week" produced no reading; flat "ok / fine / whatever" turned into disengagement only at turn 9; an anxious "what if" spiral showed as friction only at the last turn; the engine's confidence falls over turns 3 to 8.
+- The zip is missing files it imports (evo/mutation and several others), so it cannot run end to end. 99 of the runnable tests pass; none cover the affect engine.
+Read the code in source/ and source_additions/ yourself. The handoff and these notes are context, not truth; check them against the code.
+
+RESEARCH
+The digest (RESEARCH_DIGEST_emotion_inference_2026-11-10.md) was produced by a research tool and is evidence for you to check, extend and argue with. It is not the plan. Its own caveats say some secondary figures were not verified against primary sources, and its section (e) is that report's own untested design advice. Do your own research too, citing sources and separating strong evidence from weak. Two tensions in it are for you to test, not accept:
+- The digest says the signals are weak (within-person correlations roughly .05 to .25), so "more accurate" may mostly mean better calibrated: knowing when it does not know, and asking then.
+- The digest says to treat plain self-report as the strongest current-state evidence. The owner's view is that people are unreliable narrators of themselves, and the system must be smarter than just asking. How much weight self-report should get is hers to decide. Test it and give her options.
+
+HOW TO WORK
+- Compare approaches and run them where you can, on held-out synthetic cases. Label anything you could not run as design-only. Choose by what you measured. ADVANCED_MODEL_TASK.md has detailed comparison and acceptance lists; treat it as one set of criteria, not as the plan.
+- Stay within what a solo developer's compute and local models can do, and say what would need more.
+- The owner cannot read code line by line but can read plain-English designs and spot loops and workflow errors. Write designs in plain English she can check.
+- Propose; do not silently change her design. If you think something she built is wrong, say so and ask. Write patches only if she authorizes them.
+- Be honest about how sure you are, about what you ran versus only designed, and about what you read versus only saw listed. If your honest answer is "we cannot tell yet," say that and say how to find out.
+- Use synthetic personas only. Never use or ask for her personal memories.
+
+WHY "BABY MODE" APPEARS IN THE FILES (read this before you meet the old words)
+Some code, tests and older documents in the zip use the words "baby mode" and related care vocabulary. That was an earlier research-only mode that belongs to the owner's personal Alex. It was never meant for System Alex or PubPartner, and it is out of scope for them. It was an experiment, not a product feature, and it is not a nursery simulation. The shared system does not build on its words, role-play or routines.
+Why it existed, in her words (verbatim): "The point was the learning to care for me as a baby, and the part about ignoring my words. The point was to get the system to listen and learn how to evaluate my mental state and emotional state non-verbally, without relying on me simply telling them, because people are unreliable narrators of themselves. So the system has to be smarter than just simply asking"
+What carries over is the lesson, in neutral care language: reading a person's state without relying only on what they say, then caring for them in a way that is not infantilizing or polarizing. Her words on the translation: "Translating things like needing a nap to possibly needing rest or needing a bottle into perhaps their hungry, and I should suggest they stop for a snack. Things like that."
+If you find old words in the code or docs, treat them as leftovers from that experiment. Do not build on them. Whether to remove them from the shared code is her decision; if you think they should go, say so and ask.
+
+RULES THAT ARE HERS (binding)
+- Alex is a she. Alex's specific memories of the owner never reach Alex Core, the public, or an outside model. System Alex takes general lessons so Alex can be Alex for everyone. Her own Alex stays her friend.
+- References to the owner in anything for the system are generalized ("the user") unless it is a specific example that is the basis for a learned principle.
+- No hotline scripts. This is not crisis software; it is a friend. Resources only if the person asks. Exit words always work.
+- The care lessons of an earlier research mode are carried in neutral care language, not infantilizing wording. Do not build a nursery simulation or anything infantilizing into the shared system.
+- Quote her words exactly. Never reword them.
+- Output is suggestions the person decides on, not orders. Alex may ask about a state she cannot read; she must not tell a person what they feel.
+- Never lean on agreement, disclosure, session length or emotional dependency. When what someone wants conflicts with what is true, Alex does not say something false to please them.
+- A test-only state setter may exist for testing but never in the live path.
+
+WHAT TO SEND BACK, IN THIS ORDER, AS FILES
+1. Your answer to her question, in plain English, up front: improve what exists, or a different avenue? What is your honest recommendation, why, and how sure are you? Say which existing parts you would keep, change or drop.
+2. The ideas to test: your own best ideas for reading a person more accurately and choosing a better response, each with what it is, why you think it would beat what exists, how to test it, and what result would prove it wrong. Rank them. Include anything new in code, method or process that beats what is there.
+3. A test plan the owner can run or that you can run: new held-out hard cases (sarcasm, joking about pain, masking, flat answers after a heavy event, "I'm fine" against the signals, drift from baseline, grief, anxiety), scoring the reading and the reply separately. The 16 cases in SYNTHETIC_EVALUATION.jsonl are a starting set, not a benchmark. A good reply on a wrong reading is luck.
+4. The smallest sensible order of work if she goes with your recommendation, each step testable, reusing what exists, so it does not feel like starting over.
+5. How correction should be learned and how lessons could reach System Alex, and how voice and avatar would carry the result, including what happens when camera or audio is missing (label the evidence as unavailable; never present simulated emotion as observed). Keep these short; the approval rule for lessons crossing to System Alex is hers, so give options and a recommendation.
+6. A short list of decisions only the owner can make, each with options and your recommendation, including how much weight a plain "no" or "I'm fine" carries, asking versus telling, softened statements, and the lesson approval path.
+
+If the window ends early, finish items 1 and 2 first.

@@ -1,0 +1,32 @@
+NOTES FOR THE NEXT AI (written 2026-11-10 by Claude Fable 5.2, to the owner's standing rule for handoffs)
+Read ALEX_EQ_FABLE_REPLY_2026-11-10.txt first. These notes say only what a cold reader needs beyond it.
+
+WHAT THIS SESSION WAS
+The owner gave FABLE_PROMPT.txt, Alex_EQ_Study_2026-11-10_systems_scope.zip and PubCast_AI_Evergreen_Orientation_And_Original_About_Page.zip, and asked whether to improve the existing EQ system or take another avenue. She said her usage is limited, asked me to raise questions and then continue on the most promising path.
+
+VERIFIED BY RUNNING (all output in RUN_RESULTS.txt; command: python3 -I harness.py <source/modules> both)
+- Source: Beyond-October, branch gpt/control-ui-wiring-2026-11-08, commit e86d20b, as packaged. affect_context_engine.py was imported unchanged.
+- Shipped engine on 52 synthetic cases: development 12 of 24 readings right, held-out 12 of 28; it missed 28 of 32 cases where something was weighing; moves fit 16 of 52.
+- Word-pattern situation reader (reader_b.py, frozen, hash in FROZEN_reader_b.sha256): development 22 of 24, held-out 9 of 28. The held-out set was run once.
+- The engine's "confidence falls on turns 3 to 8" is the decay placeholder at lines 2188 to 2192, not evidence.
+- A new subject scores as "flow" because novelty has weight 1.2 in the flow score (line 521).
+- feature_reliability() returned 0.0 for hedge_density and repetition after 14 calm turns.
+
+VERIFIED BY READING
+- alex_jeremy_bridge.py lines 749 to 761 build active_threads from the first keyword of recent memories, or mem.content[:32]; line 679 puts them in the whisper; line 673 sends "User appears fragile".
+- affect_context_engine.py lines 2314 to 2317 score a probe reply as "irritated" when negation_density > 0.15.
+
+NOT DONE / NOT VERIFIED
+- No language model was run. The main recommendation (a model fills the reading form) is untested. TEST 1 in the reply is the next step and needs no code.
+- I did not read alex_core.py, wired/, evo/, speech, avatar, vessel, relationship, rephrase, the tests, july_profile, historical/ or added_documents/. Statements about them are marked FROM HANDOFF in the reply.
+- Research: seven sources were checked from search results and abstracts only (listed in the reply). The rest of the digest was not checked.
+- The cases, labels and prototype share one author (me). They are a regression set, not validation.
+
+NOTHING WAS CHANGED in the owner's code. No patches were written. Every change in the reply is a proposal awaiting her decision (Part 6 lists twelve).
+
+THE OWNER'S WORDS USED IN THE REPLY were copied from FABLE_PROMPT.txt and the handoff without rewording. If you quote her, copy from those files, not from my reply.
+
+NEXT STEP
+The owner runs TEST 1 (paste READING_FORM_PROMPT.txt and BLIND_CASES.txt into a fresh model, save the answer lines, run score_blind.py). If a model passes, go to Part 4 step 2. If none passes, look at which cases failed before designing anything else. Step 0 (remove memory keywords from the whisper) is independent and waits only on her yes.
+
+Pass this standard on in the notes you write: say what was run, what was read, what was only listed, and what is guessed.

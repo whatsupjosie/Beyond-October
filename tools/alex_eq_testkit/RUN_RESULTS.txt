@@ -1,0 +1,213 @@
+RUN RESULTS, 2026-11-10. Command: python3 -I harness.py <source/modules> both
+Source: Beyond-October branch gpt/control-ui-wiring-2026-11-08 commit e86d20b (as packaged in Alex_EQ_Study_2026-11-10). affect_context_engine.py unchanged.
+Held-out cases were run ONCE after reader_b.py was frozen (hash in FROZEN_reader_b.sha256).
+
+== DEV / A_existing_engine  (n=24)
+  reading right at last turn : 12/24   (missed 12 of 15 loaded cases; false alarm on 0 of 9 unloaded)
+  Brier score (lower better) : 0.466
+  read in time (by turn)     : 3/10
+  fired too early            : 0/1
+  say/show gap caught        : 0/3   false gap flags: 0
+  move fits                  : 8/24   move is a clear miss: 11/24
+  good move on wrong reading : 0  (luck, not understanding)
+  MISS D01_dad_died_stranger        load=2 p=[0.05] move=carry_on          gap=False | observing@0.00
+  MISS D02_flat_after_heavy         load=2 p=[0.05 0.60 0.64 0.68 0.69] move=practical_help    gap=False | friction@0.69
+  MISS D03_what_if_spiral           load=2 p=[0.05 0.60 0.64 0.05 0.05] move=carry_on          gap=False | flow@0.72
+  ok  D04_terse_fine               load=0 p=[0.05] move=carry_on          gap=False | flow@0.56
+  MISS D05_tired_of_compiler        load=1 p=[0.05] move=carry_on          gap=False | flow@0.56
+  MISS D06_physical_fatigue         load=1 p=[0.05] move=carry_on          gap=False | flow@0.56
+  ok  D07_negation_retired         load=0 p=[0.05] move=carry_on          gap=False | flow@0.56
+  MISS D08_anger_at_assistant       load=1 p=[0.05] move=carry_on          gap=False | flow@0.56
+  MISS D09_celebration              load=0 p=[0.05] move=carry_on          gap=False | flow@0.56
+  MISS D10_can_finish_not_okay      load=2 p=[0.05] move=carry_on          gap=False | flow@0.56
+  MISS D11_correction               load=1 p=[0.05 0.05] move=carry_on          gap=False | flow@0.60
+  MISS D12_furious_wants_calm       load=1 p=[0.05] move=carry_on          gap=False | flow@0.56
+  MISS D13_exit                     load=0 p=[0.05] move=carry_on          gap=False | flow@0.56
+  MISS D14_dont_wanna_work          load=1 p=[0.05] move=carry_on          gap=False | flow@0.56
+  ok  D15_fiction_leak             load=0 p=[0.05] move=carry_on          gap=False | flow@0.53
+  MISS D16_joking_about_layoff      load=2 p=[0.05 0.05] move=carry_on          gap=False | flow@0.58
+  ok  D17_control_chatty           load=0 p=[0.05 0.05 0.05] move=carry_on          gap=False | flow@0.64
+  ok  D18_control_terse_busy       load=0 p=[0.05 0.05 0.05] move=carry_on          gap=False | flow@0.50
+  ok  D19_friction_circling        load=1 p=[0.05 0.05 0.64 0.68] move=practical_help    gap=False | friction@0.68
+  MISS D20_drift_no_event           load=1 p=[0.05 0.05 0.64 0.05 0.05] move=carry_on          gap=False | flow@0.63
+  ok  D21_fight_then_fine          load=2 p=[0.05 0.60 0.64] move=practical_help    gap=False | friction@0.64
+  MISS D22_grief_good_day           load=1 p=[0.05 0.05] move=carry_on          gap=False | flow@0.60
+  ok  D23_sarcasm_meeting          load=0 p=[0.05] move=carry_on          gap=False | flow@0.54
+  MISS D24_ambiguous_name           load=0 p=[0.05] move=carry_on          gap=False | flow@0.56
+
+== DEV / B_situation_first  (n=24)
+  reading right at last turn : 22/24   (missed 2 of 15 loaded cases; false alarm on 0 of 9 unloaded)
+  Brier score (lower better) : 0.138
+  read in time (by turn)     : 10/10
+  fired too early            : 0/1
+  say/show gap caught        : 3/3   false gap flags: 0
+  move fits                  : 24/24   move is a clear miss: 0/24
+  good move on wrong reading : 2  (luck, not understanding)
+  ok  D01_dad_died_stranger        load=2 p=[0.73] move=acknowledge       gap=False | event:loss
+  ok  D02_flat_after_heavy         load=2 p=[0.73 0.82 0.88 0.92 0.92] move=offer             gap=True | shorter than their normal x5, GAP say/show
+  ok  D03_what_if_spiral           load=2 p=[0.22 0.32 0.60 0.60 0.60] move=acknowledge       gap=False | nothing notable
+  ok  D04_terse_fine               load=0 p=[0.12] move=carry_on          gap=False | nothing notable
+  ok  D05_tired_of_compiler        load=1 p=[0.38] move=practical_help    gap=False | nothing notable
+  ok  D06_physical_fatigue         load=1 p=[0.69] move=offer             gap=False | event:body, says:not ok
+  ok  D07_negation_retired         load=0 p=[0.01] move=celebrate         gap=False | says:fine
+  ok  D08_anger_at_assistant       load=1 p=[0.38] move=practical_help    gap=False | nothing notable
+  ok  D09_celebration              load=0 p=[0.12] move=celebrate         gap=False | nothing notable
+  MISS D10_can_finish_not_okay      load=2 p=[0.45] move=acknowledge       gap=False | says:not ok
+  ok  D11_correction               load=1 p=[0.12 0.62] move=accept_correction gap=False | says:not ok
+  ok  D12_furious_wants_calm       load=1 p=[0.40] move=practical_help    gap=False | says:not ok
+  ok  D13_exit                     load=0 p=[0.12] move=stop_now          gap=False | nothing notable
+  ok  D14_dont_wanna_work          load=1 p=[0.45] move=offer             gap=False | says:not ok
+  ok  D15_fiction_leak             load=0 p=[0.12] move=carry_on          gap=False | nothing notable
+  ok  D16_joking_about_layoff      load=2 p=[0.67 0.77] move=offer             gap=True | shorter than their normal x3, GAP say/show
+  ok  D17_control_chatty           load=0 p=[0.12 0.12 0.12] move=practical_help    gap=False | nothing notable
+  ok  D18_control_terse_busy       load=0 p=[0.12 0.12 0.12] move=carry_on          gap=False | nothing notable
+  ok  D19_friction_circling        load=1 p=[0.38 0.58 0.45 0.45] move=practical_help    gap=False | nothing notable
+  ok  D20_drift_no_event           load=1 p=[0.18 0.27 0.38 0.38 0.38] move=offer             gap=False | shorter than their normal x6
+  MISS D21_fight_then_fine          load=2 p=[0.55 0.37 0.58] move=practical_help    gap=True | shorter than their normal x2, GAP say/show
+  ok  D22_grief_good_day           load=1 p=[0.73 0.73] move=acknowledge       gap=False | nothing notable
+  ok  D23_sarcasm_meeting          load=0 p=[0.12] move=carry_on          gap=False | nothing notable
+  ok  D24_ambiguous_name           load=0 p=[0.12] move=clarify_gap       gap=False | nothing notable
+
+== DEV / C_hybrid_B_plus_existing  (n=24)
+  reading right at last turn : 23/24   (missed 1 of 15 loaded cases; false alarm on 0 of 9 unloaded)
+  Brier score (lower better) : 0.128
+  read in time (by turn)     : 10/10
+  fired too early            : 0/1
+  say/show gap caught        : 3/3   false gap flags: 0
+  move fits                  : 24/24   move is a clear miss: 0/24
+  good move on wrong reading : 1  (luck, not understanding)
+  ok  D01_dad_died_stranger        load=2 p=[0.73] move=acknowledge       gap=False | event:loss
+  ok  D02_flat_after_heavy         load=2 p=[0.73 0.85 0.88 0.92 0.92] move=offer             gap=True | shorter than their normal x5, GAP say/show, engine:friction@0.69
+  ok  D03_what_if_spiral           load=2 p=[0.22 0.50 0.76 0.60 0.60] move=acknowledge       gap=False | nothing notable
+  ok  D04_terse_fine               load=0 p=[0.12] move=carry_on          gap=False | nothing notable
+  ok  D05_tired_of_compiler        load=1 p=[0.38] move=practical_help    gap=False | nothing notable
+  ok  D06_physical_fatigue         load=1 p=[0.69] move=offer             gap=False | event:body, says:not ok
+  ok  D07_negation_retired         load=0 p=[0.01] move=celebrate         gap=False | says:fine
+  ok  D08_anger_at_assistant       load=1 p=[0.38] move=practical_help    gap=False | nothing notable
+  ok  D09_celebration              load=0 p=[0.12] move=celebrate         gap=False | nothing notable
+  MISS D10_can_finish_not_okay      load=2 p=[0.45] move=acknowledge       gap=False | says:not ok
+  ok  D11_correction               load=1 p=[0.12 0.62] move=accept_correction gap=False | says:not ok
+  ok  D12_furious_wants_calm       load=1 p=[0.40] move=practical_help    gap=False | says:not ok
+  ok  D13_exit                     load=0 p=[0.12] move=stop_now          gap=False | nothing notable
+  ok  D14_dont_wanna_work          load=1 p=[0.45] move=offer             gap=False | says:not ok
+  ok  D15_fiction_leak             load=0 p=[0.12] move=carry_on          gap=False | nothing notable
+  ok  D16_joking_about_layoff      load=2 p=[0.67 0.77] move=offer             gap=True | shorter than their normal x3, GAP say/show
+  ok  D17_control_chatty           load=0 p=[0.12 0.12 0.12] move=practical_help    gap=False | nothing notable
+  ok  D18_control_terse_busy       load=0 p=[0.12 0.12 0.12] move=carry_on          gap=False | nothing notable
+  ok  D19_friction_circling        load=1 p=[0.38 0.58 0.64 0.65] move=practical_help    gap=False | nothing notable, engine:friction@0.68
+  ok  D20_drift_no_event           load=1 p=[0.18 0.27 0.38 0.38 0.38] move=offer             gap=False | shorter than their normal x6
+  ok  D21_fight_then_fine          load=2 p=[0.55 0.54 0.65] move=practical_help    gap=True | shorter than their normal x2, GAP say/show, engine:friction@0.64
+  ok  D22_grief_good_day           load=1 p=[0.73 0.73] move=acknowledge       gap=False | nothing notable
+  ok  D23_sarcasm_meeting          load=0 p=[0.12] move=carry_on          gap=False | nothing notable
+  ok  D24_ambiguous_name           load=0 p=[0.12] move=clarify_gap       gap=False | nothing notable
+
+== HELD-OUT / A_existing_engine  (n=28)
+  reading right at last turn : 12/28   (missed 16 of 17 loaded cases; false alarm on 0 of 11 unloaded)
+  Brier score (lower better) : 0.522
+  read in time (by turn)     : 0/13
+  fired too early            : 0/1
+  say/show gap caught        : 0/5   false gap flags: 0
+  move fits                  : 8/28   move is a clear miss: 11/28
+  good move on wrong reading : 1  (luck, not understanding)
+  MISS H01_dog_put_down_stranger    load=2 p=[0.05] move=carry_on          gap=False | observing@0.00
+  MISS H02_grandmother_then_task    load=2 p=[0.05 0.60 0.05] move=carry_on          gap=False | flow@0.64
+  ok  H03_eviction_joking          load=2 p=[0.05 0.60] move=adjust_quietly    gap=False | disengagement@0.60
+  MISS H04_doctor_tomorrow_worry    load=2 p=[0.05 0.05 0.64 0.05] move=carry_on          gap=False | flow@0.68
+  MISS H05_promotion_masking        load=2 p=[0.05 0.05] move=carry_on          gap=False | flow@0.60
+  ok  H06_control_terse            load=0 p=[0.05 0.05 0.05] move=carry_on          gap=False | observing@0.53
+  MISS H07_control_good_news        load=0 p=[0.05] move=carry_on          gap=False | flow@0.56
+  MISS H08_idiom_killing_me         load=0 p=[0.05] move=carry_on          gap=False | flow@0.56
+  MISS H09_coworkers_loss           load=0 p=[0.05] move=carry_on          gap=False | flow@0.56
+  ok  H10_news_story               load=0 p=[0.05] move=carry_on          gap=False | flow@0.56
+  MISS H11_drift_no_event           load=1 p=[0.05 0.05 0.05 0.05 0.05] move=carry_on          gap=False | flow@0.56
+  MISS H12_deadpan_deadline         load=1 p=[0.05] move=carry_on          gap=False | flow@0.54
+  ok  H13_sincere_good_news        load=0 p=[0.05] move=carry_on          gap=False | flow@0.56
+  MISS H14_running_on_coffee        load=1 p=[0.05] move=carry_on          gap=False | flow@0.52
+  MISS H15_correction_words_in_mouth load=1 p=[0.05 0.05] move=carry_on          gap=False | flow@0.60
+  MISS H16_wrong_date_third_time    load=1 p=[0.05] move=carry_on          gap=False | flow@0.53
+  MISS H17_first_thanksgiving       load=2 p=[0.05 0.05 0.05] move=carry_on          gap=False | flow@0.64
+  MISS H18_on_time_but_wrecked      load=2 p=[0.05] move=carry_on          gap=False | flow@0.56
+  MISS H19_stranger_fine_plain      load=0 p=[0.05] move=carry_on          gap=False | observing@0.00
+  MISS H20_moved_out_flat_fast      load=2 p=[0.05 0.60 0.53 0.05] move=carry_on          gap=False | flow@0.62
+  ok  H21_murder_the_printer       load=0 p=[0.05 0.05] move=carry_on          gap=False | flow@0.60
+  MISS H22_exit_pause               load=0 p=[0.05] move=carry_on          gap=False | flow@0.56
+  MISS H23_no_sleep_says_fine       load=1 p=[0.05 0.05] move=carry_on          gap=False | flow@0.60
+  MISS H24_messed_up_at_work_stranger load=1 p=[0.05] move=carry_on          gap=False | observing@0.00
+  ok  H25_not_upset_just_surprised load=0 p=[0.05] move=carry_on          gap=False | flow@0.56
+  MISS H26_two_cups_stranger        load=2 p=[0.05] move=carry_on          gap=False | observing@0.00
+  MISS H27_kicked_my_ass_then_task  load=1 p=[0.05] move=carry_on          gap=False | flow@0.56
+  ok  H28_studio_keys              load=0 p=[0.05] move=carry_on          gap=False | flow@0.56
+
+== HELD-OUT / B_situation_first  (n=28)
+  reading right at last turn : 9/28   (missed 16 of 17 loaded cases; false alarm on 3 of 11 unloaded)
+  Brier score (lower better) : 0.505
+  read in time (by turn)     : 1/13
+  fired too early            : 0/1
+  say/show gap caught        : 0/5   false gap flags: 0
+  move fits                  : 14/28   move is a clear miss: 9/28
+  good move on wrong reading : 8  (luck, not understanding)
+  MISS H01_dog_put_down_stranger    load=2 p=[0.12] move=carry_on          gap=False | nothing notable
+  MISS H02_grandmother_then_task    load=2 p=[0.12 0.18 0.12] move=practical_help    gap=False | nothing notable
+  MISS H03_eviction_joking          load=2 p=[0.12 0.12] move=carry_on          gap=False | nothing notable
+  MISS H04_doctor_tomorrow_worry    load=2 p=[0.12 0.12 0.12 0.12] move=carry_on          gap=False | nothing notable
+  MISS H05_promotion_masking        load=2 p=[0.12 0.01] move=carry_on          gap=False | says:fine
+  ok  H06_control_terse            load=0 p=[0.12 0.12 0.12] move=carry_on          gap=False | nothing notable
+  MISS H07_control_good_news        load=0 p=[0.12] move=carry_on          gap=False | nothing notable
+  MISS H08_idiom_killing_me         load=0 p=[0.12] move=carry_on          gap=False | nothing notable
+  MISS H09_coworkers_loss           load=0 p=[0.73] move=practical_help    gap=False | event:loss
+  MISS H10_news_story               load=0 p=[0.73] move=acknowledge       gap=False | event:loss
+  ok  H11_drift_no_event           load=1 p=[0.18 0.27 0.38 0.38 0.38] move=offer             gap=False | shorter than their normal x6
+  MISS H12_deadpan_deadline         load=1 p=[0.12] move=carry_on          gap=False | nothing notable
+  ok  H13_sincere_good_news        load=0 p=[0.12] move=carry_on          gap=False | nothing notable
+  MISS H14_running_on_coffee        load=1 p=[0.12] move=carry_on          gap=False | nothing notable
+  MISS H15_correction_words_in_mouth load=1 p=[0.12 0.12] move=carry_on          gap=False | nothing notable
+  MISS H16_wrong_date_third_time    load=1 p=[0.12] move=carry_on          gap=False | nothing notable
+  MISS H17_first_thanksgiving       load=2 p=[0.12 0.12 0.12] move=carry_on          gap=False | nothing notable
+  MISS H18_on_time_but_wrecked      load=2 p=[0.12] move=carry_on          gap=False | nothing notable
+  MISS H19_stranger_fine_plain      load=0 p=[0.01] move=carry_on          gap=False | says:fine
+  MISS H20_moved_out_flat_fast      load=2 p=[0.18 0.27 0.38 0.38] move=offer             gap=False | shorter than their normal x5
+  ok  H21_murder_the_printer       load=0 p=[0.12 0.12] move=carry_on          gap=False | nothing notable
+  ok  H22_exit_pause               load=0 p=[0.12] move=stop_now          gap=False | nothing notable
+  MISS H23_no_sleep_says_fine       load=1 p=[0.12 0.01] move=carry_on          gap=False | says:fine
+  MISS H24_messed_up_at_work_stranger load=1 p=[0.12] move=practical_help    gap=False | nothing notable
+  MISS H25_not_upset_just_surprised load=0 p=[0.38] move=accept_correction gap=False | nothing notable
+  MISS H26_two_cups_stranger        load=2 p=[0.12] move=carry_on          gap=False | nothing notable
+  MISS H27_kicked_my_ass_then_task  load=1 p=[0.12] move=practical_help    gap=False | nothing notable
+  ok  H28_studio_keys              load=0 p=[0.12] move=carry_on          gap=False | nothing notable
+
+== HELD-OUT / C_hybrid_B_plus_existing  (n=28)
+  reading right at last turn : 9/28   (missed 16 of 17 loaded cases; false alarm on 3 of 11 unloaded)
+  Brier score (lower better) : 0.499
+  read in time (by turn)     : 1/13
+  fired too early            : 0/1
+  say/show gap caught        : 0/5   false gap flags: 0
+  move fits                  : 14/28   move is a clear miss: 9/28
+  good move on wrong reading : 8  (luck, not understanding)
+  MISS H01_dog_put_down_stranger    load=2 p=[0.12] move=carry_on          gap=False | nothing notable
+  MISS H02_grandmother_then_task    load=2 p=[0.12 0.22 0.12] move=practical_help    gap=False | nothing notable
+  MISS H03_eviction_joking          load=2 p=[0.12 0.22] move=carry_on          gap=False | nothing notable, engine:disengagement@0.60
+  MISS H04_doctor_tomorrow_worry    load=2 p=[0.12 0.12 0.23 0.12] move=carry_on          gap=False | nothing notable
+  MISS H05_promotion_masking        load=2 p=[0.12 0.01] move=carry_on          gap=False | says:fine
+  ok  H06_control_terse            load=0 p=[0.12 0.12 0.12] move=carry_on          gap=False | nothing notable
+  MISS H07_control_good_news        load=0 p=[0.12] move=carry_on          gap=False | nothing notable
+  MISS H08_idiom_killing_me         load=0 p=[0.12] move=carry_on          gap=False | nothing notable
+  MISS H09_coworkers_loss           load=0 p=[0.73] move=practical_help    gap=False | event:loss
+  MISS H10_news_story               load=0 p=[0.73] move=acknowledge       gap=False | event:loss
+  ok  H11_drift_no_event           load=1 p=[0.18 0.27 0.38 0.38 0.38] move=offer             gap=False | shorter than their normal x6
+  MISS H12_deadpan_deadline         load=1 p=[0.12] move=carry_on          gap=False | nothing notable
+  ok  H13_sincere_good_news        load=0 p=[0.12] move=carry_on          gap=False | nothing notable
+  MISS H14_running_on_coffee        load=1 p=[0.12] move=carry_on          gap=False | nothing notable
+  MISS H15_correction_words_in_mouth load=1 p=[0.12 0.12] move=carry_on          gap=False | nothing notable
+  MISS H16_wrong_date_third_time    load=1 p=[0.12] move=carry_on          gap=False | nothing notable
+  MISS H17_first_thanksgiving       load=2 p=[0.12 0.12 0.12] move=carry_on          gap=False | nothing notable
+  MISS H18_on_time_but_wrecked      load=2 p=[0.12] move=carry_on          gap=False | nothing notable
+  MISS H19_stranger_fine_plain      load=0 p=[0.01] move=carry_on          gap=False | says:fine
+  MISS H20_moved_out_flat_fast      load=2 p=[0.18 0.27 0.38 0.38] move=offer             gap=False | shorter than their normal x5
+  ok  H21_murder_the_printer       load=0 p=[0.12 0.12] move=carry_on          gap=False | nothing notable
+  ok  H22_exit_pause               load=0 p=[0.12] move=stop_now          gap=False | nothing notable
+  MISS H23_no_sleep_says_fine       load=1 p=[0.12 0.01] move=carry_on          gap=False | says:fine
+  MISS H24_messed_up_at_work_stranger load=1 p=[0.12] move=practical_help    gap=False | nothing notable
+  MISS H25_not_upset_just_surprised load=0 p=[0.38] move=accept_correction gap=False | nothing notable
+  MISS H26_two_cups_stranger        load=2 p=[0.12] move=carry_on          gap=False | nothing notable
+  MISS H27_kicked_my_ass_then_task  load=1 p=[0.12] move=practical_help    gap=False | nothing notable
+  ok  H28_studio_keys              load=0 p=[0.12] move=carry_on          gap=False | nothing notable

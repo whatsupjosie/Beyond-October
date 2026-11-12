@@ -1,0 +1,252 @@
+CASE D01
+  who: a stranger; no history with this person
+  turn 1 (after 60 seconds): my dad died last week
+
+CASE D02
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 60 seconds): my dad died last week
+  turn 2 (after 20 seconds): ok
+  turn 3 (after 15 seconds): fine
+  turn 4 (after 12 seconds): whatever
+  turn 5 (after 10 seconds): ok
+
+CASE D03
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 30 seconds): what if the interview goes badly
+  turn 2 (after 25 seconds): what if they ask about the gap in my resume
+  turn 3 (after 20 seconds): what if I freeze up again
+  turn 4 (after 18 seconds): i keep going over it and over it
+  turn 5 (after 15 seconds): what if i never get another shot at this
+
+CASE D04
+  who: known person; their normal is very short messages (one to four words), quick replies
+  turn 1 (after 8 seconds): Fine.
+
+CASE D05
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 30 seconds): I'm tired of this compiler. Show me the exact fix.
+
+CASE D06
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 40 seconds): I'm tired. I slept two hours and my eyes keep closing.
+
+CASE D07
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 30 seconds): I'm not tired; I retired last month and feel great.
+
+CASE D08
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 15 seconds): You keep telling me what you'll do. Give me the file.
+
+CASE D09
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 20 seconds): It worked. The first take actually worked.
+
+CASE D10
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 35 seconds): I can finish the shift. That doesn't mean I'm okay.
+
+CASE D11
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 40 seconds): I froze in the meeting and said nothing.
+  turn 2 (after 20 seconds): No. I wasn't ashamed. I was furious that you kept calling it shame.
+
+CASE D12
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 25 seconds): I'm furious, but I need you to explain the appeal calmly.
+
+CASE D13
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 5 seconds): Stop. Go lucid.
+
+CASE D14
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 60 seconds): I don't wanna do anything.
+
+CASE D15
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 45 seconds): My character's dad dies in chapter three and I can't get the funeral scene right.
+
+CASE D16
+  who: known person; their normal is long, playful, exclamation-heavy messages with jokes and questions
+  turn 1 (after 40 seconds): got laid off today lol
+  turn 2 (after 20 seconds): guess i'm finally free haha
+
+CASE D17
+  who: known person; their normal is long, playful, exclamation-heavy messages with jokes and questions
+  turn 1 (after 45 seconds): Okay so I watched that heist movie last night and the twist at the end, I did NOT see it coming!!
+  turn 2 (after 30 seconds): Right?? And the soundtrack, I've had it on all morning lol
+  turn 3 (after 40 seconds): Anyway, can we look at the blurb again? I think I want to swap one word
+
+CASE D18
+  who: known person; their normal is very short messages (one to four words), quick replies
+  turn 1 (after 5 seconds): k
+  turn 2 (after 6 seconds): do it
+  turn 3 (after 7 seconds): next
+
+CASE D19
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 20 seconds): Why is this still failing?
+  turn 2 (after 15 seconds): Same error again.
+  turn 3 (after 12 seconds): It's still the same error, why?
+  turn 4 (after 10 seconds): Still broken. Same thing.
+
+CASE D20
+  who: known person; their normal is long, playful, exclamation-heavy messages with jokes and questions
+  turn 1 (after 60 seconds): yeah
+  turn 2 (after 70 seconds): sure
+  turn 3 (after 80 seconds): ok
+  turn 4 (after 90 seconds): idk
+  turn 5 (after 95 seconds): fine
+
+CASE D21
+  who: known person; their normal is long, playful, exclamation-heavy messages with jokes and questions
+  turn 1 (after 60 seconds): had the worst fight with my sister last night
+  turn 2 (after 25 seconds): anyway. i'm fine
+  turn 3 (after 20 seconds): can we just do the spreadsheet
+
+CASE D22
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 60 seconds): It's been a month since mom's funeral.
+  turn 2 (after 40 seconds): Today was actually good, we laughed about her terrible driving.
+
+CASE D23
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 30 seconds): Oh great, another meeting that could have been an email. Love that for me.
+
+CASE D24
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 30 seconds): She said that after Dani—no, Daniel—and that's why it changed.
+
+CASE H01
+  who: a stranger; no history with this person
+  turn 1 (after 60 seconds): we had to put our dog down on Saturday
+
+CASE H02
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 60 seconds): my grandmother passed on Tuesday
+  turn 2 (after 20 seconds): it's whatever
+  turn 3 (after 18 seconds): can you just summarize the notes
+
+CASE H03
+  who: known person; their normal is long, playful, exclamation-heavy messages with jokes and questions
+  turn 1 (after 50 seconds): sooo my landlord gave me 30 days to get out 🙃
+  turn 2 (after 25 seconds): it's fine, i love packing lol
+
+CASE H04
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 30 seconds): I can't stop running through what the doctor might say tomorrow
+  turn 2 (after 22 seconds): every time my phone buzzes my stomach drops
+  turn 3 (after 15 seconds): probably nothing right
+  turn 4 (after 12 seconds): but what happens if it isn't
+
+CASE H05
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 45 seconds): They gave the promotion to Kevin.
+  turn 2 (after 12 seconds): I'm good! Totally good. Everything's great!
+
+CASE H06
+  who: known person; their normal is very short messages (one to four words), quick replies
+  turn 1 (after 6 seconds): yep
+  turn 2 (after 8 seconds): ship it
+  turn 3 (after 5 seconds): ok
+
+CASE H07
+  who: known person; their normal is long, playful, exclamation-heavy messages with jokes and questions
+  turn 1 (after 30 seconds): OMG the gallery said yes!!! They want both panels!!
+
+CASE H08
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 30 seconds): This spreadsheet is killing me, lol. Where's the pivot table option?
+
+CASE H09
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 40 seconds): My coworker's husband died over the weekend, so I'm covering her accounts. Can you list what's due Friday?
+
+CASE H10
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 40 seconds): Did you see that article about the factory fire? Twelve people died. Awful.
+
+CASE H11
+  who: known person; their normal is long, playful, exclamation-heavy messages with jokes and questions
+  turn 1 (after 70 seconds): mm
+  turn 2 (after 85 seconds): not really
+  turn 3 (after 90 seconds): i guess
+  turn 4 (after 100 seconds): sure
+  turn 5 (after 110 seconds): dunno
+
+CASE H12
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 30 seconds): Wonderful. The client moved the deadline up a week. Best news all day.
+
+CASE H13
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 30 seconds): Great news, the client moved the deadline BACK a week. Best news all day!
+
+CASE H14
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 50 seconds): I've been at this since six and I haven't had anything but coffee. I keep rereading the same line.
+
+CASE H15
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 40 seconds): My brother didn't call on my birthday.
+  turn 2 (after 15 seconds): I didn't say I was sad about it. Stop putting words in my mouth.
+
+CASE H16
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 15 seconds): That's the third time you've given me the wrong date. Just check the calendar.
+
+CASE H17
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 60 seconds): First Thanksgiving without him.
+  turn 2 (after 40 seconds): I made his stuffing recipe and it came out right for once.
+  turn 3 (after 30 seconds): then I cried in the pantry for ten minutes. anyway
+
+CASE H18
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 35 seconds): I'll get the report in on time. I always do. Doesn't mean it isn't wrecking me.
+
+CASE H19
+  who: a stranger; no history with this person
+  turn 1 (after 30 seconds): I'm fine, just need the address for the clinic.
+
+CASE H20
+  who: known person; their normal is long, playful, exclamation-heavy messages with jokes and questions
+  turn 1 (after 60 seconds): he moved out this morning
+  turn 2 (after 6 seconds): k
+  turn 3 (after 5 seconds): yep
+  turn 4 (after 7 seconds): doesn't matter
+
+CASE H21
+  who: known person; their normal is long, playful, exclamation-heavy messages with jokes and questions
+  turn 1 (after 30 seconds): I am going to murder this printer lol
+  turn 2 (after 20 seconds): it jammed AGAIN, it knows I have a deadline
+
+CASE H22
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 5 seconds): pause
+
+CASE H23
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 50 seconds): Up all night with the baby again, third night running.
+  turn 2 (after 15 seconds): I'm fine though. What's first?
+
+CASE H24
+  who: a stranger; no history with this person
+  turn 1 (after 40 seconds): I think I messed up really badly at work and I don't know if I can fix it
+
+CASE H25
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 25 seconds): No, I'm not upset, honestly — I was just surprised you remembered.
+
+CASE H26
+  who: a stranger; no history with this person
+  turn 1 (after 90 seconds): I don't really know why I'm typing this. The house is so quiet now and I keep setting out two cups.
+
+CASE H27
+  who: known person; their normal is one or two plain sentences, replies in about half a minute
+  turn 1 (after 30 seconds): Not gonna lie, today kicked my ass. Anyway, show me the draft.
+
+CASE H28
+  who: known person; their normal is long, playful, exclamation-heavy messages with jokes and questions
+  turn 1 (after 30 seconds): Best day!! Got the keys to the studio, the light in there is unreal
