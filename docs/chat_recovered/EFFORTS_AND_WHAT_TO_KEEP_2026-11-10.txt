@@ -1,0 +1,90 @@
+EFFORTS SO FAR, AND WHAT TO KEEP FROM EACH
+A running harvest. 2026-11-10, by Claude Fable 5.2 for the owner of Rearview Foresight. Plain text so it can be copied whole.
+Add to it as more efforts are shared. Nothing here is a build instruction.
+
+MARKS: READ = I read it (often in part; my other files say which parts).  SEEN = I read only its outline or its own notes.  TOLD = known only from a conversation or handoff about it.  NOT SEEN = I have never had it.
+
+--------------------------------------------------------------------------
+READING THE PERSON
+--------------------------------------------------------------------------
+ 1. Affect context engine (affect_context_engine.py)   READ
+    Keep: a person is judged against their own normal; doubt belongs to how well she knows them; every reading says what would prove it wrong; a budget of three probes; the check "maybe I caused this"; holding forever is not allowed.
+ 2. Disambiguation engine (eq_disambiguation_engine.py)   SEEN
+    Keep: ask who is experiencing it, what it is about, and in what part of life, before choosing a response. Its own example: "I took a shot" against "I was shot."
+ 3. System Alex's judge (emotional_orchestrator.py)   READ
+    Keep: one judge for all evidence; every signal says where it came from and when it expires; disagreement between sources is kept and lowers confidence; nothing clinical decides alone.
+ 4. Empathy pass (empathy_layer.py, population_prior.py)   TOLD (its handoff only)
+    Keep: a stated "I'm not okay" is heard on the first message; a "fine" that does not fit only opens a door; knowing someone takes real days, not just turns; the list of needs (be heard, steadiness, room to think, practical help, encouragement, celebrate with, light company).
+ 5. The research mode's care routines (care_routines.py)   READ (engine parts)
+    Keep: read shape when words cannot be trusted; presence is the floor; three tries that do not help means hold steady; play needs confident calm; silence is never relief.
+ 6. PEQ and CRE-EQ   NOT SEEN
+ 7. Research digest   READ
+    Keep: the signals are weak, so the gain is in knowing when she does not know.
+
+--------------------------------------------------------------------------
+CHOOSING WHAT TO DO
+--------------------------------------------------------------------------
+ 8. Alex core, 5.6 (alex_core.py)   READ (opening)
+    Keep: "Mirror, Not Hammer"; five ways of being present (guide, companion, mirror, anchor, witness); a sense of how much the person has left in them.
+ 9. Response cards (eq_card_selector.py, eq_integration_layer.py)   SEEN
+    Keep: match the response to context, who it is about and how strong it is, not to an emotion word. Leave behind: canned questions and hotline text.
+10. The Director and its agents   TOLD (the transcript only)
+    Keep: one place that decides between presence and challenge; a watch against parroting the person back; decisions that can be inspected.
+11. The routine engine inside the care routines   READ
+    Keep: a routine is an intent, ordered beats and example lines to adapt, never recite; never repeat while others remain; score the next turn; favour what worked.
+12. Friend core (friend_core_package)   READ
+    Keep: the order. Memory, insight, pushback, encouragement, what's next. Pushback "Respectfully challenges assumptions without insisting."
+13. Acceptance engine (acceptance_engine.py)   READ
+    Keep: "Reality first. Then movement." And its lists of what not to say at each point.
+
+--------------------------------------------------------------------------
+SAYING IT
+--------------------------------------------------------------------------
+14. Voice step and rephrase engine (pubpartner_voice.py, pubpartner_rephrase.py)   SEEN
+    Keep: every reply is checked against the original so facts, numbers and names are not changed; the big model supplies the content and the character supplies the voice.
+15. Speech and avatar   NOT READ
+    Keep (from the handoff): the reply's delivery is Alex's chosen stance, not a mirror of the person.
+
+--------------------------------------------------------------------------
+REMEMBERING
+--------------------------------------------------------------------------
+16. The vault (VerbatimVault)   READ, RAN
+    Keep: the person's words saved exactly, sealed, and never overwritten.
+17. The cartridge (pubpartner_vessel)   READ (most)
+    Keep: what was observed is kept apart from what was concluded; conclusions have levels and evidence for and against; jokes, quotes and fiction count for less; private memory stays out of shared rooms; a note when recall was incomplete.
+18. Relationship lessons (pubpartner_relationship.py)   SEEN
+    Keep: a rule the person states outright is learned at once and kept with its source.
+19. Jeremy's keeper (jeremy_cricket.py)   READ (opening)
+    Keep: each character has a memory keeper that ranks what matters and brings it up before the character speaks.
+20. UAI memory index (memory_index_uai_v1.1.py)   READ
+    Keep: both sides of an exchange stored for any engine.
+21. Alex backup (ALEX_BACKUP_SETUP.md)   READ
+    Keep: append-only backup that a local delete cannot erase, and that restores itself.
+22. Chat recorder design (ChatRecorder handoff)   READ (four of six files)
+    Keep: save each message as it appears; search by word, phrase, quote or date that forgives misspelling; the universal working directive for any AI.
+23. Earlier pieces named in past conversations   NOT SEEN
+    Context manager (history compression), the capture-and-promote pipeline, session resurrector, federation sync.
+
+--------------------------------------------------------------------------
+KEEPING IT SAFE AND HONEST
+--------------------------------------------------------------------------
+24. The bridge, 5.6 (alex_jeremy_bridge.py)   READ
+    Keep: Alex private and sovereign; Jeremy gets a tiny packet; Jeremy can signal back.
+25. Limited exposure (limited_exposure.py)   SEEN
+    Keep: every piece of data carries a label saying who may see it and why.
+26. The other assistant's handoff (PubCast_EQ_AI_Development_Handoff.md)   READ
+    Keep: its north-star question; a test that fails if the EQ path is bypassed; counting unnecessary questions; a "why did she say that" trail from recorded decisions; feedback that includes "misunderstood".
+
+--------------------------------------------------------------------------
+FROM TONIGHT (mine, untested with any model)
+--------------------------------------------------------------------------
+27. Situation reading module and the scaffolding document
+    Possibly worth keeping: things that happened are remembered and fade at their own rates; "I'm fine" steers the conversation without being taken as a measurement; a rejected reading is never used again; the fit rule (match on warmth, complete on energy); the three clocks and settling; draft three, keep the most particular.
+
+==========================================================================
+FOUR THREADS THAT RUN THROUGH ALL OF IT
+==========================================================================
+1. Every effort reached the same truth by its own road: understand the situation before choosing the response. That is strong evidence the direction is right.
+2. Each effort made its own words for the same things. There are at least four vocabularies for "who is this about" and "is it literal." One shared set of words would let the pieces talk to each other.
+3. Most of the good ideas are not connected to a live conversation. The gap is wiring more than invention.
+4. Every reader of meaning so far, including my first one, uses word patterns. That is the one ingredient none of the efforts has yet: a model reading the meaning, with the machinery around it doing what these efforts already do well.
