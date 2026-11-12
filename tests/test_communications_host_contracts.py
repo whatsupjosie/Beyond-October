@@ -17,14 +17,14 @@ def test_speech_routes_reach_lifespan_engines(client, monkeypatch):
     assert main.tts_engine is main.app.state.tts_engine
     transcription = AsyncMock(return_value={'ok':True,'text':'known audio','segments':[]})
     monkeypatch.setattr(main.stt_engine,'transcribe',transcription)
-    response = client.post('/api/stt/transcribe',content=b'test audio',headers={'Content-Type':'audio/webm'})
+    response = client.post('/api/stt/transcribe',content=b'test audio',headers={**headers(), 'Content-Type':'audio/webm'})
     assert response.status_code == 200 and response.json()['text'] == 'known audio'
     out=io.BytesIO()
     with wave.open(out,'wb') as wav:
         wav.setparams((1,2,16000,0,'NONE','not compressed'));wav.writeframes(b'\0\0'*160)
     synthesis = AsyncMock(return_value={'ok':True,'audio':out.getvalue(),'mime_type':'audio/wav'})
     monkeypatch.setattr(main.tts_engine,'synthesize',synthesis)
-    response=client.post('/api/tts/synthesize',json={'text':'test'})
+    response=client.post('/api/tts/synthesize',json={'text':'test'},headers=headers())
     assert response.status_code == 200
     assert response.headers['content-type']=='audio/wav'
     assert response.content.startswith(b'RIFF')

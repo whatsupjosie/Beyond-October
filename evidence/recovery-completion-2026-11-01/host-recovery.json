@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "source": "gpt-work",
+  "platform": "linux",
+  "python": "3.12.14",
+  "checkpoint_files": 65,
+  "old_data_path_unavailable": true,
+  "actual_launcher_restarted": true,
+  "original_jwt_still_valid": true,
+  "encrypted_secret_decrypted": true,
+  "documents_conversations_workspace_pubpartner_layout_progress_restored": true,
+  "browser_password_sign_in": true,
+  "browser_opened_original_manuscript": true,
+  "recording_sha256": "9b273ffe7ee6733cb8839155db538b259a0f6f65b8af31361c1a40d14ce8f5b0",
+  "recording_bytes_exact": true,
+  "gallery_playback": {
+    "width": 320,
+    "height": 180,
+    "time": 0.208144,
+    "error": null
+  },
+  "physical_devices_and_windows": "not tested"
+}

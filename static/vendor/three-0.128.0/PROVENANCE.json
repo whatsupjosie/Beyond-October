@@ -1,0 +1,19 @@
+{
+ "package": "three",
+ "version": "0.128.0",
+ "source": "npm registry tarball three-0.128.0.tgz (npm pack)",
+ "license": "MIT (LICENSE in this folder)",
+ "why": "Offline-first PubWorld Set page (static/pubworld_stage.html). That page is a classic script written against three.js r128 and loaded it from cdnjs, so it did not work offline. This is the exact build it was loading, kept as its own versioned folder so the page behaves the same. It is a second copy beside three-0.160.0 on purpose: moving the page to 0.160.0 changes lighting units and colour handling and needs its own visual check by the owner.",
+ "sha256": {
+  "LICENSE": "7dddf7c5b8fd10ee654db8857d75d104b5557889aa5a91fc4ca545ea7c07062f",
+  "build/three.min.js": "9274bbcec8d96168626c732b5d31c775aa8cfb7eaa0599bec0c175908a2c1ce2"
+ },
+ "added": [
+  {
+   "file": "build/three.min.js",
+   "date": "2026-11-04",
+   "from": "npm registry three@0.128.0",
+   "why": "Replace the cdnjs script tag in static/pubworld_stage.html."
+  }
+ ]
+}

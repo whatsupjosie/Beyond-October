@@ -1,0 +1,71 @@
+/workspace/scratch/db196cfb7f17/.venv-recovery/lib/python3.12/site-packages/pytest_asyncio/plugin.py:300: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the "fixture" caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+F
+=================================== FAILURES ===================================
+__ test_actual_webm_export_produces_a_derived_clip_and_preserves_original[1] ___
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-4/test_actual_webm_export_produc0')
+channels = 1
+
+    @pytest.mark.parametrize("channels", [1, 2])
+    def test_actual_webm_export_produces_a_derived_clip_and_preserves_original(tmp_path, channels):
+        bundle, original = _media_bundle(tmp_path / "assembly", channels)
+        with ZipFile(bundle) as archive:
+            manifest = json.loads(archive.read("EXPORT_MANIFEST.json"))
+>           assert len(manifest["derived"]) == 1, manifest["warnings"]
+E           AssertionError: ['Conversion failed for recovery-test.webm; original media preserved']
+E           assert 0 == 1
+E            +  where 0 = len([])
+
+tests/test_data_checkpoint_host_recovery.py:123: AssertionError
+------------------------------ Captured log setup ------------------------------
+WARNING  modules.auth:auth.py:58 PUBCAST_JWT_SECRET is not set — using a secure process-local secret. Tokens will not survive restart. Launch through run_pubpartner.py for a persistent secret.
+WARNING  modules.audio_devices:audio_devices.py:67 sounddevice unavailable (ModuleNotFoundError: No module named 'sounddevice'). Server-side audio device enumeration disabled; browser-side enumeration is unaffected.
+WARNING  modules.evo.facial_performance:facial_performance.py:65 DeepFace not available — facial analysis in simulation mode
+WARNING  modules.evo.facial_performance:facial_performance.py:77 MediaPipe not available — landmark analysis disabled
+WARNING  pubcast:main.py:637 CORS: '*' origin with credentials is not allowed by browsers - allow_credentials forced False. Set PUBCAST_ALLOWED_ORIGINS to specific origin.
+------------------------------ Captured log call -------------------------------
+ERROR    modules.recording:recording.py:536 FFmpeg failed (rc=234) for recovery-test.webm:
+int --enable-frei0r --enable-ladspa --enable-libbluray --enable-libjack --enable-libpulse --enable-librabbitmq --enable-librist --enable-libsrt --enable-libssh --enable-libsvtav1 --enable-libx264 --enable-libzmq --enable-libzvbi --enable-lv2 --enable-sdl2 --enable-libplacebo --enable-librav1e --enable-pocketsphinx --enable-librsvg --enable-libjxl --enable-shared
+  libavutil      58. 29.100 / 58. 29.100
+  libavcodec     60. 31.102 / 60. 31.102
+  libavformat    60. 16.100 / 60. 16.100
+  libavdevice    60.  3.100 / 60.  3.100
+  libavfilter     9. 12.100 /  9. 12.100
+  libswscale      7.  5.100 /  7.  5.100
+  libswresample   4. 12.100 /  4. 12.100
+  libpostproc    57.  3.100 / 57.  3.100
+Input #0, matroska,webm, from '/tmp/pytest-of-root/pytest-4/test_actual_webm_export_produc0/assembly/recordings/checkpoint-acceptance/recovery-test.webm':
+  Metadata:
+    ENCODER         : Lavf60.16.100
+  Duration: 00:00:02.01, start: -0.007000, bitrate: 287 kb/s
+  Stream #0:0: Video: vp9 (Profile 0), yuv420p(tv, progressive), 320x180, SAR 1:1 DAR 16:9, 12 fps, 12 tbr, 1k tbn
+    Metadata:
+      ENCODER         : Lavc60.31.102 libvpx-vp9
+      DURATION        : 00:00:02.000000000
+  Stream #0:1: Audio: opus, 48000 Hz, mono, fltp
+    Metadata:
+      ENCODER         : Lavc60.31.102 libopus
+      DURATION        : 00:00:02.008000000
+Stream mapping:
+  Stream #0:0 -> #0:0 (vp9 (native) -> vp9 (libvpx-vp9))
+  Stream #0:1 -> #0:1 (opus (native) -> opus (libopus))
+Press [q] to stop, [?] for help
+[libopus @ 0x55e9fd939bc0] The bit rate 320000 bps is unsupported. Please choose a value between 500 and 256000.
+[aost#0:1/libopus @ 0x55e9fd939800] Error while opening encoder - maybe incorrect parameters such as bit_rate, rate, width or height.
+Error while filtering: Invalid argument
+[out#0/webm @ 0x55e9fd925a00] Nothing was written into output file, because at least one of its streams received no packets.
+frame=    0 fps=0.0 q=0.0 Lsize=       0kB time=N/A bitrate=N/A speed=N/A    
+Conversion failed!
+=============================== warnings summary ===============================
+../.venv-recovery/lib/python3.12/site-packages/starlette/testclient.py:40
+  /workspace/scratch/db196cfb7f17/.venv-recovery/lib/python3.12/site-packages/starlette/testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_data_checkpoint_host_recovery.py::test_actual_webm_export_produces_a_derived_clip_and_preserves_original[1]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 1 deselected, 1 warning in 1.48s

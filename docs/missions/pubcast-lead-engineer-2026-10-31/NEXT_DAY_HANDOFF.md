@@ -1,5 +1,29 @@
 # Continuous engineering handoff — October 31, 2026
 
+## Beyond-October update — November 1 session / November 2 UTC
+
+Signed: `Codex / ChatGPT Work / speech-system-2026-11-01`, task PC-035.
+Work branch: `gpt-work`, starting at `123474459c472fb449d3fd56a07331f4650ae69e`.
+The dated source hashes and executed results are in
+`evidence/speech-system-2026-11-01/`; see [speech handoff](../../SPEECH_SYSTEM.md).
+RAN: local CPU Whisper/Kokoro, authenticated HTTP, actual browser dictation/review,
+2i reading, actual mixer recording decoded/transcribed, cancellation/failure
+recovery, saved choices after restart, recovery/auth/studio regressions. Combined:
+124 passed, zero skipped, sixteen supporting subtests; nine Node entries and the
+separate audio-room script passed. A final uppercase-language correction was
+followed by thirteen passing speech/boundary checks.
+
+Native Windows/PowerShell 5, physical microphones, SAPI/XTTS and sample-accurate
+lip sync are UNKNOWN. The browser run uses reduced motion; its normal compositor
+transition clock stalled. A separate existing Blackbox close-on-disconnect log at
+`modules/blackbox_routes.py:146` belongs to PC-024 and remains open. Exact model
+install inputs are pinned; no startup download, main merge or deployment occurred.
+No required owner voice audition blocks this engineering. Claude retains capture
+ownership. This update does not seal the Control Room/studio. The earlier report
+below is retained as its original source-specific history.
+
+---
+
 Project: PubCast AI / Rearview Foresight.
 Branch: `lead-engineering-control-room-tv-studio-2026-10-31`.
 Current implementation: `4f6c5d3f48eb0b4d157f8947eaea1a51d7a8f610`.

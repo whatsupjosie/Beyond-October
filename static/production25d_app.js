@@ -195,7 +195,7 @@ async function syncServerVideoCues(){
      state.lastPanicSeq=panicSeq;state.blackout=true;state.panicActive=true;
      cue("remote_panic",{panicSeq});
      status("PANIC: BLACKOUT");
-     if(state.recorder)await stopRecording();
+     if(state.recorder)await stopRecording({immediate:true});
    }
    const blackSeq=Number(remote.blackout_seq)||0;
    if(blackSeq&&blackSeq!==state.lastBlackoutSeq){
@@ -354,9 +354,24 @@ async function startRecording(){
    log("REC START "+state.recordingMime+" / microphone "+(state.micStream?"ON":"OFF"));setControls();
  }catch(e){cleanupMedia();state.recorder=null;setControls();throw e;}
 }
-async function stopRecording(){
+/* A recorder stopped before it has encoded anything hands over nothing, and a take that short is lost ("Recorder
+   generated no video data"). On an idle machine that does not happen even at 150 ms; on a busy one a stop within about
+   a second did it every time in measurement. So an ordinary Stop waits, up to ms, for the first data. PANIC does not wait. */
+function waitForFirstData(rec,ms){
+ return new Promise(resolve=>{
+   const started=Date.now();
+   const look=()=>{
+     if(state.recordedChunks.length||rec.state!=="recording"||Date.now()-started>=ms)return resolve();
+     try{rec.requestData();}catch(e){}
+     setTimeout(look,100);
+   };
+   look();
+ });
+}
+async function stopRecording(options){
  if(!state.recorder)return;
  if(state.recordingPromise)return state.recordingPromise;
+ const immediate=!!(options&&options.immediate===true);
  const rec=state.recorder;
  state.recordingPromise=new Promise((resolve,reject)=>{
    rec.onstop=async ()=>{
@@ -387,7 +402,12 @@ async function stopRecording(){
        cleanupMedia();state.recordedChunks=[];state.recorder=null;state.recordingPromise=null;setControls();
      }
    };
-   try{if(rec.state==="inactive")rec.onstop();else rec.stop();}catch(e){state.recordingPromise=null;cleanupMedia();state.recorder=null;reject(e);}
+   (async()=>{
+     try{
+       if(!immediate&&rec.state==="recording")await waitForFirstData(rec,3000);
+       if(rec.state==="inactive")rec.onstop();else rec.stop();
+     }catch(e){state.recordingPromise=null;cleanupMedia();state.recorder=null;reject(e);}
+   })();
  });
  return state.recordingPromise;
 }

@@ -165,3 +165,51 @@ def test_notes_on_the_mirror_and_consoles_the_menu_and_writing_one(reach):
             assert errors == []
         finally:
             browser.close()
+
+
+def test_place_sticky_note_picks_a_room_then_a_place_and_opens_the_writer_with_it_chosen(reach):
+    base, user, pw = reach
+    with sync_api.sync_playwright() as p:
+        try:
+            browser = p.chromium.launch(args=["--no-sandbox"])
+        except Exception as exc:
+            pytest.skip(f"no Chromium available: {exc}")
+        try:
+            page = browser.new_page(viewport={"width": 1440, "height": 900})
+            errors = []
+            page.on("pageerror", lambda e: errors.append(str(e)))
+            page.goto(base + "/login?next=%2Fwalk")
+            page.fill("#loginUser", user); page.fill("#loginPass", pw); page.keyboard.press("Enter")
+            page.wait_for_url("**/walk**", timeout=20000)
+            page.wait_for_function("document.documentElement.dataset.ready === '1'", timeout=30000)
+            page.wait_for_function("window.PubCastNotes && PubCastNotes.state.enabled", timeout=20000)
+            page.evaluate("PubCastWalk.setView('control_room', 'main', {})")
+            page.wait_for_function("PubCastWalk.S.key === 'control_room/main'")
+
+            page.evaluate("PubCastNotes.open()")
+            page.get_by_role("button", name="Place sticky note").click()
+            page.wait_for_selector("#pnLayer [data-room]", timeout=10000)
+            rooms = page.locator("#pnLayer [data-room]").all_inner_texts()
+            assert rooms[0] == "Control room (you are here)"              # the room you stand in comes first
+            assert {"Dressing room", "Green room"} <= set(rooms)
+
+            page.locator("#pnLayer [data-room='control_room']").click()
+            page.wait_for_selector("#pnLayer [data-spot]", timeout=10000)
+            assert page.locator("#pnLayer [data-spot]").all_inner_texts() == ["Audio console", "Director's console (video mixer)"]
+            page.keyboard.press("Escape")                                  # Escape steps back to the rooms
+            page.wait_for_selector("#pnLayer [data-room]", timeout=10000)
+            page.locator("#pnLayer [data-room='control_room']").click()
+            page.locator("#pnLayer [data-spot='audio_console']").click()
+
+            page.wait_for_selector("#pnLayer form", timeout=10000)
+            assert page.get_by_role("button", name="Audio console").get_attribute("aria-pressed") == "true"
+            assert page.get_by_role("button", name="Director's console (video mixer)").get_attribute("aria-pressed") == "false"
+            page.locator(".pn-pick[data-kind='to']", has_text=re.compile(r"^Me$")).click()
+            page.locator("input.pn-subject").fill("Check the talkback")
+            page.get_by_role("button", name="Stick it").click()
+            page.wait_for_selector("#pnLayer .pn-card", timeout=10000)
+            page.keyboard.press("Escape")
+            page.wait_for_function("PubCastNotes.state.notes.some(n => n.subject === 'Check the talkback' && n.spots.join() === 'mirror,audio_console')", timeout=10000)
+            assert errors == []
+        finally:
+            browser.close()

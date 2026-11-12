@@ -1,0 +1,33 @@
+{
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.39",
+  "python": "3.12.14",
+  "packages": {
+    "fastapi": "0.115.14",
+    "starlette": "0.41.3",
+    "uvicorn": "0.54.0",
+    "numpy": "2.5.4",
+    "faster-whisper": "1.2.1",
+    "kokoro-onnx": "0.6.1",
+    "av": "19.0.2",
+    "ctranslate2": "4.8.4",
+    "onnxruntime": "1.31.1",
+    "phonemizer": "3.4.0",
+    "espeakng-loader": "0.2.4",
+    "huggingface-hub": "2.4.0",
+    "pytest": "9.2.0",
+    "playwright": "1.56.0"
+  },
+  "node": "v24.22.1",
+  "ffmpeg": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+  "browser": "Chromium 141.0.7390.37 / Playwright build 1194; reduced motion",
+  "data_scope": "Disposable isolated test directories; packaged seeds unchanged",
+  "not_exercised": [
+    "Native Windows/PowerShell 5",
+    "physical microphone",
+    "SAPI",
+    "XTTS",
+    "non-English recognition",
+    "long/noisy human speech",
+    "sample-accurate lip sync"
+  ]
+}

@@ -210,3 +210,35 @@ def test_spot_catalog_always_has_the_mirror(env):
     client, as_, _, tmp = env
     cat = client.get("/api/notes/spots", headers=as_("pete", "guest")).json()
     assert cat["always"] == "mirror" and {s["id"] for s in cat["spots"]} == {"mirror", "audio_console"}
+
+
+def test_the_store_closes_every_database_connection_it_opens(tmp_path):
+    """sqlite3's `with connection:` never closes; a lingering handle keeps notes.db open (Windows: blocks moving it)."""
+    import gc
+    import warnings
+    store = pn.NotesStore(tmp_path / "notes")
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        store.create("u_sender", "subject", "body", [("u_a", "to")], [], None, [])
+        with pytest.raises(sqlite3.IntegrityError):       # the same person twice: the write fails and rolls back
+            store.create("u_sender", "subject", "body", [("u_a", "to"), ("u_a", "cc")], [], None, [])
+        gc.collect()
+    assert [str(w.message) for w in caught if "unclosed database" in str(w.message)] == []
+
+
+def test_email_addresses_are_shown_only_to_their_owner_and_to_those_who_run_the_production(env):
+    client, as_, people, _ = env
+    # The owner (who adds the crew) sees every address.
+    seen_by_owner = {p["username"]: p.get("email") for p in client.get("/api/production/people", headers=as_("josie", "owner")).json()["people"]}
+    assert seen_by_owner["pete"] == "pete@example.com" and seen_by_owner["repete"] == "repete@example.com"
+    # An ordinary member sees everyone's name and ID, but only their own address.
+    seen_by_pete = client.get("/api/production/people", headers=as_("pete", "guest")).json()["people"]
+    by_name = {p["username"]: p for p in seen_by_pete}
+    assert set(by_name) == {"josie", "oldtimer", "repete", "pete"}
+    assert by_name["pete"]["email"] == "pete@example.com"
+    assert all("email" not in p for name, p in by_name.items() if name != "pete")
+    # The address is not leaked anywhere else in what a member receives.
+    assert "repete@example.com" not in client.get("/api/production/people", headers=as_("pete", "guest")).text
+    # A moderator runs the production and sees all of them.
+    seen_by_mod = {p["username"]: p.get("email") for p in client.get("/api/production/people", headers=as_("josie", "mod")).json()["people"]}
+    assert seen_by_mod["repete"] == "repete@example.com"

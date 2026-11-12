@@ -750,6 +750,10 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
         ("/api/foresight/files/", 44 * 1024 * 1024),
         ("/api/writers-room/documents/", 3 * 1024 * 1024),  # 2i documents may be up to 2 MB of JSON
         ("/api/media/intake", 256 * 1024 * 1024),
+        ("/api/stt/transcribe", 8 * 1024 * 1024 + 64 * 1024),  # bounded audio plus multipart overhead
+        # Production notes: up to 25 MB of attachments (modules/production_notes.py FILES_TOTAL_MAX) plus multipart overhead.
+        # The route itself enforces the per-file and per-note ceilings while reading.
+        ("/api/notes", 26 * 1024 * 1024),
         ("/api/avatars/imports", 210 * 1024 * 1024),  # avatar GLBs; the route caps the file at 200 MB
     )
 
@@ -1639,30 +1643,31 @@ async def lifespan(application: FastAPI):
         except Exception as exc:
             logger.warning("[17c] Camera boxer failed to start: %s", exc)
 
-    # STT engine — faster-whisper, loads model lazily on first transcription
+    # Local speech assets are explicit installs; configured does not mean loaded.
     if _HAS_STT:
         try:
             stt_engine = STTEngine(
-                model_size   = os.getenv("PUBCAST_STT_MODEL", "medium"),
+                model_size   = os.getenv("PUBCAST_STT_MODEL", "tiny.en"),
                 device       = os.getenv("PUBCAST_STT_DEVICE", "auto"),
                 compute_type = os.getenv("PUBCAST_STT_COMPUTE", "auto"),
+                data_dir     = DATA_DIR,
             )
             app.state.stt_engine = stt_engine
             logger.info(
-                "[17d] STT engine ready — Whisper %s on %s | /api/stt/transcribe",
+                "[17d] STT configured — Whisper %s on %s; availability at /api/stt/status",
                 stt_engine.model_size, stt_engine.device,
             )
         except Exception as exc:
             logger.warning("[17d] STT engine failed: %s", exc)
 
-    # TTS engine — XTTS-v2 with character voice cloning, pyttsx3 fallback
+    # Local neural/system voice provider; no automatic download or GPU load.
     if _HAS_TTS_ENGINE:
         try:
             tts_engine = TTSEngine(data_dir=DATA_DIR)
             app.state.tts_engine = tts_engine
             voices = tts_engine.list_voices()
             logger.info(
-                "[17e] TTS engine ready — %d voice(s) ready | /api/tts/synthesize",
+                "[17e] TTS configured — %d local voice choice(s); availability at /api/tts/status",
                 len(voices),
             )
             if voices:
@@ -1876,6 +1881,9 @@ async def lifespan(application: FastAPI):
 
     # — Shutdown —
     logger.info("— PubCast AI shutting down —")
+    for _speech in (stt_engine, tts_engine):
+        if _speech is not None:
+            await _speech.close()
     _camera_broadcast = getattr(application.state, "camera_broadcast", None)
     if _camera_broadcast is not None:
         await _camera_broadcast.stop()
@@ -2055,8 +2063,8 @@ async def health():
             "room_conductor":     getattr(app.state, "room_conductor", None) is not None,
             "chat_rooms":         _HAS_CHAT_ROOMS,
             "recording":          recording is not None,
-            "stt":                getattr(app.state, "stt_engine", None) is not None,
-            "tts":                getattr(app.state, "tts_engine", None) is not None,
+            "stt":                bool(stt_engine and stt_engine.status()["available"]),
+            "tts":                bool(tts_engine and tts_engine.status()["available"]),
             # NEW: v5.5 Integration systems
             "production_log":     production_log is not None,
             "timeline":           timeline_player is not None,
@@ -2365,139 +2373,9 @@ async def inference_status():
         }
 
 
-# ── STT: speech → text ────────────────────────────────────────────────────────
-
-@app.post("/api/stt/transcribe")
-async def stt_transcribe(request: Request):
-    """
-    Transcribe audio to text using faster-whisper.
-
-    Accepts raw audio bytes (multipart or raw body).
-    Content-Type hints used to pick ffmpeg decode path.
-
-    Returns: {ok, text, language, duration, latency_ms, segments}
-    """
-    if stt_engine is None:
-        raise HTTPException(503,
-            "STT engine not loaded. "
-            "Install: pip install faster-whisper  "
-            "then restart PubCast."
-        )
-    content_type = request.headers.get("content-type", "audio/webm")
-
-    # Multipart form upload (from mic_processor.js FormData)
-    if "multipart" in content_type:
-        form = await request.form()
-        file_field = form.get("audio") or form.get("file")
-        if file_field is None:
-            raise HTTPException(400, "No audio field in form data")
-        audio_bytes = await file_field.read()
-        mime = file_field.content_type or "audio/webm"
-    else:
-        # Raw body — Content-Type IS the mime type
-        audio_bytes = await request.body()
-        mime = content_type.split(";")[0].strip() or "audio/webm"
-
-    if not audio_bytes:
-        raise HTTPException(400, "Empty audio data")
-
-    # Optional JSON params in query string
-    language = request.query_params.get("language")
-    prompt   = request.query_params.get("prompt")  # e.g. "PubCast studio"
-
-    result = await stt_engine.transcribe(
-        audio_data = audio_bytes,
-        mime_type  = mime,
-        language   = language,
-        prompt     = prompt,
-    )
-
-    if not result.get("ok"):
-        raise HTTPException(500, result.get("error", "Transcription failed"))
-
-    return result
-
-
-@app.get("/api/stt/status")
-async def stt_status():
-    if stt_engine is None:
-        return {"available": False, "reason": "faster-whisper not installed"}
-    return {"available": True, **stt_engine.status()}
-
-
-# ── TTS: text → voice ─────────────────────────────────────────────────────────
-
-@app.post("/api/tts/synthesize")
-async def tts_synthesize(request: Request):
-    """
-    Synthesize text to speech using XTTS-v2 (voice-cloned per character).
-
-    Body: {
-        text:         str,
-        character_id: str,   "jeremy" | "pete" | "sir_purfluous" | "sheila" | "default"
-        language:     str,   default "en"
-        speed:        float, default 1.0  (0.7–1.5)
-    }
-
-    Returns WAV audio bytes with Content-Type: audio/wav.
-    Voice reference files go in data/voices/{character_id}.wav
-    """
-    if tts_engine is None:
-        raise HTTPException(503,
-            "TTS engine not loaded. "
-            "Install: pip install TTS  "
-            "then restart PubCast."
-        )
-    body = await _json_dict(request)
-    text         = (body.get("text") or "").strip()
-    character_id = (body.get("character_id") or "default").strip()
-    language     = (body.get("language") or "en").strip()
-    speed        = float(body.get("speed") or 1.0)
-
-    if not text:
-        raise HTTPException(400, "text is required")
-
-    result = await tts_engine.synthesize(
-        text         = text,
-        character_id = character_id,
-        language     = language,
-        speed        = speed,
-    )
-
-    if not result.get("ok"):
-        raise HTTPException(500, result.get("error", "Synthesis failed"))
-
-    from fastapi.responses import Response
-    return Response(
-        content      = result["audio"],
-        media_type   = result.get("mime_type", "audio/wav"),
-        headers      = {
-            "X-Character":  character_id,
-            "X-Engine":     result.get("engine", "unknown"),
-            "X-Latency-Ms": str(result.get("latency_ms", 0)),
-            "X-Duration":   str(round(result.get("duration", 0), 2)),
-        }
-    )
-
-
-@app.get("/api/tts/voices")
-async def tts_voices():
-    """List which characters have voice reference files ready."""
-    if tts_engine is None:
-        return {"available": False}
-    return {
-        "available": True,
-        "voices":    tts_engine.list_voices(),
-        "voices_dir": str(tts_engine.voices_dir),
-        "hint": "Record 6+ seconds of each character's voice and save as data/voices/{id}.wav",
-    }
-
-
-@app.get("/api/tts/status")
-async def tts_status():
-    if tts_engine is None:
-        return {"available": False, "reason": "Coqui TTS not installed"}
-    return {"available": True, **tts_engine.status()}
+# Local speech keeps the existing URLs and uses the same lifespan engines.
+from modules.speech_routes import create_speech_router
+app.include_router(create_speech_router(lambda: stt_engine, lambda: tts_engine, DATA_DIR))
 
 
 @app.get("/api/lighting/presets")
