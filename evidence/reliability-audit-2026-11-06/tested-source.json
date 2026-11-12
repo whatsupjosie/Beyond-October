@@ -1,0 +1,101 @@
+{
+  "application_local_commit": "bf20f7f520f0422b9c560f22e83d05a9035764a3",
+  "application_public_commit": "885707b079f71b17b3f84e0a801e129eb61538d1",
+  "tested_application_tree": "8bd568419b03703b4d113a20b966975c972b4c78",
+  "publication_parent": "3e7e460cbb207d85f83fc3e72783dbdd2204649b",
+  "source_commit_twins": [
+    {
+      "local_commit": "6666261",
+      "public_commit": "e2dd36461d104a087b4b04b8b266d7858a580e2e",
+      "tree": "c95430fb92339d1414a1597fd773869f946e5484"
+    },
+    {
+      "local_commit": "8159801",
+      "public_commit": "bfbdfcd98319b2d65aa6510a750129fd9a97a331",
+      "tree": "7884f403b5db9e74efb39c1efef069c5d56b9833"
+    },
+    {
+      "local_commit": "bf20f7f",
+      "public_commit": "885707b079f71b17b3f84e0a801e129eb61538d1",
+      "tree": "8bd568419b03703b4d113a20b966975c972b4c78"
+    }
+  ],
+  "full_confirmation": {
+    "passed": 2371,
+    "skipped": 6,
+    "warnings": 217,
+    "subtests_passed": 16,
+    "seconds": 990.44,
+    "exit_code": 0,
+    "junit_attributes": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "6",
+      "tests": "2393",
+      "time": "990.402",
+      "timestamp": "2026-11-05T22:30:32.440609-08:00",
+      "hostname": "266c43e7df3f"
+    }
+  },
+  "first_completed_broad_run": {
+    "local_commit": "8159801",
+    "passed": 2370,
+    "skipped": 6,
+    "failures": 1,
+    "seconds": 1022.73,
+    "status": "cleanup-invariant regression repaired without changing the assertion"
+  },
+  "interrupted_initial_broad_run": {
+    "local_commit": "6666261",
+    "exit_code": 130,
+    "status": "partial; stopped to repair newly reproduced placement bug"
+  },
+  "node": {
+    "files": 29,
+    "reported_cases": 105,
+    "all_exit_zero": true,
+    "same_javascript_source_as_final_application": true,
+    "canonical_npm_reported_cases": 9,
+    "canonical_npm_exit_code": 0,
+    "counts_overlap": true
+  },
+  "clacker_confirmed_offsets_ms": [
+    94,
+    38
+  ],
+  "clacker_guard_ms": 250,
+  "skip_entries": [
+    {
+      "class": "",
+      "name": "tests.alex_little_one.test_public_baby_role",
+      "reason": "collection skipped"
+    },
+    {
+      "class": "",
+      "name": "tests.test_public_baby_role",
+      "reason": "collection skipped"
+    },
+    {
+      "class": "tests.test_speech_host_acceptance",
+      "name": "test_real_host_browser_dictation_recordable_speech_stop_and_restart",
+      "reason": "Set PUBCAST_SPEECH_TEST_MODELS to explicitly installed model containers"
+    },
+    {
+      "class": "tests.test_speech_system",
+      "name": "test_decoder_rejects_playlists_and_decoded_duration_not_just_upload_size",
+      "reason": "Audio decoder checks require requirements-speech.txt"
+    },
+    {
+      "class": "tests.test_speech_system",
+      "name": "test_real_neural_roundtrip_word_times_two_voices_and_clean_shutdown",
+      "reason": "Real speech acceptance requires explicitly installed PUBCAST_SPEECH_TEST_MODELS"
+    },
+    {
+      "class": "tests.test_speech_system",
+      "name": "test_real_worker_busy_cancel_timeout_and_next_request_recovers",
+      "reason": "Real speech acceptance requires explicitly installed PUBCAST_SPEECH_TEST_MODELS"
+    }
+  ],
+  "limits": "Linux/software WebGL; native Windows, physical devices, WAN, sustained load, power loss and cross-device timing are not certified; scene-source/native 4K engineering gates remain open"
+}

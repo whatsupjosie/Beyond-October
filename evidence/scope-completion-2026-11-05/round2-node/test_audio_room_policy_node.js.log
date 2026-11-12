@@ -1,0 +1,17 @@
+TAP version 13
+# PASS: room policy, director exception, rejected playback cleanup, interruption
+# Subtest: /workspace/scratch/d6f0985b33b2/pubcast/tests/test_audio_room_policy_node.js
+ok 1 - /workspace/scratch/d6f0985b33b2/pubcast/tests/test_audio_room_policy_node.js
+  ---
+  duration_ms: 75.803185
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 84.037822

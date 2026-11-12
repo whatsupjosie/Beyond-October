@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import hashlib
 import logging
+import math
 import os
 import re
 import shutil
@@ -15,6 +16,7 @@ import time
 import tempfile
 import uuid
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
@@ -90,6 +92,7 @@ class RecordingSession:
     artifacts: List[RecordingArtifact] = field(default_factory=list)
     markers: List[RecordingMarker] = field(default_factory=list)
     recovery: Optional[Dict[str, Any]] = None
+    ingest: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict:
         return {
@@ -105,6 +108,7 @@ class RecordingSession:
             "updated_at": self.updated_at,
             "ended_at": self.ended_at,
             "recovery": self.recovery,
+            "ingest": self.ingest,
             "artifacts": [
                 {
                     "name": art.name,
@@ -239,7 +243,22 @@ class RecordingService:
 
     def get_session(self, session_id: str) -> RecordingSession:
         try:
-            return self._sessions[session_id]
+            session = self._sessions.get(session_id)
+            if session is None and re.fullmatch(r"enc_[a-f0-9]{40}", session_id):
+                metadata = self._session_dir(session_id) / (session_id + ".json")
+                try:
+                    session = self._session_from_dict(json.loads(metadata.read_text(encoding="utf-8")))
+                except (OSError, ValueError):
+                    raise KeyError(session_id) from None
+                if not session.ingest:
+                    raise KeyError(session_id)
+            if session is None:
+                raise KeyError(session_id)
+            if session.ingest:
+                # Encoded take commits can arrive from another server worker.
+                metadata = self._session_dir(session_id) / (session_id + ".json")
+                return self._session_from_dict(json.loads(metadata.read_text(encoding="utf-8")))
+            return session
         except KeyError as exc:
             raise KeyError(f"Session '{session_id}' not found") from exc
 
@@ -276,6 +295,8 @@ class RecordingService:
             raise ValueError(f"Session '{session_id}' already active")
         self._validate_sources(sources, host_override=host_override)
         profile = self.get_profile(profile_id)
+        if profile.profile_id == "browser_original":
+            raise ValueError("Original browser takes use the encoded upload path, not camera capture")
 
         session = RecordingSession(
             session_id=session_id,
@@ -323,6 +344,91 @@ class RecordingService:
         self._blackbox_event("recording.state", actor=session.operator, data={"session_id": session.session_id, "state": "active"})
         logger.info("Recording session %s is now active", session_id)
         return session
+
+    def create_encoded_take(self, session_id: str, *, source: str, operator: str,
+                            ingest: Dict[str, Any]) -> RecordingSession:
+        """Reserve a completed browser take, not a virtual-camera capture.
+
+        The dedicated ingest adapter verifies bytes before registering an artifact.
+        Keep start_session's confidence-only guard intact for every other caller.
+        """
+        self._validated_session_id(session_id)
+        camera = self.cameras.get(source)
+        if not source.startswith("p25d_") or (camera and (camera.location != "studio25d" or "studio25d" not in camera.tags)):
+            raise ValueError("A registered 2.5D studio source is required")
+        # A saved take can outlive the live camera registry (e.g. after restart).
+        # This historical source label never registers or starts a camera feed.
+        rule = self.room_policy("studio25d").get("recording", "allowed")
+        if rule in {"never", "with_permission"}:
+            raise PermissionError("Source policy does not permit this upload")
+        directory = self._session_dir(session_id)
+        directory.mkdir()  # No reuse or overwrite of another recording.
+        session = RecordingSession(session_id, [source], "browser_original", operator,
+                                   countdown_seconds=0, state=RecordingState.STOPPED,
+                                   ended_at=time.time(), ingest=ingest)
+        self._encoded_capture_timing(session)
+        try:
+            self._write_metadata(session)
+        except Exception:
+            # Only remove the empty reservation this call just created.
+            if not any(directory.iterdir()):
+                directory.rmdir()
+            raise
+        self._sessions[session_id] = session
+        self._blackbox_event('recording.upload_started', actor=operator, data={
+            'session_id':session_id, 'source':source, 'expected_bytes':ingest['spec']['bytes'],
+            'take_id':ingest['spec']['take_id'], 'upload_started_at':ingest['upload_started_at']})
+        return session
+
+    def commit_encoded_take(self, session: RecordingSession, path: Path, digest: str, media: Dict[str, Any]) -> None:
+        """Publish artifact and validated receipt in one durable metadata write."""
+        if not session.ingest or path.parent != self._session_dir(session.session_id):
+            raise ValueError("Encoded take does not belong to this recording")
+        session.artifacts = [RecordingArtifact(path.name, ContainerFormat(path.suffix[1:]), path, path.stat().st_size)]
+        self._encoded_capture_timing(session)
+        session.ingest.update(state="complete", sha256=digest, media=media)
+        session.updated_at = time.time()
+        session.ingest["upload_completed_at"] = session.updated_at
+        self._write_metadata(session)
+        self._sessions[session.session_id] = session
+        self._blackbox_event("recording.artifact", actor=session.operator, data={
+            "session_id": session.session_id, "name": path.name,
+            "size_bytes": path.stat().st_size, "sha256": digest, "capture_kind":
+            "browser_voice_source" if session.ingest['spec']['mime'].startswith('audio/') else "browser_program_proxy"})
+
+    @staticmethod
+    def _encoded_capture_timing(session: RecordingSession) -> None:
+        """Keep client capture time distinct from server transfer lifecycle time."""
+        ingest = session.ingest
+        if not ingest:
+            return
+        ingest.setdefault("upload_started_at", session.started_at)
+        spec = ingest["spec"]; manifest = spec["manifest"]
+        recordings = [*(manifest.get("recordings", []) if isinstance(manifest.get("recordings", []), list) else []),
+                      *(manifest.get("sourceTracks", []) if isinstance(manifest.get("sourceTracks", []), list) else [])]
+        selected = next((item for item in recordings if isinstance(item, dict) and item.get("id") == spec["take_id"]), None) if isinstance(recordings, list) else None
+        media = manifest.get("media")
+        if selected is None and isinstance(media, dict) and (media.get("id") or manifest.get("id")) == spec["take_id"]:
+            selected = media
+        def epoch(value):
+            try:
+                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+                result = parsed.timestamp() if parsed.tzinfo is not None else None
+                return result if result is not None and math.isfinite(result) else None
+            except (AttributeError, ValueError, TypeError, OverflowError, OSError):
+                return None
+        started = epoch(selected.get("startedAt")) if selected else None
+        source = "take_metadata" if started is not None else "unknown"
+        if started is None and selected:
+            base = epoch(manifest.get("startedAt")); offset = selected.get("offsetMs")
+            if base is not None and type(offset) in (int, float) and math.isfinite(offset) and offset >= 0:
+                candidate = base + offset / 1000
+                if math.isfinite(candidate) and -62135596800 <= candidate <= 253402300799:
+                    started = candidate; source = "production_offset"
+        ingest["capture_timing"] = source
+        if started is not None:
+            session.started_at = started
+            session.ended_at = started + spec["duration_ms"] / 1000
 
     def stop_session(self, session_id: str) -> RecordingSession:
         session = self.get_session(session_id)
@@ -610,6 +716,8 @@ class RecordingService:
             raise ValueError("Stop the recording before exporting immutable media")
         if not session.artifacts:
             raise ValueError("No recorded media is available for export")
+        if session.ingest and session.ingest.get("state") != "complete":
+            raise ValueError("Encoded take has not completed validation")
         for artifact in session.artifacts:
             if not artifact.file_path.is_file():
                 raise ValueError(f"Missing recording artifact: {artifact.name}")
@@ -640,10 +748,12 @@ class RecordingService:
                         for block in iter(lambda: source.read(1 << 20), b""):
                             target.write(block); digest.update(block); size += len(block)
                     manifest["files"][source_member] = {"sha256": digest.hexdigest(), "bytes": size}
+                    if session.ingest and (digest.hexdigest() != session.ingest.get("sha256") or size != session.ingest["spec"]["bytes"]):
+                        raise ValueError("Original encoded take failed its saved integrity check")
                     metadata["artifacts"].append({"name": artifact.name, "format": artifact.format.value,
                                                   "file_path": source_member,
                                                   "size_bytes": size})
-                    if profile and encoder_available:
+                    if profile and encoder_available and not (session.profile_id == "browser_original" and artifact.format == container):
                         name = f"{index:04d}_{Path(safe_name).stem}.{container.value}"
                         out_path = staging / name
                         # Select codecs compatible with the requested container,
@@ -683,7 +793,7 @@ class RecordingService:
         logger.info("Exported original media and portable metadata: %s", archive_path)
         return archive_path
 
-    def import_session(self, bundle_path: Path) -> RecordingSession:
+    def import_session(self, bundle_path: Path, *, operator: Optional[str] = None) -> RecordingSession:
         """Validate, stage and relink a bundle without overwriting another take."""
         if not bundle_path.is_file():
             raise FileNotFoundError(bundle_path)
@@ -717,6 +827,9 @@ class RecordingService:
                     session = self._session_from_dict(payload)
                 except (KeyError, TypeError, ValueError) as exc:
                     raise ValueError("Invalid recording metadata") from exc
+                if session.ingest and operator is not None:
+                    session.ingest.setdefault("original_operator", session.operator)
+                    session.operator = operator
                 media_members = [name for name in names if name.startswith("media/") and not name.endswith("/")]
                 for member in media_members:
                     leaf = member.removeprefix("media/")
@@ -820,6 +933,23 @@ class RecordingService:
         write_json(metadata_path, session.to_dict())
 
     def _session_from_dict(self, payload: Dict) -> RecordingSession:
+        ingest = payload.get("ingest")
+        if ingest is not None:
+            if not isinstance(ingest, dict) or ingest.get("schema") != "pubcast-encoded-take/1" or ingest.get("state") not in {"uploading", "complete", "abandoned"}:
+                raise ValueError("Invalid encoded take metadata")
+            if not isinstance(ingest.get("spec"), dict) or not isinstance(ingest.get("received_bytes"), int) or not isinstance(ingest.get("next_index"), int):
+                raise ValueError("Invalid encoded take progress")
+            spec = ingest["spec"]
+            if (type(spec.get("bytes")) is not int or not 0 < spec["bytes"] <= 2 * 1024 ** 3
+                    or type(spec.get("duration_ms")) is not int or not 0 < spec["duration_ms"] <= 24 * 3600 * 1000
+                    or not isinstance(spec.get("manifest"), dict) or not isinstance(spec.get("take_id"), str)
+                    or not re.fullmatch(r"[a-f0-9]{64}", str(spec.get("chain", "")))
+                    or not 0 <= ingest["received_bytes"] <= spec["bytes"] or ingest["next_index"] < 0):
+                raise ValueError("Invalid encoded take specification")
+            if not re.fullmatch(r"[a-f0-9]{64}", str(ingest.get("chain", ""))):
+                raise ValueError("Invalid encoded take integrity proof")
+            if ingest["state"] == "complete" and not re.fullmatch(r"[a-f0-9]{64}", str(ingest.get("sha256", ""))):
+                raise ValueError("Invalid completed take checksum")
         session = RecordingSession(
             session_id=payload["session_id"],
             sources=list(payload.get("sources", [])),
@@ -833,6 +963,7 @@ class RecordingService:
             updated_at=payload.get("updated_at", time.time()),
             ended_at=payload.get("ended_at"),
             recovery=payload.get("recovery"),
+            ingest=payload.get("ingest"),
         )
         session.artifacts = [
             RecordingArtifact(
@@ -851,6 +982,7 @@ class RecordingService:
             )
             for item in payload.get("markers", [])
         ]
+        self._encoded_capture_timing(session)
         return session
 
 
@@ -859,6 +991,11 @@ class RecordingService:
 
 def create_recording_service(base_dir: Path, cameras: CameraManager, blackbox_witness: Optional[Any] = None) -> RecordingService:
     service = RecordingService(base_dir=base_dir, cameras=cameras, blackbox_witness=blackbox_witness)
+    service.register_profile(EncodingProfile(
+        profile_id="browser_original", name="Original browser Program take",
+        container=ContainerFormat.WEBM, video_codec=None, audio_codec=None,
+        video_bitrate=None, audio_bitrate=None, resolution=None, frame_rate=None,
+        description="Original encoded browser bytes; no source-master or 4K claim"))
     service.register_profile(
         EncodingProfile(
             profile_id="prores_hq",

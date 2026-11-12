@@ -746,6 +746,7 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
     # tighter, type-aware ceilings (Foresight: 32 MB of file bytes = ~43 MB of base64
     # JSON); the global cap used to reject any save above ~780 KB before they ran.
     LARGE_BODY_LIMITS = (
+        ("/api/profile/photo", 2 * 1024 * 1024),
         ("/api/foresight/workspace/file", 44 * 1024 * 1024),
         ("/api/foresight/files/", 44 * 1024 * 1024),
         ("/api/writers-room/documents/", 3 * 1024 * 1024),  # 2i documents may be up to 2 MB of JSON
@@ -860,6 +861,7 @@ async def lifespan(application: FastAPI):
         # the same SystemMemory object reference across app-singleton re-entry.
         if blackbox_witness is not None:
             blackbox_witness.reopen()
+            await blackbox_witness.start_chat_replay()
         rearmed_system_memory = getattr(application.state, "system_memory", None)
         if rearmed_system_memory is not None and getattr(rearmed_system_memory, "_conn", None) is None:
             try:
@@ -901,6 +903,9 @@ async def lifespan(application: FastAPI):
         rearmed_camera_broadcast = getattr(application.state, "camera_broadcast", None)
         if rearmed_camera_broadcast is not None:
             rearmed_camera_broadcast.start()
+        rearmed_camera_pool = getattr(application.state, "camera_pool", None)
+        if rearmed_camera_pool is not None:
+            rearmed_camera_pool.start()
         application.state._pubcast_lifespan_users = 1
         try:
             yield
@@ -908,6 +913,8 @@ async def lifespan(application: FastAPI):
             application.state._pubcast_lifespan_users = 0
             if rearmed_camera_broadcast is not None:
                 await rearmed_camera_broadcast.stop()
+            if rearmed_camera_pool is not None:
+                rearmed_camera_pool.close()
             if evo_orchestrator is not None:
                 await evo_orchestrator.stop()
             if rearmed_conductor is not None:
@@ -915,6 +922,7 @@ async def lifespan(application: FastAPI):
             if bot_manager is not None:
                 await bot_manager.shutdown()
             if blackbox_witness is not None:
+                await blackbox_witness.stop_chat_replay()
                 blackbox_witness.close()
             if rearmed_pete is not None and hasattr(rearmed_pete, "shutdown_twin_engine_system"):
                 try:
@@ -1016,6 +1024,8 @@ async def lifespan(application: FastAPI):
         logger.warning("[3a/12] Auth system failed: %s", exc)
 
     # 3b. Alex + Alex/Jeremy Bridge + explicit Pub Manager authority reviewer
+    blackbox_witness = create_blackbox_witness(DATA_DIR)
+    internal_audit_logger = blackbox_witness.internal_audit_logger(dr_security.log_black_box_event)
     try:
         alex_core_instance = AlexCore(user_id='default', data_dir=DATA_DIR / 'alex')
         alex_core_instance.eq_monitoring_recorder = eq_monitoring_recorder
@@ -1027,13 +1037,13 @@ async def lifespan(application: FastAPI):
             alex_core_instance.affect_choreo_callback = _apply_affect_choreo
         pub_manager_authority = PubManagerAuthorityStore(
             DATA_DIR,
-            blackbox_logger=dr_security.log_black_box_event,
+            blackbox_logger=internal_audit_logger,
             executor=_execute_pub_manager_engineering_action,
         )
         alex_bridge = AlexJeremyBridge(
             DATA_DIR,
             authority_reviewer=pub_manager_authority.reviewer,
-            blackbox_logger=dr_security.log_black_box_event,
+            blackbox_logger=internal_audit_logger,
         )
         try:
             from modules.alex_memory_backup import build_alex_backup_from_env
@@ -1141,13 +1151,15 @@ async def lifespan(application: FastAPI):
 
     # 6. Cameras + Recording
     cameras   = create_default_cameras()
-    blackbox_witness = create_blackbox_witness(DATA_DIR)
     application.state.pubpartner_spine.blackbox_witness = blackbox_witness
     hub.blackbox_witness = blackbox_witness  # All Hub chat paths emit an offline witness event.
+    await blackbox_witness.start_chat_replay()
     application.include_router(create_blackbox_router(blackbox_witness))
     recording = create_recording_service(DATA_DIR, cameras, blackbox_witness=blackbox_witness)
     program_audio_state = ProgramAudioState()
     application.include_router(create_production_router(cameras, recording, hub, blackbox=blackbox_witness, program_audio_state=program_audio_state, include_overlapping_compat_routes=False))
+    from modules.studio25d_recording_ingest import create_studio25d_recording_router
+    application.include_router(create_studio25d_recording_router(recording))
     from modules.pubcast_vision_integration import PubcastVisionManager
     from modules.pubcast_vision_routes import create_vision_router
     vision_manager = PubcastVisionManager(camera_manager=cameras, data_dir=DATA_DIR)
@@ -1163,7 +1175,11 @@ async def lifespan(application: FastAPI):
     application.include_router(create_switcher_router(switcher_service))
     # Browser-origin 2.5D camera pixels, shared with the SAME canonical switcher.
     # Bounded authenticated confidence previews; not a claim of full WebRTC ingest.
-    application.include_router(create_studio25d_media_router(cameras))
+    from modules.camera_pool import CameraPool, create_camera_pool_router
+    camera_pool = CameraPool(cameras)
+    application.state.camera_pool = camera_pool
+    application.include_router(create_camera_pool_router(camera_pool))
+    application.include_router(create_studio25d_media_router(cameras, pool=camera_pool))
     # Every program/preview change, from any route, reaches the stage pages.
     from modules.camera_broadcast import CameraBroadcastBridge
     camera_broadcast = CameraBroadcastBridge(cameras, hub)
@@ -1217,6 +1233,11 @@ async def lifespan(application: FastAPI):
 
     # 7. Governance
     governance = GovernanceEngine(DATA_DIR)
+    from modules.guest_identity import GuestAdmission
+    from modules.guest_identity_routes import create_guest_identity_router
+    application.state.guest_admission = GuestAdmission(governance)
+    auth_module.set_guest_admission(application.state.guest_admission)
+    application.include_router(create_guest_identity_router(application.state.guest_admission, cred_store))
     application.include_router(create_governance_router(governance, hub, authority_bridge=alex_bridge, authority_store=pub_manager_authority))
     host_router = create_host_control_router(governance, hub, DATA_DIR, senders=[pubworld_private.send], roster=pubworld_private.roster)   # possession, timeout, profile, gifts, tracker log, roster
     pubworld_private.on_room_change = host_router.host.on_room_change
@@ -1907,6 +1928,9 @@ async def lifespan(application: FastAPI):
         except Exception:
             logger.debug("e-PETE shutdown failed", exc_info=True)
     rust_camera_runtime = getattr(application.state, "rust_camera_runtime", None)
+    camera_pool = getattr(application.state, "camera_pool", None)
+    if camera_pool is not None:
+        camera_pool.close()
     if rust_camera_runtime is not None:
         try:
             await rust_camera_runtime.stop()
@@ -1935,6 +1959,7 @@ async def lifespan(application: FastAPI):
     if cricket_keeper and hasattr(cricket_keeper, "close_all"):
         await cricket_keeper.close_all()
     if blackbox_witness is not None:
+        await blackbox_witness.stop_chat_replay()
         blackbox_witness.close()
     logger.info("— PubCast AI stopped —")
 
@@ -1960,13 +1985,15 @@ from modules.unicode_guard import UnicodeGuardMiddleware  # noqa: E402
 app.add_middleware(UnicodeGuardMiddleware)
 from modules.control_plane_guard import ControlPlaneGuardMiddleware  # noqa: E402
 app.add_middleware(ControlPlaneGuardMiddleware)
+from modules.guest_session_guard import GuestSessionGuardMiddleware  # noqa: E402
+app.add_middleware(GuestSessionGuardMiddleware)
 app.mount("/2i-assets", StaticFiles(directory=str(Path(__file__).resolve().parent / "2i" / "2i-assets")), name="writers-room-assets")
 
 if STATIC_DIR.exists() and any(STATIC_DIR.iterdir()):
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-_assets_files = list(ASSETS_DIR.iterdir()) if ASSETS_DIR.exists() else []
-if _assets_files:
-    app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
+# ASSETS_DIR is created at startup. Mount it even when initially empty, or a
+# newly uploaded VTR clip cannot be played until the next server restart.
+app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
 
 # Conversation Ownership is a separate transcript/archive authority. It is
 # intentionally mounted outside the 2i manuscript and PubPartner memory seams.
@@ -2083,8 +2110,12 @@ async def get_production_state():
 async def update_production_state(request: Request, identity: Dict[str, Any] = Depends(require_role("mod"))):
     if not hub:
         raise HTTPException(503, "Hub not initialized")
-    body    = await _json_dict(request)
-    updated = hub.update_production_state(body)
+    body = await _json_dict(request)
+    from pydantic import ValidationError
+    try:
+        updated = hub.update_production_state(body)
+    except ValidationError:
+        raise HTTPException(422, "Invalid production state fields")
     await hub.broadcast_system_event({"type": "production_state", "payload": updated})
     # Also push to PubWorld map clients
     if _HAS_PUBWORLD_ROUTER and push_production_state_to_pubworld:
@@ -2146,29 +2177,138 @@ async def set_user_state(request: Request, identity: Dict[str, Any] = Depends(cu
 
 @app.post("/api/upload")
 async def upload_file(request: Request, identity: Dict[str, Any] = Depends(require_role("mod"))):
-    """Accept a multipart file upload and save it to data/imports/."""
-    from fastapi import UploadFile, File, Form
-    import shutil, mimetypes
+    """Bounded host upload with an atomic, non-overwriting final publication.
+
+    A replay is public media: it is not put under /assets until the completed
+    bytes have passed validation. Staging remains outside the mounted asset root.
+    """
+    import os
+    import tempfile
+
+    MAX_FILE_BYTES = 5 * 1024 * 1024
+    # Reject declared oversized requests before multipart parsing/spooling.
+    # Transfer-encoded requests still need an upstream request-body limit.
+    declared = request.headers.get("content-length")
+    if declared is not None:
+        try:
+            content_length = int(declared)
+        except ValueError:
+            raise HTTPException(400, "Invalid Content-Length")
+        if content_length < 0 or content_length > MAX_FILE_BYTES + 256 * 1024:
+            raise HTTPException(413, "Upload exceeds the 5 MB limit")
+
+    form = None
+    temporary = None
     try:
-        form   = await request.form()
+        form = await request.form(max_files=1, max_fields=1)
         upload = form.get("file")
         target = str(form.get("target", "")).strip()
-        if not upload or not hasattr(upload, "filename"):
+        if not upload or not hasattr(upload, "filename") or not hasattr(upload, "read"):
             raise HTTPException(400, "No file provided")
+        if target not in {"", "vod"}:
+            raise HTTPException(400, "Unknown upload destination")
         safe_name = sanitize_filename(upload.filename or "upload") or "upload"
-        dest_dir  = DATA_DIR / "imports"
+        if safe_name in {".", ".."}:
+            raise HTTPException(400, "Invalid filename")
+        extension = Path(safe_name).suffix.lower()
+        if target == "vod" and extension not in {".mp4", ".webm", ".ogv"}:
+            raise HTTPException(400, "Replay uploads must be MP4, WebM or Ogg video")
+
+        dest_dir = ASSETS_DIR / "vod" if target == "vod" else DATA_DIR / "imports"
         dest_dir.mkdir(parents=True, exist_ok=True)
-        dest_path = unique_child_path(dest_dir, safe_name)
-        with dest_path.open("wb") as out:
-            shutil.copyfileobj(upload.file, out)
+        # This sibling directory is not exposed by the /assets StaticFiles mount.
+        # Use the same filesystem so os.link can atomically publish validated bytes.
+        staging_dir = ASSETS_DIR.parent if target == "vod" else DATA_DIR
+        fd, temporary_name = tempfile.mkstemp(prefix=".pubcast-upload-", dir=staging_dir)
+        temporary = Path(temporary_name)
+        size = 0
+        with os.fdopen(fd, "wb") as out:
+            while True:
+                chunk = await upload.read(1024 * 1024)
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > MAX_FILE_BYTES:
+                    raise HTTPException(413, "Upload exceeds the 5 MB limit")
+                out.write(chunk)
+            out.flush()
+            os.fsync(out.fileno())
+
+        if not size:
+            raise HTTPException(400, "Cannot upload an empty file")
+        if target == "vod":
+            import shutil
+            import subprocess
+
+            with temporary.open("rb") as media:
+                magic = media.read(12)
+            is_mp4 = extension == ".mp4" and len(magic) >= 8 and magic[4:8] == b"ftyp"
+            is_webm = extension == ".webm" and magic.startswith(bytes.fromhex("1a45dfa3"))
+            is_ogg = extension == ".ogv" and magic.startswith(b"OggS")
+            if not (is_mp4 or is_webm or is_ogg):
+                raise HTTPException(400, "Replay file content does not match its video format")
+            probe = shutil.which("ffprobe")
+            if not probe:
+                raise HTTPException(503, "Replay validation requires FFprobe on this host")
+            try:
+                inspected = subprocess.run(
+                    [probe, "-v", "error", "-protocol_whitelist", "file,pipe",
+                     "-select_streams", "v:0",
+                     "-show_entries", "stream=codec_type,width,height:format=format_name",
+                     "-of", "json", str(temporary)],
+                    stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    timeout=10, check=False,
+                )
+            except subprocess.TimeoutExpired:
+                raise HTTPException(422, "Replay video inspection timed out")
+            except OSError:
+                raise HTTPException(503, "Replay video inspection could not run")
+            if inspected.returncode:
+                raise HTTPException(422, "Replay video container is not readable")
+            try:
+                inspected_data = json.loads(inspected.stdout)
+                streams = inspected_data.get("streams", [])
+                formats = set(str(inspected_data["format"]["format_name"]).split(","))
+                is_video = bool(streams and streams[0].get("codec_type") == "video"
+                                and int(streams[0].get("width") or 0) > 0
+                                and int(streams[0].get("height") or 0) > 0)
+                format_ok = bool(formats.intersection(
+                    {".mp4": {"mov", "mp4"}, ".webm": {"matroska", "webm"},
+                     ".ogv": {"ogg"}}[extension]))
+            except (TypeError, ValueError, KeyError, IndexError):
+                raise HTTPException(422, "Replay video inspection returned invalid metadata")
+            if not is_video or not format_ok:
+                raise HTTPException(422, "Replay must contain a supported video track")
+
+        # A link publishes the already complete file atomically, without
+        # overwriting any other upload if two names collide between checks.
+        for attempt in range(1000):
+            dest_path = unique_child_path(dest_dir, safe_name)
+            try:
+                os.link(temporary, dest_path)
+                break
+            except FileExistsError:
+                continue
+            except OSError:
+                raise HTTPException(503, "Storage does not support safe atomic upload publishing")
+        else:
+            raise HTTPException(409, "No unique upload filename could be allocated")
+
         logger.info("Upload received: %s — %s (target=%s)", upload.filename, dest_path, target)
-        return {"ok": True, "filename": safe_name, "target": target, "size": dest_path.stat().st_size}
+        result = {"ok": True, "filename": dest_path.name, "target": target, "size": size}
+        if target == "vod":
+            result["asset"] = "vod/" + dest_path.name
+        return result
     except HTTPException:
         raise
-    except Exception as exc:
-        logger.error("Upload error: %s", exc)
-        raise HTTPException(500, str(exc))
-
+    except Exception:
+        logger.exception("Upload failed")
+        raise HTTPException(500, "Upload could not be saved")
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+        if form is not None:
+            await form.close()
 
 @app.get("/api/bots")
 async def list_bots(identity: Dict[str, Any] = Depends(current_identity)):

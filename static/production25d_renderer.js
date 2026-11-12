@@ -104,7 +104,8 @@ function renderWorld(c,pkg,state,shot,dt){
     const pos=p.position||[.5,.82],x=pos[0]*W,y=pos[1]*H;
     const height=220+(pos[1]-.8)*115;
     if(!glb?.has?.(p.id)) continue; // no fake sprite fallback
-    try{glb.draw(c,p.id,x,y,height,{vx:p.vx||0,vy:p.vy||0,moving:!!p.moving,dt:dt||0});}
+    try{glb.draw(c,p.id,x,y,height,{vx:p.vx||0,vy:p.vy||0,moving:!!p.moving,dt:dt||0,pxScale:state.pixelScale||1,
+      cacheFrame:true,reuseFrame:state.reuseActorFrame===true,frameStamp:state.actorFrameStamp});}
     catch(e){if(!state.avatarError)state.avatarError="3D actor render failed: "+e.message;}
  }
  drawFurniture(c,pkg,assets,shift);

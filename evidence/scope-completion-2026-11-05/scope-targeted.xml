@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="56" time="87.569" timestamp="2026-11-05T20:56:27.294810-08:00" hostname="266c43e7df3f"><testcase classname="tests.test_production_groups" name="test_group_departments_individual_spots_schedule_and_bcc_privacy" time="1.475" /><testcase classname="tests.test_production_groups" name="test_membership_preview_revision_and_authorization" time="0.468" /><testcase classname="tests.test_groups_and_contacts_browser" name="test_groups_ui_department_schedule_and_personal_mirror" time="6.870" /><testcase classname="tests.test_groups_and_contacts_browser" name="test_contacts_accept_chat_block_and_unblock" time="2.051" /><testcase classname="tests.test_independent_guest_browser" name="test_browser_invite_home_popup_owner_approval_and_revoke" time="39.657"><failure message="playwright._impl._errors.TimeoutError: Page.wait_for_function: Timeout 30000ms exceeded.">tmp_path = PosixPath('/tmp/pytest-of-root/pytest-5/test_browser_invite_home_popup0')
+production_browser = &lt;Browser type=&lt;BrowserType name=chromium executable_path=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome&gt; version=141.0.7390.37&gt;
+
+    def test_browser_invite_home_popup_owner_approval_and_revoke(tmp_path, production_browser):
+        start = contextmanager(fresh_host.__wrapped__)
+        with start(tmp_path/'production') as (host_url, host), start(tmp_path/'visitor') as (home_url, home):
+            owner, owner_headers = setup(host, 'production-owner')
+            human, home_headers = setup(home, 'visiting-owner')
+            owner_context = production_browser.new_context(viewport={'width': 1200, 'height': 900})
+            visitor_context = production_browser.new_context(viewport={'width': 390, 'height': 844})
+            seed(owner_context, host_url, owner['access_token'])
+            seed(visitor_context, home_url, human['access_token'])
+            errors = []
+            for context in [owner_context, visitor_context]:
+                context.on('page', lambda page: page.on('pageerror', lambda exc: errors.append(str(exc))))
+            try:
+                director = owner_context.new_page()
+                director.goto(host_url+'/static/human_visits.html?mode=host')
+                director.wait_for_function('document.getElementById("pending").textContent.includes("No verified guests")')
+                director.click('#createInvite')
+                director.wait_for_selector('#inviteOut:visible')
+                invitation = director.locator('#inviteOut').input_value()
+                visitor = visitor_context.new_page()
+                visitor.goto(host_url+'/static/human_visits.html?mode=join')
+                visitor.fill('#invite', invitation)
+                visitor.click('#prepareButton')
+                visitor.wait_for_selector('#homeOrigin:visible')
+                visitor.fill('#homeOrigin', home_url)
+                with visitor.expect_popup() as opened:
+                    visitor.click('#openHome')
+                home_page = opened.value
+                home_page.wait_for_selector('#signCard:visible')
+                assert host_url in home_page.locator('#target').inner_text()
+                home_page.check('#consent')
+                home_page.click('#signCard')
+                home_page.wait_for_selector('#signed:not([hidden])')
+                visitor.wait_for_function('document.getElementById("status").textContent.includes("Waiting for your host")')
+                assert visitor.locator('#enter').is_hidden()
+                director.click('#refresh')
+                director.wait_for_selector('#pending article')
+                assert human['user_id'] in director.locator('#pending').inner_text()
+                assert home_page.locator('#fingerprint').inner_text() in director.locator('#pending').inner_text()
+                pending = host.get('/api/guests/pending', headers=owner_headers).json()['pending'][0]
+                director.get_by_role('button', name='Approve visit', exact=True).click()
+                visitor.wait_for_selector('#enter:visible', timeout=15000)
+                assert visitor.evaluate('ReachAuth.getUser().user_id') == human['user_id']
+                assert visitor.evaluate('document.documentElement.scrollWidth &lt;= innerWidth')
+                private_note=host.post('/api/notes',headers=owner_headers,json={'subject':'Owner private mirror note','to':[owner['user_id']]})
+                assert private_note.status_code==201
+                visitor.click('#enter')
+                visitor.wait_for_function('document.documentElement.dataset.ready === "1"')
+&gt;               visitor.wait_for_function('window.PubCastWalk?.S.key === "green_room/wide"')
+
+tests/test_independent_guest_browser.py:62: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.venv/lib/python3.12/site-packages/playwright/sync_api/_generated.py:11559: in wait_for_function
+    self._sync(
+.venv/lib/python3.12/site-packages/playwright/_impl/_page.py:1112: in wait_for_function
+    return await self._main_frame.wait_for_function(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/playwright/_impl/_frame.py:860: in wait_for_function
+    await self._channel.send("waitForFunction", self._timeout, params)
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;playwright._impl._connection.Connection object at 0x7fc1ecbdfa10&gt;
+cb = &lt;function Channel.send.&lt;locals&gt;.&lt;lambda&gt; at 0x7fc1e66a3e20&gt;
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -&gt; Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        st: List[inspect.FrameInfo] = getattr(
+            task, "__pw_stack__", None
+        ) or inspect.stack(0)
+    
+        parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+&gt;           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.TimeoutError: Page.wait_for_function: Timeout 30000ms exceeded.
+
+.venv/lib/python3.12/site-packages/playwright/_impl/_connection.py:559: TimeoutError</failure></testcase><testcase classname="tests.test_governance_admission_persistence" name="test_waiting_request_and_decision_survive_new_engine" time="0.024" /><testcase classname="tests.test_governance_admission_persistence" name="test_concurrent_decisions_have_one_winner_and_cannot_enter_denied_request" time="0.026" /><testcase classname="tests.test_governance_admission_persistence" name="test_session_and_permanent_bans_propagate_and_unban_has_no_stale_cache" time="0.033" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[post-/api/host/possess-body0]" time="0.024" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[post-/api/host/release-body1]" time="0.025" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[post-/api/host/timeout-body2]" time="0.023" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[post-/api/host/drive-body3]" time="0.032" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[get-/api/host/people/mira-None]" time="0.023" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[patch-/api/host/people/mira-body5]" time="0.025" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[put-/api/host/people/mira/privileges/control_room-body6]" time="0.023" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[post-/api/host/people/mira/gifts-body7]" time="0.023" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[get-/api/host/people/mira/log-None]" time="0.021" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[get-/api/host/state-None]" time="0.022" /><testcase classname="tests.test_host_control" name="test_a_viewer_is_refused_everywhere[post-/api/host/end-timeout-body10]" time="0.022" /><testcase classname="tests.test_host_control" name="test_possession_will_not_send_words_nobody_approved" time="0.022" /><testcase classname="tests.test_host_control" name="test_possession_notice_goes_to_the_target_only_and_everyone_sees_the_mark" time="0.028" /><testcase classname="tests.test_host_control" name="test_one_possession_at_a_time_and_release_returns_control" time="0.030" /><testcase classname="tests.test_host_control" name="test_only_the_person_in_control_can_drive_and_the_move_goes_to_the_target" time="0.033" /><testcase classname="tests.test_host_control" name="test_possession_ends_by_itself" time="1.428" /><testcase classname="tests.test_host_control" name="test_bad_possession_requests_are_refused_and_nothing_happens[bad0]" time="0.026" /><testcase classname="tests.test_host_control" name="test_bad_possession_requests_are_refused_and_nothing_happens[bad1]" time="0.022" /><testcase classname="tests.test_host_control" name="test_bad_possession_requests_are_refused_and_nothing_happens[bad2]" time="0.021" /><testcase classname="tests.test_host_control" name="test_bad_possession_requests_are_refused_and_nothing_happens[bad3]" time="0.020" /><testcase classname="tests.test_host_control" name="test_bad_possession_requests_are_refused_and_nothing_happens[bad4]" time="0.024" /><testcase classname="tests.test_host_control" name="test_bad_possession_requests_are_refused_and_nothing_happens[bad5]" time="0.025" /><testcase classname="tests.test_host_control" name="test_bad_possession_requests_are_refused_and_nothing_happens[bad6]" time="0.021" /><testcase classname="tests.test_host_control" name="test_timeout_teleports_to_the_disciplinary_side_with_recording_on" time="0.029" /><testcase classname="tests.test_host_control" name="test_title_and_position_change_but_the_name_never_does" time="0.038" /><testcase classname="tests.test_host_control" name="test_privileges_and_gifts_are_granted_revoked_and_audited" time="0.049" /><testcase classname="tests.test_host_control" name="test_profile_is_kept_on_disk_and_reads_back_after_a_restart" time="0.042" /><testcase classname="tests.test_host_control" name="test_tracked_people_get_a_text_record_and_untracked_people_do_not" time="0.051" /><testcase classname="tests.test_host_control" name="test_a_moderator_can_read_but_not_take_control" time="0.027" /><testcase classname="tests.test_host_control" name="test_possession_is_undone_when_the_person_never_got_the_notice" time="0.032" /><testcase classname="tests.test_host_control" name="test_someone_already_frozen_is_not_taken_over_silently" time="0.167" /><testcase classname="tests.test_host_control" name="test_letter_case_does_not_make_two_people" time="0.037" /><testcase classname="tests.test_host_control" name="test_no_audit_entry_means_no_action" time="0.037" /><testcase classname="tests.test_host_control" name="test_a_timeout_can_be_ended_and_ends_by_itself" time="1.434" /><testcase classname="tests.test_host_control" name="test_a_possession_and_a_timeout_keep_separate_timers" time="1.434" /><testcase classname="tests.test_host_control" name="test_two_possessions_at_once_cannot_both_win" time="0.029" /><testcase classname="tests.test_host_control" name="test_odd_input_never_causes_a_server_error" time="2.542" /><testcase classname="tests.test_host_control" name="test_the_walker_channel_counts_as_delivery" time="0.030" /><testcase classname="tests.test_host_control" name="test_the_roster_joins_what_walkers_say_with_what_the_host_knows" time="0.030" /><testcase classname="tests.test_host_control" name="test_the_ban_list_shows_who_is_out_and_only_to_those_who_may_see_it" time="0.537" /><testcase classname="tests.test_host_control" name="test_a_new_page_is_told_only_what_is_still_running" time="0.022" /><testcase classname="tests.world_chat_integration.test_dm_cross_worker_authority" name="test_legacy_pair_delimiter_does_not_collide_or_break_private_room" time="0.030" /><testcase classname="tests.world_chat_integration.test_dm_cross_worker_authority" name="test_other_worker_does_not_broadcast_after_dm_revocation" time="0.015" /><testcase classname="tests.world_chat_integration.test_dm_cross_worker_authority" name="test_dm_delivery_fails_closed_when_consent_database_unavailable" time="0.014" /><testcase classname="tests.world_chat_integration.test_dm_cross_worker_authority" name="test_hashed_dm_room_denies_other_accepted_pair" time="0.025" /><testcase classname="tests.world_chat_integration.test_dm_cross_worker_authority" name="test_private_dm_consent_database_permissions" time="0.009" /><testcase classname="tests.world_chat_integration.test_dm_cross_worker_authority" name="test_block_survives_workers_and_prevents_bypass_and_old_grants" time="0.017" /><testcase classname="tests.test_admitted_guest_recording_browser" name="test_independently_admitted_guests_mix_record_reconnect_and_export" time="27.725" /></testsuite></testsuites>

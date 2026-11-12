@@ -1,0 +1,41 @@
+/workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/pytest_asyncio/plugin.py:300: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the "fixture" caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+...........F..                                                           [100%]
+=================================== FAILURES ===================================
+_____ test_slow_storage_stops_capture_without_discarding_uncommitted_bytes _____
+
+studio = (<Page url='http://127.0.0.1:39511/static/production25d.html'>, <BrowserContext browser=<Browser type=<BrowserType name=chromium executable_path=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome> version=141.0.7390.37>>)
+
+    def test_slow_storage_stops_capture_without_discarding_uncommitted_bytes(studio):
+        page,_=studio;start(page)
+        page.evaluate("""()=>{
+          const create=PubCast25DCapture.create;
+          PubCast25DCapture.create=options=>create({...options,maxPendingChunks:2});
+          const append=PubCast25DStore.appendCapture;let first=true;
+          PubCast25DStore.appendCapture=async(...args)=>{if(first){first=false;await new Promise(r=>window.releaseDisk=r);}return append(...args);};
+          const Native=MediaRecorder;window.originalPieces=[];window.recorderStopped=false;
+          window.MediaRecorder=class extends Native{constructor(...args){super(...args);
+            this.addEventListener('dataavailable',e=>{if(this.mimeType.startsWith('video/')&&e.data.size)originalPieces.push(e.data);});
+            this.addEventListener('stop',()=>{if(this.mimeType.startsWith('video/'))recorderStopped=true;});}};
+        }""")
+        page.click('#record');page.wait_for_function('PubCast25DStudio.state().recording')
+        page.wait_for_function('recorderStopped',timeout=12000)
+>       assert 'cannot keep up' in page.locator('#captureStatus').inner_text()
+E       AssertionError: assert 'cannot keep up' in 'Saved locally: 5658 bytes in 3 checkpoints · checkpoint at 3.4 seconds'
+E        +  where 'Saved locally: 5658 bytes in 3 checkpoints · checkpoint at 3.4 seconds' = inner_text()
+E        +    where inner_text = <Locator frame=<Frame name= url='http://127.0.0.1:39511/static/production25d.html'> selector='#captureStatus'>.inner_text
+E        +      where <Locator frame=<Frame name= url='http://127.0.0.1:39511/static/production25d.html'> selector='#captureStatus'> = locator('#captureStatus')
+E        +        where locator = <Page url='http://127.0.0.1:39511/static/production25d.html'>.locator
+
+tests/test_studio25d_capture_browser.py:168: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/starlette/testclient.py:40
+  /workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/starlette/testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_studio25d_capture_browser.py::test_slow_storage_stops_capture_without_discarding_uncommitted_bytes
+1 failed, 13 passed, 1 warning in 145.31s (0:02:25)

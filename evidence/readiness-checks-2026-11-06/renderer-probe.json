@@ -1,0 +1,14 @@
+{
+  "requested_canvas": [
+    3840,
+    2160
+  ],
+  "renderer_space": [
+    1280,
+    720
+  ],
+  "alpha_inside_supported_frame": 255,
+  "alpha_outside_supported_frame": 0,
+  "alpha_requested_far_corner": 0,
+  "native_4k_gate": "FAIL_FIXED_720P_RENDER_SPACE_NOT_NATIVE_4K"
+}

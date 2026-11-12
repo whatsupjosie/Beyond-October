@@ -7,12 +7,14 @@ never trims or rewrites the original. One process owns a capture directory.
 from __future__ import annotations
 
 import math
+import hashlib
 import json
 import os
 import threading
 import time
 import uuid
 import wave
+import tempfile
 from pathlib import Path
 
 
@@ -28,19 +30,55 @@ class CaptureSink:
         self.last_progress = None
         self.closed = False
         self.error = None
+        self.interrupted = False
+        self.sha256 = None
         self._lock = threading.RLock()
         self._file = self.path.open('x+b')
         self._wav = wave.open(self._file, 'wb')
         self._wav.setparams((channels, 2, sample_rate, 0, 'NONE', 'not compressed'))
         self._wav.writeframes(b'')
-        self.flush()
-        self.path.with_suffix('.json').write_text(json.dumps({
-            'capture_id': self.id, 'started_at': self.started_at,
-            'sample_rate': self.rate, 'channels': self.channels,
-        }), encoding='utf-8')
+        try:
+            self.flush()
+            self._persist_metadata()
+        except Exception:
+            try: self._wav.close()
+            finally:
+                self._file.close()
+                self.closed = True
+            raise
+
+    def _persist_metadata(self):
+        """Commit lifecycle metadata atomically; never rewrite source audio."""
+        metadata = {'capture_id': self.id, 'started_at': self.started_at,
+                    'sample_rate': self.rate, 'channels': self.channels,
+                    'state': 'failed' if self.error else 'closed' if self.closed else 'active',
+                    'frames': self.frames, 'error': self.error, 'sha256':self.sha256}
+        fd, name = tempfile.mkstemp(prefix='.capture-', dir=self.path.parent)
+        try:
+            with os.fdopen(fd, 'w', encoding='utf-8') as output:
+                json.dump(metadata, output, allow_nan=False)
+                output.flush(); os.fsync(output.fileno())
+            os.replace(name, self.path.with_suffix('.json'))
+            if os.name != 'nt':
+                directory = os.open(self.path.parent, os.O_RDONLY)
+                try: os.fsync(directory)
+                finally: os.close(directory)
+        finally:
+            Path(name).unlink(missing_ok=True)
+
+    @staticmethod
+    def digest(path):
+        digest = hashlib.sha256()
+        with Path(path).open('rb') as handle:
+            for chunk in iter(lambda:handle.read(1024 * 1024), b''):
+                digest.update(chunk)
+        return digest.hexdigest()
 
     @classmethod
     def recover(cls, path):
+        path = Path(path)
+        if path.is_symlink() or path.with_suffix('.json').is_symlink():
+            raise ValueError('Capture symlinks are not supported')
         meta = json.loads(path.with_suffix('.json').read_text(encoding='utf-8'))
         with wave.open(str(path), 'rb') as src:
             if src.getsampwidth() != 2:
@@ -49,8 +87,22 @@ class CaptureSink:
             obj.id, obj.path = path.stem, path
             obj.rate, obj.channels, obj.frames = src.getframerate(), src.getnchannels(), src.getnframes()
         obj.started_at = float(meta['started_at'])
+        if (not math.isfinite(obj.started_at) or meta.get('capture_id') != obj.id or
+                meta.get('sample_rate') != obj.rate or meta.get('channels') != obj.channels or
+                obj.rate not in {16000, 24000, 44100, 48000} or obj.channels not in {1, 2}):
+            raise ValueError('Recovered capture metadata does not match its audio')
+        if obj.frames:
+            with wave.open(str(path), 'rb') as src:
+                src.setpos(obj.frames - 1)
+                if len(src.readframes(1)) != obj.channels * 2:
+                    raise ValueError('Recovered audio is truncated')
         obj.last_progress = None
-        obj.closed, obj.error = True, None
+        obj.sha256 = meta.get('sha256')
+        if obj.sha256 and obj.sha256 != cls.digest(path):
+            raise ValueError('Recovered audio checksum mismatch')
+        obj.interrupted = meta.get('state') != 'closed'
+        obj.closed = True
+        obj.error = meta.get('error') or ('Capture interrupted before a durable close' if obj.interrupted else None)
         obj._lock = threading.RLock()
         return obj
 
@@ -89,19 +141,33 @@ class CaptureSink:
                 'running' if not self.closed and self.frames and recent else 'inactive')
             return {'capture_id': self.id, 'state': state, 'frames': self.frames,
                     'duration_seconds': self.frames / self.rate, 'started_at': self.started_at,
-                    'sample_rate': self.rate, 'channels': self.channels}
+                    'sample_rate': self.rate, 'channels': self.channels,
+                    'closed': self.closed, 'interrupted': self.interrupted, 'sha256':self.sha256}
 
     def close(self):
         with self._lock:
             if self.closed:
                 return
+            failure = None
             try:
                 self._wav.close()
                 self._file.flush()
                 os.fsync(self._file.fileno())
+            except Exception as exc:
+                self.error = str(exc)
+                failure = exc
             finally:
                 self._file.close()
                 self.closed = True
+                self.interrupted = bool(self.error)
+            try:
+                self.sha256 = self.digest(self.path)
+                self._persist_metadata()
+            except OSError as exc:
+                self.error = 'Capture close metadata could not be committed'
+                failure = failure or exc
+            if failure is not None:
+                raise OSError('Capture close failed; source retained') from failure
 
     def preserve(self, start: float, end: float, destination: Path):
         if not all(math.isfinite(v) for v in (start, end)) or start < 0 or end <= start:
@@ -130,7 +196,8 @@ class CaptureSink:
                 destination.unlink(missing_ok=True)
                 raise
             return {'frames': last - first, 'start_seconds': first / self.rate,
-                    'end_seconds': last / self.rate, 'original_unchanged': True}
+                    'end_seconds': last / self.rate, 'original_unchanged': True,
+                    'sha256':self.digest(destination)}
 
 
 class BlackBoxMedia:
@@ -139,14 +206,16 @@ class BlackBoxMedia:
         self.root.mkdir(parents=True, exist_ok=True)
         self.captures: dict[str, CaptureSink] = {}
         self._lock = threading.RLock()
+        self.recovery_issues = []
         for path in sorted(self.root.glob('*.wav'), key=lambda p: p.stat().st_mtime):
             if not path.with_suffix('.json').exists():
                 continue  # preserved artifact, not a capture
             try:
                 capture = CaptureSink.recover(path)
                 self.captures[capture.id] = capture
-            except (ValueError, OSError, wave.Error, KeyError):
-                continue  # leave damaged source bytes untouched for external inspection
+            except (ValueError, OSError, wave.Error, KeyError, TypeError, EOFError) as exc:
+                self.recovery_issues.append({'capture_id':path.stem, 'error':type(exc).__name__})
+                # Leave damaged source bytes untouched for external inspection.
 
     def start(self, sample_rate: int, channels: int):
         with self._lock:
@@ -162,9 +231,9 @@ class BlackBoxMedia:
             live = [c for c in captures if not self.captures[c['capture_id']].closed]
             if not live and captures:
                 live = captures[-1:]
-            state = 'crashed' if any(c['state'] == 'crashed' for c in live) else (
+            state = 'crashed' if self.recovery_issues or any(c['state'] == 'crashed' for c in live) else (
                 'running' if any(c['state'] == 'running' for c in live) else 'inactive')
-            return {'state': state, 'captures': captures}
+            return {'state': state, 'captures': captures, 'recovery_issues': list(self.recovery_issues)}
 
     def save(self):
         with self._lock:

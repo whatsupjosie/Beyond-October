@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 import secrets
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -25,11 +25,6 @@ _SETUP_LIMITER = SlidingWindowLimiter(limit=5, window_seconds=600, max_keys=256)
 _LOGIN_LIMITER = SlidingWindowLimiter(limit=10, window_seconds=300, max_keys=2048)
 _GLOBAL_LOGIN_LIMITER = SlidingWindowLimiter(limit=60, window_seconds=60, max_keys=256)
 _USERNAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{2,63}$")
-_COMMON_PASSWORDS = {
-    "password", "password123", "123456789012", "qwertyuiop12", "letmein123456",
-    "adminadminadmin", "pubpartner", "pubpartner123", "changeme12345",
-}
-
 _auth_module = None
 _dummy_hash_cache: Optional[str] = None
 
@@ -78,21 +73,9 @@ def _normalize_username(value: str) -> str:
 
 
 def _validate_password(password: str, username: str) -> None:
-    if len(password) < 12:
-        raise HTTPException(400, "Password must be at least 12 characters")
-    if len(password) > 256:
-        raise HTTPException(400, "Password is too long")
-    lowered = password.casefold()
-    if lowered in _COMMON_PASSWORDS or lowered == username.casefold() or username.casefold() in lowered:
-        raise HTTPException(400, "Choose a less predictable password")
-    categories = sum([
-        any(c.islower() for c in password),
-        any(c.isupper() for c in password),
-        any(c.isdigit() for c in password),
-        any(not c.isalnum() for c in password),
-    ])
-    if categories < 3:
-        raise HTTPException(400, "Use at least three of: lowercase, uppercase, number, symbol")
+    """Accept the user's exact nonempty password without composition rules."""
+    if not isinstance(password, str) or not password:
+        raise HTTPException(400, "Password must not be empty")
 
 
 def _rate_limit_or_raise(limiter: SlidingWindowLimiter, key: str) -> None:
@@ -107,7 +90,7 @@ def _rate_limit_or_raise(limiter: SlidingWindowLimiter, key: str) -> None:
 
 class LoginRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=64)
-    password: str = Field(..., min_length=1, max_length=256)
+    password: str = Field(..., min_length=1)
 
     @field_validator("username")
     @classmethod
@@ -119,10 +102,11 @@ class LoginRequest(BaseModel):
 
 
 class SetupRequest(LoginRequest):
-    confirm_password: str = Field(..., min_length=1, max_length=256)
+    confirm_password: str = Field(..., min_length=1)
     # The owner's PubCast profile. Both optional at setup; either can be set later from the profile.
     email: str = Field("", max_length=254)
     display_name: str = Field("", max_length=80)
+    profile_visibility: Literal['private','discoverable'] = 'private'
 
 
 class TokenResponse(BaseModel):
@@ -130,6 +114,7 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     username: str
     role: str
+    user_id: Optional[str] = None
 
 
 @router.get("/status")
@@ -157,13 +142,15 @@ async def first_run_setup(payload: SetupRequest, request: Request, response: Res
         display_name = userdb.clean_display_name(payload.display_name, payload.username)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
-    created = await userdb.create_owner_via_setup(payload.username, payload.password, email, display_name)
+    created = await userdb.create_owner_via_setup(payload.username, payload.password, email, display_name,
+                                                 payload.profile_visibility=='discoverable')
     if not created:
         # Do not expose account details; setup is a one-time transition.
         raise HTTPException(409, "Initial setup has already been completed")
     token = _auth_module.create_access_token({"sub": payload.username, "role": "owner"})
     _set_ws_session_cookie(response, request, token)
-    return TokenResponse(access_token=token, username=payload.username, role="owner")
+    profile=await userdb.get_profile_by_username(payload.username)
+    return TokenResponse(access_token=token, username=payload.username, role="owner",user_id=profile['user_id'])
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -192,7 +179,8 @@ async def login(payload: LoginRequest, request: Request, response: Response) -> 
     role = str(user.get("role") or "guest")
     token = _auth_module.create_access_token({"sub": payload.username, "role": role})
     _set_ws_session_cookie(response, request, token)
-    return TokenResponse(access_token=token, username=payload.username, role=role)
+    profile=await userdb.get_profile_by_username(payload.username)
+    return TokenResponse(access_token=token, username=payload.username, role=role,user_id=profile['user_id'] if profile else None)
 
 
 @router.get("/verify")
@@ -205,10 +193,12 @@ async def verify_token(request: Request, response: Response, credentials: Option
     if not payload:
         raise HTTPException(401, "Invalid or expired token")
     _set_ws_session_cookie(response, request, credentials.credentials)
+    profile=await userdb.get_profile_by_username(str(payload.get('sub') or ''))
     return {
         "valid": True,
         "payload": payload,
         "username": payload.get("sub"),
+        "user_id": profile['user_id'] if profile else payload.get('sub'),
         "role": payload.get("role", "guest"),
         "expires_at": payload.get("exp"),
     }

@@ -18,3 +18,11 @@ test("remote monitor rejects stale content without pretending it is live",async(
  await viewer.refresh();assert.equal(img.hidden,true);assert.match(status.textContent,/NO FRESH/);
  viewer.stop();
 });
+test("delegated camera handover does not throttle unrelated camera feeds",async()=>{
+ let accepted=0;
+ const p=Pub.create({session:"pubcast25d-handover-001",sourceId:id=>"p25d_news_"+id,encode:async()=>({size:1000}),
+  fetch:async path=>path.endsWith('anchor')?{ok:false,status:409,json:async()=>({detail:"Camera rendering is assigned to a pool participant"})}
+    :{ok:true,json:async()=>({ok:true,source_id:path.split('/').pop(),sequence:++accepted})}});
+ for(let i=0;i<8;i++)assert.equal(await p.publish('anchor',{},1000+i*300),false);
+ assert.equal(p.status().errors,0);assert.equal(await p.publish('wide',{},4000),true);
+});

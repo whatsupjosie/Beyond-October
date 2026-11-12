@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: HTML script dependencies are in correct order and present
+ok 1 - HTML script dependencies are in correct order and present
+  ---
+  duration_ms: 1.097186
+  type: 'test'
+  ...
+# Subtest: all referenced control IDs exist in HTML
+ok 2 - all referenced control IDs exist in HTML
+  ---
+  duration_ms: 0.495748
+  type: 'test'
+  ...
+# Subtest: local recording and persistence are real browser API paths, not placeholders
+ok 3 - local recording and persistence are real browser API paths, not placeholders
+  ---
+  duration_ms: 0.232731
+  type: 'test'
+  ...
+# Subtest: 3D fixture paths exist
+ok 4 - 3D fixture paths exist
+  ---
+  duration_ms: 0.143487
+  type: 'test'
+  ...
+# Subtest: Control Room has an entry to 2.5D console
+ok 5 - Control Room has an entry to 2.5D console
+  ---
+  duration_ms: 0.218931
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 97.011681

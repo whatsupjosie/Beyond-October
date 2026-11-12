@@ -100,11 +100,21 @@ function normalise(root) {
   return { wrap, nativeHeight: size.y, nativeWidth: size.x };
 }
 
-async function load(character, url, label) {
+async function load(character, url, label, options = {}) {
   ensureGL();
   let gltf;
-  try { gltf = await new GLTFLoader().loadAsync(url); }
-  catch (e) { throw new Error("that is not a GLB/glTF avatar I can read (" + String((e && e.message) || e).slice(0, 90) + ")"); }
+  try {
+    if (options.signal) {
+      const absolute = new URL(url, location.href);
+      const response = await fetch(absolute, {signal: options.signal});
+      if (!response.ok) throw new Error("GLB download HTTP " + response.status);
+      if(options.signal.aborted)throw new DOMException("Avatar load cancelled","AbortError");
+      const bytes=await response.arrayBuffer();
+      if(options.signal.aborted)throw new DOMException("Avatar load cancelled","AbortError");
+      gltf = await new GLTFLoader().parseAsync(bytes, new URL(".", absolute).href);
+    } else gltf = await new GLTFLoader().loadAsync(url);
+  }
+  catch (e) { if(e?.name==="AbortError")throw e;throw new Error("that is not a GLB/glTF avatar I can read (" + String((e && e.message) || e).slice(0, 90) + ")"); }
   const root = cloneSkinned(gltf.scene);
   let meshCount = 0, skinned = 0;
   root.traverse(o => { if (o.isMesh) { meshCount++; if (o.isSkinnedMesh) skinned++; o.frustumCulled = false; } });
@@ -127,15 +137,17 @@ async function load(character, url, label) {
   }
   const normalMaterials = new Map(), holo = hologramMaterial();
   root.traverse(o => { if (o.isMesh) normalMaterials.set(o, o.material); });
-  const inst = { character, label: label || character, group: norm.wrap, mixer, actions, gait, yaw: 0, wWalk: 0, phase: 0,
+  const inst = { character, sourceUrl: new URL(url, location.href).href, label: label || character, group: norm.wrap, mixer, actions, gait, yaw: 0, wWalk: 0, phase: 0,
                  clipAssets: gltf.animations, activeGesture: null, clips: gltf.animations.map(a => a.name), nativeHeight: norm.nativeHeight, meshCount, skinned, normalMaterials, holo,
                  tris, bones: boneSet.size };
+  if(options.signal?.aborted){dispose(inst);throw new DOMException("Avatar load cancelled","AbortError");}
   const old = avatars.get(character); if (old) dispose(old);
   avatars.set(character, inst);
   return { clips: inst.clips, nativeHeight: inst.nativeHeight, meshes: meshCount, skinned, hasWalk: !!walk, hasIdle: !!idle, tris, bones: inst.bones };
 }
 
 function dispose(inst) {
+  if (inst.frameCopy) { inst.frameCopy.width = 0; inst.frameCopy.height = 0; inst.frameCopy = null; }
   const geometries = new Set(), materials = new Set(), textures = new Set();
   inst.group.traverse(o => {
     if (o.geometry) geometries.add(o.geometry);
@@ -165,6 +177,18 @@ function draw(ctx, character, cx, fy, H, motion) {
   // one bad number (NaN from a zero-length step, say) must never reach the turn or the animation, or the avatar is lost for good
   const m = { vx: fin(raw.vx, 0), vy: fin(raw.vy, 0), moving: !!raw.moving, pxScale: fin(raw.pxScale, 1) };
   const dt = Math.min(0.1, Math.max(0, fin(raw.dt, 0)));
+  const hr = Math.max(48, Math.min(MAX_PX, Math.round(H * (m.pxScale || 1) * (window.devicePixelRatio || 1))));
+  const wr = Math.round(hr * 2 * HALF * ASPECT);
+  const fh = H * 2 * HALF, fw = fh * ASPECT;
+  const frameKey = `${raw.frameStamp}:${wr}:${hr}:${state.hologram}`;
+  // Program and Preview crop the same actor pose in one animation frame. Reuse
+  // those exact rendered pixels only on an explicit, matching zero-delta draw.
+  // The frame stamp prevents stale poses surviving a failed or missing render.
+  if (raw.reuseFrame === true && dt === 0 && Number.isFinite(raw.frameStamp) &&
+      inst.frameCopy && inst.frameKey === frameKey) {
+    ctx.drawImage(inst.frameCopy, cx - fw / 2, fy + FEET_ABOVE_BOTTOM * H - fh, fw, fh);
+    return true;
+  }
   // turn to face where it walks: toward the viewer is +z (yaw 0), right is yaw +90 degrees, away is 180
   const moving = !!m.moving && Math.hypot(m.vx || 0, m.vy || 0) > 1e-3;
   const target = moving ? Math.atan2(m.vx, m.vy) : 0;
@@ -206,15 +230,21 @@ function draw(ctx, character, cx, fy, H, motion) {
   // look
   inst.group.traverse(o => { if (o.isMesh) o.material = state.hologram ? inst.holo : (inst.normalMaterials.get(o) || o.material); });
 
-  const hr = Math.max(48, Math.min(MAX_PX, Math.round(H * (m.pxScale || 1) * (window.devicePixelRatio || 1))));
-  const wr = Math.round(hr * 2 * HALF * ASPECT);
   renderer.setPixelRatio(1); renderer.setSize(wr, Math.round(hr * 2 * HALF), false);
   scene.add(inst.group);
   renderer.render(scene, camera);
   scene.remove(inst.group);
   // place the frame so the feet land exactly on (cx, fy)
-  const fh = H * 2 * HALF, fw = fh * ASPECT;
-  ctx.drawImage(renderer.domElement, cx - fw / 2, fy + FEET_ABOVE_BOTTOM * H - fh, fw, fh);
+  if (raw.cacheFrame === true && Number.isFinite(raw.frameStamp)) {
+    const copy = inst.frameCopy || (inst.frameCopy = document.createElement('canvas'));
+    if (copy.width !== renderer.domElement.width) copy.width = renderer.domElement.width;
+    if (copy.height !== renderer.domElement.height) copy.height = renderer.domElement.height;
+    const copyContext = copy.getContext('2d');
+    copyContext.clearRect(0,0,copy.width,copy.height);
+    copyContext.drawImage(renderer.domElement,0,0);
+    inst.frameKey = frameKey;
+    ctx.drawImage(copy, cx - fw / 2, fy + FEET_ABOVE_BOTTOM * H - fh, fw, fh);
+  } else ctx.drawImage(renderer.domElement, cx - fw / 2, fy + FEET_ABOVE_BOTTOM * H - fh, fw, fh);
   return true;
 }
 
@@ -237,7 +267,7 @@ function playClip(character, pattern) {
 function setHologram(on) { state.hologram = !!on; }
 function info(character) {
   const i = avatars.get(character); if (!i) return null;
-  return { label: i.label, clips: i.clips, nativeHeight: i.nativeHeight, meshes: i.meshCount, skinned: i.skinned, tris: i.tris, bones: i.bones, proceduralWalk: !!i.gait };
+  return { label: i.label, sourceUrl: i.sourceUrl, clips: i.clips, nativeHeight: i.nativeHeight, meshes: i.meshCount, skinned: i.skinned, tris: i.tris, bones: i.bones, proceduralWalk: !!i.gait };
 }
 
 window.PubCastGLB = { load, clear, has, draw, playClip, setHologram, info, state };

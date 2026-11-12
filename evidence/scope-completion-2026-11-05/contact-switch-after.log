@@ -1,0 +1,11 @@
+✔ a late old-room frame never appears in the new conversation (74.02316ms)
+✔ private drafts stay with their own conversation (21.648074ms)
+✔ unconfirmed text survives reconnect and retries with the same receipt identity (15.799997ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 415.543671

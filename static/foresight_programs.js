@@ -43,6 +43,12 @@
 
   // id, title, group, kind, address, natural size (w x h of its screen), smallest usable size, shape.
   const PROGRAMS = [
+    {id:'production_notes',title:'Sticky notes',group:'Chat & Collaboration',kind:'page',url:'/walk?notes=1',w:1000,h:700,minW:320,minH:400,shape:'wide',singleton:true},
+    {id:'human_contacts',title:'Contacts and messages',group:'Chat & Collaboration',kind:'page',url:'/static/human_contacts.html',w:720,h:640,minW:320,minH:400,shape:'wide',singleton:true},
+    {id:'production_groups',title:'Production groups',group:'Chat & Collaboration',kind:'page',url:'/static/production_groups.html',w:760,h:640,minW:320,minH:400,shape:'wide',singleton:true},
+    {id:'human_visits',title:'Guests and invitations',group:'Chat & Collaboration',kind:'page',url:'/static/human_visits.html?mode=host',w:720,h:640,minW:320,minH:400,shape:'wide',singleton:true},
+    {id:'human_profile',title:'Your PubCast profile',group:'Chat & Collaboration',kind:'page',url:'/static/human_profile.html',
+     w:720,h:640,minW:320,minH:400,shape:'wide',singleton:true},
     // conversation and collaboration
     {id: 'world_chat', title: 'World Chat', group: 'Chat & Collaboration', kind: 'page', url: '/static/world_chat.html',
      w: 440, h: 520, minW: 320, minH: 360, shape: 'chat', singleton: true},

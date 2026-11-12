@@ -1,0 +1,10 @@
+{
+  "program.webm": {
+    "bytes": 1248662,
+    "sha256": "ec1d3d7d84058003b8b6a399f59a0b8059e7024696f61439918be4703b1d7019"
+  },
+  "reference.webm": {
+    "bytes": 11523,
+    "sha256": "a79e604d4a520bcac3f6f0cc80d13a80d36372ea697f337452f625d3ffc5af4b"
+  }
+}

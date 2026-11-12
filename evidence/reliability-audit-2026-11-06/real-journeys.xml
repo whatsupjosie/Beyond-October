@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="10" time="37.404" timestamp="2026-11-05T22:04:25.910697-08:00" hostname="266c43e7df3f"><testcase classname="tests.test_guest_production_reliability_browser" name="test_independent_guests_group_delivery_and_lost_receipt_retry" time="26.458"><failure message="assert 0 == 1&#10; +  where 0 = count()&#10; +    where count = &lt;Locator frame=&lt;Frame name= url='http://127.0.0.1:36277/static/human_contacts.html'&gt; selector='#log p &gt;&gt; internal:has-text=&quot;Exactly once after a lost receipt&quot;i'&gt;.count&#10; +      where &lt;Locator frame=&lt;Frame name= url='http://127.0.0.1:36277/static/human_contacts.html'&gt; selector='#log p &gt;&gt; internal:has-text=&quot;Exactly once after a lost receipt&quot;i'&gt; = filter(has_text='Exactly once after a lost receipt')&#10;[+3 more lines; full report in element text]">tmp_path = PosixPath('/tmp/pytest-of-root/pytest-18/test_independent_guests_group_0')
+production_browser = &lt;Browser type=&lt;BrowserType name=chromium executable_path=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome&gt; version=141.0.7390.37&gt;
+
+    def test_independent_guests_group_delivery_and_lost_receipt_retry(tmp_path,production_browser):
+        with ExitStack() as stack:
+            start=contextmanager(fresh_host.__wrapped__)
+            base,host=stack.enter_context(start(tmp_path/'production'))
+            owner,headers=setup(host,'director')
+            guests=[]
+            for index in range(2):
+                _,home=stack.enter_context(start(tmp_path/f'home-{index}'))
+                human,own_headers=setup(home,f'guest-{index}')
+                code=host.post('/api/guests/invites',headers=headers,json={}).json()['invite_code']
+                challenge=host.post('/api/guests/challenge',json={'invite_code':code}).json()
+                proof=home.post('/api/guests/sign',headers=own_headers,json={'challenge':challenge['challenge'],'consents':CONSENTS})
+                entry=host.post('/api/guests/request',json=proof.json()).json()['entry_id']
+                pending=next(p for p in host.get('/api/guests/pending',headers=headers).json()['pending'] if p['entry_id']==entry)
+                assert host.post('/api/guests/entries/'+entry+'/approve',headers=headers,json={'fingerprint':pending['fingerprint']}).status_code==200
+                lease=host.post('/api/guests/status',json={'poll_token':challenge['poll_token']}).json()
+                context=production_browser.new_context();stack.callback(context.close)
+                seed(context,base,lease['access_token'])
+                guests.append((human,context,{'Authorization':'Bearer '+lease['access_token']}))
+            one,two=guests
+            group=host.post('/api/production/groups',headers=headers,json={'name':'Independent crew','members':[{'user_id':one[0]['user_id'],'department':'Sound'},{'user_id':two[0]['user_id'],'department':'Camera'}]})
+            assert group.status_code==201,group.text
+            note={'subject':'Revised call','group_id':group.json()['id'],'to':['@department:Sound'],'bcc':[two[0]['user_id']],
+                  'placements':{one[0]['user_id']:['audio_console']},'kind':'schedule',
+                  'schedule':{'starts_at':'2026-11-07T14:00:00-08:00','ends_at':'2026-11-07T15:00:00-08:00'}}
+            note['preview']=host.post('/api/notes/preview',headers=headers,json=note).json()['preview']
+            sent=host.post('/api/notes',headers=headers,data={'note':json.dumps(note)},files={'files':('call.txt',b'Keep these original bytes','text/plain')})
+            assert sent.status_code==201,sent.text
+            nid=sent.json()['id']
+            sound=host.get('/api/notes/'+nid,headers=one[2]).json()
+            assert sound['spots']==['mirror','audio_console'] and sound['bcc']==[]
+            assert host.get(sound['files'][0]['url'],headers=two[2]).content==b'Keep these original bytes'
+            assert host.post('/api/notes/'+nid+'/read',headers=one[2]).status_code==200
+            assert host.get('/api/notes/'+nid,headers=two[2]).json()['unread']
+    
+            # Drop one actual server receipt while keeping the real socket open.
+            # The recipient receives the message; retry must not append it twice.
+            one[1].add_init_script('''const NativeSocket=WebSocket;
+                window.WebSocket=class extends NativeSocket {constructor(...args){super(...args);
+                  this.addEventListener('message',event=&gt;{try{const p=JSON.parse(event.data);
+                    if(window.dropReceipt&amp;&amp;p.type==='chat_receipt'){window.dropReceipt=false;window.droppedReceipt=true;event.stopImmediatePropagation();}
+                  }catch(_){}});}};''')
+            a=one[1].new_page();b=two[1].new_page();errors=[]
+            for page in (a,b):page.on('pageerror',lambda error:errors.append(str(error)))
+            a.goto(base+'/static/human_contacts.html');b.goto(base+'/static/human_contacts.html')
+            a.fill('#person',two[0]['user_id']);a.fill('#hello','Plan the shoot');a.locator('#request button').click()
+            a.wait_for_function('document.getElementById("status").textContent.includes("request sent")')
+            b.click('#refresh');b.get_by_role('button',name='Accept contact',exact=True).click()
+            b.get_by_role('button',name='Open conversation',exact=True).click()
+            a.click('#refresh');a.get_by_role('button',name='Open conversation',exact=True).click()
+            for page in (a,b):page.wait_for_function('document.getElementById("status").textContent.includes("channel open")')
+            a.evaluate('window.dropReceipt=true');a.fill('#text','Exactly once after a lost receipt');a.locator('#send button').click()
+            a.wait_for_function('window.droppedReceipt===true')
+            b.wait_for_function('document.getElementById("log").textContent.includes("Exactly once after a lost receipt")')
+            a.wait_for_function('!document.querySelector("#send button").disabled',timeout=20000)
+            assert 'not confirmed' in a.locator('#status').inner_text()
+            a.locator('#send button').click();a.wait_for_function('document.getElementById("text").value===""')
+            # Reopening reads persisted history, including any accidental duplicate.
+            b.get_by_role('button',name='Open conversation',exact=True).click()
+            b.wait_for_function('document.getElementById("log").textContent.includes("Exactly once after a lost receipt")')
+&gt;           assert b.locator('#log p').filter(has_text='Exactly once after a lost receipt').count()==1
+E           assert 0 == 1
+E            +  where 0 = count()
+E            +    where count = &lt;Locator frame=&lt;Frame name= url='http://127.0.0.1:36277/static/human_contacts.html'&gt; selector='#log p &gt;&gt; internal:has-text="Exactly once after a lost receipt"i'&gt;.count
+E            +      where &lt;Locator frame=&lt;Frame name= url='http://127.0.0.1:36277/static/human_contacts.html'&gt; selector='#log p &gt;&gt; internal:has-text="Exactly once after a lost receipt"i'&gt; = filter(has_text='Exactly once after a lost receipt')
+E            +        where filter = &lt;Locator frame=&lt;Frame name= url='http://127.0.0.1:36277/static/human_contacts.html'&gt; selector='#log p'&gt;.filter
+E            +          where &lt;Locator frame=&lt;Frame name= url='http://127.0.0.1:36277/static/human_contacts.html'&gt; selector='#log p'&gt; = locator('#log p')
+E            +            where locator = &lt;Page url='http://127.0.0.1:36277/static/human_contacts.html'&gt;.locator
+
+tests/test_guest_production_reliability_browser.py:72: AssertionError</failure></testcase><testcase classname="tests.test_guest_identity_routes" name="test_guest_has_own_id_private_notes_and_no_local_account" time="0.245" /><testcase classname="tests.test_guest_identity_routes" name="test_approval_requires_reviewed_key_and_challenge_does_not_allow_local_id_claim" time="0.204" /><testcase classname="tests.test_guest_identity_routes" name="test_revoked_guest_cannot_receive_unsolicited_frames_on_idle_socket" time="0.327" /><testcase classname="tests.test_groups_and_contacts_browser" name="test_groups_ui_department_schedule_and_personal_mirror" time="6.597" /><testcase classname="tests.test_groups_and_contacts_browser" name="test_contacts_accept_chat_block_and_unblock" time="1.966" /><testcase classname="tests.test_concurrent_worker_startup" name="test_concurrent_schema_migration[profiles]" time="0.301" /><testcase classname="tests.test_concurrent_worker_startup" name="test_concurrent_schema_migration[notes]" time="0.219" /><testcase classname="tests.test_concurrent_worker_startup" name="test_concurrent_schema_migration[governance]" time="0.361" /><testcase classname="tests.test_concurrent_worker_startup" name="test_spawned_worker_inherits_session_authority" time="0.371" /></testsuite></testsuites>

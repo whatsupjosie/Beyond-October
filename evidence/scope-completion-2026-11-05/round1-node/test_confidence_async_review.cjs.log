@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: Director source changes cancel a decoder that never resolves
+ok 1 - Director source changes cancel a decoder that never resolves
+  ---
+  duration_ms: 1.577621
+  type: 'test'
+  ...
+# Subtest: Director rejects missing or negative age and includes time spent decoding
+ok 2 - Director rejects missing or negative age and includes time spent decoding
+  ---
+  duration_ms: 0.612023
+  type: 'test'
+  ...
+# Subtest: stopping the stage publisher cancels a hung encoder and releases busy state
+ok 3 - stopping the stage publisher cancels a hung encoder and releases busy state
+  ---
+  duration_ms: 0.776652
+  type: 'test'
+  ...
+# Subtest: publisher pacing and recovery share a monotonic clock
+ok 4 - publisher pacing and recovery share a monotonic clock
+  ---
+  duration_ms: 4.652542
+  type: 'test'
+  ...
+# Subtest: publisher never reports a non-positive sequence as a live frame
+ok 5 - publisher never reports a non-positive sequence as a live frame
+  ---
+  duration_ms: 0.703722
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 98.394517

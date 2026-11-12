@@ -1,0 +1,112 @@
+TAP version 13
+# Subtest: held keys move, aim and zoom at once, and a held pair settles to a steady speed without jerking
+ok 1 - held keys move, aim and zoom at once, and a held pair settles to a steady speed without jerking
+  ---
+  duration_ms: 5.86356
+  type: 'test'
+  ...
+# Subtest: opposite keys cancel, unknown keys do nothing, and moving is relative to where the camera points
+ok 2 - opposite keys cancel, unknown keys do nothing, and moving is relative to where the camera points
+  ---
+  duration_ms: 0.887579
+  type: 'test'
+  ...
+# Subtest: pan turns all the way round and replays the short way across the wrap
+ok 3 - pan turns all the way round and replays the short way across the wrap
+  ---
+  duration_ms: 0.439313
+  type: 'test'
+  ...
+# Subtest: limits stop a move without storing up speed: tilt, zoom and focus stay in range and recover at once
+ok 4 - limits stop a move without storing up speed: tilt, zoom and focus stay in range and recover at once
+  ---
+  duration_ms: 2.096093
+  type: 'test'
+  ...
+# Subtest: projection puts a subject where the geometry says, and behind the camera is not in frame
+ok 5 - projection puts a subject where the geometry says, and behind the camera is not in frame
+  ---
+  duration_ms: 0.414816
+  type: 'test'
+  ...
+# Subtest: lock-on keeps a moving subject framed and in focus while the operator only moves and zooms
+ok 6 - lock-on keeps a moving subject framed and in focus while the operator only moves and zooms
+  ---
+  duration_ms: 4.489506
+  type: 'test'
+  ...
+# Subtest: a scripted shot (what an AI operator writes) eases between keyframes and ends exactly on the last
+ok 7 - a scripted shot (what an AI operator writes) eases between keyframes and ends exactly on the last
+  ---
+  duration_ms: 0.334925
+  type: 'test'
+  ...
+# Subtest: a recorded move replays exactly: same samples, same pose, and the pose that results is what is stored
+ok 8 - a recorded move replays exactly: same samples, same pose, and the pose that results is what is stored
+  ---
+  duration_ms: 1.445041
+  type: 'test'
+  ...
+# Subtest: a move with clamped limits records what happened, so it repeats the shot that was got, not the keys that were pressed
+ok 9 - a move with clamped limits records what happened, so it repeats the shot that was got, not the keys that were pressed
+  ---
+  duration_ms: 1.213331
+  type: 'test'
+  ...
+# Subtest: mouse aim is analogue: a small slow drag turns a little, a fast one turns a lot, and the wheel zooms (shift pulls focus)
+ok 10 - mouse aim is analogue: a small slow drag turns a little, a fast one turns a lot, and the wheel zooms (shift pulls focus)
+  ---
+  duration_ms: 0.3576
+  type: 'test'
+  ...
+# Subtest: roll tilts the horizon: a point to the right of centre swings up or down the picture, and no roll changes nothing
+ok 11 - roll tilts the horizon: a point to the right of centre swings up or down the picture, and no roll changes nothing
+  ---
+  duration_ms: 0.357891
+  type: 'test'
+  ...
+# Subtest: the result does not depend on the frame rate, and a slow frame rate still records a smooth move
+ok 12 - the result does not depend on the frame rate, and a slow frame rate still records a smooth move
+  ---
+  duration_ms: 2.056424
+  type: 'test'
+  ...
+# Subtest: setPose ignores junk and respects limits, and junk dt and rates cannot break stepping or recording
+ok 13 - setPose ignores junk and respects limits, and junk dt and rates cannot break stepping or recording
+  ---
+  duration_ms: 0.314434
+  type: 'test'
+  ...
+# Subtest: lock-on with a dead zone leaves the camera still while the subject stays inside it, and brings it back when it leaves
+ok 14 - lock-on with a dead zone leaves the camera still while the subject stays inside it, and brings it back when it leaves
+  ---
+  duration_ms: 0.66922
+  type: 'test'
+  ...
+# Subtest: orbit keeps its distance and circles the subject while looking at it; a rack focus ends on the new distance
+ok 15 - orbit keeps its distance and circles the subject while looking at it; a rack focus ends on the new distance
+  ---
+  duration_ms: 2.065047
+  type: 'test'
+  ...
+# Subtest: lens terms: millimetres and field of view convert both ways, and blur grows with a wider aperture and with distance from focus
+ok 16 - lens terms: millimetres and field of view convert both ways, and blur grows with a wider aperture and with distance from focus
+  ---
+  duration_ms: 0.405802
+  type: 'test'
+  ...
+# Subtest: the camera station is described once: every action has a label and a default key, they never collide, and held actions drive the same speeds as held keys
+ok 17 - the camera station is described once: every action has a label and a default key, they never collide, and held actions drive the same speeds as held keys
+  ---
+  duration_ms: 1.59633
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 104.366822

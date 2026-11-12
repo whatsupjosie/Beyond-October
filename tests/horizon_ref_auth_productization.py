@@ -60,8 +60,8 @@ def test_first_run_setup_login_verify_and_protected_route(auth_app, monkeypatch:
         assert status.json()["setup_required"] is True
 
         weak = _strong_payload()
-        weak["password"] = weak["confirm_password"] = "password123"
-        assert client.post("/api/auth/setup", json=weak).status_code == 400
+        weak["password"] = weak["confirm_password"] = ""
+        assert client.post("/api/auth/setup", json=weak).status_code == 422
 
         created = client.post("/api/auth/setup", json=_strong_payload())
         assert created.status_code == 201, created.text

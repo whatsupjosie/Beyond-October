@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 import secrets
 import socket
+import sqlite3
 import subprocess
 import sys
 import time
@@ -57,15 +58,27 @@ def reach(tmp_path_factory):
                                              "display_name": "Josie", "email": "josie@example.com"})
         assert r.status_code == 201, r.text
         owner = {"Authorization": "Bearer " + r.json()["access_token"]}
-        for u, d in (("repete-notes", "RePete"), ("pete-notes", "Pete")):
-            assert c.post("/api/production/people", headers=owner,
-                          json={"username": u, "password": pw, "display_name": d, "email": u + "@example.com"}).status_code == 201
+        # Regression fixture for pre-existing local crew; the creation API is retired.
+        from modules.auth import get_password_hash
+        with sqlite3.connect(data / 'users.db') as db:
+            for u, d in (("repete-notes", "RePete"), ("pete-notes", "Pete")):
+                db.execute('INSERT INTO users(username,hashed_password,role) VALUES(?,?,?)', (u,get_password_hash(pw),'guest'))
+        # Let the same additive backfill create their permanent legacy profiles.
+        for p in c.get('/api/production/people', headers=owner).json()['people']:
+            if p['username'] != 'owner-notes':
+                token = c.post('/api/auth/login', json={'username':p['username'],'password':pw}).json()['access_token']
+                assert c.patch('/api/profile/me', headers={'Authorization':'Bearer '+token},
+                               json={'display_name':'RePete' if p['username']=='repete-notes' else 'Pete',
+                                     'email':p['username']+'@example.com'}).status_code == 200
         people = {p["username"]: p for p in c.get("/api/production/people", headers=owner).json()["people"]}
 
         def login(u):
             return {"Authorization": "Bearer " + c.post("/api/auth/login", json={"username": u, "password": pw}).json()["access_token"]}
         rp, pt, me = login("repete-notes"), login("pete-notes"), people["owner-notes"]["user_id"]
-        assert c.post("/api/notes", headers=pt, json={"subject": "Call time 6 am", "to": ["@production"], "project": "Episode 3"}).status_code == 201
+        group=c.post('/api/production/groups',headers=owner,json={'name':'Episode 3','members':[{'user_id':p['user_id']} for p in people.values()]}).json()
+        payload={'subject':'Call time 6 am','to':['@production'],'project':'Episode 3','group_id':group['id']}
+        payload['preview']=c.post('/api/notes/preview',headers=pt,json=payload).json()['preview']
+        assert c.post('/api/notes',headers=pt,json=payload).status_code==201
         assert c.post("/api/notes", headers=rp, json={"subject": "Mix notes, ep. 3", "body": "The cold open is hot.",
                                                        "to": [me], "spots": ["audio_console"], "project": "Episode 3"}).status_code == 201
         assert c.post("/api/notes", headers=pt, json={"subject": "Rehearsal 11/10", "to": [me], "spots": ["director_console"]}).status_code == 201

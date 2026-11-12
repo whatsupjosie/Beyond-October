@@ -1,0 +1,1 @@
+errors ['OperationalError: duplicate column name: session_id']

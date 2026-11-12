@@ -102,14 +102,16 @@ def _encode_payload(payload: Mapping[str, Any] | str | None) -> str:
     if payload is None:
         return "-"
     if isinstance(payload, str):
-        return quote(payload, safe="-_.:,@/")
+        return quote(payload, safe="-_.:@/")
     parts = []
     for key in sorted(payload):
         clean_key = str(key).strip()
         if not clean_key:
             continue
         value = payload[key]
-        parts.append(f"{quote(clean_key, safe='-_.')}:{quote(str(value), safe='-_.:,@/')}")
+        # A literal comma separates payload entries. It must never remain
+        # unescaped inside a value (chat text and JSON both commonly contain it).
+        parts.append(f"{quote(clean_key, safe='-_.')}:{quote(str(value), safe='-_.:@/')}")
     return ",".join(parts) if parts else "-"
 
 
@@ -217,6 +219,10 @@ def parse_record(wire: str) -> Dict[str, str]:
         if "=" not in item:
             raise BlackBoxValidationError(f"malformed field {item!r}")
         key, value = item.split("=", 1)
+        if key not in REQUIRED_FIELDS:
+            raise BlackBoxValidationError(f'unknown field {key}')
+        if key in fields:
+            raise BlackBoxValidationError(f'duplicate field {key}')
         fields[key] = value
     validate_record(fields)
     return fields

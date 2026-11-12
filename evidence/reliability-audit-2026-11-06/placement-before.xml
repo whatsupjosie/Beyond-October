@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="8.528" timestamp="2026-11-05T22:09:46.624806-08:00" hostname="266c43e7df3f"><testcase classname="tests.test_guest_production_reliability_browser" name="test_recipient_changes_discard_obsolete_per_person_placements" time="8.345"><failure message="AssertionError: {&quot;detail&quot;:&quot;Per-person placements must name selected recipients only&quot;}&#10;assert 400 == 200&#10; +  where 400 = &lt;Response url='http://127.0.0.1:50725/api/notes/preview' request=&lt;Request url='http://127.0.0.1:50725/api/notes/preview' method='POST'&gt;&gt;.status&#10; +    where &lt;Response url='http://127.0.0.1:50725/api/notes/preview' request=&lt;Request url='http://127.0.0.1:50725/api/notes/preview' method='POST'&gt;&gt; = &lt;playwright._impl._sync_base.EventInfo object at 0x7fa47f167500&gt;.value">reach = ('http://127.0.0.1:50725', 'owner-notes', 'rVuJJPmlbCGis45HiHeqK2mQA1!')
+production_browser = &lt;Browser type=&lt;BrowserType name=chromium executable_path=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome&gt; version=141.0.7390.37&gt;
+
+    def test_recipient_changes_discard_obsolete_per_person_placements(reach,production_browser):
+        import httpx
+        base,user,password=reach
+        context=production_browser.new_context(viewport={'width':1440,'height':1000})
+        try:
+            page=login(context,base,user,password,'/walk?view=control_room/main')
+            with httpx.Client(base_url=base,trust_env=False) as api:
+                token=api.post('/api/auth/login',json={'username':user,'password':password}).json()['access_token']
+                headers={'Authorization':'Bearer '+token}
+                people={p['username']:p for p in api.get('/api/production/people',headers=headers).json()['people']}
+                group=api.post('/api/production/groups',headers=headers,json={'name':'Placement change','members':[{'user_id':people['pete-notes']['user_id'],'department':'Sound'},{'user_id':people['repete-notes']['user_id'],'department':'Camera'}]}).json()
+            page.wait_for_function('window.PubCastNotes?.state.enabled')
+            page.evaluate('PubCastNotes.compose({})');page.wait_for_selector('#pnGroup')
+            page.select_option('#pnGroup',group['id'])
+            sound=page.locator('.pn-pick[data-kind="to"][data-id="@department:Sound"]')
+            camera=page.locator('.pn-pick[data-kind="to"][data-id="@department:Camera"]')
+            sound.click();page.get_by_role('button',name='Preview recipients',exact=True).click()
+            page.wait_for_selector('.pn-review select')
+            page.get_by_label('Locations for Pete',exact=True).select_option('audio_console')
+            sound.click();camera.click()
+            with page.expect_response(lambda response:response.url.endswith('/api/notes/preview')) as preview:
+                page.get_by_role('button',name='Preview recipients',exact=True).click()
+&gt;           assert preview.value.status==200,preview.value.text()
+E           AssertionError: {"detail":"Per-person placements must name selected recipients only"}
+E           assert 400 == 200
+E            +  where 400 = &lt;Response url='http://127.0.0.1:50725/api/notes/preview' request=&lt;Request url='http://127.0.0.1:50725/api/notes/preview' method='POST'&gt;&gt;.status
+E            +    where &lt;Response url='http://127.0.0.1:50725/api/notes/preview' request=&lt;Request url='http://127.0.0.1:50725/api/notes/preview' method='POST'&gt;&gt; = &lt;playwright._impl._sync_base.EventInfo object at 0x7fa47f167500&gt;.value
+
+tests/test_guest_production_reliability_browser.py:107: AssertionError</failure></testcase></testsuite></testsuites>

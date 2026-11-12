@@ -55,6 +55,9 @@
      if(shot.kind==="gap")continue;
      const t=trackById.get(shot.trackId);if(!t)continue;
      const q=qualityOf(t);
+     const sourceIn=Core.sourceTimeUs(project,t.id,shot.inUs),sourceOut=Core.sourceTimeUs(project,t.id,shot.outUs);
+     if(sourceIn<0||sourceOut<0||(t.durationUs!=null&&sourceOut>t.durationUs))
+       problems.push(t.label+": selection exceeds the available source duration");
      if(!included.some(x=>x.trackId===t.id))included.push({trackId:t.id,name:t.label,ref:t.mediaRef,
        quality:q,durationUs:t.durationUs??null,manualOffsetUs:t.manualOffsetUs,markers:t.clackerMarks.length});
      if(q.role==="proxy")problems.push(t.label+": only a proxy is identified; cannot claim professional source quality");
@@ -131,9 +134,13 @@
      if(durFrames<1)throw Error("A clip or gap is shorter than one frame at "+fps+" fps");
      const clipInfo=isGap?null:tracks.get(e.trackId);
      if(!isGap&&!clipInfo)throw Error("Missing source track for "+e.id);
+     if(!isGap&&!["camera","video"].includes(clipInfo.track.kind))
+       throw Error("CMX3600 cuts export requires video selections; retain audio selections in the JSON handoff");
      const sourceStart=isGap?0:Core.sourceTimeUs(project,e.trackId,e.inUs);
      const sourceEnd=isGap?e.durationUs:Core.sourceTimeUs(project,e.trackId,e.outUs);
      if(sourceStart<0||sourceEnd<0)throw Error("Negative source time for "+e.id+"; adjust sync before interchange");
+     if(!isGap&&clipInfo.track.durationUs!=null&&sourceEnd>clipInfo.track.durationUs)
+       throw Error("Selection exceeds the available source duration for "+e.id+"; trim the cut or correct its offset");
      const sourceInFrame=isGap?0:toFrames(sourceStart,fps);
      const sourceFrames=toFrames(sourceEnd,fps)-sourceInFrame;
      if(!isGap&&Math.abs(sourceFrames-durFrames)>1)warnings.push(e.id+": source clock drift needs a separate conform step");

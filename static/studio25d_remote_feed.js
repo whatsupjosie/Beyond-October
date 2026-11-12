@@ -17,10 +17,16 @@
    if(!fetcher||!urlAPI)throw Error("Remote confidence preview requires Fetch and URL");
    const entries={program:{source:null,url:null,busy:false,generation:0,lastFresh:0,controller:null},
                   preview:{source:null,url:null,busy:false,generation:0,lastFresh:0,controller:null}};
-   const now=options.now||Date.now;
+   const now=options.now||(()=>globalThis.performance?.now?.()??Date.now());
    const schedule=options.setTimeout||globalThis.setTimeout?.bind(globalThis);
    const cancel=options.clearTimeout||globalThis.clearTimeout?.bind(globalThis);
    let stopped=false;
+   async function abortable(promise,signal){
+     if(!signal)return promise;
+     if(signal.aborted)throw Error("Confidence request cancelled");
+     let rejectAbort;const aborted=new Promise((_,reject)=>{rejectAbort=()=>reject(Error("Confidence request cancelled or timed out"));signal.addEventListener("abort",rejectAbort,{once:true});});
+     try{return await Promise.race([promise,aborted]);}finally{signal.removeEventListener("abort",rejectAbort);}
+   }
    function setStatus(role,label,visible=false) {
      const target=targets[role];if(!target?.status)return;
      target.status.textContent=label;target.status.style.position="relative";
@@ -45,22 +51,23 @@
    async function update(role) {
      const entry=entries[role],source=entry.source,target=targets[role];
      if(stopped||entry.busy||!target?.image||!sourcePattern.test(source||""))return false;
-     entry.busy=true;const gen=entry.generation;
+     entry.busy=true;const gen=entry.generation,started=now();
      const controller=typeof AbortController==="function"?new AbortController():null;
      entry.controller=controller;
      const timer=controller&&schedule?schedule(()=>controller.abort(),2000):null;
      try{
-       const response=await fetcher("/api/studio25d/media/frames/"+encodeURIComponent(source),{
+       const response=await abortable(fetcher("/api/studio25d/media/frames/"+encodeURIComponent(source),{
          cache:"no-store",credentials:"same-origin",
          signal:controller?.signal
-       });
+       }),controller?.signal);
        if(!response.ok)throw Error("HTTP "+response.status);
        if(!String(response.headers?.get?.("content-type")||"").startsWith("image/jpeg"))
          throw Error("Non-JPEG response");
-       const age=Number(response.headers.get("x-studio-frame-age-ms"));
-       if(!Number.isFinite(age)||age>5000)throw Error("Frame is stale");
-       const blob=await response.blob();
+       const rawAge=response.headers.get("x-studio-frame-age-ms"),age=rawAge===null?NaN:Number(rawAge);
+       if(!Number.isFinite(age)||age<0||age>5000)throw Error("Frame is stale or missing its age");
+       const blob=await abortable(response.blob(),controller?.signal);
        if(!blob||!blob.size||blob.size>240000)throw Error("Invalid frame size");
+       if(stopped||controller?.signal.aborted||gen!==entry.generation||entry.source!==source)return false;
        // A transport ACK alone does not prove a JPEG can be decoded.
        // Decode *before* marking the monitor as carrying a real frame.
        const decode=options.decode||(typeof createImageBitmap==="function"?async b=>{
@@ -68,21 +75,24 @@
        }:async b=>{
          if(typeof Image==="undefined")throw Error("No JPEG decoder available");
          const tempURL=urlAPI.createObjectURL(b),image=new Image();
+         const revoke=()=>urlAPI.revokeObjectURL(tempURL);controller?.signal.addEventListener("abort",revoke,{once:true});
          try{
            image.src=tempURL;
            if(typeof image.decode==="function")await image.decode();
            else await new Promise((resolve,reject)=>{
              image.onload=resolve;image.onerror=()=>reject(Error("JPEG decoder rejected frame"));
            });
-         }finally{urlAPI.revokeObjectURL(tempURL);}
+         }finally{controller?.signal.removeEventListener("abort",revoke);revoke();}
        });
-       await decode(blob);
+       await abortable(decode(blob),controller?.signal);
        if(stopped||gen!==entry.generation||entry.source!==source)return false;
+       const currentAge=age+Math.max(0,now()-started);
+       if(currentAge>5000)throw Error("Frame expired during transfer or decode");
        const newURL=urlAPI.createObjectURL(blob),old=entry.url;
        entry.url=newURL;target.image.src=newURL;target.image.hidden=false;
-       entry.lastFresh=now();
+       entry.lastFresh=started-age;
        if(old)urlAPI.revokeObjectURL(old);
-       setStatus(role,"REAL 2.5D FRAME · "+Math.round(age)+"ms OLD · LOW-RATE CONFIDENCE",true);
+       setStatus(role,"REAL 2.5D FRAME · "+Math.round(currentAge)+"ms OLD · LOW-RATE CONFIDENCE",true);
        return true;
      }catch(e){
        if(gen===entry.generation&&!stopped)clear(role,"NO FRESH VIDEO FRAME ("+e.message+")");

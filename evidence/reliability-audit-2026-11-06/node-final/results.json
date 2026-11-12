@@ -1,0 +1,147 @@
+[
+  {
+    "file": "tests/test_audio_room_policy_node.js",
+    "exit_code": 0,
+    "reported_cases": 1
+  },
+  {
+    "file": "tests/test_avatar_glb_motion_consumer_node.js",
+    "exit_code": 0,
+    "reported_cases": 1
+  },
+  {
+    "file": "tests/test_camera_pool_async.cjs",
+    "exit_code": 0,
+    "reported_cases": 4
+  },
+  {
+    "file": "tests/test_camera_pool_guard.cjs",
+    "exit_code": 0,
+    "reported_cases": 6
+  },
+  {
+    "file": "tests/test_camera_rig_node.js",
+    "exit_code": 0,
+    "reported_cases": 17
+  },
+  {
+    "file": "tests/test_capture_browser_contracts_node.js",
+    "exit_code": 0,
+    "reported_cases": 1
+  },
+  {
+    "file": "tests/test_clacker_worklet.cjs",
+    "exit_code": 0,
+    "reported_cases": 1
+  },
+  {
+    "file": "tests/test_confidence_async_review.cjs",
+    "exit_code": 0,
+    "reported_cases": 5
+  },
+  {
+    "file": "tests/test_contact_switch_node.cjs",
+    "exit_code": 0,
+    "reported_cases": 4
+  },
+  {
+    "file": "tests/test_editor_sync_interchange.cjs",
+    "exit_code": 0,
+    "reported_cases": 12
+  },
+  {
+    "file": "tests/test_foresight_activity_protocol_node.js",
+    "exit_code": 0,
+    "reported_cases": 1
+  },
+  {
+    "file": "tests/test_foresight_file_close_node.js",
+    "exit_code": 0,
+    "reported_cases": 1
+  },
+  {
+    "file": "tests/test_foresight_file_navigation_node.js",
+    "exit_code": 0,
+    "reported_cases": 1
+  },
+  {
+    "file": "tests/test_foresight_new_chat_failure_node.js",
+    "exit_code": 0,
+    "reported_cases": 1
+  },
+  {
+    "file": "tests/test_foresight_owner_recovery_node.js",
+    "exit_code": 0,
+    "reported_cases": 1
+  },
+  {
+    "file": "tests/test_keymap_node.js",
+    "exit_code": 0,
+    "reported_cases": 10
+  },
+  {
+    "file": "tests/test_production25d_archive.cjs",
+    "exit_code": 0,
+    "reported_cases": 9
+  },
+  {
+    "file": "tests/test_production25d_capture.cjs",
+    "exit_code": 0,
+    "reported_cases": 4
+  },
+  {
+    "file": "tests/test_production25d_core.cjs",
+    "exit_code": 0,
+    "reported_cases": 5
+  },
+  {
+    "file": "tests/test_production25d_switcher_bridge.cjs",
+    "exit_code": 0,
+    "reported_cases": 3
+  },
+  {
+    "file": "tests/test_production25d_wiring.cjs",
+    "exit_code": 0,
+    "reported_cases": 5
+  },
+  {
+    "file": "tests/test_program_audio_runtime_node.js",
+    "exit_code": 0,
+    "reported_cases": 1
+  },
+  {
+    "file": "tests/test_reach_editor.cjs",
+    "exit_code": 0,
+    "reported_cases": 1
+  },
+  {
+    "file": "tests/test_reader.cjs",
+    "exit_code": 0,
+    "reported_cases": 1
+  },
+  {
+    "file": "tests/test_studio25d_confidence.cjs",
+    "exit_code": 0,
+    "reported_cases": 3
+  },
+  {
+    "file": "tests/test_studio_console_hotspots_node.js",
+    "exit_code": 0,
+    "reported_cases": 1
+  },
+  {
+    "file": "tests/test_switcher_keyboard_node.js",
+    "exit_code": 0,
+    "reported_cases": 3
+  },
+  {
+    "file": "tests/test_twoi_rich_browser_contract_node.js",
+    "exit_code": 0,
+    "reported_cases": 1
+  },
+  {
+    "file": "tests/test_voxel_block_preview_client_node.js",
+    "exit_code": 0,
+    "reported_cases": 1
+  }
+]

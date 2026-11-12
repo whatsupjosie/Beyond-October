@@ -1,0 +1,85 @@
+{
+  "round1": {
+    "local_commit": "3326b06",
+    "tree": "4c60a98b12a3d843f8076c7a9929fd8fbc32c3c3",
+    "passed": 2357,
+    "skipped": 6,
+    "failures": 1,
+    "errors": 4,
+    "seconds": 967.25,
+    "status": "findings repaired"
+  },
+  "round2_initial": {
+    "local_commit": "5e3331f",
+    "tree": "3d70db0b70183d339cc0f3874cddbe96117bb367",
+    "passed": 2362,
+    "skipped": 6,
+    "failures": 1,
+    "errors": 0,
+    "seconds": 962.94,
+    "status": "clacker finding repaired"
+  },
+  "round2_confirmed": {
+    "local_commit": "878ef65",
+    "tree": "e33526b9b2cba7da5f5df0030e6af6166a9cc761",
+    "passed": 2363,
+    "skipped": 6,
+    "failures": 0,
+    "errors": 0,
+    "warnings": 217,
+    "subtests_passed": 16,
+    "seconds": 963.46,
+    "pytest_exit_code": 0,
+    "junit_attributes": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "6",
+      "tests": "2385",
+      "time": "963.429",
+      "timestamp": "2026-11-05T21:39:12.995176-08:00",
+      "hostname": "266c43e7df3f"
+    },
+    "node_files": 29,
+    "node_reported_cases": 104,
+    "node_all_exit_zero": true,
+    "clacker_offsets_ms": [
+      8,
+      90
+    ]
+  },
+  "skip_entries": [
+    {
+      "class": "",
+      "name": "tests.alex_little_one.test_public_baby_role",
+      "reason": "collection skipped"
+    },
+    {
+      "class": "",
+      "name": "tests.test_public_baby_role",
+      "reason": "collection skipped"
+    },
+    {
+      "class": "tests.test_speech_host_acceptance",
+      "name": "test_real_host_browser_dictation_recordable_speech_stop_and_restart",
+      "reason": "Set PUBCAST_SPEECH_TEST_MODELS to explicitly installed model containers"
+    },
+    {
+      "class": "tests.test_speech_system",
+      "name": "test_decoder_rejects_playlists_and_decoded_duration_not_just_upload_size",
+      "reason": "Audio decoder checks require requirements-speech.txt"
+    },
+    {
+      "class": "tests.test_speech_system",
+      "name": "test_real_neural_roundtrip_word_times_two_voices_and_clean_shutdown",
+      "reason": "Real speech acceptance requires explicitly installed PUBCAST_SPEECH_TEST_MODELS"
+    },
+    {
+      "class": "tests.test_speech_system",
+      "name": "test_real_worker_busy_cancel_timeout_and_next_request_recovers",
+      "reason": "Real speech acceptance requires explicitly installed PUBCAST_SPEECH_TEST_MODELS"
+    }
+  ],
+  "publication_parent": "df7c400cbcf37c62e8efd38451298cedb71a0fb3",
+  "scope": "available Linux/software-WebGL environment; see README exclusions"
+}

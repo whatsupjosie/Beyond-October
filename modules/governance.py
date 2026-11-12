@@ -32,10 +32,13 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import multiprocessing
+import os
 import sqlite3
 import time
 import uuid
 from dataclasses import dataclass, field
+from contextlib import contextmanager
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -193,16 +196,25 @@ class GovernanceEngine:
         self._data_dir = data_dir / "governance"
         self._data_dir.mkdir(parents=True, exist_ok=True)
         self._db_path = self._data_dir / "governance.db"
+        self._session_id = os.getenv("PUBCAST_SESSION_ID") or hashlib.sha256(bytes(multiprocessing.current_process().authkey)).hexdigest()
 
         # In-memory state (fast lookups)
         self._bans: Dict[str, BanRecord] = {}
         self._freezes: Dict[str, FreezeState] = {}
         self._mutes: Dict[str, float] = {}  # user_id → mute_until (0 = indefinite)
         self._consents: Dict[str, Dict[str, ConsentRecord]] = {}
-        self._waiting_room: Dict[str, WaitingRoomEntry] = {}
 
         self._init_db()
         self._load_active_bans()
+
+    @contextmanager
+    def _connection(self):
+        conn=sqlite3.connect(self._db_path,timeout=15)
+        try:
+            with conn:
+                yield conn
+        finally:
+            conn.close()
 
     def _init_db(self):
         conn = sqlite3.connect(self._db_path)
@@ -238,7 +250,23 @@ class GovernanceEngine:
             );
             CREATE INDEX IF NOT EXISTS idx_bans_user ON bans(user_id);
             CREATE INDEX IF NOT EXISTS idx_audit_time ON audit_log(timestamp);
+            CREATE TABLE IF NOT EXISTS waiting_entries (
+                entry_id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                display_name TEXT NOT NULL,
+                target_room TEXT NOT NULL,
+                requested_at REAL NOT NULL,
+                status TEXT NOT NULL,
+                resolved_by TEXT,
+                resolved_at REAL,
+                consents_json TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_waiting_status ON waiting_entries(status, requested_at);
         """)
+        conn.execute('BEGIN IMMEDIATE')
+        columns={row[1] for row in conn.execute('PRAGMA table_info(bans)')}
+        if 'session_id' not in columns:
+            conn.execute("ALTER TABLE bans ADD COLUMN session_id TEXT NOT NULL DEFAULT ''")
         conn.commit()
         conn.close()
 
@@ -246,7 +274,7 @@ class GovernanceEngine:
         conn = sqlite3.connect(self._db_path)
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
-            "SELECT * FROM bans WHERE lifted_at IS NULL"
+            "SELECT * FROM bans WHERE lifted_at IS NULL AND (ban_type != 'session' OR session_id=?)", (self._session_id,)
         ).fetchall()
         conn.close()
         for row in rows:
@@ -289,15 +317,10 @@ class GovernanceEngine:
         )
         self._bans[user_id] = ban
 
-        if ban_type != BanType.SESSION:
-            conn = sqlite3.connect(self._db_path)
-            conn.execute(
-                "INSERT INTO bans VALUES (?,?,?,?,?,?,?,?,?)",
-                (ban.ban_id, ban.user_id, ban.ban_type.value, ban.reason,
-                 ban.issued_by, ban.issued_at, ban.expires_at, None, None),
-            )
-            conn.commit()
-            conn.close()
+        with self._connection() as conn:
+            conn.execute('INSERT INTO bans(ban_id,user_id,ban_type,reason,issued_by,issued_at,expires_at,lifted_at,lifted_by,session_id) VALUES(?,?,?,?,?,?,?,?,?,?)',
+                         (ban.ban_id,ban.user_id,ban.ban_type.value,ban.reason,ban.issued_by,ban.issued_at,ban.expires_at,None,None,
+                          self._session_id if ban_type==BanType.SESSION else ''))
 
         self._audit("BAN", issued_by, user_id,
                      f"type={ban_type.value}, reason={reason}, "
@@ -306,36 +329,28 @@ class GovernanceEngine:
         return ban
 
     def unban_user(self, user_id: str, lifted_by: str) -> bool:
-        """Lift a ban."""
-        ban = self._bans.pop(user_id, None)
-        if not ban:
-            return False
-        ban.lifted_at = time.time()
-        ban.lifted_by = lifted_by
-
-        conn = sqlite3.connect(self._db_path)
-        conn.execute(
-            "UPDATE bans SET lifted_at=?, lifted_by=? WHERE ban_id=?",
-            (ban.lifted_at, lifted_by, ban.ban_id),
-        )
-        conn.commit()
-        conn.close()
-
-        self._audit("UNBAN", lifted_by, user_id, f"ban_id={ban.ban_id}")
-        return True
+        """Lift the current shared bans, including decisions made by another worker."""
+        with self._connection() as conn:
+            changed=conn.execute("UPDATE bans SET lifted_at=?,lifted_by=? WHERE user_id=? AND lifted_at IS NULL AND (ban_type != 'session' OR session_id=?)",
+                                 (time.time(),lifted_by,user_id,self._session_id)).rowcount
+        self._bans.pop(user_id,None)
+        if changed:
+            self._audit('UNBAN',lifted_by,user_id,'shared active bans lifted')
+        return bool(changed)
 
     def active_bans(self) -> List[BanRecord]:
-        """Every ban in force right now (a session ban is in force until the app restarts or it is lifted)."""
-        return [b for b in self._bans.values() if b.is_active]
+        """Read current shared authority; never grant from a stale worker cache."""
+        with self._connection() as conn:
+            conn.row_factory=sqlite3.Row
+            rows=conn.execute("SELECT * FROM bans WHERE lifted_at IS NULL AND (ban_type != 'session' OR session_id=?) ORDER BY issued_at DESC",(self._session_id,)).fetchall()
+        bans=[BanRecord(**{key:(BanType(row[key]) if key=='ban_type' else row[key]) for key in BanRecord.__dataclass_fields__}) for row in rows]
+        return [ban for ban in bans if ban.is_active]
 
     def is_banned(self, user_id: str) -> Tuple[bool, Optional[str]]:
-        """Check if a user is banned. Returns (banned, reason)."""
-        ban = self._bans.get(user_id)
-        if ban and ban.is_active:
-            return True, ban.reason
-        if ban and not ban.is_active:
-            self._bans.pop(user_id, None)
-        return False, None
+        for ban in self.active_bans():
+            if ban.user_id==user_id:
+                return True,ban.reason
+        return False,None
 
     # ═══ AVATAR FREEZE ═════════════════════════════════════════════════════════
 
@@ -483,6 +498,14 @@ class GovernanceEngine:
         consents: Dict[str, bool] = None,
     ) -> WaitingRoomEntry:
         """User requests to enter a room. Goes to waiting room first."""
+        with self._connection() as conn:
+            entry = self._insert_waiting_entry(conn, user_id, display_name, target_room, consents)
+        self._audit("ENTRY_REQUEST", user_id, None,
+                     f"room={target_room}, name={display_name}")
+        return entry
+
+    def _insert_waiting_entry(self, conn, user_id, display_name, target_room, consents=None):
+        """Insert within an existing governance transaction (e.g. verified invite use)."""
         entry = WaitingRoomEntry(
             entry_id=str(uuid.uuid4())[:12],
             user_id=user_id,
@@ -491,19 +514,16 @@ class GovernanceEngine:
             requested_at=time.time(),
             consents=consents or {},
         )
-        self._waiting_room[entry.entry_id] = entry
-        self._audit("ENTRY_REQUEST", user_id, None,
-                     f"room={target_room}, name={display_name}")
+        conn.execute('INSERT INTO waiting_entries VALUES (?,?,?,?,?,?,?,?,?)',
+                     (entry.entry_id, entry.user_id, entry.display_name, entry.target_room,
+                      entry.requested_at, entry.status.value, None, None, json.dumps(entry.consents)))
         return entry
 
     def approve_entry(self, entry_id: str, approved_by: str) -> Optional[WaitingRoomEntry]:
         """Host approves a waiting room request."""
-        entry = self._waiting_room.get(entry_id)
-        if not entry or entry.status != EntryStatus.WAITING:
+        entry = self._resolve_entry(entry_id, EntryStatus.APPROVED, approved_by)
+        if entry is None:
             return None
-        entry.status = EntryStatus.APPROVED
-        entry.resolved_by = approved_by
-        entry.resolved_at = time.time()
         self._audit("APPROVE_ENTRY", approved_by, entry.user_id,
                      f"room={entry.target_room}")
         return entry
@@ -515,33 +535,56 @@ class GovernanceEngine:
         reason: str = "",
     ) -> Optional[WaitingRoomEntry]:
         """Host denies a waiting room request."""
-        entry = self._waiting_room.get(entry_id)
-        if not entry or entry.status != EntryStatus.WAITING:
+        entry = self._resolve_entry(entry_id, EntryStatus.DENIED, denied_by)
+        if entry is None:
             return None
-        entry.status = EntryStatus.DENIED
-        entry.resolved_by = denied_by
-        entry.resolved_at = time.time()
         self._audit("DENY_ENTRY", denied_by, entry.user_id,
                      f"room={entry.target_room}, reason={reason}")
         return entry
 
     def mark_entered(self, entry_id: str) -> None:
-        """Mark that the user has actually entered the room."""
-        entry = self._waiting_room.get(entry_id)
-        if entry:
-            entry.status = EntryStatus.ENTERED
+        """Only an approved admission may enter; pending/denied records stay closed."""
+        with self._connection() as conn:
+            conn.execute('UPDATE waiting_entries SET status=? WHERE entry_id=? AND status=?',
+                         (EntryStatus.ENTERED.value, entry_id, EntryStatus.APPROVED.value))
+
+    @staticmethod
+    def _waiting_entry(row) -> Optional[WaitingRoomEntry]:
+        if row is None:
+            return None
+        data = dict(row)
+        data['status'] = EntryStatus(data['status'])
+        data['consents'] = json.loads(data.pop('consents_json'))
+        return WaitingRoomEntry(**data)
+
+    def _resolve_entry(self, entry_id: str, status: EntryStatus, actor: str) -> Optional[WaitingRoomEntry]:
+        """Compare-and-set in the shared database: concurrent decisions have one winner."""
+        with self._connection() as conn:
+            conn.row_factory = sqlite3.Row
+            result = conn.execute(
+                'UPDATE waiting_entries SET status=?,resolved_by=?,resolved_at=? WHERE entry_id=? AND status=?',
+                (status.value, actor, time.time(), entry_id, EntryStatus.WAITING.value))
+            if result.rowcount != 1:
+                return None
+            return self._waiting_entry(conn.execute('SELECT * FROM waiting_entries WHERE entry_id=?', (entry_id,)).fetchone())
 
     def get_waiting_entry(self, entry_id: str) -> Optional[WaitingRoomEntry]:
         """Return one durable admission record by id, if it exists."""
-        return self._waiting_room.get(entry_id)
+        with self._connection() as conn:
+            conn.row_factory = sqlite3.Row
+            return self._waiting_entry(conn.execute('SELECT * FROM waiting_entries WHERE entry_id=?', (entry_id,)).fetchone())
 
     def list_waiting(self, target_room: str = None) -> List[WaitingRoomEntry]:
         """List users in the waiting room."""
-        entries = [e for e in self._waiting_room.values()
-                   if e.status == EntryStatus.WAITING]
-        if target_room:
-            entries = [e for e in entries if e.target_room == target_room]
-        return entries
+        with self._connection() as conn:
+            conn.row_factory = sqlite3.Row
+            sql = 'SELECT * FROM waiting_entries WHERE status=?'
+            args = [EntryStatus.WAITING.value]
+            if target_room:
+                sql += ' AND target_room=?'
+                args.append(target_room)
+            rows = conn.execute(sql + ' ORDER BY requested_at, entry_id', args).fetchall()
+            return [self._waiting_entry(row) for row in rows]
 
     def can_enter(self, user_id: str) -> Tuple[bool, str]:
         """

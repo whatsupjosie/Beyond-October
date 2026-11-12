@@ -1,0 +1,78 @@
+/workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/pytest_asyncio/plugin.py:300: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the "fixture" caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+F
+=================================== FAILURES ===================================
+_______________ test_virtual_peer_skew_jitter_and_explicit_stall _______________
+
+production_server = ('http://127.0.0.1:58137', {'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJwdWJwYXJ0bmVyLXVpIiwiZXhw..._yB1g', 'token_type': 'bearer', 'username': 'engineer', 'role': 'owner', ...}, <httpx.Client object at 0x7f14478e2c60>)
+tmp_path = PosixPath('/workspace/scratch/d6f0985b33b2/readiness-checks-2026-11-06/virtual-timing-runtime/test_virtual_peer_skew_jitter_0')
+
+    @pytest.mark.asyncio
+    async def test_virtual_peer_skew_jitter_and_explicit_stall( production_server,tmp_path):
+        base,owner,api=production_server;headers={'Authorization':'Bearer '+owner['access_token']}
+        guest=profile('u_'+uuid.uuid4().hex[:20])
+        code=api.post('/api/guests/invites',headers=headers,json={}).json()['invite_code']
+        challenge=api.post('/api/guests/challenge',json={'invite_code':code}).json()
+        proof=sign_visit(CredentialStore(tmp_path/'own-copy-key'),guest,challenge['challenge'],CONSENTS)
+        entry=api.post('/api/guests/request',json=proof).json()['entry_id']
+        pending=next(p for p in api.get('/api/guests/pending',headers=headers).json()['pending'] if p['entry_id']==entry)
+        assert api.post('/api/guests/entries/'+entry+'/approve',headers=headers,json={'fingerprint':pending['fingerprint']}).status_code==200
+        lease=api.post('/api/guests/status',json={'poll_token':challenge['poll_token']}).json()
+        state={'scope':'loopback software audio; isolated browser processes; one signed independent guest','frames':0,'drop':False,'deliveries':[],'last_due':0.0,'tasks':set()}
+        async with async_playwright() as p:
+            host_browser=await p.chromium.launch(args=GL_ARGS);guest_browser=await p.chromium.launch(args=GL_ARGS)
+            try:
+                hc=await host_browser.new_context();gc=await guest_browser.new_context()
+                await hc.add_init_script('sessionStorage.setItem("pubcast_token",'+json.dumps(owner['access_token'])+');')
+                await gc.add_init_script('sessionStorage.setItem("pubcast_token",'+json.dumps(lease['access_token'])+');Date.now=(()=>{const now=Date.now;return()=>now()+120000;})();')
+                async def route(ws):
+                    remote=await ws.connect_to_server()
+                    async def delayed(message,due):
+                        await asyncio.sleep(max(0,due-time.monotonic()))
+                        if not state['drop']:
+                            await ws.send(message);state['deliveries'].append(time.monotonic())
+                    async def incoming(message):
+                        if isinstance(message,str):await ws.send(message);return
+                        state['frames']+=1
+                        if state['drop']:return
+                        delay=[.04,.16,.07,.12][state['frames']%4]
+                        due=max(time.monotonic()+delay,state['last_due']+.00001);state['last_due']=due
+                        task=asyncio.create_task(delayed(message,due));state['tasks'].add(task);task.add_done_callback(state['tasks'].discard)
+                    remote.on_message(incoming)
+                await hc.route_web_socket('**/api/participant-audio/**/media',route)
+                page=await hc.new_page();await page.goto(base+'/static/production25d.html')
+                await page.wait_for_function("document.documentElement.dataset.production25d==='ready'")
+                await page.click('#start');await page.click('#audioOpen')
+                await page.wait_for_function('!!window.PubCastAudioDesk.reservation')
+                room=await page.evaluate('PubCastAudioDesk.reservation.room')
+                peer=await gc.new_page();await peer.goto(base+'/static/participant_audio.html?room='+room)
+                await peer.evaluate('''()=>{const ctx=new AudioContext(),osc=ctx.createOscillator(),gain=ctx.createGain(),dest=ctx.createMediaStreamDestination();osc.frequency.value=440;gain.gain.value=.12;osc.connect(gain);gain.connect(dest);osc.start();ctx.resume();window.tone={ctx,osc};navigator.mediaDevices.getUserMedia=async()=>dest.stream;}''')
+                await peer.check('#consent');await peer.click('#connect')
+                await page.wait_for_function('PubcastProgramAudio.inputs.size===1',timeout=15000)
+                await page.evaluate('''()=>{const ctx=PubcastProgramAudio.context,probe=ctx.createAnalyser();probe.fftSize=8192;ctx.createMediaStreamSource(PubcastProgramAudio.captureOutputStream()).connect(probe);window.power440=()=>{const d=new Float32Array(probe.frequencyBinCount);probe.getFloatFrequencyData(d);const i=Math.round(440*probe.fftSize/ctx.sampleRate);return Math.max(...d.slice(i-2,i+3))};}''')
+                await page.wait_for_function('power440()>-35',timeout=15000)
+                observed=[]
+                for _ in range(10):
+                    await asyncio.sleep(1)
+                    observed.append(await page.evaluate('({inputs:PubcastProgramAudio.inputs.size,power:power440()})'))
+>               assert state['frames']>50 and all(v['inputs']==1 and v['power']>-35 for v in observed)
+E               assert (0 > 50)
+
+tools/acceptance/test_virtual_peer_timing.py:67: AssertionError
+------------------------------ Captured log setup ------------------------------
+WARNING  modules.auth:auth.py:65 PUBCAST_JWT_SECRET is not set — using a secure process-local secret. Tokens will not survive restart. Launch through run_pubpartner.py for a persistent secret.
+WARNING  modules.audio_devices:audio_devices.py:67 sounddevice unavailable (ModuleNotFoundError: No module named 'sounddevice'). Server-side audio device enumeration disabled; browser-side enumeration is unaffected.
+WARNING  modules.evo.facial_performance:facial_performance.py:65 DeepFace not available — facial analysis in simulation mode
+WARNING  modules.evo.facial_performance:facial_performance.py:77 MediaPipe not available — landmark analysis disabled
+WARNING  pubcast:main.py:638 CORS: '*' origin with credentials is not allowed by browsers - allow_credentials forced False. Set PUBCAST_ALLOWED_ORIGINS to specific origin.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/starlette/testclient.py:40
+  /workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/starlette/testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tools/acceptance/test_virtual_peer_timing.py::test_virtual_peer_skew_jitter_and_explicit_stall
+1 failed, 1 warning in 17.53s

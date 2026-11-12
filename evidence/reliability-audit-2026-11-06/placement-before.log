@@ -1,0 +1,55 @@
+/workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/pytest_asyncio/plugin.py:300: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the "fixture" caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+F                                                                        [100%]
+=================================== FAILURES ===================================
+________ test_recipient_changes_discard_obsolete_per_person_placements _________
+
+reach = ('http://127.0.0.1:50725', 'owner-notes', 'rVuJJPmlbCGis45HiHeqK2mQA1!')
+production_browser = <Browser type=<BrowserType name=chromium executable_path=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome> version=141.0.7390.37>
+
+    def test_recipient_changes_discard_obsolete_per_person_placements(reach,production_browser):
+        import httpx
+        base,user,password=reach
+        context=production_browser.new_context(viewport={'width':1440,'height':1000})
+        try:
+            page=login(context,base,user,password,'/walk?view=control_room/main')
+            with httpx.Client(base_url=base,trust_env=False) as api:
+                token=api.post('/api/auth/login',json={'username':user,'password':password}).json()['access_token']
+                headers={'Authorization':'Bearer '+token}
+                people={p['username']:p for p in api.get('/api/production/people',headers=headers).json()['people']}
+                group=api.post('/api/production/groups',headers=headers,json={'name':'Placement change','members':[{'user_id':people['pete-notes']['user_id'],'department':'Sound'},{'user_id':people['repete-notes']['user_id'],'department':'Camera'}]}).json()
+            page.wait_for_function('window.PubCastNotes?.state.enabled')
+            page.evaluate('PubCastNotes.compose({})');page.wait_for_selector('#pnGroup')
+            page.select_option('#pnGroup',group['id'])
+            sound=page.locator('.pn-pick[data-kind="to"][data-id="@department:Sound"]')
+            camera=page.locator('.pn-pick[data-kind="to"][data-id="@department:Camera"]')
+            sound.click();page.get_by_role('button',name='Preview recipients',exact=True).click()
+            page.wait_for_selector('.pn-review select')
+            page.get_by_label('Locations for Pete',exact=True).select_option('audio_console')
+            sound.click();camera.click()
+            with page.expect_response(lambda response:response.url.endswith('/api/notes/preview')) as preview:
+                page.get_by_role('button',name='Preview recipients',exact=True).click()
+>           assert preview.value.status==200,preview.value.text()
+E           AssertionError: {"detail":"Per-person placements must name selected recipients only"}
+E           assert 400 == 200
+E            +  where 400 = <Response url='http://127.0.0.1:50725/api/notes/preview' request=<Request url='http://127.0.0.1:50725/api/notes/preview' method='POST'>>.status
+E            +    where <Response url='http://127.0.0.1:50725/api/notes/preview' request=<Request url='http://127.0.0.1:50725/api/notes/preview' method='POST'>> = <playwright._impl._sync_base.EventInfo object at 0x7fa47f167500>.value
+
+tests/test_guest_production_reliability_browser.py:107: AssertionError
+------------------------------ Captured log setup ------------------------------
+WARNING  modules.auth:auth.py:65 PUBCAST_JWT_SECRET is not set — using a secure process-local secret. Tokens will not survive restart. Launch through run_pubpartner.py for a persistent secret.
+WARNING  modules.audio_devices:audio_devices.py:67 sounddevice unavailable (ModuleNotFoundError: No module named 'sounddevice'). Server-side audio device enumeration disabled; browser-side enumeration is unaffected.
+WARNING  modules.evo.facial_performance:facial_performance.py:65 DeepFace not available — facial analysis in simulation mode
+WARNING  modules.evo.facial_performance:facial_performance.py:77 MediaPipe not available — landmark analysis disabled
+WARNING  pubcast:main.py:638 CORS: '*' origin with credentials is not allowed by browsers - allow_credentials forced False. Set PUBCAST_ALLOWED_ORIGINS to specific origin.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/starlette/testclient.py:40
+  /workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/starlette/testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_guest_production_reliability_browser.py::test_recipient_changes_discard_obsolete_per_person_placements
+1 failed, 1 deselected, 1 warning in 8.53s

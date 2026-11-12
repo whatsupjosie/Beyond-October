@@ -216,13 +216,23 @@ async function createShoot(){
 }
 async function importFiles(){
  ensure();const files=[...ui.import.files];if(!files.length)return;
- let imported=0;
+ let imported=0,refreshSelected=false;
  for(const file of files){
    if(!file.type.startsWith("video/")&&!file.type.startsWith("audio/"))throw Error(file.name+" is not an audio/video proxy");
    const existing=project.tracks.find(t=>t.label===file.name);
    if(existing){
+     // Commit requested local persistence before replacing the active link.
+     if(ui.cache.checked)await Store.saveMedia(existing.id,file,file.name);
+     if(existing.id===currentTrackId){stopPreview();refreshSelected=true;}
+     const oldURL=objectURLByTrack.get(existing.id);
+     if(oldURL)URL.revokeObjectURL(oldURL);
+     objectURLByTrack.delete(existing.id);
      fileByTrack.set(existing.id,file);
-     if(ui.cache.checked){await Store.saveMedia(existing.id,file,file.name);existing.mediaRef="local:"+existing.id}
+     existing.mediaRef=(ui.cache.checked?"local:":"temporary:")+(ui.cache.checked?existing.id:file.name);
+     existing.kind=file.type.startsWith("audio/")?"audio":"camera";
+     existing.durationUs=null;
+     existing.quality={role:"unverified",verified:false,bytePreserved:false};
+     project.revision++;project.updatedAt=new Date().toISOString();
      imported++;continue;
    }
    const track=Core.addTrack(project,{id:"track-"+Date.now().toString(36)+"-"+(project.tracks.length+1),
@@ -233,7 +243,8 @@ async function importFiles(){
    imported++;
  }
  ui.import.value="";await updated();say(imported+" proxy file(s) imported/relinked; set clacker markers to establish sync");
- if(!currentTrackId&&project.tracks.length)await selectTrack(project.tracks[0].id);
+ if(refreshSelected)await selectTrack(currentTrackId,true);
+ else if(!currentTrackId&&project.tracks.length)await selectTrack(project.tracks[0].id);
 }
 async function importSidecar(){
  ensure();const f=ui.sidecar.files[0];if(!f)return;

@@ -1,0 +1,76 @@
+/workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/pytest_asyncio/plugin.py:300: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the "fixture" caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+ENDURANCE 1 {'bytes': 2935024, 'chunks': 55, 'pendingBytes': 0, 'pendingChunks': 0, 'error': None}
+F
+=================================== FAILURES ===================================
+___________ test_thirty_minute_program_two_admitted_peers_and_reload ___________
+
+studio = (<Page url='http://127.0.0.1:41201/static/production25d.html'>, <BrowserContext browser=<Browser type=<BrowserType name=chromium executable_path=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome> version=141.0.7390.37>>)
+production_browser = <Browser type=<BrowserType name=chromium executable_path=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome> version=141.0.7390.37>
+production_server = ('http://127.0.0.1:41201', {'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJwdWJwYXJ0bmVyLXVpIiwiZXhw...Owbwg', 'token_type': 'bearer', 'username': 'engineer', 'role': 'owner', ...}, <httpx.Client object at 0x7f21ad2d79e0>)
+tmp_path = PosixPath('/workspace/scratch/d6f0985b33b2/readiness-checks-2026-11-06/endurance-confirmed-runtime/test_thirty_minute_program_two0')
+
+    def test_thirty_minute_program_two_admitted_peers_and_reload(studio,production_browser,production_server,tmp_path):
+        import subprocess
+        page,context=studio;base,owner,host=production_server
+        headers={'Authorization':'Bearer '+owner['access_token']}
+        target_seconds=int(os.environ.get('PUBCAST_ENDURANCE_SECONDS','1800'));assert 60<=target_seconds<=1800
+        report={'target_seconds':target_seconds,'scope':'Linux software WebGL, independent Chromium processes, generated audio; no physical-device or multicamera scene-master claim','minutes':[],'faults':[]}
+        path=tmp_path/'endurance.json'
+        def save():path.write_text(json.dumps(report,indent=2)+'\n')
+        wait_for_actors(page);page.click('#start');page.evaluate('''()=>{window.enduranceAudioReports=[];const report=PubCastAudioDesk.onState;PubCastAudioDesk.onState=(message,...args)=>{enduranceAudioReports.push({at:performance.now(),message});report(message,...args)};}''');page.click('#audioOpen')
+        page.wait_for_function("audioInvite.value.includes('room=')")
+        room=page.evaluate('PubCastAudioDesk.reservation.room')
+        peers=[];browsers=[]
+        try:
+            for index,frequency in enumerate([440,880]):
+                with contextmanager(fresh_host.__wrapped__)(tmp_path/f'home-{index}') as (_,home):
+                    person,own=setup(home,f'endurance-{index}')
+                    invitation=host.post('/api/guests/invites',headers=headers,json={}).json()['invite_code']
+                    challenge=host.post('/api/guests/challenge',json={'invite_code':invitation}).json()
+                    proof=home.post('/api/guests/sign',headers=own,json={'challenge':challenge['challenge'],'consents':CONSENTS})
+                    entry=host.post('/api/guests/request',json=proof.json()).json()['entry_id']
+                    pending=next(p for p in host.get('/api/guests/pending',headers=headers).json()['pending'] if p['entry_id']==entry)
+                    assert host.post('/api/guests/entries/'+entry+'/approve',headers=headers,json={'fingerprint':pending['fingerprint']}).status_code==200
+                    lease=host.post('/api/guests/status',json={'poll_token':challenge['poll_token']}).json()
+                    assert person['user_id']==lease['user_id']
+                browser=production_browser.browser_type.launch(args=GL_ARGS);browsers.append(browser)
+                ctx,peer=contributor(browser,base,lease,room,frequency);peers.append((ctx,peer))
+            page.wait_for_function('PubcastProgramAudio.inputs.size===2');meter(page)
+            page.wait_for_function('bands().every(n=>n>-35)');page.click('#record')
+            page.wait_for_function('PubCast25DStudio.state().journal?.chunks>=2',timeout=20000)
+            started=time.monotonic();report['started_monotonic']=started;previous=0
+            for minute in range(1,math.ceil(target_seconds/60)+1):
+                while time.monotonic()-started<min(minute*60,target_seconds):
+                    page.wait_for_timeout(1000)
+                    if not page.evaluate('PubCast25DStudio.state().recording'):
+                        report['faults'].append({'elapsed':time.monotonic()-started,'alert':page.locator('#alert').inner_text()});save()
+                        raise AssertionError('Recording stopped before the endurance interval; see endurance.json')
+                sample=page.evaluate('''()=>({state:PubCast25DStudio.state(),peers:PubcastProgramAudio.inputs.size,bands:bands(),heap:performance.memory?.usedJSHeapSize||null,audioReports:enduranceAudioReports,deskStatus:document.getElementById('participantAudioStatus')?.textContent})''')
+                sample['elapsed_seconds']=time.monotonic()-started;sample['minute']=minute
+                sample['peer_status']=[peer.locator('#status').inner_text() for ctx,peer in peers]
+                report['minutes'].append(sample);save();print('ENDURANCE',minute,sample['state']['journal'],flush=True)
+                assert sample['state']['journal']['bytes']>previous
+                previous=sample['state']['journal']['bytes']
+>               assert sample['peers']==2  # FFT snapshots are telemetry; decoded recording below verifies both voices
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+E               assert 1 == 2
+
+tools/acceptance/test_recording_endurance.py:72: AssertionError
+------------------------------ Captured log setup ------------------------------
+WARNING  modules.auth:auth.py:65 PUBCAST_JWT_SECRET is not set — using a secure process-local secret. Tokens will not survive restart. Launch through run_pubpartner.py for a persistent secret.
+WARNING  modules.audio_devices:audio_devices.py:67 sounddevice unavailable (ModuleNotFoundError: No module named 'sounddevice'). Server-side audio device enumeration disabled; browser-side enumeration is unaffected.
+WARNING  modules.evo.facial_performance:facial_performance.py:65 DeepFace not available — facial analysis in simulation mode
+WARNING  modules.evo.facial_performance:facial_performance.py:77 MediaPipe not available — landmark analysis disabled
+WARNING  pubcast:main.py:638 CORS: '*' origin with credentials is not allowed by browsers - allow_credentials forced False. Set PUBCAST_ALLOWED_ORIGINS to specific origin.
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/starlette/testclient.py:40
+  /workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/starlette/testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tools/acceptance/test_recording_endurance.py::test_thirty_minute_program_two_admitted_peers_and_reload
+1 failed, 1 warning in 83.95s (0:01:23)

@@ -14,6 +14,8 @@ Core laws implemented here:
 from __future__ import annotations
 
 import hashlib
+import asyncio
+import logging
 import json
 import os
 import re
@@ -1064,14 +1066,33 @@ class PubPartnerSpine:
             task=knowledge_task,
         )
         turn = self.knowledge.inject_reference(turn, knowledge_result)
-        provider_result = await self.provider_dispatcher.dispatch(turn, provider or {})
-        provider_fallback: Optional[Dict[str, Any]] = None
-        if allow_fallback and not provider_result.ok and provider_result.provider not in {"offline", "mock"}:
-            provider_fallback = provider_result.as_dict()
-            fallback_config = dict(provider or {})
-            fallback_config["provider"] = "offline"
-            provider_result = await self.provider_dispatcher.dispatch(turn, fallback_config)
-            provider_result.warnings.append("fell back to offline provider after requested provider was unavailable")
+        if self.blackbox_witness is not None:
+            turn['blackbox_started'] = bool(self.blackbox_witness.record_event(
+                'partner.turn_started', source='pubpartner', actor=user_id,
+                data={'turn_id':turn.get('turn_id'), 'session_id':session_id,
+                      'room_id':room_id, 'message':message,
+                      'coordination':{'sender':'jeremy',
+                          'recipient':(turn.get('fcp1') or {}).get('f', {}).get('id'),
+                          'text':turn.get('jeremy_whisper', '')}}))
+        try:
+            provider_result = await self.provider_dispatcher.dispatch(turn, provider or {})
+            provider_fallback: Optional[Dict[str, Any]] = None
+            if allow_fallback and not provider_result.ok and provider_result.provider not in {"offline", "mock"}:
+                provider_fallback = provider_result.as_dict()
+                fallback_config = dict(provider or {})
+                fallback_config["provider"] = "offline"
+                provider_result = await self.provider_dispatcher.dispatch(turn, fallback_config)
+                provider_result.warnings.append("fell back to offline provider after requested provider was unavailable")
+        except (asyncio.CancelledError, Exception) as exc:
+            if self.blackbox_witness is not None:
+                try:
+                    self.blackbox_witness.record_event('partner.turn_failed', source='pubpartner', actor=user_id,
+                        data={'turn_id':turn.get('turn_id'), 'session_id':session_id, 'room_id':room_id,
+                              'state':'interrupted' if isinstance(exc, asyncio.CancelledError) else 'failed',
+                              'stage':'provider_dispatch', 'error_type':type(exc).__name__})
+                except Exception:
+                    logging.getLogger(__name__).exception('Unable to witness failed PubPartner dispatch')
+            raise
 
         source_policy = ((turn.get("fcp1") or {}).get("source_policy") or {})
         friend_block = ((turn.get("fcp1") or {}).get("f") or {})
@@ -1235,8 +1256,11 @@ class PubPartnerSpine:
             live_result['blackbox_committed'] = bool(self.blackbox_witness.record_event(
                 'partner.private_turn', source='pubpartner', actor=user_id,
                 data={'session_id': session_id, 'room_id': room_id,
+                      'turn_id':turn.get('turn_id'),
                       'message': message, 'reply': live_result.get('friend_response', ''),
-                      'receipt_id': receipt.get('receipt_id'), 'provider_ok': provider_result.ok}))
+                      'receipt_id': receipt.get('receipt_id'), 'provider_ok': provider_result.ok,
+                      'provider_error':provider_result.error,
+                      'friend_id':friend_id}))
         return live_result
 
     def _live_receipt(

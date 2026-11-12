@@ -1,0 +1,64 @@
+TAP version 13
+# Subtest: a lost chunk ACK resumes from durable server progress without resending confirmed bytes
+ok 1 - a lost chunk ACK resumes from durable server progress without resending confirmed bytes
+  ---
+  duration_ms: 32.077727
+  type: 'test'
+  ...
+# Subtest: a forged owner acknowledgement never turns into a saved indicator
+ok 2 - a forged owner acknowledgement never turns into a saved indicator
+  ---
+  duration_ms: 6.270893
+  type: 'test'
+  ...
+# Subtest: another account cannot resume a previous owner pending upload
+ok 3 - another account cannot resume a previous owner pending upload
+  ---
+  duration_ms: 1.233824
+  type: 'test'
+  ...
+# Subtest: pausing an unfinished server request releases busy state and discards late replies
+ok 4 - pausing an unfinished server request releases busy state and discards late replies
+  ---
+  duration_ms: 6.323497
+  type: 'test'
+  ...
+# Subtest: pausing while local hashing is stuck releases the save without any upload
+ok 5 - pausing while local hashing is stuck releases the save without any upload
+  ---
+  duration_ms: 0.951448
+  type: 'test'
+  ...
+# Subtest: an account change stops the save before private metadata is posted
+ok 6 - an account change stops the save before private metadata is posted
+  ---
+  duration_ms: 1.136186
+  type: 'test'
+  ...
+# Subtest: a progressing stream outlives a read deadline and gzip transport keeps the original byte proof
+ok 7 - a progressing stream outlives a read deadline and gzip transport keeps the original byte proof
+  ---
+  duration_ms: 260.294076
+  type: 'test'
+  ...
+# Subtest: a stalled source body times out and releases the view job
+ok 8 - a stalled source body times out and releases the view job
+  ---
+  duration_ms: 84.614266
+  type: 'test'
+  ...
+# Subtest: equal-sized corrupted source bytes fail the original download proof
+ok 9 - equal-sized corrupted source bytes fail the original download proof
+  ---
+  duration_ms: 253.287883
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 756.540373

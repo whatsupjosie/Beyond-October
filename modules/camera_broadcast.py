@@ -92,6 +92,10 @@ class CameraBroadcastBridge:
 
     async def _send(self, message: dict) -> None:
         try:
+            witness = getattr(self.hub, 'blackbox_witness', None)
+            if witness is not None:
+                # Do not yield before broadcast: startup and subsequent cuts must stay ordered.
+                witness.record_event('camera.switched', source='system', actor='SYS', data=message['payload'])
             await self.hub.broadcast_system_event(message)
             self.sent += 1
         except Exception:

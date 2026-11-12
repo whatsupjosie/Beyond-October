@@ -35,7 +35,7 @@ from modules.recording import (
     RecordingState,
     ContainerFormat,
 )
-from modules.route_security import bound_actor, require_role
+from modules.route_security import bound_actor, require_role, current_identity, security
 from modules.persistence import sanitize_filename, unique_child_path
 from modules.runtime_control_routes import create_runtime_control_router
 from modules.stage_compat_routes import create_stage_compat_router
@@ -43,6 +43,8 @@ from modules.blackbox_runtime import BlackBoxRuntimeWitness
 from modules.studio_camera_preflight import all_camera_visibility, camera_visibility_report, recording_preflight, studio_readiness
 from modules.program_audio import ProgramAudioState, apply_audio_event
 from modules.program_audio_routes import create_program_audio_router
+from modules.participant_audio import create_participant_audio_router
+from starlette.requests import HTTPConnection
 from modules.studio_console_actions import execute_studio_action, list_studio_actions
 
 logger = logging.getLogger("pubcast.production")
@@ -132,7 +134,27 @@ def create_production_router(
     include_overlapping_compat_routes: bool = True,
 ) -> APIRouter:
     """Create the production API router."""
-    router = APIRouter(tags=["Production"])
+    async def protect_encoded_take(request: HTTPConnection):
+        session_id = request.path_params.get("session_id")
+        if request.url.path.startswith("/api/studio/actions/recording."):
+            try:
+                body = await request.json()
+                session_id = body.get("session_id") if isinstance(body, dict) else None
+            except ValueError:
+                pass
+        if not isinstance(session_id, str):
+            return
+        try:
+            session = recording.get_session(session_id)
+        except KeyError:
+            return
+        if getattr(session, "ingest", None):
+            identity = await current_identity(request, await security(request))
+            if not identity.get("authenticated") or identity.get("user_id") != session.operator:
+                raise HTTPException(404, "Take not found")
+            if request.method != "GET" and not request.url.path.endswith("/export"):
+                raise HTTPException(409, "Encoded take originals are immutable; use their upload controls")
+    router = APIRouter(tags=["Production"], dependencies=[Depends(protect_encoded_take)])
     program_audio_state = program_audio_state or ProgramAudioState()
     capture_engine = None
     try:
@@ -148,6 +170,7 @@ def create_production_router(
     router.include_router(create_runtime_control_router(include_overlapping_routes=include_overlapping_compat_routes))
     router.include_router(create_stage_compat_router(hub=hub, cameras=cameras, recording=recording, include_overlapping_routes=include_overlapping_compat_routes))
     router.include_router(create_program_audio_router(program_audio_state, blackbox=blackbox, hub=hub))
+    router.include_router(create_participant_audio_router())
 
     def _blackbox_event(event_type: str, *, source: str, actor: str = "SYS", data: Optional[Dict[str, Any]] = None) -> None:
         if blackbox is not None:
@@ -371,9 +394,10 @@ def create_production_router(
         return {"profiles": profiles, "count": len(profiles)}
 
     @router.get("/api/recording/sessions")
-    async def list_sessions():
+    async def list_sessions(identity: Dict[str, Any] = Depends(current_identity)):
         """List all recording sessions."""
-        return [s.to_dict() for s in recording.list_sessions()]
+        return [s.to_dict() for s in recording.list_sessions()
+                if not getattr(s, "ingest", None) or (identity.get("authenticated") and identity.get("user_id") == s.operator)]
 
     @router.post("/api/recording/preflight")
     async def recording_preflight_route(request: Request, identity: Dict[str, Any] = Depends(require_role("mod"))):
@@ -624,7 +648,7 @@ def create_production_router(
                     if size > limit:
                         raise HTTPException(413, "Recording upload exceeds the import storage budget")
                     f.write(chunk)
-            session = await asyncio.to_thread(recording.import_session, import_path)
+            session = await asyncio.to_thread(recording.import_session, import_path, operator=str(identity["user_id"]))
         except (ValueError, FileNotFoundError, BadZipFile) as exc:
             raise HTTPException(400, str(exc)) from exc
         return session.to_dict()

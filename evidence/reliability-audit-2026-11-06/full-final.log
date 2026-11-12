@@ -1,0 +1,197 @@
+/workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/pytest_asyncio/plugin.py:300: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the "fixture" caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+........................................................................ [  3%]
+........................................................................ [  6%]
+........................................................................ [  9%]
+........................................................................ [ 12%]
+........................................................................ [ 15%]
+........................................................................ [ 18%]
+........................................................................ [ 21%]
+........................................................................ [ 24%]
+........................................................................ [ 27%]
+........................................................................ [ 30%]
+........................................................................ [ 33%]
+........................................................................ [ 36%]
+........................................................................ [ 39%]
+........................................................................ [ 42%]
+........................................................ [ 44%]
+........................................................................ [ 47%]
+........................................................................ [ 50%]
+........................................................................ [ 53%]
+........................................................................ [ 56%]
+........................................................................ [ 59%]
+........................................................................ [ 62%]
+........................................................................ [ 66%]
+........................................................................ [ 69%]
+........................................................................ [ 72%]
+..........................................F............................. [ 75%]
+........................................................................ [ 78%]
+........................................................................ [ 81%]
+........................................................................ [ 84%]
+........................................................................ [ 87%]
+........................................................................ [ 90%]
+..................................s.........sss......................... [ 93%]
+........................................................................ [ 96%]
+........................................................................ [ 99%]
+...............                                                          [100%]
+=================================== FAILURES ===================================
+_______ test_the_route_still_enforces_its_own_ceilings_behind_the_guard ________
+
+guarded = (<starlette.testclient.TestClient object at 0x7fa1a9ff8590>, {'Authorization': 'Bearer [REDACTED_TEST_TOKEN]'}, 'u_562ca0d354c9c71c623f', PosixPath('/tmp/pytest-of-root/pytest-26/test_the_route_still_enforces_0'))
+
+    def test_the_route_still_enforces_its_own_ceilings_behind_the_guard(guarded):
+        client, headers, me, root = guarded
+        assert _send(client, headers, me, [pn.FILE_BYTES_MAX + 1]).status_code == 413
+        # Three files of 9 MB are 27 MB: over the 25 MB note total, and over the guard as well. Either refusal is correct;
+        # what must not happen is acceptance.
+        assert _send(client, headers, me, [9 * 1024 * 1024] * 3).status_code == 413
+        # And nothing refused is left behind on disk.
+        notes_root = root / "data" / "notes"
+>       assert list((notes_root / "incoming").iterdir()) == []
+E       AssertionError: assert [PosixPath('/...taging.lock')] == []
+E         
+E         Left contains one more item: PosixPath('/tmp/pytest-of-root/pytest-26/test_the_route_still_enforces_0/data/notes/incoming/.staging.lock')
+E         Use -v to get more diff
+
+tests/test_production_notes_host_limits.py:68: AssertionError
+=============================== warnings summary ===============================
+.venv/lib/python3.12/site-packages/starlette/testclient.py:40
+  /workspace/scratch/d6f0985b33b2/pubcast/.venv/lib/python3.12/site-packages/starlette/testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+tests/pubpartner_core/test_portable_runtime.py: 7 warnings
+tests/pubpartner_vessel/test_indexed_recall.py: 4 warnings
+tests/pubpartner_vessel/test_objective_observations.py: 1 warning
+tests/pubpartner_vessel/test_pubpartner_vessel_integration_unittest.py: 9 warnings
+tests/pubpartner_vessel/test_pubpartner_vessel_routes.py: 2 warnings
+tests/test_alex_memory_reach.py: 4 warnings
+tests/test_alex_personality_continuity.py: 12 warnings
+tests/test_communications_host_contracts.py: 1 warning
+tests/test_companion_chat_entrypoint.py: 1 warning
+tests/test_companion_docking.py: 7 warnings
+tests/test_companion_horizon_host.py: 2 warnings
+tests/test_companion_provider_bridge.py: 3 warnings
+tests/test_companion_recovery.py: 9 warnings
+tests/test_pubcast_smoke.py: 1 warning
+tests/test_reach_writers_room.py: 2 warnings
+  <string>:7: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/pubpartner_core/test_portable_runtime.py: 7 warnings
+tests/pubpartner_vessel/test_indexed_recall.py: 4 warnings
+tests/pubpartner_vessel/test_objective_observations.py: 1 warning
+tests/pubpartner_vessel/test_pubpartner_vessel_integration_unittest.py: 9 warnings
+tests/pubpartner_vessel/test_pubpartner_vessel_routes.py: 2 warnings
+tests/test_alex_memory_reach.py: 4 warnings
+tests/test_alex_personality_continuity.py: 12 warnings
+tests/test_communications_host_contracts.py: 1 warning
+tests/test_companion_chat_entrypoint.py: 1 warning
+tests/test_companion_docking.py: 7 warnings
+tests/test_companion_horizon_host.py: 2 warnings
+tests/test_companion_provider_bridge.py: 3 warnings
+tests/test_companion_recovery.py: 9 warnings
+tests/test_pubcast_smoke.py: 1 warning
+tests/test_reach_writers_room.py: 2 warnings
+  /workspace/scratch/d6f0985b33b2/pubcast/companion_support/acceptance_engine.py:479: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    self.acceptance_history.append((datetime.utcnow(), state))
+
+tests/pubpartner_core/test_portable_runtime.py: 7 warnings
+tests/pubpartner_vessel/test_indexed_recall.py: 3 warnings
+tests/pubpartner_vessel/test_objective_observations.py: 1 warning
+tests/pubpartner_vessel/test_pubpartner_vessel_integration_unittest.py: 2 warnings
+tests/pubpartner_vessel/test_pubpartner_vessel_routes.py: 1 warning
+tests/test_alex_personality_continuity.py: 4 warnings
+tests/test_communications_host_contracts.py: 1 warning
+tests/test_companion_chat_entrypoint.py: 1 warning
+tests/test_companion_docking.py: 5 warnings
+tests/test_companion_horizon_host.py: 2 warnings
+tests/test_companion_provider_bridge.py: 3 warnings
+tests/test_companion_recovery.py: 5 warnings
+tests/test_pubcast_smoke.py: 1 warning
+tests/test_reach_writers_room.py: 2 warnings
+  <string>:4: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/test_alex_personality_continuity.py::test_only_real_successful_replies_are_resumed
+tests/test_companion_chat_entrypoint.py::test_host_chat_uses_one_canonical_turn_with_advice_and_lossless_source
+tests/test_companion_horizon_host.py::test_cartridge_cli_uses_portable_runtime_and_preserves_input
+tests/test_companion_horizon_host.py::test_minimal_pubpartner_host_runs_new_advice_with_existing_authority
+tests/test_companion_recovery.py::test_actual_spine_feeds_guidance_to_provider_and_records_review_once
+  /workspace/scratch/d6f0985b33b2/pubcast/companion_support/conversation_pacing.py:303: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    self.weight_history.append((datetime.utcnow(), weight))
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+  /workspace/scratch/d6f0985b33b2/pubcast/modules/wired/companion_core.py:144: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    self.session_started = datetime.utcnow()
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+  <string>:3: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+tests/test_companion_recovery.py::test_shared_turns_do_not_replay_private_history_or_learn_it
+tests/test_companion_recovery.py::test_quality_review_flags_echo_without_modifying_response
+tests/test_companion_recovery.py::test_restart_replays_existing_permitted_history_without_a_new_memory_store
+tests/test_companion_recovery.py::test_restart_replays_existing_permitted_history_without_a_new_memory_store
+  <string>:5: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+  /workspace/scratch/d6f0985b33b2/pubcast/modules/wired/conversation_state.py:283: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    self.created_at = datetime.utcnow()
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+  /workspace/scratch/d6f0985b33b2/pubcast/modules/wired/conversation_state.py:312: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    timestamp=datetime.utcnow(),
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+  /workspace/scratch/d6f0985b33b2/pubcast/modules/wired/conversation_state.py:138: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    self.goal_history.append((datetime.utcnow(), g.description, g.stated))
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+  /workspace/scratch/d6f0985b33b2/pubcast/modules/wired/conversation_state.py:590: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "timestamp": datetime.utcnow().isoformat(),
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+  /workspace/scratch/d6f0985b33b2/pubcast/modules/wired/conversation_state.py:97: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    self.dependency_history.append((datetime.utcnow(), dep))
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+  <string>:13: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+tests/test_companion_recovery.py::test_shared_turns_do_not_replay_private_history_or_learn_it
+tests/test_companion_recovery.py::test_quality_review_flags_echo_without_modifying_response
+tests/test_companion_recovery.py::test_restart_replays_existing_permitted_history_without_a_new_memory_store
+tests/test_companion_recovery.py::test_restart_replays_existing_permitted_history_without_a_new_memory_store
+  <string>:6: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/test_companion_recovery.py::test_legacy_guided_runtime_and_companion_execute_with_real_recovered_helpers
+  <string>:8: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+
+tests/test_companion_recovery.py: 15 warnings
+  /workspace/scratch/d6f0985b33b2/pubcast/companion_support/known_vs_novel.py:70: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    self.last_seen = datetime.utcnow()
+
+tests/test_integrity_checker_truthfulness.py::test_a_failed_check_is_detected_not_restored
+tests/test_integrity_checker_truthfulness.py::test_a_failed_check_is_detected_not_restored
+tests/test_integrity_checker_truthfulness.py::test_statistics_never_report_restored_files_that_were_not_restored
+tests/test_integrity_checker_truthfulness.py::test_statistics_never_report_restored_files_that_were_not_restored
+  /workspace/scratch/d6f0985b33b2/pubcast/modules/integrity_checker.py:111: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    timestamp=datetime.utcnow().isoformat(),
+
+tests/test_integrity_checker_truthfulness.py::test_a_check_that_could_not_run_is_recorded_as_such
+tests/test_integrity_checker_truthfulness.py::test_statistics_never_report_restored_files_that_were_not_restored
+  /workspace/scratch/d6f0985b33b2/pubcast/modules/integrity_checker.py:137: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    check_id=str(len(self.check_history)), timestamp=datetime.utcnow().isoformat(), file_id=file_id,
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/alex_little_one/test_public_baby_role.py:8: Alex Little One research protocol tests require ENABLE_ALEX_LITTLE_ONE=true.
+SKIPPED [1] tests/test_public_baby_role.py:5: Moved to tests/alex_little_one/test_public_baby_role.py. Set ENABLE_ALEX_LITTLE_ONE=true to run the research protocol tests.
+SKIPPED [1] tests/test_speech_host_acceptance.py:34: Set PUBCAST_SPEECH_TEST_MODELS to explicitly installed model containers
+SKIPPED [1] tests/test_speech_system.py:75: Audio decoder checks require requirements-speech.txt
+SKIPPED [2] tests/test_speech_system.py:26: Real speech acceptance requires explicitly installed PUBCAST_SPEECH_TEST_MODELS
+FAILED tests/test_production_notes_host_limits.py::test_the_route_still_enforces_its_own_ceilings_behind_the_guard
+1 failed, 2370 passed, 6 skipped, 217 warnings, 16 subtests passed in 1022.73s (0:17:02)

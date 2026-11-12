@@ -1,0 +1,28 @@
+TAP version 13
+# Subtest: number keys pick preview, shift+number takes program, space cuts
+ok 1 - number keys pick preview, shift+number takes program, space cuts
+  ---
+  duration_ms: 4.011544
+  type: 'test'
+  ...
+# Subtest: a plain array response still works
+ok 2 - a plain array response still works
+  ---
+  duration_ms: 0.899888
+  type: 'test'
+  ...
+# Subtest: a key with no camera sends nothing, and typing in a field is ignored
+ok 3 - a key with no camera sends nothing, and typing in a field is ignored
+  ---
+  duration_ms: 2.7694
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 88.313613

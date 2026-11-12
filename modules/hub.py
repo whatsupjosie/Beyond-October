@@ -130,6 +130,16 @@ class Hub:
         }
 
     async def broadcast_system_event(self, event: Dict[str, Any]):
+        # Record once at emission, including when no client is connected.
+        # Per-frame mocap/choreography data belongs to the motion recorder;
+        # retain its control/start/stop events here without fsync on every frame.
+        if self.blackbox_witness is not None and event.get('type') not in {'mocap_frame', 'choreo_frame'}:
+            try:
+                if not self.blackbox_witness.record_event('system.event', source='system',
+                        actor='SYS', data={'event':event}):
+                    logger.warning('BlackBox system event receipt failed: %s', event.get('type'))
+            except Exception:
+                logger.exception('BlackBox system event witness failed: %s', event.get('type'))
         for room, conns in self.rooms.items():
             await self._broadcast(room, event)
 
@@ -381,6 +391,8 @@ class Hub:
         if witness is None:
             return False
         try:
+            if callable(getattr(witness, 'record_chat', None)):
+                return bool(witness.record_chat(payload))
             receipt = witness.record_event(
                 "chat.message", source="chat", actor=str(payload.get("user_id") or "anon"),
                 data={"room": payload.get("room"), "text": payload.get("text"),
@@ -393,7 +405,7 @@ class Hub:
         except Exception:
             # A failed independent witness is important, but it must not
             # change the HTTP send result after the canonical room log
-            # committed. Recovery/reconciliation is still an open feature.
+            # committed. The canonical archive remains available for replay.
             logger.exception("BlackBox witness failed after chat message %s was persisted", payload.get("message_id"))
             return False
 
@@ -413,9 +425,10 @@ class Hub:
                 self._chat_commit_store.commit, room, user_id, text,
                 client_message_id, display_name)
             if duplicate:
+                witnessed = await asyncio.to_thread(self._witness_chat, payload)
                 return {**payload, "duplicate": True, "warnings": [
-                    "Message already saved; the previous BlackBox/AI delivery state is not rechecked"
-                ]}
+                    'Message already saved; the previous AI delivery state is not rechecked'
+                ] + ([] if witnessed else ['BlackBox witness pending automatic recovery'])}
         else:
             payload = {
                 "message_id": uuid.uuid4().hex, "t": time.time(),
@@ -423,7 +436,7 @@ class Hub:
                 "text": text,
             }
             await asyncio.to_thread(ChatCommitStore._append_durable, self._log_path(room), payload)
-        witnessed = self._witness_chat(payload)
+        witnessed = await asyncio.to_thread(self._witness_chat, payload)
         if self.eq_monitoring_recorder is not None:
             try:
                 self.eq_monitoring_recorder.record_message(payload)

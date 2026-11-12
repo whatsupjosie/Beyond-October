@@ -11,6 +11,7 @@ takeover. Standard library JPEG SOF parsing avoids adding a heavy image dependen
 from __future__ import annotations
 
 import re
+import math
 import time
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -42,6 +43,11 @@ class Frame:
     sequence: int
     width: int
     height: int
+    pool_id: str = ""
+    participant_id: str = ""
+    grant: str = ""
+    scene_version: int = 0
+    assignment_id: str = ""
 
 
 def jpeg_dimensions(payload: bytes) -> tuple[int, int]:
@@ -88,12 +94,22 @@ async def operator(identity: dict = Depends(current_identity)) -> dict:
 
 
 def create_studio25d_media_router(
-    cameras: CameraManager, *, clock: Callable[[], float] = time.monotonic
+    cameras: CameraManager, *, clock: Callable[[], float] = time.monotonic, pool=None
 ) -> APIRouter:
     router = APIRouter(prefix="/api/studio25d/media", tags=["2.5D Live Confidence Media"])
     frames: dict[str, Frame] = {}
     # A released session cannot resurrect a stale frame from an in-flight upload.
     closed_sessions: dict[tuple[str, str], float] = {}
+
+    if pool is not None:
+        def before_assign(source, owner):
+            prune(clock())
+            old = frames.get(source)
+            previous_pool = pool.sessions.get(old.pool_id) if old and old.pool_id else None
+            if old and old.owner != owner and (not previous_pool or previous_pool["owner"] != owner):
+                raise HTTPException(409, "Another producer owns this camera; wait for release")
+        pool.before_assign = before_assign
+        pool.invalidate = lambda source: frames.pop(source, None)
 
     def camera_exists(source: str) -> None:
         if not _SOURCE.fullmatch(source):
@@ -106,6 +122,11 @@ def create_studio25d_media_router(
         for source, entry in list(frames.items()):
             if now - entry.timestamp > LEASE_SECONDS:
                 frames.pop(source, None)
+            elif entry.pool_id:
+                try:
+                    pool.authorize(entry.pool_id, entry.participant_id, entry.owner, source, entry.grant, entry.scene_version)
+                except HTTPException:
+                    frames.pop(source, None)
         for key, closed_at in list(closed_sessions.items()):
             if now - closed_at > LEASE_SECONDS * 2:
                 closed_sessions.pop(key, None)
@@ -124,7 +145,27 @@ def create_studio25d_media_router(
         return old
 
     @router.post("/frames/{source_id}")
-    async def publish(source_id: str, request: Request, identity: dict = Depends(operator)):
+    async def publish(source_id: str, request: Request, identity: dict = Depends(current_identity)):
+        pool_id = request.headers.get("X-Camera-Pool", "")
+        participant = request.headers.get("X-Pool-Participant", "")
+        grant = request.headers.get("X-Pool-Grant", "")
+        scene_version = 0
+        if pool_id:
+            revision = request.headers.get("X-Pool-Scene-Version", "")
+            if not re.fullmatch(r"[1-9][0-9]{0,15}", revision):
+                raise HTTPException(400, "Valid pool scene version required")
+            scene_version = int(revision)
+        def authorize():
+            if pool_id:
+                if pool is None or not identity.get("authenticated"):
+                    raise HTTPException(403, "Authenticated pool participation required")
+                pool.authorize(pool_id, participant, str(identity.get("user_id")), source_id, grant, scene_version)
+            else:
+                if not identity.get("authenticated") or not role_gte(identity.get("role", "guest"), "mod"):
+                    raise HTTPException(403, "Authenticated studio operator required")
+                if pool is not None and pool.reservation(source_id):
+                    raise HTTPException(409, "Camera rendering is assigned to a pool participant")
+        authorize()
         camera_exists(source_id)
         session = request.headers.get("X-Studio-Session", "")
         if not _SESSION.fullmatch(session):
@@ -152,20 +193,51 @@ def create_studio25d_media_router(
         # Reading a streamed request yields to other publishers and releases.
         # Revalidate at commit time, without any await before the assignment.
         camera_exists(source_id)
+        authorize()  # A participant may withdraw while this request is streaming.
         now = clock()
         old = writable_frame(source_id, actor, session, now)
+        if pool_id:
+            if width > 640 or height > 360:
+                raise HTTPException(422, "Pool tasks accept camera previews up to 640x360")
+            try:
+                render_ms = float(request.headers.get("X-Render-Ms", "0"))
+                if not math.isfinite(render_ms) or not 0 <= render_ms <= 20000:
+                    raise ValueError()
+            except ValueError:
+                raise HTTPException(422, "Invalid render duration") from None
+            pool.accept(pool_id, participant, actor, source_id, grant, len(data), render_ms, width, height, scene_version)
+        assignment_id = pool.get(pool_id)["assignments"][source_id]["assignment_id"] if pool_id else ""
         sequence = old.sequence + 1 if old else 1
-        frames[source_id] = Frame(bytes(data), now, actor, session, sequence, width, height)
-        return {"ok": True, "source_id": source_id, "sequence": sequence, "width": width, "height": height}
+        frames[source_id] = Frame(bytes(data), now, actor, session, sequence, width, height,
+                                 pool_id, participant, grant, scene_version, assignment_id)
+        result = {"ok": True, "source_id": source_id, "sequence": sequence, "width": width, "height": height}
+        if pool_id:
+            result.update(pool_id=pool_id, participant_id=participant, assignment_id=assignment_id, scene_version=scene_version)
+        return result
 
     @router.get("/frames/{source_id}")
-    async def latest(source_id: str, identity: dict = Depends(operator)):
+    async def latest(source_id: str, identity: dict = Depends(current_identity)):
+        if not identity.get("authenticated"):
+            raise HTTPException(403, "Authenticated studio operator or pool participant required")
+        if not role_gte(identity.get("role", "guest"), "mod"):
+            reservation = pool.reservation(source_id) if pool is not None else None
+            if reservation is None:
+                raise HTTPException(403, "This camera is not in your pool")
+            pool.state(reservation["id"], identity)
         camera_exists(source_id)
         now = clock()
         prune(now)
         frame = frames.get(source_id)
+        if frame and frame.pool_id:
+            try:
+                pool.authorize(frame.pool_id, frame.participant_id, frame.owner, source_id, frame.grant, frame.scene_version)
+            except HTTPException:
+                frames.pop(source_id, None)
+                frame = None
         if not frame:
             raise HTTPException(503, "No recent real video frame from this source")
+        if frame.pool_id:
+            pool.delivered(source_id, len(frame.content), identity["user_id"])
         return Response(
             frame.content, media_type="image/jpeg",
             headers={
@@ -174,6 +246,8 @@ def create_studio25d_media_router(
                 "X-Studio-Frame-Age-Ms": str(round((now - frame.timestamp) * 1000)),
                 "X-Studio-Frame-Width": str(frame.width),
                 "X-Studio-Frame-Height": str(frame.height),
+                "X-Pool-Scene-Version": str(frame.scene_version),
+                "X-Pool-Assignment": frame.assignment_id,
             },
         )
 

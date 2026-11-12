@@ -10,9 +10,9 @@ note: on the recipient's makeup mirror always, and on any other spot the sender 
 director's console...). Notes live on this PubCast host, so they wait for people who are offline and survive restarts.
 
 People
-    Everyone with an account on this PubCast is in the production. The owner makes the first account at setup; the
-    owner or a moderator adds crew accounts from the profile page. Each account has a profile with a permanent user ID,
-    a display name and an optional email (used only to address a copy of a note in the sender's own email program).
+    Each copy has its owner; admitted guests keep their own permanent identities. Production membership,
+    departments and producers are explicit groups in the notes database. Legacy local accounts are retained,
+    but new crew-account creation is retired. Optional email is used only for the sender's own email program.
 
 Storage
     <data>/users.db          profiles (see modules/userdb.py)
@@ -25,7 +25,9 @@ Routes
     POST  /api/profile/password           change your password (current password required)
     GET   /api/production/people          everyone in the production (members only; email addresses only to the owner,
                                           moderators and the person themself)
-    POST  /api/production/people          add a crew account (owner or moderator)
+    POST  /api/production/people          retired (410); use guest invitations
+    GET/POST/PATCH /api/production/groups production membership and departments
+    POST  /api/notes/preview              exact authorized recipients and per-person spots
     GET   /api/notes/spots                where a note can be stuck
     GET   /api/notes?box=inbox|saved|sent your notes, newest first (each with its optional project, for grouping)
     POST  /api/notes                      send a note (JSON, or multipart with attachments)
@@ -38,6 +40,8 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
+import shutil
 import re
 import secrets
 import sqlite3
@@ -68,7 +72,7 @@ FILE_BYTES_MAX = 10 * 1024 * 1024
 FILES_TOTAL_MAX = 25 * 1024 * 1024
 FILENAME_MAX = 120
 LIST_LIMIT_MAX = 500
-PRODUCTION = "@production"            # "everyone in the production but me"
+PRODUCTION = "@production"            # all members of the selected production
 KINDS = ("to", "cc", "bcc")
 NOTE_ID_RE = re.compile(r"^n_[0-9a-f]{20}$")
 FILE_ID_RE = re.compile(r"^f_[0-9a-f]{20}$")
@@ -143,6 +147,77 @@ class Spots:
         return out
 
 
+@contextmanager
+def _staging_lock(path: Path, *, blocking=True):
+    """Stable OS lease, released even when a worker dies (also on Windows)."""
+    handle = open(path, 'a+b')
+    locked = False
+    try:
+        if os.name == 'nt':
+            import msvcrt
+            handle.seek(0)
+            # Windows permits locking beyond EOF. Do not read the byte before
+            # acquiring it: an existing exclusive lease denies that read.
+            msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK if blocking else msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB))
+        locked = True
+        yield
+    finally:
+        if locked:
+            if os.name == 'nt':
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        handle.close()
+
+
+def _clean_staging(incoming: Path):
+    # Registration, lease release and cleanup use this same stable parent lock.
+    # No age heuristic: slow uploads can still be live. Legacy loose files have
+    # no ownership proof and are retained rather than deleting a live old worker's bytes.
+    with _staging_lock(incoming.parent / '.incoming.lock'):
+        for path in incoming.glob('batch-*'):
+            if not path.is_dir() or path.is_symlink():
+                continue
+            try:
+                with _staging_lock(path / '.lease', blocking=False):
+                    pass
+            except OSError as exc:
+                import errno
+                if exc.errno in {errno.EACCES, errno.EAGAIN, errno.EDEADLK}:
+                    continue
+                raise
+            # Parent lock prevents a second cleaner or registration racing us;
+            # close the lease before removal for Windows sharing semantics.
+            shutil.rmtree(path)
+
+
+class _UploadBatch:
+    def __init__(self, incoming: Path):
+        self.incoming = incoming
+        self.path = incoming / ('batch-' + secrets.token_hex(16))
+        self.lease = None
+        with _staging_lock(incoming.parent / '.incoming.lock'):
+            self.path.mkdir()
+            try:
+                self.lease = _staging_lock(self.path / '.lease')
+                self.lease.__enter__()
+            except BaseException:
+                shutil.rmtree(self.path)
+                raise
+
+    def close(self):
+        with _staging_lock(self.incoming.parent / '.incoming.lock'):
+            if self.lease is not None:
+                self.lease.__exit__(None, None, None)
+                self.lease = None
+            if self.path.exists():
+                shutil.rmtree(self.path)
+
+
 class NotesStore:
     def __init__(self, root: Path):
         self.root = root
@@ -151,8 +226,16 @@ class NotesStore:
         self.db_path = root / "notes.db"
         self._lock = threading.Lock()
         with self._conn() as conn:
+            for attempt in range(10):
+                try:
+                    if conn.execute('PRAGMA journal_mode').fetchone()[0].lower()!='wal':
+                        conn.execute('PRAGMA journal_mode=WAL')
+                    break
+                except sqlite3.OperationalError as exc:
+                    if 'locked' not in str(exc).lower() or attempt==9:
+                        raise
+                    time.sleep(.02*(attempt+1))
             conn.executescript("""
-                PRAGMA journal_mode = WAL;
                 CREATE TABLE IF NOT EXISTS notes (
                     id          TEXT PRIMARY KEY,
                     sender_id   TEXT NOT NULL,
@@ -186,9 +269,14 @@ class NotesStore:
                 CREATE INDEX IF NOT EXISTS idx_notes_sender ON notes(sender_id, created_at DESC);
                 CREATE INDEX IF NOT EXISTS idx_files_note ON files(note_id);
             """)
+            conn.execute("BEGIN IMMEDIATE")
             cols = {r["name"] for r in conn.execute("PRAGMA table_info(notes)")}
             if "project" not in cols:                     # a notes.db from before projects existed
                 conn.execute("ALTER TABLE notes ADD COLUMN project TEXT NOT NULL DEFAULT ''")
+            if 'metadata_json' not in cols:
+                conn.execute("ALTER TABLE notes ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}'")
+        from .production_groups import ProductionGroups
+        self.groups = ProductionGroups(self._conn)
 
     @contextmanager
     def _conn(self) -> Iterator[sqlite3.Connection]:
@@ -214,22 +302,26 @@ class NotesStore:
 
     # -- writing --
     def create(self, sender_id: str, subject: str, body: str, recipients: List[Tuple[str, str]], spots: List[str],
-               reply_to: Optional[str], files: List[Dict[str, Any]], project: str = "") -> str:
+               reply_to: Optional[str], files: List[Dict[str, Any]], project: str = "", delivery=None, actor_host=False) -> str:
         """recipients: (user_id, kind). files: dicts with id, name, content_type, size, sha256, tmp (a written file)."""
         note_id = "n_" + secrets.token_hex(10)
         created = _now()
         with self._lock, self._conn() as conn:
             conn.execute("BEGIN IMMEDIATE")
             try:
+                if delivery and delivery['snapshot']:
+                    self.groups.guard(conn, delivery['snapshot'], sender_id, actor_host)
                 thread_id = note_id
                 if reply_to:
                     row = conn.execute("SELECT thread_id FROM notes WHERE id = ?", (reply_to,)).fetchone()
                     thread_id = row["thread_id"] if row else note_id
                 conn.execute("INSERT INTO notes (id, sender_id, subject, body, created_at, reply_to, thread_id, project) "
                              "VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (note_id, sender_id, subject, body, created, reply_to, thread_id, project))
+                if delivery:
+                    conn.execute('UPDATE notes SET metadata_json=? WHERE id=?',(json.dumps(delivery['metadata']),note_id))
                 spots_json = json.dumps(spots)
                 conn.executemany("INSERT INTO recipients (note_id, user_id, kind, spots) VALUES (?, ?, ?, ?)",
-                                 [(note_id, uid, kind, spots_json) for uid, kind in recipients])
+                                 [(note_id, uid, kind, json.dumps(delivery['positions'][uid]) if delivery else spots_json) for uid, kind in recipients])
                 folder = self.files / note_id
                 if files:
                     folder.mkdir(parents=True, exist_ok=False)
@@ -328,11 +420,7 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
     spots = Spots(spots_file)
     incoming = store.root / "incoming"
     incoming.mkdir(parents=True, exist_ok=True)
-    for stale in incoming.glob("*"):                 # uploads a crash left half-written: never attached to anything
-        try:
-            stale.unlink()
-        except OSError:
-            pass
+    _clean_staging(incoming)
 
     async def me(identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
         # Only a signed-in person. With login switched off, a request can name anyone in a header; notes are private,
@@ -352,28 +440,109 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
             out["email"] = p.get("email", "")
         return out
 
+    from .production_groups import create_group_router, resolve
+    router.include_router(create_group_router(store.groups, me, _json, userdb.list_profiles))
+
+    async def delivery_for(body, profile):
+        everyone=await userdb.list_profiles()
+        return await run_in_threadpool(resolve,store.groups,profile,body,everyone,spots)
+
+    @router.post('/api/notes/preview')
+    async def preview_note(request: Request, profile: dict = Depends(me)):
+        delivery=await delivery_for(await _json(request),profile)
+        by_id={p['user_id']:p for p in await userdb.list_profiles()}
+        return {'preview':delivery['preview'], 'recipients':[
+            dict(user_id=uid,display_name=by_id[uid]['display_name'],kind=kind,spots=delivery['positions'][uid])
+            for uid,kind in delivery['recipients'].items()], 'metadata':delivery['metadata']}
+
     # ---------------------------------------------------------------- profile
     @router.get("/api/profile/me")
     async def profile_me(profile: Dict[str, Any] = Depends(me)) -> Dict[str, Any]:
-        return dict(public(profile, with_email=True), created_at=profile["created_at"])
+        return dict(public(profile, with_email=True), created_at=profile["created_at"],
+                    details=profile['details'], revision=profile['profile_revision'],has_photo=bool(profile['photo_sha256']),
+                    visiting=bool(profile.get('visiting')))
 
     @router.patch("/api/profile/me")
     async def profile_update(request: Request, profile: Dict[str, Any] = Depends(me)) -> Dict[str, Any]:
+        if profile.get('visiting'):
+            raise HTTPException(403, 'Edit your profile on your own PubCast copy, then bring a fresh visiting card')
         body = await _json(request)
-        unknown = set(body) - {"display_name", "email"}
+        unknown = set(body) - {"display_name", "email", "details", "revision"}
         if unknown:
-            raise HTTPException(400, "Only display_name and email can be changed here")
+            raise HTTPException(400, "Only display name, email and optional profile details can be changed here")
+        if 'revision' in body and (type(body['revision']) is not int or body['revision'] < 0):
+            raise HTTPException(400,'A valid profile revision is required')
+        if 'details' in body and not isinstance(body['details'],dict):
+            raise HTTPException(400,'Profile details must be an object')
         for key in ("display_name", "email"):
             if key in body and not isinstance(body[key], str):
                 raise HTTPException(400, f"{key} must be text")
         try:
-            updated = await userdb.update_profile(profile["user_id"], body.get("display_name"), body.get("email"))
+            updated = await userdb.update_profile(profile["user_id"], body.get("display_name"), body.get("email"),
+                                                  body.get('details'),body.get('revision'))
         except ValueError as exc:
-            raise HTTPException(400, str(exc)) from exc
-        return dict(public(updated, with_email=True), created_at=updated["created_at"])
+            raise HTTPException(409 if 'another window' in str(exc) else 400, str(exc)) from exc
+        return await profile_me(updated)
+
+    @router.post('/api/profile/photo')
+    async def upload_profile_photo(request: Request, revision: int, profile: dict = Depends(me)):
+        if profile.get('visiting'):
+            raise HTTPException(403, 'Edit your profile picture on your own PubCast copy')
+        from modules.human_profiles import normalize_photo
+        import asyncio
+        async def receive():
+            data=bytearray()
+            async for block in request.stream():
+                if len(block)>2*1024*1024-len(data):
+                    raise HTTPException(413,'Choose an image under 2 MB')
+                data.extend(block)
+            return bytes(data)
+        try:
+            photo=await run_in_threadpool(normalize_photo,await asyncio.wait_for(receive(),10))
+            updated=await userdb.profile_photo(profile['user_id'],photo,revision)
+        except asyncio.TimeoutError:
+            raise HTTPException(408,'Photo upload timed out') from None
+        except ValueError as exc:
+            raise HTTPException(409 if 'another window' in str(exc) else 400,str(exc)) from exc
+        return await profile_me(updated)
+
+    def visible_profile(profile):
+        from modules.human_profiles import shared_about
+        return dict(public(profile,with_email=False), about=shared_about(profile),
+                    has_photo=bool(profile['photo_sha256']) and 'photo' in profile['details']['public_fields'])
+
+    @router.get('/api/profiles')
+    async def directory(q: str = '', profile: dict = Depends(me)):
+        if len(q)>80:
+            raise HTTPException(400,'Keep the search under 80 characters')
+        query=q.casefold().strip()
+        found=[visible_profile(p) for p in await userdb.list_profiles()
+               if p['details']['discoverable'] and query in
+               (p['display_name']+' '+p['username']+' '+p['user_id']).casefold()]
+        return {'scope':'this-host','profiles':found[:50]}
+
+    @router.get('/api/profiles/{user_id}')
+    async def view_profile(user_id: str, profile: dict = Depends(me)):
+        selected=await userdb.get_profile(user_id)
+        if not selected or (selected['user_id']!=profile['user_id'] and not selected['details']['discoverable']):
+            raise HTTPException(404,'Profile not found')
+        return visible_profile(selected)
+
+    @router.get('/api/profiles/{user_id}/photo')
+    async def view_photo(user_id: str, profile: dict = Depends(me)):
+        from fastapi.responses import Response
+        selected=await userdb.get_profile(user_id)
+        mine=selected and selected['user_id']==profile['user_id']
+        allowed=selected and selected['details']['discoverable'] and 'photo' in selected['details']['public_fields']
+        data=await userdb.profile_photo(user_id) if mine or allowed else None
+        if data is None:
+            raise HTTPException(404,'Photo not found')
+        return Response(data,media_type='image/png',headers={'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'})
 
     @router.post("/api/profile/password")
     async def profile_password(request: Request, profile: Dict[str, Any] = Depends(me)) -> Dict[str, Any]:
+        if profile.get('visiting'):
+            raise HTTPException(403, 'Change your password on your own PubCast copy')
         from modules.auth_routes import _validate_password      # the same password rules as first-run setup
         body = await _json(request)
         current, new = body.get("current_password"), body.get("new_password")
@@ -396,32 +565,11 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
         return {"me": profile["user_id"],
                 "people": [public(p, with_email=sees_all or p["user_id"] == profile["user_id"]) for p in everyone]}
 
-    @router.post("/api/production/people", status_code=201)
+    @router.post("/api/production/people")
     async def add_person(request: Request, profile: Dict[str, Any] = Depends(me)) -> Dict[str, Any]:
-        from modules.auth_routes import _USERNAME_RE, _validate_password
         if not role_gte(profile.get("role", "guest"), "mod"):
             raise HTTPException(403, "Only the owner or a moderator can add crew")
-        body = await _json(request)
-        username = str(body.get("username") or "").strip()
-        password = body.get("password")
-        role = str(body.get("role") or "guest")
-        if not _USERNAME_RE.fullmatch(username):
-            raise HTTPException(400, "Username may use letters, numbers, dot, dash, and underscore (3 to 64)")
-        if not isinstance(password, str):
-            raise HTTPException(400, "A starting password is required")
-        if role == "mod" and profile.get("role") != "owner":
-            raise HTTPException(403, "Only the owner can add a moderator")
-        _validate_password(password, username)
-        try:
-            user_id = await userdb.create_member(username, password, role,
-                                                 str(body.get("display_name") or ""), str(body.get("email") or ""))
-        except ValueError as exc:
-            raise HTTPException(400, str(exc)) from exc
-        if user_id is None:
-            raise HTTPException(409, "That username is already taken")
-        created = await userdb.get_profile(user_id)
-        logger.info("production notes: %s added crew account %s (%s)", profile["username"], username, role)
-        return public(created, with_email=True)
+        raise HTTPException(410, 'Invite guests through Guests and invitations. Each guest brings their own PubCast identity; new local crew accounts are retired.')
 
     # ---------------------------------------------------------------- notes
     @router.get("/api/notes/spots")
@@ -448,6 +596,7 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
             "id": r["id"], "subject": r["subject"], "from": who(by_id, r["sender_id"]), "created_at": r["created_at"],
             "unread": not r["is_read"], "saved": bool(r["saved"]), "spots": json.loads(r["spots"] or "[]"),
             "files": r["file_count"], "reply_to": r["reply_to"], "kind": r["kind"], "project": r["project"],
+            "production": json.loads(r['metadata_json']),
         } for r in rows]
         return {"box": box, "notes": notes, "unread": sum(1 for n in notes if n["unread"])}
 
@@ -468,6 +617,7 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
             "is_sender": note["is_sender"], "spots": note["spots"], "unread": not note["is_read"], "saved": note["saved"],
             "reply_to": note["reply_to"], "thread_id": note["thread_id"], "project": note["project"],
             "files": [dict(f, url=f"/api/notes/{note['id']}/files/{f['id']}") for f in note["files"]],
+            "production": json.loads(note['metadata_json']),
         }
 
     @router.post("/api/notes/{note_id}/{action}")
@@ -525,23 +675,10 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
         project = _clean_text(body.get("project"), PROJECT_MAX, "The project", single_line=True)
         chosen_spots = spots.clean(body.get("spots"))
 
-        everyone = await userdb.list_profiles()
-        known = {p["user_id"] for p in everyone}
-        crew = [p["user_id"] for p in everyone if p["user_id"] != profile["user_id"]]
-        placed: Dict[str, str] = {}
-        for kind in KINDS:                                       # To beats CC beats BCC when someone is in two lists
-            listed = body.get(kind) or []
-            if not isinstance(listed, list) or not all(isinstance(x, str) for x in listed):
-                raise HTTPException(400, f"{kind} must be a list of user IDs")
-            for uid in listed:
-                for target in (crew if uid == PRODUCTION else [uid]):
-                    if target not in known:
-                        raise HTTPException(400, "One of the people on this note is not in the production")
-                    placed.setdefault(target, kind)
-        if not placed:
-            raise HTTPException(400, "Who is this note for? Add someone to To, CC or BCC")
-        if len(placed) > RECIPIENTS_MAX:
-            raise HTTPException(400, f"A note can go to at most {RECIPIENTS_MAX} people")
+        delivery=await delivery_for(body,profile)
+        placed=delivery['recipients']
+        if (body.get('group_id') or body.get('preview')) and body.get('preview')!=delivery['preview']:
+            raise HTTPException(409,'Recipients or membership changed; preview this note before sending')
 
         reply_to = body.get("reply_to")
         if reply_to is not None:
@@ -551,17 +688,16 @@ def create_production_notes_router(data_dir: Path, spots_file: Path) -> APIRoute
             if await run_in_threadpool(store.get, reply_to, profile["user_id"]) is None:
                 raise HTTPException(404, "The note you are replying to is not one you can see")
 
-        files = await _receive_files(uploads, incoming)
+        batch = await run_in_threadpool(_UploadBatch, incoming)
         try:
+            files = await _receive_files(uploads, batch.path)
             note_id = await run_in_threadpool(store.create, profile["user_id"], subject, text,
-                                              list(placed.items()), chosen_spots, reply_to, files, project)
-        except Exception:
-            for f in files:
-                try:
-                    f["tmp"].unlink()
-                except OSError:
-                    pass
-            raise
+                                              list(placed.items()), chosen_spots, reply_to, files, project, delivery, profile.get('role')=='owner')
+        finally:
+            # Cleanup must finish even if the browser disconnects mid-upload.
+            import anyio
+            with anyio.CancelScope(shield=True):
+                await run_in_threadpool(batch.close)
         logger.info("production notes: %s sent %s to %d people (%d files)", profile["username"], note_id, len(placed), len(files))
         return {"id": note_id, "recipients": len(placed), "spots": chosen_spots, "files": len(files)}
 

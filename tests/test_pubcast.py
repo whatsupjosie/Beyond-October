@@ -101,7 +101,10 @@ class TestRecording(unittest.TestCase):
         shutil.rmtree(self.td, ignore_errors=True)
 
     def test_profiles(self):
-        self.assertEqual(len(self.rs.list_profiles()), 4)
+        profiles = {p.profile_id: p for p in self.rs.list_profiles()}
+        self.assertEqual(set(profiles), {"prores_hq", "broadcast_mp4", "web_stream", "audio_only", "browser_original"})
+        self.assertIsNone(profiles["browser_original"].resolution)
+        self.assertIsNone(profiles["browser_original"].frame_rate)
 
     def test_lifecycle(self):
         from modules.recording import RecordingState

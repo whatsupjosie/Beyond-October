@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="261.797" timestamp="2026-11-06T06:34:19.927853-08:00" hostname="6fe74ba9cf61"><testcase classname="tools.acceptance.test_recording_endurance" name="test_thirty_minute_program_two_admitted_peers_and_reload" time="261.571"><failure message="assert (0 == 2)">studio = (&lt;Page url='http://127.0.0.1:35417/static/production25d.html'&gt;, &lt;BrowserContext browser=&lt;Browser type=&lt;BrowserType name=chromium executable_path=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome&gt; version=141.0.7390.37&gt;&gt;)
+production_browser = &lt;Browser type=&lt;BrowserType name=chromium executable_path=/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome&gt; version=141.0.7390.37&gt;
+production_server = ('http://127.0.0.1:35417', {'access_token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJwdWJwYXJ0bmVyLXVpIiwiZXhw...hX1wk', 'token_type': 'bearer', 'username': 'engineer', 'role': 'owner', ...}, &lt;httpx.Client object at 0x7f4df5388290&gt;)
+tmp_path = PosixPath('/workspace/scratch/d6f0985b33b2/readiness-checks-2026-11-06/endurance-runtime/test_thirty_minute_program_two0')
+
+    def test_thirty_minute_program_two_admitted_peers_and_reload(studio,production_browser,production_server,tmp_path):
+        import subprocess
+        page,context=studio;base,owner,host=production_server
+        headers={'Authorization':'Bearer '+owner['access_token']}
+        report={'scope':'Linux software WebGL, independent Chromium processes, generated audio; no physical-device or multicamera scene-master claim','minutes':[],'faults':[]}
+        path=tmp_path/'endurance.json'
+        def save():path.write_text(json.dumps(report,indent=2)+'\n')
+        wait_for_actors(page);page.click('#start');page.click('#audioOpen')
+        page.wait_for_function("audioInvite.value.includes('room=')")
+        room=page.evaluate('PubCastAudioDesk.reservation.room')
+        peers=[];browsers=[]
+        try:
+            for index,frequency in enumerate([440,880]):
+                with contextmanager(fresh_host.__wrapped__)(tmp_path/f'home-{index}') as (_,home):
+                    person,own=setup(home,f'endurance-{index}')
+                    invitation=host.post('/api/guests/invites',headers=headers,json={}).json()['invite_code']
+                    challenge=host.post('/api/guests/challenge',json={'invite_code':invitation}).json()
+                    proof=home.post('/api/guests/sign',headers=own,json={'challenge':challenge['challenge'],'consents':CONSENTS})
+                    entry=host.post('/api/guests/request',json=proof.json()).json()['entry_id']
+                    pending=next(p for p in host.get('/api/guests/pending',headers=headers).json()['pending'] if p['entry_id']==entry)
+                    assert host.post('/api/guests/entries/'+entry+'/approve',headers=headers,json={'fingerprint':pending['fingerprint']}).status_code==200
+                    lease=host.post('/api/guests/status',json={'poll_token':challenge['poll_token']}).json()
+                    assert person['user_id']==lease['user_id']
+                browser=production_browser.browser_type.launch(args=GL_ARGS);browsers.append(browser)
+                ctx,peer=contributor(browser,base,lease,room,frequency);peers.append((ctx,peer))
+            page.wait_for_function('PubcastProgramAudio.inputs.size===2');meter(page)
+            page.wait_for_function('bands().every(n=&gt;n&gt;-35)');page.click('#record')
+            page.wait_for_function('PubCast25DStudio.state().journal?.chunks&gt;=2',timeout=20000)
+            started=time.monotonic();report['started_monotonic']=started;previous=0
+            for minute in range(1,31):
+                while time.monotonic()-started&lt;minute*60:
+                    page.wait_for_timeout(1000)
+                    if not page.evaluate('PubCast25DStudio.state().recording'):
+                        report['faults'].append({'elapsed':time.monotonic()-started,'alert':page.locator('#alert').inner_text()});save()
+                        raise AssertionError('Recording stopped before the endurance interval; see endurance.json')
+                sample=page.evaluate('''()=&gt;({state:PubCast25DStudio.state(),peers:PubcastProgramAudio.inputs.size,bands:bands(),heap:performance.memory?.usedJSHeapSize||null})''')
+                sample['elapsed_seconds']=time.monotonic()-started;sample['minute']=minute
+                report['minutes'].append(sample);save();print('ENDURANCE',minute,sample['state']['journal'],flush=True)
+                assert sample['state']['journal']['bytes']&gt;previous
+                previous=sample['state']['journal']['bytes']
+&gt;               assert sample['peers']==2 and all(value&gt;-35 for value in sample['bands'])
+E               assert (0 == 2)
+
+tools/acceptance/test_recording_endurance.py:68: AssertionError</failure></testcase></testsuite></testsuites>

@@ -90,38 +90,142 @@ window.__pubcastStationsHook = function(ev) {
   }
 };
 
-// ── Chyron ────────────────────────────────────────────────────────────────────
-document.getElementById('chy-apply')?.addEventListener('click', async () => {
-  const lower = document.getElementById('chy-lower')?.value || '';
+// ── Shared production-state controls ────────────────────────────────────────
+// A UI action is not completed merely because fetch() resolved: both HTTP and
+// the authoritative saved fields must confirm what the director requested.
+function stationFeedback(station, message, failed = false) {
+  const panel = document.getElementById('station-' + station);
+  if (!panel) return;
+  let output = panel.querySelector('[data-production-feedback]');
+  if (!output) {
+    output = document.createElement('output');
+    output.dataset.productionFeedback = '';
+    output.setAttribute('role', 'status');
+    output.style.cssText = 'display:block;margin-top:8px;font-size:12px';
+    panel.appendChild(output);
+  }
+  output.textContent = message;
+  output.style.color = failed ? '#ff8080' : '#89d7a6';
+}
+
+async function prodPatch(patch) {
+  const response = await fetch('/api/state/production', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(patch)
+  });
+  let data = null;
+  try { data = await response.json(); } catch (_) {}
+  if (!response.ok) {
+    const detail = typeof data?.detail === 'string' ? data.detail : 'HTTP ' + response.status;
+    throw Error('Production command rejected: ' + detail);
+  }
+  if (!data || typeof data !== 'object' ||
+      Object.entries(patch).some(([key, value]) => data[key] !== value)) {
+    throw Error('Production command was not confirmed by the host');
+  }
+  // Repaint live previews without overwriting another station's unsaved form.
+  window.PubCastProductionView?.apply(data);
+  return data;
+}
+
+async function stationAction(station, buttonId, task, success) {
+  const button = document.getElementById(buttonId);
+  if (!button || button.disabled) return;
+  button.disabled = true;
   try {
-    await fetch('/api/state/production', {method:'POST',
-      headers:{'Content-Type':'application/json'}, body: JSON.stringify({lower_third: lower})});
-  } catch(e) { console.warn('Chyron failed', e); }
-});
+    await task();
+    stationFeedback(station, success);
+  } catch (error) {
+    stationFeedback(station, error.message || 'The command failed', true);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+// ── Chyron ────────────────────────────────────────────────────────────────────
+document.getElementById('chy-apply')?.addEventListener('click', () => stationAction(
+  'chyron', 'chy-apply', () => {
+    const patch = {lower_third: document.getElementById('chy-lower')?.value || ''};
+    const bug = document.getElementById('chy-bug');
+    if (bug) patch.bug = bug.value.trim();
+    return prodPatch(patch);
+  }, 'Graphics confirmed in the shared production state'
+));
 
 // ── Teleprompter ──────────────────────────────────────────────────────────────
 let _proTimer = null;
 document.getElementById('pro-start')?.addEventListener('click', () => {
-  const el = document.getElementById('pro-script'); if (!el||!el.value.trim()) return;
-  const spd = parseFloat(document.getElementById('pro-speed')?.value||'5') * 0.4;
+  const el = document.getElementById('pro-script');
+  if (!el || !el.value.trim()) {
+    stationFeedback('prompter', 'Enter a script before starting', true);
+    return;
+  }
+  const inputSpeed = Number(document.getElementById('pro-speed')?.value || 5);
+  const speed = Number.isFinite(inputSpeed) ? Math.max(1, Math.min(20, inputSpeed)) : 5;
   if (_proTimer) clearInterval(_proTimer);
-  _proTimer = setInterval(() => { el.scrollTop += spd; }, 50);
+  _proTimer = setInterval(() => { el.scrollTop += speed * 0.4; }, 50);
+  stationFeedback('prompter', 'Local teleprompter scrolling');
 });
 document.getElementById('pro-stop')?.addEventListener('click', () => {
+  if (_proTimer) { clearInterval(_proTimer); _proTimer = null; }
+  stationFeedback('prompter', 'Teleprompter stopped');
+});
+window.addEventListener('pagehide', () => {
   if (_proTimer) { clearInterval(_proTimer); _proTimer = null; }
 });
 
 // ── VTR ───────────────────────────────────────────────────────────────────────
-async function prodPatch(patch) {
-  await fetch('/api/state/production',{method:'POST',
-    headers:{'Content-Type':'application/json'}, body:JSON.stringify(patch)});
+// Replay assets must actually live under /assets/. Remote URLs and traversal
+// are not silently converted into fictitious local media paths.
+function replayAsset(raw) {
+  const input = String(raw || '').trim().replace(/^\/?assets\//i, '');
+  if (!input || input.startsWith('/') || input.includes('\\') ||
+      /^[a-z][a-z\d+.-]*:/i.test(input) || /[?#\x00-\x1f]/.test(input)) {
+    throw Error('Choose a local replay path such as vod/clip.mp4');
+  }
+  const parts = input.split('/');
+  if (parts.some(part => !part || part === '.' || part === '..') ||
+      !/\.(mp4|webm|ogv)$/i.test(input)) {
+    throw Error('Replay requires an MP4, WebM or Ogg video under /assets/');
+  }
+  return input;
 }
-document.getElementById('vtr-load')?.addEventListener('click', async () => {
-  const a = document.getElementById('vtr-asset')?.value; if (!a) return;
-  await prodPatch({mode:'REPLAY', replay_asset: a});
-});
-document.getElementById('vtr-play')?.addEventListener('click', () => prodPatch({on_air:true}));
-document.getElementById('vtr-stop')?.addEventListener('click', () => prodPatch({on_air:false}));
+async function requireReplayAsset(asset) {
+  const url = '/assets/' + asset.split('/').map(encodeURIComponent).join('/');
+  const response = await fetch(url, {method: 'HEAD', cache: 'no-store'});
+  if (!response.ok) throw Error('Replay asset not found: ' + asset + ' (HTTP ' + response.status + ')');
+  const type = response.headers?.get('content-type') || '';
+  if (type && !type.toLowerCase().startsWith('video/')) {
+    throw Error('Replay asset is not served as video');
+  }
+}
+async function readProductionState() {
+  const response = await fetch('/api/state/production', {cache: 'no-store'});
+  if (!response.ok) throw Error('Cannot read production state (HTTP ' + response.status + ')');
+  const result = await response.json();
+  if (!result || typeof result !== 'object') throw Error('Invalid production state');
+  return result;
+}
+document.getElementById('vtr-load')?.addEventListener('click', () => stationAction(
+  'vtr', 'vtr-load', async () => {
+    const path = replayAsset(document.getElementById('vtr-asset')?.value);
+    await requireReplayAsset(path);
+    await prodPatch({mode: 'REPLAY', replay_asset: path, on_air: false});
+    document.getElementById('vtr-asset').value = path;
+  }, 'Replay asset verified and loaded; press Play to put it on air'
+));
+document.getElementById('vtr-play')?.addEventListener('click', () => stationAction(
+  'vtr', 'vtr-play', async () => {
+    const state = await readProductionState();
+    if (state.mode !== 'REPLAY' || !state.replay_asset) throw Error('Load a replay asset first');
+    await requireReplayAsset(replayAsset(state.replay_asset));
+    await prodPatch({on_air: true});
+  }, 'Replay on air (browser playback may require interaction)'
+));
+document.getElementById('vtr-stop')?.addEventListener('click', () => stationAction(
+  'vtr', 'vtr-stop', () => prodPatch({on_air: false}), 'Replay taken off air'
+));
 
 // ── Shared program audio mixer ───────────────────────────────────────────────
 // The 2.5D television production and the walkable studio use ONE /api/program-audio
@@ -186,6 +290,38 @@ async function applyMixer() {
     if (failures.length) mixerFeedback('Audio update incomplete: '+failures.join('; '),true);
     else mixerFeedback('Program, dialogue and music volumes applied to shared audio engine');
   } finally { btn.disabled = false; }
+}
+// Program monitoring is a separate, explicitly local listen path. It controls
+// the existing Program video element, never changes the broadcast's master mix.
+const localProgramMonitor = document.getElementById('pgm-monitor');
+const monitorSwitch = document.getElementById('mixer-monitor');
+const monitorLevel = document.getElementById('mixer-monitor-level');
+function updateLocalProgramMonitor() {
+  if (!monitorSwitch || !monitorLevel) return;
+  if (!localProgramMonitor) {
+    monitorSwitch.checked = false;
+    mixerFeedback('Program monitor video is unavailable on this page', true);
+    return;
+  }
+  const value = Number(monitorLevel.value);
+  localProgramMonitor.volume = Number.isFinite(value) ? Math.max(0, Math.min(1, value / 100)) : 0.8;
+  localProgramMonitor.muted = !monitorSwitch.checked;
+  if (monitorSwitch.checked) {
+    mixerFeedback(localProgramMonitor.srcObject || localProgramMonitor.currentSrc ?
+      'Local Program monitor enabled — use headphones to prevent feedback' :
+      'Local Program monitor armed; waiting for a live feed');
+  } else mixerFeedback('Local Program monitor muted');
+}
+monitorSwitch?.addEventListener('change', updateLocalProgramMonitor);
+monitorLevel?.addEventListener('input', updateLocalProgramMonitor);
+if (localProgramMonitor) localProgramMonitor.muted = true;
+// No shared AFV/VTR music-ducking contract exists yet. Never accept an inert
+// checkbox as an active production effect.
+const afvControl = document.getElementById('mixer-afv');
+if (afvControl) {
+  afvControl.checked = false;
+  afvControl.disabled = true;
+  afvControl.title = 'Unavailable: VTR-triggered music ducking requires shared mixer routing and verified recording';
 }
 document.getElementById('mixer-apply')?.addEventListener('click', () => applyMixer().catch(e => mixerFeedback(e.message,true)));
 document.querySelector('[data-station="mixer"]')?.addEventListener('click', () => {loadMixerState();});

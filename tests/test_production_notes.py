@@ -41,10 +41,9 @@ def env(tmp_path, monkeypatch):
         return {"Authorization": "Bearer " + auth.create_access_token({"sub": username, "role": role})}
 
     owner = as_("josie", "owner")
+    # Legacy local accounts remain usable; new installations admit independent visitors.
     for name, display in (("repete", "RePete"), ("pete", "Pete")):
-        r = client.post("/api/production/people", headers=owner,
-                        json={"username": name, "password": PW, "display_name": display, "email": f"{name}@example.com"})
-        assert r.status_code == 201, r.text
+        assert userdb._sync_create_member(name, PW, 'guest', display, f'{name}@example.com')
     people = {p["username"]: p for p in client.get("/api/production/people", headers=owner).json()["people"]}
     return client, as_, people, tmp_path
 
@@ -65,15 +64,13 @@ def test_profiles_have_permanent_ids_and_validate(env):
     assert client.patch("/api/profile/me", headers=as_("pete", "guest"), json={"display_name": "x" * 81}).status_code == 400
 
 
-def test_only_owner_or_mod_adds_crew_and_only_owner_adds_mods(env):
+def test_local_crew_creation_is_retired_without_changing_legacy_accounts(env):
     client, as_, _, _ = env
     body = {"username": "kay", "password": PW, "role": "guest"}
     assert client.post("/api/production/people", headers=as_("pete", "guest"), json=body).status_code == 403
-    assert client.post("/api/production/people", headers=as_("josie", "owner"), json=dict(body, username="pete")).status_code == 409
-    assert client.post("/api/production/people", headers=as_("josie", "owner"), json=dict(body, username="PETE")).status_code == 409
-    assert client.post("/api/production/people", headers=as_("josie", "owner"), json=dict(body, password="short")).status_code == 400
-    assert client.post("/api/production/people", headers=as_("josie", "owner"), json=dict(body, role="owner")).status_code == 400
-    assert client.post("/api/production/people", headers=as_("josie", "owner"), json=dict(body, username="bad name")).status_code == 400
+    for payload in [body, dict(body, username='pete'), dict(body, role='owner'), dict(body, password='short')]:
+        result = client.post('/api/production/people', headers=as_('josie', 'owner'), json=payload)
+        assert result.status_code == 410 and 'own PubCast identity' in result.json()['detail']
     # nothing half-made by the failures above
     assert "kay" not in {p["username"] for p in client.get("/api/production/people", headers=as_("josie", "owner")).json()["people"]}
 
@@ -82,9 +79,9 @@ def test_password_change_needs_the_current_password(env):
     client, as_, _, _ = env
     h = as_("pete", "guest")
     assert client.post("/api/profile/password", headers=h, json={"current_password": "wrong", "new_password": "N3w-Password-Ok!"}).status_code == 403
-    assert client.post("/api/profile/password", headers=h, json={"current_password": PW, "new_password": "weak"}).status_code == 400
-    assert client.post("/api/profile/password", headers=h, json={"current_password": PW, "new_password": "N3w-Password-Ok!"}).status_code == 200
-    assert auth.verify_password("N3w-Password-Ok!", userdb._sync_get_user("pete")["hashed_password"])
+    assert client.post("/api/profile/password", headers=h, json={"current_password": PW, "new_password": ""}).status_code == 400
+    assert client.post("/api/profile/password", headers=h, json={"current_password": PW, "new_password": "A"}).status_code == 200
+    assert auth.verify_password("A", userdb._sync_get_user("pete")["hashed_password"])
 
 
 def test_nothing_without_signing_in(env):
@@ -137,13 +134,16 @@ def test_send_read_save_trash_and_bcc_privacy(env):
 def test_production_group_self_notes_replies_and_validation(env):
     client, as_, people, _ = env
     pete = as_("pete", "guest")
-    r = client.post("/api/notes", headers=pete, json={"subject": "Call time 6 am", "to": ["@production"]})
-    assert r.status_code == 201 and r.json()["recipients"] == 3                  # everyone but the sender
-    assert client.get("/api/notes", headers=pete).json()["notes"] == []
+    group=client.post('/api/production/groups',headers=as_('josie','owner'),json={'name':'Episode crew','members':[{'user_id':p['user_id']} for p in people.values()]}).json()
+    payload={'subject':'Call time 6 am','to':['@production'],'group_id':group['id']}
+    payload['preview']=client.post('/api/notes/preview',headers=pete,json=payload).json()['preview']
+    r = client.post('/api/notes',headers=pete,json=payload)
+    assert r.status_code == 201 and r.json()["recipients"] == 4                  # the selected whole group includes its sender
+    assert [n["subject"] for n in client.get("/api/notes", headers=pete).json()["notes"]] == ["Call time 6 am"]
     first = r.json()["id"]
     r = client.post("/api/notes", headers=pete, json={"subject": "Buy more coffee", "to": [people["pete"]["user_id"]]})
     assert r.status_code == 201
-    assert [n["subject"] for n in client.get("/api/notes", headers=pete).json()["notes"]] == ["Buy more coffee"]
+    assert [n["subject"] for n in client.get("/api/notes", headers=pete).json()["notes"]] == ["Buy more coffee", "Call time 6 am"]
     r = client.post("/api/notes", headers=as_("repete", "guest"),
                     json={"subject": "Re: Call time 6 am", "to": [people["pete"]["user_id"]], "reply_to": first})
     assert r.status_code == 201

@@ -23,6 +23,16 @@
    const busySources=new Set(),lastAtBySource=new Map();
    const schedule=options.setTimeout||globalThis.setTimeout?.bind(globalThis);
    const cancel=options.clearTimeout||globalThis.clearTimeout?.bind(globalThis);
+   const clock=options.now||(()=>globalThis.performance?.now?.()??Date.now());
+   const pending=new Set();
+   async function boundedTask(action,limitMs){
+     if(typeof AbortController==="undefined"||!schedule)return action(undefined);
+     const controller=new AbortController();pending.add(controller);
+     let rejectAbort;const aborted=new Promise((_,reject)=>{rejectAbort=()=>reject(Error("Confidence operation cancelled or timed out"));controller.signal.addEventListener("abort",rejectAbort,{once:true});});
+     const timer=schedule(()=>controller.abort(),limitMs);
+     try{return await Promise.race([Promise.resolve().then(()=>{if(stopped||controller.signal.aborted)throw Error("Publisher stopped");return action(controller.signal);}),aborted]);}
+     finally{if(cancel)cancel(timer);controller.signal.removeEventListener("abort",rejectAbort);pending.delete(controller);}
+   }
    async function boundedFetch(url,init,limitMs){
      if(typeof AbortController==="undefined"||!schedule)return fetcher(url,init);
      const controller=new AbortController(),timer=schedule(()=>controller.abort(),limitMs);
@@ -46,33 +56,43 @@
        item.scratch.toBlob(blob=>blob&&blob.size?resolve(blob):reject(Error("JPEG confidence encoder returned no data")),"image/jpeg",.68);
      });
    }
-   async function publish(cameraId,canvas,now=Date.now()){
+   async function publish(cameraId,canvas,now=clock()){
      if(stopped||!cameraId||!canvas||now<cooldownUntil)return false;
      const id=sourceId(cameraId);
      if(busySources.has(id)||now-(lastAtBySource.get(id)||0)<minInterval)return false;
      busySources.add(id);lastAtBySource.set(id,now);
      try {
-       const blob=await toJpeg(canvas,id);
+       const blob=await boundedTask(()=>toJpeg(canvas,id),2500);
        if(stopped)return false;
        if(!blob||blob.size>240000)throw Error("Confidence frame exceeds 240KB budget");
-       const response=await boundedFetch("/api/studio25d/media/frames/"+encodeURIComponent(id),{
-         method:"POST",credentials:"same-origin",headers:{"Content-Type":"image/jpeg","X-Studio-Session":session},body:blob
+       const result=await boundedTask(async signal=>{
+        const response=await fetcher("/api/studio25d/media/frames/"+encodeURIComponent(id),{
+         method:"POST",credentials:"same-origin",headers:{"Content-Type":"image/jpeg","X-Studio-Session":session},body:blob,signal
+        });
+        if(response.status===409){
+         const reason=await response.json().catch(()=>({}));
+         // A pool assignment is an intentional lease handover. Do not put the
+         // producer's other camera feeds into a global error cooldown for it.
+         if(reason.detail==="Camera rendering is assigned to a pool participant")return {delegated:true};
+        }
+        if(!response.ok)throw Error("Confidence upload HTTP "+response.status);
+        return response.json();
        },2000);
-       if(!response.ok)throw Error("Confidence upload HTTP "+response.status);
-       const result=await response.json();
-       if(!result?.ok||result.source_id!==id||!Number.isInteger(result.sequence))throw Error("Video frame acknowledgment malformed");
+       if(stopped||result?.delegated)return false;
+       if(!result?.ok||result.source_id!==id||!Number.isInteger(result.sequence)||result.sequence<1)throw Error("Video frame acknowledgment malformed");
        acknowledged++;errors=0;cooldownUntil=0;onState({live:true,frames:acknowledged,source:id,sequence:result.sequence});
        return true;
      }catch(e){
        if(stopped)return false;
        errors++;
-       if(errors>=5)cooldownUntil=Date.now()+Math.min(20000,errors*1000);
+       if(errors>=5)cooldownUntil=clock()+Math.min(20000,errors*1000);
        onError("Remote video confidence frame failed: "+e.message,errors);
        return false;
      }finally{busySources.delete(id);}
    }
    async function stop(){
      if(stopped)return;stopped=true;onState({live:false,frames:acknowledged});
+     for(const controller of pending)controller.abort();
      try{
        const response=await boundedFetch("/api/studio25d/media/sessions/"+encodeURIComponent(session),{
          method:"DELETE",credentials:"same-origin"

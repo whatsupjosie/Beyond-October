@@ -1,0 +1,41 @@
+{
+  "source_sha256": "30bf6d4f9b9c14c9e321e099ae82fd0779372a6ccd5781f56826b6e971670e3f",
+  "original_preserved": true,
+  "fresh_data_import": true,
+  "encoded_dimensions": [
+    1280,
+    720
+  ],
+  "bundle_entries": [
+    "media/0001_program-original.webm",
+    "enc_6c3945a634ddebf7fe9e3b0c7986aa54a0222ce9.json",
+    "EXPORT_MANIFEST.json"
+  ],
+  "scene_master_gate": "FAIL_MISSING_SOURCE_SCENE_AND_PERFORMANCE_DEPENDENCIES",
+  "native_4k_gate": "FAIL_NO_SOURCE_REPLAY_RENDER_PATH",
+  "resolve_import": "BLOCKED_APPLICATION_UNAVAILABLE",
+  "frame_rates": {
+    "24": {
+      "event": "001  P0000001 V     C        00:00:01:01 00:00:01:20 01:00:00:00 01:00:00:19",
+      "source_in_us": 1030000,
+      "source_out_us": 1830000,
+      "sidecar_preserves_subframe": true,
+      "actual_finisher_conform": "NOT_RUN"
+    },
+    "25": {
+      "event": "001  P0000001 V     C        00:00:01:01 00:00:01:21 01:00:00:00 01:00:00:20",
+      "source_in_us": 1030000,
+      "source_out_us": 1830000,
+      "sidecar_preserves_subframe": true,
+      "actual_finisher_conform": "NOT_RUN"
+    },
+    "30": {
+      "event": "001  P0000001 V     C        00:00:01:01 00:00:01:25 01:00:00:00 01:00:00:24",
+      "source_in_us": 1030000,
+      "source_out_us": 1830000,
+      "sidecar_preserves_subframe": true,
+      "actual_finisher_conform": "NOT_RUN"
+    }
+  },
+  "rough_cut_reload": true
+}

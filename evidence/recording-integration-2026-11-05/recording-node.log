@@ -1,0 +1,41 @@
+✔ changing a session cancels an unfinished operation and rejects its late result (2.60337ms)
+✔ an operation that never finishes times out and releases its controller (21.039232ms)
+✔ request deadlines also bound response body decoding (20.950914ms)
+✔ cancellation before a queued action starts performs no work (0.462384ms)
+✔ calibration precedes donated work and a stall pauses it (1.762828ms)
+✔ persistent lag backs off, smooth recovery is gradual, hidden pauses (2.095788ms)
+✔ held contributions do not restart just because the UI becomes idle (2.877592ms)
+✔ a poor baseline does not permit a large new UI stall (0.451769ms)
+✔ permitted quality reduction stays stable through rate recovery (0.217657ms)
+✔ outgoing camera payload obeys the consented rolling bandwidth cap before sending (0.349085ms)
+✔ Director source changes cancel a decoder that never resolves (2.640166ms)
+✔ Director rejects missing or negative age and includes time spent decoding (1.294565ms)
+✔ stopping the stage publisher cancels a hung encoder and releases busy state (1.246242ms)
+✔ publisher pacing and recovery share a monotonic clock (2.631041ms)
+✔ publisher never reports a non-positive sequence as a live frame (1.202526ms)
+✔ a lost chunk ACK resumes from durable server progress without resending confirmed bytes (31.819669ms)
+✔ a forged owner acknowledgement never turns into a saved indicator (13.868631ms)
+✔ another account cannot resume a previous owner pending upload (4.009021ms)
+✔ pausing an unfinished server request releases busy state and discards late replies (7.891523ms)
+✔ pausing while local hashing is stuck releases the save without any upload (1.597719ms)
+✔ an account change stops the save before private metadata is posted (0.547333ms)
+✔ a progressing stream outlives a read deadline and gzip transport keeps the original byte proof (249.556491ms)
+✔ a stalled source body times out and releases the view job (82.684564ms)
+✔ equal-sized corrupted source bytes fail the original download proof (248.407109ms)
+✔ capture writer preserves byte order and releases committed chunks (8.706308ms)
+✔ failed disk writes retain the exact uncommitted suffix for a recovery download (2.442428ms)
+✔ backpressure stops once without dropping the threshold-crossing or stop chunk (5.251167ms)
+✔ recovery refuses corrupt or missing stored chunks while leaving originals intact (2.626445ms)
+test_program_audio_runtime_node.js passed
+✔ tests/test_program_audio_runtime_node.js (239.354441ms)
+✔ program and preview publish distinct acknowledged frames (3.208269ms)
+✔ remote monitor rejects stale content without pretending it is live (1.633353ms)
+✔ delegated camera handover does not throttle unrelated camera feeds (2.034426ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 926.374112

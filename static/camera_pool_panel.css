@@ -1,0 +1,14 @@
+#cameraPoolPanel{box-sizing:border-box;width:calc(100% - 24px);line-height:1.5;overflow-wrap:anywhere}
+#cameraPoolPanel *,#cameraPoolPanel *::before,#cameraPoolPanel *::after{box-sizing:border-box}
+#cameraPoolPanel button,#cameraPoolPanel input,#cameraPoolPanel select{font:inherit;font-size:16px;min-height:44px;max-width:100%;padding:8px;margin:5px 0;background:#22374d;color:#edf1f7;border:1px solid #91a9bf;border-radius:4px}
+#cameraPoolPanel button{cursor:pointer;white-space:normal}
+#cameraPoolPanel button:disabled{opacity:.55;cursor:default}
+#cameraPoolPanel :focus-visible{outline:3px solid #ffe097;outline-offset:3px}
+#cameraPoolPanel label{display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px;min-height:44px;max-width:100%;margin-right:8px}
+#cameraPoolPanel fieldset{min-inline-size:0;margin:12px 0;padding:10px}
+#cameraPoolPanel .pool-table-scroll{max-width:100%;overflow-x:auto;margin:12px 0}
+#cameraPoolPanel table{min-width:900px;border-collapse:collapse}
+#cameraPoolPanel td,#cameraPoolPanel th{vertical-align:top;border-bottom:1px solid #59718a}
+#cameraPoolPanel #poolTasks>div{max-width:100%;flex:0 1 300px}
+#cameraPoolPanel #poolTasks img{max-width:100%;height:auto}
+#cameraPoolPanel iframe{max-width:100%}

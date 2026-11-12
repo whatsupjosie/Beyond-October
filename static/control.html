@@ -34,10 +34,10 @@
         </div>
         <div>
           <h3>Wardrobe</h3>
-          <form id="wardrobe-form">
-            <label>Display Name <input type="text" id="displayName" /></label>
+          <form id="wardrobe-form"><div id="wardrobe-result" role="status" aria-live="polite"></div>
+            <label>Display Name <input type="text" id="displayName" maxlength="64" /></label>
             <label>Avatar Color <input type="color" id="avatarColor" value="#00e0ff" /></label>
-            <label>Badge <input type="text" id="badge" /></label>
+            <label>Badge <input type="text" id="badge" maxlength="32" /></label>
             <div class="row">
               <button type="submit">Save</button>
             </div>
@@ -47,10 +47,11 @@
             <input type="file" id="uploadFile" />
             <select id="uploadTarget">
               <option value="">My Uploads</option>
-              <option value="vod">Replay (assets/vod)</option>
+              <option value="vod">Replay (served from this host)</option>
             </select>
             <button type="submit">Upload</button>
-            <div id="upload-result"></div>
+            <div id="upload-result" role="status" aria-live="polite"></div>
+            <p class="muted small">Replay uploads are available through the host’s public /assets/ URL. Do not upload private media here.</p>
           </form>
         </div>
       </div>
@@ -66,6 +67,7 @@
             <video id="replay-video" controls class="hidden"></video>
             <div id="live-banner" class="live">ON AIR</div>
             <div id="lower-third" class="lower-third"></div>
+            <div id="program-bug" class="program-bug hidden"></div>
           </div>
         </div>
         <div>
@@ -82,6 +84,7 @@
       <div id="studio-stage">
         <div id="studio-onair" class="onair hidden">ON AIR</div>
         <div id="studio-lower-third" class="lower-third"></div>
+        <div id="studio-bug" class="program-bug hidden"></div>
         <div id="studio-camera" class="camera">Camera: <span id="camera-mode">wide</span></div>
         <div id="studio-lighting" class="lighting">Lighting: <span id="lighting-mode">normal</span></div>
       </div>
@@ -197,8 +200,12 @@
             <input id="mixer-program" type="range" min="0" max="100" value="80" />
             <label class="muted small">Hosts</label>
             <input id="mixer-hosts" type="range" min="0" max="100" value="85" />
-            <label class="muted small">Music</label>\n            <input id="mixer-music" type="range" min="0" max="100" value="60" />\n            <label class="muted small" style="margin-left:8px;display:flex;align-items:center;gap:6px;"><input id="mixer-monitor" type="checkbox" /> Monitor Program</label>\n            <label class="muted small">Level</label>\n            <input id="mixer-monitor-level" type="range" min="0" max="100" value="80" />
-            <label class="muted small" style="margin-left:8px;display:flex;align-items:center;gap:6px;"><input id="mixer-afv" type="checkbox" /> Duck Music on VTR</label>
+            <label class="muted small">Music</label>
+            <input id="mixer-music" type="range" min="0" max="100" value="60" />
+            <label class="muted small" style="margin-left:8px;display:flex;align-items:center;gap:6px;"><input id="mixer-monitor" type="checkbox" /> Monitor Program (local)</label>
+            <label class="muted small">Level</label>
+            <input id="mixer-monitor-level" type="range" min="0" max="100" value="80" />
+            <label class="muted small" style="margin-left:8px;display:flex;align-items:center;gap:6px;"><input id="mixer-afv" type="checkbox" disabled title="Unavailable until verified shared VTR audio ducking" /> Duck Music on VTR (unavailable)</label>
             <button id="mixer-apply" class="ghost">Apply</button>
           </div>
         </div>
@@ -309,7 +316,7 @@
             <label class="muted small">Lower Third</label>
             <input id="chy-lower" placeholder="Name / Title" />
             <label class="muted small">Bug</label>
-            <input id="chy-bug" placeholder="#Hashtag or Bug" />
+            <input id="chy-bug" placeholder="#Hashtag or Bug" maxlength="80" />
             <button id="chy-apply" class="ghost">Apply</button>
           </div>
         </div>
@@ -336,7 +343,7 @@
         <div class="panel">
           <h3>VTR</h3>
           <div class="row" style="gap:6px;align-items:center;flex-wrap:wrap;">
-            <input id="vtr-asset" placeholder="assets/vod/clip.mp4" style="min-width:260px;" />
+            <input id="vtr-asset" placeholder="vod/clip.mp4 (uploaded replay asset)" style="min-width:260px;" />
             <button id="vtr-load">Load</button>
             <button id="vtr-play">Play</button>
             <button id="vtr-stop">Stop</button>

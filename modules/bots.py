@@ -11,6 +11,7 @@ import os
 import time
 import json
 import hashlib
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set
@@ -249,6 +250,9 @@ class BotManager:
             raise ValueError('Partner is not configured for this room')
         cfg = session.config
         item = self.turn_requests.create(bot_id=bot_id, room=room, actor=actor, required=required)
+        witness = getattr(self.hub, 'blackbox_witness', None)
+        if witness:
+            witness.record_event('partner.turn_request', actor=actor, data={**item, 'hint':hint})
         def update(state, **details):
             nonlocal item
             item = self.turn_requests.update(item, state, **details)
@@ -371,6 +375,21 @@ class BotManager:
 
     async def _generate_and_send(self, session: BotSession, payload: Dict[str, Any]) -> Dict[str, Any] | None:
         cfg = session.config
+        generation_id = uuid.uuid4().hex
+        def audit(state, **details):
+            witness = getattr(self.hub, 'blackbox_witness', None)
+            if witness is None:
+                return
+            try:
+                if not witness.record_event('partner.generation', source='bots', actor=self.bot_user_id(cfg.bot_id),
+                        data={'generation_id':generation_id, 'bot_id':cfg.bot_id,
+                              'room':payload['room'], 'state':state,
+                              'trigger_message_id':payload.get('message_id'),
+                              'turn_request_id':payload.get('turn_request_id'), **details}):
+                    logger.warning('BlackBox bot generation receipt failed: %s', generation_id)
+            except Exception:
+                logger.exception('BlackBox bot generation witness failed: %s', generation_id)
+        audit('started')
         try:
             history = await self.hub.get_recent_history(payload["room"], limit=cfg.max_history)
             if self._cricket_keeper is not None:
@@ -388,15 +407,20 @@ class BotManager:
                     logger.warning("Jeremy Cricket memory failed for %s: %s", cfg.bot_id, memory_exc)
             prompt = self._build_prompt(cfg, history, stage_hint=payload.get("text") if payload.get("nudge") else None)
             if not prompt:
+                audit('skipped', reason='No prompt')
                 return
             REPLY_WAS_OFFLINE.set(False)
             reply = await self._call_provider(cfg, prompt)
             if not reply:
+                audit('failed', error='Provider returned no reply')
                 return {"ok": False, "error": "Provider returned no reply"}
             reply = reply.strip()
             if not reply:
+                audit('skipped', reason='Provider returned only whitespace')
                 return
-            await self.hub.post_chat_message(payload["room"], self.bot_user_id(cfg.bot_id), reply)
+            receipt = await self.hub.post_chat_message(payload["room"], self.bot_user_id(cfg.bot_id), reply)
+            audit('completed', message_id=receipt.get('message_id') if isinstance(receipt, dict) else None,
+                  offline=REPLY_WAS_OFFLINE.get())
             session.last_reply_at = time.time()
             if self._cricket_keeper is not None:
                 try:
@@ -405,7 +429,11 @@ class BotManager:
                 except Exception as memory_exc:
                     logger.warning("Jeremy Cricket store failed for %s: %s", cfg.bot_id, memory_exc)
             return {"ok": True, "offline": REPLY_WAS_OFFLINE.get()}
+        except asyncio.CancelledError:
+            audit('interrupted', reason='Generation cancelled')
+            raise
         except Exception as exc:
+            audit('failed', error=str(exc))
             logger.exception("Bot %s failed to reply: %s", cfg.bot_id, exc)
             return {"ok": False, "error": str(exc)}
         finally:
