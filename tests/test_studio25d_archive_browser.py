@@ -163,6 +163,19 @@ def test_completed_take_reopens_from_server_after_browser_and_host_restart(archi
             (tmp_path/"verified.json").write_text(json.dumps({"source_bytes":source["bytes"],"sha256":source["sha256"],"video_dimensions":[1280,720],"capture_started_at":capture_time,"upload_started_at":take["upload_started_at"],"decoded_audio_rms":rms,"decoded_tone_hz":frequency,"tone_to_1000hz_amplitude_ratio":ratio,"audio_sample_rate":48000,"server_restart_count":2,"cold_browser_local_sessions":0},indent=2))
         finally:
             fresh.close()
+        host.stop()  # Inspect closed flight-recorder files, not a changing snapshot.
+        from blackbox_event_language.schema import decode_record
+        from blackbox_recorder import AppendOnlyBlackBoxRecorder
+        events=[]
+        for path in (tmp_path/'server-data'/'blackbox').glob('*.bbx'):
+            ledger=AppendOnlyBlackBoxRecorder(path,path.stem)
+            assert ledger.verify().ok
+            events.extend(decode_record(line) for line in path.read_text().splitlines() if line.strip())
+        started=[e for e in events if e['payload'].get('event_type')=='recording.upload_started' and e['payload'].get('session_id')==take['id']]
+        committed=[e for e in events if e['payload'].get('event_type')=='recording.artifact' and e['payload'].get('session_id')==take['id']]
+        assert len(started)==1 and len(committed)==1
+        assert committed[0]['channel']['code']=='REC' and committed[0]['payload']['sha256']==source['sha256']
+        assert any(e['payload'].get('event_type')=='camera.switched' for e in events)
     finally:
         if ctx:ctx.close()
 

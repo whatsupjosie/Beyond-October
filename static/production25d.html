@@ -28,8 +28,9 @@ canvas{touch-action:manipulation}#state{font-weight:700;color:var(--green)}#stat
 aside{min-width:0}#avatarStatus,#description{overflow-wrap:anywhere}
 .field select,.field input[type=file]{max-width:100%;min-width:0;width:100%}
 @media(max-width:950px){main{grid-template-columns:1fr}}@media(max-width:500px){main{padding:8px;gap:8px}section{padding:9px}header{padding:9px}}
+html.drag-scroll-active,html.drag-scroll-active *{cursor:grabbing!important;user-select:none!important}
 </style></head>
-<body>
+<body data-drag-scroll>
 <header><strong>PubCast / 2.5D Television Studio</strong>
 <span class="pill" id="mode">LOCAL PRODUCTION</span><span class="pill" id="switcherLink" aria-live="polite">VIDEO: LOCAL ONLY</span><span class="pill" id="liveMedia" aria-live="polite">REMOTE FRAMES: OFF</span><span id="state" role="status" aria-live="polite">Initializing</span>
 <span id="timecode">00:00:00</span><a href="./world_walk.html">Walkable studio</a>
@@ -126,4 +127,4 @@ aside{min-width:0}#avatarStatus,#description{overflow-wrap:anywhere}
 <script src="./production25d_app.js"></script>
 <script src="./camera_pool_controller.js"></script>
 <script src="./camera_pool_panel.js" defer></script>
-</body></html>
+<script src="/static/drag_scroll.js"></script></body></html>

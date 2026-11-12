@@ -4,18 +4,19 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>PubCast — Sign In</title>
+  <link rel="preload" as="image" href="/static/brand/pubcast-camera.jpg" type="image/jpeg">
   <style>
-    :root{--bg:#0a0b0f;--s:#111318;--s2:#181b24;--border:rgba(255,255,255,0.07);--accent:#00e0ff;--text:#b8bdd0;--bright:#eef0f6;--muted:#4a5068;--r:6px;--warn:#e05555}
+    :root{--bg:#0a0b0f;--s:#111318;--s2:#181b24;--border:rgba(255,255,255,0.07);--accent:#00e0ff;--text:#b8bdd0;--bright:#eef0f6;--muted:#929caf;--r:6px;--warn:#e05555}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;
-      background-image:radial-gradient(ellipse at 30% 60%,rgba(0,224,255,0.05),transparent 55%)}
-    .card{background:var(--s);border:1px solid var(--border);border-radius:var(--r);padding:2.5rem;width:100%;max-width:400px;position:relative}
+    body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:flex-start;padding:clamp(12px,4vw,48px)}
+    .signin-backdrop{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(90deg,rgba(5,7,10,.45),rgba(5,7,10,.08)),url('/static/brand/pubcast-camera.jpg');background-position:center;background-size:cover;background-repeat:no-repeat}
+    .card{z-index:1;background:rgba(17,19,24,.95);border:1px solid var(--border);border-radius:var(--r);padding:clamp(18px,4vw,40px);width:100%;max-width:400px;position:relative}
     .logo{font-family:'Playfair Display',serif;font-style:italic;font-size:2rem;color:var(--accent);text-align:center;margin-bottom:0.25rem}
     .tagline{text-align:center;font-size:0.68rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:2rem}
     .tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.5rem}
     .tab{flex:1;background:none;border:none;font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--muted);padding:0.6rem;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s}
     .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-    label{display:flex;flex-direction:column;gap:0.25rem;font-size:0.7rem;color:var(--muted);margin-bottom:0.9rem}
+    label{display:flex;flex-direction:column;gap:0.25rem;font-size:0.7rem;color:var(--text);margin-bottom:0.9rem}
     input{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);color:var(--bright);font-family:'DM Mono',monospace;font-size:0.82rem;padding:0.6rem 0.8rem;width:100%;transition:border-color 0.15s}
     input:focus{outline:none;border-color:var(--accent)}
     .btn{width:100%;background:var(--accent);border:none;border-radius:var(--r);color:#0a0b0f;font-family:'DM Mono',monospace;font-size:0.8rem;font-weight:500;padding:0.7rem;cursor:pointer;transition:opacity 0.15s;margin-top:0.4rem}
@@ -23,12 +24,16 @@
     .btn:disabled{opacity:0.4;cursor:not-allowed}
     .error{font-size:0.72rem;color:var(--warn);margin-top:0.6rem;min-height:1.2em;text-align:center}
     .success{font-size:0.72rem;color:var(--accent);margin-top:0.6rem;text-align:center}
+    a{color:var(--accent);text-underline-offset:.15em}
     .hint{font-size:0.65rem;color:var(--muted);text-align:center;margin-top:1.2rem}
     .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,0.3);border-top-color:#000;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px}
     @keyframes spin{to{transform:rotate(360deg)}}
-  </style>
+    @media(max-width:620px){body{justify-content:center}.signin-backdrop{background-position:58% center}input{font-size:16px;min-height:44px}.btn,.tab{min-height:44px}}
+  html.drag-scroll-active,html.drag-scroll-active *{cursor:grabbing!important;user-select:none!important}
+</style>
 </head>
-<body>
+<body data-drag-scroll>
+<div class="signin-backdrop" aria-hidden="true"></div>
 <div class="card">
   <div class="logo">PubCast</div>
   <div class="tagline">Virtual Production Platform</div>
@@ -55,7 +60,7 @@
     <label>Username <span style="font-size:0.62rem">(min 3 chars)</span>
       <input type="text" id="regUser" autocomplete="username" placeholder="choose_a_username">
     </label>
-    <label>Password <span style="font-size:0.62rem">(min 12 chars · 3 character types)</span>
+    <label>Password <span style="font-size:0.62rem">(choose any password)</span>
       <input type="password" id="regPass" autocomplete="new-password" placeholder="••••••••">
     </label>
     <label>Confirm Password
@@ -197,5 +202,5 @@
 
   initializeLogin();
 </script>
-</body>
+<script src="/static/drag_scroll.js"></script></body>
 </html>

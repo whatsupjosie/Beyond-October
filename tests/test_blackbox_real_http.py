@@ -68,6 +68,11 @@ def test_real_socket_record_save_restart_preserve(tmp_path):
                 await ws.wait_closed()
                 return capture_id
         capture_id=asyncio.run(stream())
+        from tools.blackbox_inspect import inspect
+        report = inspect(tmp_path)
+        assert report['ok'] and report['coverage_complete'], report
+        captured = next(c for c in report['captures'] if c['capture_id']==capture_id)
+        assert captured['packet_receipts_checked']==1 and captured['witnessed_frames']==1600
         result=httpx.post(base+'/api/operator/blackbox/save',headers=headers).json()
         assert result['ok']
         process.terminate();process.wait(timeout=5)
@@ -77,5 +82,12 @@ def test_real_socket_record_save_restart_preserve(tmp_path):
         assert result['ok'],result
         with wave.open(str(tmp_path/'blackbox'/'media'/(result['artifact_id']+'.wav'))) as copied:
             assert copied.readframes(copied.getnframes())==pcm(seconds=.1)[800:2400]
+        report = inspect(tmp_path)
+        assert report['ok'] and report['coverage_complete'], report
+        assert report['preserved']==[{'artifact_id':result['artifact_id'],'ok':True}]
+        artifact = tmp_path/'blackbox'/'media'/(result['artifact_id']+'.wav')
+        with artifact.open('r+b') as handle:
+            handle.seek(-1,2);handle.write(b'\xff')
+        assert not inspect(tmp_path)['ok']
     finally:
         process.terminate();process.wait(timeout=5)

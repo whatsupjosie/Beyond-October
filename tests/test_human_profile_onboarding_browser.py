@@ -8,7 +8,7 @@ import time
 import httpx
 import pytest
 
-from tests.test_production25d_browser import ROOT, production_browser
+from tests.test_production25d_browser import ROOT, production_browser, production_server
 from tests.test_production_notes_browser import _free_port
 
 
@@ -45,7 +45,8 @@ def fresh_host(tmp_path):
 
 
 @pytest.mark.parametrize('visibility', ['private', 'discoverable'])
-def test_first_setup_optional_profile_skip_and_permanent_identity(fresh_host, production_browser, visibility):
+@pytest.mark.parametrize('password', ['cat', 'A'])
+def test_first_setup_optional_profile_skip_and_permanent_identity(fresh_host, production_browser, visibility, password):
     base, api = fresh_host
     context = production_browser.new_context(viewport={'width': 390, 'height': 844})
     try:
@@ -56,8 +57,8 @@ def test_first_setup_optional_profile_skip_and_permanent_identity(fresh_host, pr
         page.wait_for_selector('#formRegister:visible')
         assert page.locator('#regVisibility').input_value() == 'private'
         page.fill('#regUser', 'first-owner')
-        page.fill('#regPass', 'strong-owner-password-A19!')
-        page.fill('#regPass2', 'strong-owner-password-A19!')
+        page.fill('#regPass', password)
+        page.fill('#regPass2', password)
         page.select_option('#regVisibility', visibility)
         page.click('#regBtn')
         page.wait_for_url('**/static/human_profile.html?onboarding=1&next=**')
@@ -79,5 +80,30 @@ def test_first_setup_optional_profile_skip_and_permanent_identity(fresh_host, pr
         page.wait_for_selector('#formLogin:visible')
         assert not page.locator('#tabRegister').is_visible()
         assert not errors
+    finally:
+        context.close()
+
+
+@pytest.mark.parametrize('size', [(390, 844), (390, 300), (842, 237)])
+def test_profile_completion_stays_reachable_in_short_viewports(production_server, production_browser, size):
+    import json
+    base, auth, _ = production_server
+    context = production_browser.new_context(viewport={'width': size[0], 'height': size[1]})
+    try:
+        context.add_init_script("sessionStorage.setItem('pubcast_token'," + json.dumps(auth['access_token']) + ");")
+        page = context.new_page()
+        page.goto(base + '/static/human_profile.html?onboarding=1')
+        page.wait_for_selector('#editor:not([hidden])')
+        for position in ('top', 'bottom'):
+            page.evaluate("window.scrollTo(0, " + ('0' if position == 'top' else 'document.documentElement.scrollHeight') + ")")
+            for selector in ('#save', '#skip'):
+                box = page.locator(selector).bounding_box()
+                assert box and box['y'] >= 0 and box['y'] + box['height'] <= size[1]
+                assert box['height'] >= 44
+                # A visible rectangle is insufficient if another element blocks it.
+                assert page.locator(selector).evaluate("button => {const r=button.getBoundingClientRect();return button.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}")
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+        page.locator('#field-reel').scroll_into_view_if_needed()
+        assert page.locator('#field-reel').evaluate("input => input.getBoundingClientRect().bottom <= document.querySelector('.profile-actions').getBoundingClientRect().top")
     finally:
         context.close()

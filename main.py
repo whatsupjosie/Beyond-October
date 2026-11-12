@@ -861,6 +861,7 @@ async def lifespan(application: FastAPI):
         # the same SystemMemory object reference across app-singleton re-entry.
         if blackbox_witness is not None:
             blackbox_witness.reopen()
+            await blackbox_witness.start_chat_replay()
         rearmed_system_memory = getattr(application.state, "system_memory", None)
         if rearmed_system_memory is not None and getattr(rearmed_system_memory, "_conn", None) is None:
             try:
@@ -921,6 +922,7 @@ async def lifespan(application: FastAPI):
             if bot_manager is not None:
                 await bot_manager.shutdown()
             if blackbox_witness is not None:
+                await blackbox_witness.stop_chat_replay()
                 blackbox_witness.close()
             if rearmed_pete is not None and hasattr(rearmed_pete, "shutdown_twin_engine_system"):
                 try:
@@ -1022,6 +1024,8 @@ async def lifespan(application: FastAPI):
         logger.warning("[3a/12] Auth system failed: %s", exc)
 
     # 3b. Alex + Alex/Jeremy Bridge + explicit Pub Manager authority reviewer
+    blackbox_witness = create_blackbox_witness(DATA_DIR)
+    internal_audit_logger = blackbox_witness.internal_audit_logger(dr_security.log_black_box_event)
     try:
         alex_core_instance = AlexCore(user_id='default', data_dir=DATA_DIR / 'alex')
         alex_core_instance.eq_monitoring_recorder = eq_monitoring_recorder
@@ -1033,13 +1037,13 @@ async def lifespan(application: FastAPI):
             alex_core_instance.affect_choreo_callback = _apply_affect_choreo
         pub_manager_authority = PubManagerAuthorityStore(
             DATA_DIR,
-            blackbox_logger=dr_security.log_black_box_event,
+            blackbox_logger=internal_audit_logger,
             executor=_execute_pub_manager_engineering_action,
         )
         alex_bridge = AlexJeremyBridge(
             DATA_DIR,
             authority_reviewer=pub_manager_authority.reviewer,
-            blackbox_logger=dr_security.log_black_box_event,
+            blackbox_logger=internal_audit_logger,
         )
         try:
             from modules.alex_memory_backup import build_alex_backup_from_env
@@ -1147,9 +1151,9 @@ async def lifespan(application: FastAPI):
 
     # 6. Cameras + Recording
     cameras   = create_default_cameras()
-    blackbox_witness = create_blackbox_witness(DATA_DIR)
     application.state.pubpartner_spine.blackbox_witness = blackbox_witness
     hub.blackbox_witness = blackbox_witness  # All Hub chat paths emit an offline witness event.
+    await blackbox_witness.start_chat_replay()
     application.include_router(create_blackbox_router(blackbox_witness))
     recording = create_recording_service(DATA_DIR, cameras, blackbox_witness=blackbox_witness)
     program_audio_state = ProgramAudioState()
@@ -1955,6 +1959,7 @@ async def lifespan(application: FastAPI):
     if cricket_keeper and hasattr(cricket_keeper, "close_all"):
         await cricket_keeper.close_all()
     if blackbox_witness is not None:
+        await blackbox_witness.stop_chat_replay()
         blackbox_witness.close()
     logger.info("— PubCast AI stopped —")
 

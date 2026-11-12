@@ -375,6 +375,9 @@ class RecordingService:
                 directory.rmdir()
             raise
         self._sessions[session_id] = session
+        self._blackbox_event('recording.upload_started', actor=operator, data={
+            'session_id':session_id, 'source':source, 'expected_bytes':ingest['spec']['bytes'],
+            'take_id':ingest['spec']['take_id'], 'upload_started_at':ingest['upload_started_at']})
         return session
 
     def commit_encoded_take(self, session: RecordingSession, path: Path, digest: str, media: Dict[str, Any]) -> None:

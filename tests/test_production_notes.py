@@ -79,9 +79,9 @@ def test_password_change_needs_the_current_password(env):
     client, as_, _, _ = env
     h = as_("pete", "guest")
     assert client.post("/api/profile/password", headers=h, json={"current_password": "wrong", "new_password": "N3w-Password-Ok!"}).status_code == 403
-    assert client.post("/api/profile/password", headers=h, json={"current_password": PW, "new_password": "weak"}).status_code == 400
-    assert client.post("/api/profile/password", headers=h, json={"current_password": PW, "new_password": "N3w-Password-Ok!"}).status_code == 200
-    assert auth.verify_password("N3w-Password-Ok!", userdb._sync_get_user("pete")["hashed_password"])
+    assert client.post("/api/profile/password", headers=h, json={"current_password": PW, "new_password": ""}).status_code == 400
+    assert client.post("/api/profile/password", headers=h, json={"current_password": PW, "new_password": "A"}).status_code == 200
+    assert auth.verify_password("A", userdb._sync_get_user("pete")["hashed_password"])
 
 
 def test_nothing_without_signing_in(env):

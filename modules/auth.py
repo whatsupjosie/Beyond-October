@@ -105,8 +105,8 @@ def _json_object(raw: bytes, *, label: str) -> Dict[str, Any]:
 def get_password_hash(plain: str) -> str:
     """Create a versioned PBKDF2-HMAC-SHA256 password hash.
 
-    Passwords are length-bounded by the API layer. This function still rejects
-    empty input so direct callers cannot accidentally create unusable accounts.
+    Preserve the exact password, including whitespace and Unicode. Reject empty
+    input so direct callers cannot accidentally create unusable accounts.
     """
     if not isinstance(plain, str) or not plain:
         raise ValueError("Password must not be empty")

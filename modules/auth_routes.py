@@ -25,11 +25,6 @@ _SETUP_LIMITER = SlidingWindowLimiter(limit=5, window_seconds=600, max_keys=256)
 _LOGIN_LIMITER = SlidingWindowLimiter(limit=10, window_seconds=300, max_keys=2048)
 _GLOBAL_LOGIN_LIMITER = SlidingWindowLimiter(limit=60, window_seconds=60, max_keys=256)
 _USERNAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{2,63}$")
-_COMMON_PASSWORDS = {
-    "password", "password123", "123456789012", "qwertyuiop12", "letmein123456",
-    "adminadminadmin", "pubpartner", "pubpartner123", "changeme12345",
-}
-
 _auth_module = None
 _dummy_hash_cache: Optional[str] = None
 
@@ -78,21 +73,9 @@ def _normalize_username(value: str) -> str:
 
 
 def _validate_password(password: str, username: str) -> None:
-    if len(password) < 12:
-        raise HTTPException(400, "Password must be at least 12 characters")
-    if len(password) > 256:
-        raise HTTPException(400, "Password is too long")
-    lowered = password.casefold()
-    if lowered in _COMMON_PASSWORDS or lowered == username.casefold() or username.casefold() in lowered:
-        raise HTTPException(400, "Choose a less predictable password")
-    categories = sum([
-        any(c.islower() for c in password),
-        any(c.isupper() for c in password),
-        any(c.isdigit() for c in password),
-        any(not c.isalnum() for c in password),
-    ])
-    if categories < 3:
-        raise HTTPException(400, "Use at least three of: lowercase, uppercase, number, symbol")
+    """Accept the user's exact nonempty password without composition rules."""
+    if not isinstance(password, str) or not password:
+        raise HTTPException(400, "Password must not be empty")
 
 
 def _rate_limit_or_raise(limiter: SlidingWindowLimiter, key: str) -> None:
@@ -107,7 +90,7 @@ def _rate_limit_or_raise(limiter: SlidingWindowLimiter, key: str) -> None:
 
 class LoginRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=64)
-    password: str = Field(..., min_length=1, max_length=256)
+    password: str = Field(..., min_length=1)
 
     @field_validator("username")
     @classmethod
@@ -119,7 +102,7 @@ class LoginRequest(BaseModel):
 
 
 class SetupRequest(LoginRequest):
-    confirm_password: str = Field(..., min_length=1, max_length=256)
+    confirm_password: str = Field(..., min_length=1)
     # The owner's PubCast profile. Both optional at setup; either can be set later from the profile.
     email: str = Field("", max_length=254)
     display_name: str = Field("", max_length=80)

@@ -15,6 +15,30 @@ from .append_only_recorder import AppendOnlyBlackBoxRecorder
 
 
 EVENT_MAP = {
+    "blackbox.archive_policy_changed": ("ACC", "DCP", "F"),
+    "runtime.coverage_gap": ("ERR", "ERR", "P"),
+    "runtime.blackbox_recovered": ("ACC", "LKA", "F"),
+    "system.event": ("ACT", "DCP", "F"),
+    "internal.audit": ("AIT", "DCP", "F"),
+    "partner.turn_request": ("ACT", "DCP", "F"),
+    "partner.private_turn": ("CHT", "MSG", "F"),
+    "partner.turn_started": ("CHT", "MSG", "F"),
+    "partner.turn_failed": ("ACT", "ERR", "F"),
+    "partner.generation": ("ACT", "DCP", "F"),
+    "runtime.heartbeat": ("ACC", "DCP", "F"),
+    "runtime.blackbox_stopped": ("ACC", "LKR", "F"),
+    "runtime.blackbox_restarted": ("ACC", "LKA", "F"),
+    "capture.chunk_committed": ("REC", "DCP", "F"),
+    "capture.started": ("REC", "DCP", "F"),
+    "capture.stopped": ("REC", "DCP", "F"),
+    "blackbox.saved": ("REC", "DCP", "F"),
+    "blackbox.preserved": ("REC", "DCP", "F"),
+    "recording.artifact": ("REC", "DCP", "F"),
+    "recording.upload_started": ("REC", "DCP", "F"),
+    "recording.upload_abandoned": ("REC", "DCP", "F"),
+    "production.panic": ("ACT", "DCP", "F"),
+    "production.video_cue": ("ACT", "DCP", "F"),
+    "camera.switched": ("BRT", "DCP", "F"),
     "ai.decision_packet": ("AIT", "DCP", "P"),
     "switchblade.decision": ("AIT", "DCP", "P"),
     "chat.turn": ("AIT", "DCP", "P"),
@@ -80,6 +104,12 @@ def map_pubcast_event(event: Mapping[str, Any]) -> MappedPubCastEvent:
             payload[str(key)] = value
         else:
             payload[f"{key}_type"] = type(value).__name__
+    # Keep the scalar projection for existing offline tools, with a lossless
+    # JSON copy preserving nested values, nulls, booleans and numeric types.
+    # Envelope fields are assigned last so event details cannot replace identity.
+    payload['data_json'] = json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
+    payload['event_type'] = event_type
+    payload['source_name'] = str(event.get('source') or event.get('src') or 'system')
     if "request_id" in event:
         payload["request_id"] = event["request_id"]
     if "record_hash" in event:

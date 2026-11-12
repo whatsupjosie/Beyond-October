@@ -1,0 +1,137 @@
+{
+  "schema": "blackbox-date-binding-study/1",
+  "cryptography": "48.0.1",
+  "zstandard": "0.25.0",
+  "kdf": {
+    "algorithm": "argon2id",
+    "memory_kib": 65536,
+    "iterations": 3,
+    "lanes": 4,
+    "length": 32
+  },
+  "cipher": "AES-256-GCM, 96-bit random nonce, full header AAD",
+  "signature": "Ed25519; trusted public key supplied externally; private key only in test memory",
+  "scope": "Isolated generated data. No production encryption or retention policy configured.",
+  "cases": [
+    {
+      "case": "exact_round_trip_A",
+      "passed": true,
+      "milliseconds": 136.039,
+      "detail": {
+        "password_fixture": "A",
+        "source_bytes": 45801,
+        "encrypted_bytes": 7372,
+        "seal_ms": 121.324,
+        "sha256": "7c5c8a08cd6be4eb8a302884f965fb37a688063aa6d8054ae2912f8f0ea004b1"
+      }
+    },
+    {
+      "case": "exact_round_trip_cat",
+      "passed": true,
+      "milliseconds": 106.644,
+      "detail": {
+        "password_fixture": "cat",
+        "source_bytes": 45801,
+        "encrypted_bytes": 7372,
+        "seal_ms": 107.604,
+        "sha256": "7c5c8a08cd6be4eb8a302884f965fb37a688063aa6d8054ae2912f8f0ea004b1"
+      }
+    },
+    {
+      "case": "exact_round_trip_☕ spaces, punctuation!",
+      "passed": true,
+      "milliseconds": 115.898,
+      "detail": {
+        "password_fixture": "☕ spaces, punctuation!",
+        "source_bytes": 45801,
+        "encrypted_bytes": 7372,
+        "seal_ms": 106.329,
+        "sha256": "7c5c8a08cd6be4eb8a302884f965fb37a688063aa6d8054ae2912f8f0ea004b1"
+      }
+    },
+    {
+      "case": "edited_date_rejected",
+      "passed": true,
+      "milliseconds": 110.085,
+      "detail": "InvalidTag"
+    },
+    {
+      "case": "date_cleared_rejected",
+      "passed": true,
+      "milliseconds": 0.165,
+      "detail": "ValueError"
+    },
+    {
+      "case": "date_field_removed_rejected",
+      "passed": true,
+      "milliseconds": 0.046,
+      "detail": "ValueError"
+    },
+    {
+      "case": "wrong_password_rejected",
+      "passed": true,
+      "milliseconds": 217.587,
+      "detail": "InvalidTag"
+    },
+    {
+      "case": "corrupted_ciphertext_rejected",
+      "passed": true,
+      "milliseconds": 141.737,
+      "detail": "InvalidTag"
+    },
+    {
+      "case": "truncated_file_rejected",
+      "passed": true,
+      "milliseconds": 100.961,
+      "detail": "InvalidTag"
+    },
+    {
+      "case": "filesystem_date_not_authoritative",
+      "passed": true,
+      "milliseconds": 114.981,
+      "detail": "Copy, rename and filesystem timestamp change preserve the embedded original"
+    },
+    {
+      "case": "date_changes_derived_key",
+      "passed": true,
+      "milliseconds": 231.497,
+      "detail": "Same password/salt, different dates: different keys"
+    },
+    {
+      "case": "password_holder_can_reencrypt_with_new_date",
+      "passed": true,
+      "milliseconds": 314.595,
+      "detail": "Password holder can produce a valid replacement with a new asserted date"
+    },
+    {
+      "case": "date_verified_without_password",
+      "passed": true,
+      "milliseconds": 0.236,
+      "detail": "2026-05-01T12:00:00.000Z"
+    },
+    {
+      "case": "edited_signed_date_rejected",
+      "passed": true,
+      "milliseconds": 0.204,
+      "detail": "InvalidSignature"
+    },
+    {
+      "case": "password_holder_without_signing_key_rejected",
+      "passed": true,
+      "milliseconds": 181.251,
+      "detail": "InvalidSignature"
+    },
+    {
+      "case": "signature_downgrade_rejected",
+      "passed": true,
+      "milliseconds": 0.038,
+      "detail": "ValueError"
+    },
+    {
+      "case": "incorrect_clock_can_be_signed",
+      "passed": true,
+      "milliseconds": 117.479,
+      "detail": "Valid signature authenticates an assertion; it does not establish real wall-clock creation"
+    }
+  ]
+}

@@ -548,10 +548,11 @@ button.switch.active-program {
   .button-grid.cameras { grid-template-columns: repeat(3, 1fr); }
   .button-grid.transport { grid-template-columns: repeat(2, 1fr); }
 }
+html.drag-scroll-active,html.drag-scroll-active *{cursor:grabbing!important;user-select:none!important}
 </style>
   <script src="/static/reach_auth.js"></script>
 </head>
-<body>
+<body data-drag-scroll>
 <div class="room-shell">
   <header class="top-rail">
     <div>
@@ -1269,5 +1270,5 @@ init();
 <script src="./camera_pool_async.js"></script>
 <script src="./camera_pool_controller.js"></script>
 <script src="camera_pool_panel.js" defer></script>
-</body>
+<script src="/static/drag_scroll.js"></script></body>
 </html>

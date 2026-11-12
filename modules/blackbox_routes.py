@@ -9,8 +9,10 @@ from __future__ import annotations
 from typing import Any, Dict
 
 import asyncio
+import hashlib
 import time
 import uuid
+import sqlite3
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field, model_validator
 from datetime import datetime
@@ -19,6 +21,7 @@ from .auth import role_gte
 
 from .blackbox_runtime import BlackBoxRuntimeWitness
 from .route_security import require_role
+from .blackbox_retention_policy import PolicyUpdate,PolicyConflict
 
 
 class PreserveRequest(BaseModel):
@@ -47,14 +50,33 @@ async def capture_operator(identity=Depends(current_identity)):
     return identity
 
 
+async def archive_owner(identity=Depends(current_identity)):
+    if not identity.get('authenticated') or identity.get('role')!='owner':
+        raise HTTPException(403,'Authenticated installation owner required for archive settings')
+    return identity
+
+
 def create_blackbox_router(witness: BlackBoxRuntimeWitness) -> APIRouter:
     router = APIRouter(prefix="/api/operator/blackbox", tags=["BlackBox Operator Boundary"])
+
+    @router.get('/archive-policy')
+    async def get_archive_policy(identity=Depends(archive_owner)):
+        try:return await asyncio.to_thread(witness.archive_policy)
+        except (OSError,ValueError,sqlite3.Error) as error:
+            raise HTTPException(503,'Archive settings could not be read') from error
+
+    @router.patch('/archive-policy')
+    async def patch_archive_policy(body: PolicyUpdate,identity=Depends(archive_owner)):
+        try:return await asyncio.to_thread(witness.update_archive_policy,body,identity['user_id'])
+        except PolicyConflict as error:raise HTTPException(409,str(error)) from error
+        except ValueError as error:raise HTTPException(422,str(error)) from error
+        except (OSError,sqlite3.Error) as error:raise HTTPException(503,'Archive settings storage unavailable') from error
 
     @router.get('/health')
     async def health(identity=Depends(current_identity)):
         if not identity.get('authenticated'):
             raise HTTPException(401, 'Sign in to inspect Blackbox health')
-        return witness.health()
+        return await asyncio.to_thread(witness.health)
 
     @router.post('/save')
     async def save(identity=Depends(capture_operator)):
@@ -104,12 +126,15 @@ def create_blackbox_router(witness: BlackBoxRuntimeWitness) -> APIRouter:
         clean = False
         try:
             config = await asyncio.wait_for(ws.receive_json(), timeout=10)
+            if not isinstance(config, dict):
+                raise ValueError('Capture configuration must be an object')
             if config.get('source') != 'control-room-mix' or config.get('encoding') != 'pcm-s16le':
                 raise ValueError('Only live control-room PCM capture is accepted')
             if not witness.enabled or witness._closed:
                 raise ValueError('Blackbox is inactive')
             sink = await asyncio.to_thread(witness.media.start, int(config.get('sample_rate', 0)), int(config.get('channels', 0)))
-            witness.record_event('capture.started', actor=identity['user_id'], data=sink.status())
+            if not await asyncio.to_thread(witness.record_event, 'capture.started', actor=identity['user_id'], data=sink.status()):
+                raise OSError('Capture start receipt could not be committed')
             await ws.send_json({'ok': True, 'capture_id': sink.id})
             while True:
                 packet = await asyncio.wait_for(ws.receive(), timeout=10)
@@ -125,7 +150,12 @@ def create_blackbox_router(witness: BlackBoxRuntimeWitness) -> APIRouter:
                 elapsed = time.time() - sink.started_at
                 if projected > elapsed + 2 or elapsed - projected > 3:
                     raise ValueError('Capture lost its live sample clock')
+                first_frame = sink.frames
                 frames = await asyncio.to_thread(sink.append, data)
+                if not await asyncio.to_thread(witness.record_event, 'capture.chunk_committed', source='blackbox', actor=identity['user_id'], data={
+                        'capture_id':sink.id, 'first_frame':first_frame, 'frames':frames-first_frame,
+                        'sha256':hashlib.sha256(data).hexdigest()}):
+                    raise OSError('PCM receipt could not be committed')
                 await ws.send_json({'ok': True, 'capture_id': sink.id, 'frames': frames})
         except WebSocketDisconnect:
             pass
@@ -140,8 +170,11 @@ def create_blackbox_router(witness: BlackBoxRuntimeWitness) -> APIRouter:
             if sink is not None:
                 if not clean:
                     sink.error = sink.error or 'Capture disconnected without final stop'
-                await asyncio.to_thread(sink.close)
-                witness.record_event('capture.stopped', actor=identity['user_id'], data={**sink.status(), 'clean': clean})
+                try:
+                    await asyncio.to_thread(sink.close)
+                except OSError:
+                    sink.error = 'Capture close failed; committed source retained'
+                await asyncio.to_thread(witness.record_event, 'capture.stopped', actor=identity['user_id'], data={**sink.status(), 'clean': clean})
             try:
                 await ws.close()
             except (RuntimeError, WebSocketDisconnect):   # already closed, or the page went away without a close frame
@@ -167,7 +200,7 @@ def create_blackbox_router(witness: BlackBoxRuntimeWitness) -> APIRouter:
     async def blackbox_verify(identity: Dict[str, Any] = Depends(require_role("mod"))):
         actor = str(identity.get("user_id") or "operator")
         witness.access(actor=actor, access="verify", scope=witness.session_id, reason="hash_chain_verify")
-        result = witness.verify()
+        result = await asyncio.to_thread(witness.verify)
         return {"ok": result.ok, "checked": result.checked, "errors": result.errors}
 
     return router
