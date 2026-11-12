@@ -73,3 +73,10 @@ NOT READ / COULD NOT RUN: pubpartner_vessel/store.py, search.py, errors.py are n
 FROM THE OWNER'S EARLIER CHATS (stored notes, not checked against code today): her design is Cartridge + separate Memory Card + runtime adapter; context_manager.py exists in Pub-Partner-Base-Horizon; MemoryGate promote has no destination; the OmniVault recorder idea. The evaluation marks these FROM EARLIER CHATS.
 
 RECOMMENDATION GIVEN: three shelves (the record; the work log per project; the relationship per cartridge) and two modes (partner, plain). Nine ordered steps, step 0 being to check the existing pieces first. Six owner decisions listed. Nothing is started; she has not yet said go.
+
+==========================================================================
+ADDED 2026-11-10, 22:26 (a correction from the owner about what she is asking for)
+==========================================================================
+HER WORDS: "I'm not trying to ask you to set up a lever. I'm just trying to show you everything that we really have in terms of different efforts to make this thing real and have you gather whatever tidbits you can to help us move forward."
+WHAT THIS MEANS FOR ANY AI PICKING THIS UP: when she shares a file or a build in this thread, the job is to read it and harvest what is worth keeping. It is not a request to build, to gate work on it, or to ask her for more files. I got this wrong in my previous reply by asking her for another build before proceeding.
+DELIVERED: EFFORTS_AND_WHAT_TO_KEEP_2026-11-10.txt. A running harvest of twenty-seven efforts, each marked READ, SEEN, TOLD or NOT SEEN, with the piece worth keeping from each, and four threads that run through all of them. It is meant to be added to as she shares more. Nothing in it is a build instruction.
