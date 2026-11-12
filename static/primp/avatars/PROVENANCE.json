@@ -1,0 +1,25 @@
+{
+  "tool": "xatlas 0.0.11",
+  "tool_license": "MIT",
+  "tool_source": "https://github.com/mworchel/xatlas-python/tree/v0.0.11",
+  "records": [
+    {
+      "name": "manny",
+      "source_sha256": "af31bc6394ed6025e43c512c5c955c8b098e517223ecef4eeb2604c7b9538f90",
+      "derived_sha256": "db62ed51e7e360295e63cb434cc6dd1dc5b9d314f111b5e5a2300040dc057dc1",
+      "vertices": 1656,
+      "triangles": 552,
+      "charts": 273,
+      "bytes": 326800
+    },
+    {
+      "name": "sheila",
+      "source_sha256": "86f48074bef287a3248d4d081927fc378c0ed440e0e0e98279cc915eb0f43f7f",
+      "derived_sha256": "dc5e52a582a347baa584c2a28c1e31854b1ba4cc052f7cb667b1e89776111f56",
+      "vertices": 1656,
+      "triangles": 552,
+      "charts": 273,
+      "bytes": 320612
+    }
+  ]
+}
