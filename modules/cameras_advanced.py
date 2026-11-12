@@ -22,6 +22,8 @@ from concurrent.futures import ThreadPoolExecutor
 import uuid
 import numpy as np
 
+from modules.persistence import write_json
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
