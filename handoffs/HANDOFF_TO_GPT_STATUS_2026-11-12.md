@@ -111,3 +111,59 @@ These are restated from the owner's saved preferences and the project files. Che
 - Do not use GitHub Actions to test her work.
 - If she declines an idea, say plainly what is actually required, and leave the decision to her.
 - If the first approach fails, look for another way to reach the goal before giving up.
+
+## 10. Complete open-items list (added 2026-11-12 after an audit of every chat from 2026-11-01 to 2026-11-12)
+
+This section supersedes sections 4, 5 and 7 where they differ. Each item says what it is, where it stands, and who has to act.
+
+### 10.1 Work that is not in any branch
+
+- The peq-integration-2026-11-06 work and its peq_lineage copy. This was 75 files with a SHA-256 manifest, plus a folder renamed from "best" to aug15_0554_pubpartner_zip. It was made on 2026-11-06 in a sandbox clone, was never committed, and the branch is not on the remote. The folder is not in this sandbox. Treat it as lost from here. Recovery depends on the original zip Josie uploaded on or around 2026-11-06. The Nov 6 chat reported 324 passed for the regression set on that copy.
+- PUBCAST_WALLET_COMMUNICATION_DESIGN_2026-11-09.md, the Wallet stage 1 design. It was sent as an attachment on 2026-11-09 from /home/claude/note, which no longer exists. It is not in the repo. Its five decisions are listed in 10.2.
+- EFFORTS_AND_WHAT_TO_KEEP_2026-11-10.txt, the November 10 harvest of 27 efforts. Not in the repo. Needs the owner's upload.
+- The 2026-11-02 podcast pitch. Chat only.
+- The 2026-11-06 failure record. Not found. The evidence section lives in QUALITY_STANDARDS.md, section 4.
+- The 2026-11-06 duplicate-file audit across 23 repos. Chat only. The corrected figures from that chat are about 339 Python filenames with competing versions (an earlier 475 was wrong), about 200 copy-named files (an earlier figure of about 1,100 was wrong), and 3 mostly empty Python files (an earlier figure of 144 was wrong).
+
+### 10.2 Decisions waiting on the owner (Josie). GPT should not decide these.
+
+1. Merge into main. Not authorized. Claude asked on 2026-11-05. main stays at c82069b until she says so.
+2. PubWorld Set page and three.js. The page needs the older three.js r128. A second copy is at static/vendor/three-0.128.0, next to the shared 0.160.0. Moving the page to 0.160.0 changes its lighting and colour handling. She should confirm the second copy or ask for one copy after a visual check. Other demo pages still load three.js from the internet. They were left alone on purpose, and she has not said whether to change them.
+3. Email visibility. The change is recorded in handoffs/INTEGRATION_2026-11-04.md. It needs her confirmation.
+4. One-user-per-copy versus the crew-accounts route. Undecided. This is PC-038. The crew-accounts route still exists in the code.
+5. The About-me profile spec, section 14.4 of handoffs/HANDOFF_PUBCAST_NOTES_PROFILES_CONNECTORS_2026-11-02.md, which is on claude-work. Five open questions: default visibility of each field; what goes on a guest's visiting card; whether two cartridges share memory; a name for the in-studio Claude; whether "identity constant, mode switchable" is the rule.
+6. Wallet stage 1 design. Five decisions: what PubCast may hand in; when (by hand, at key moments, on a schedule, or a mix); whether unknown senders are held or refused; whether PubCast may ask for things back; whether PubCast shows the Wallet's size with a warning limit. Claude recommended auto-filing paired hand-ins into an unreviewed holding area that she promotes with her key. GPT's per-hand-in approval is the alternative. Claude said it would not build until she answers.
+7. The CLAUDE.md read-first line. The QUALITY_STANDARDS.md evidence section exists. Whether to list it in CLAUDE.md's read-first line is hers to decide, and CLAUDE.md has not been changed.
+8. Recording files for PC-004. She was to attach recording.py and recording_pipeline_routes.py, both from November 1. Not received as far as the repo shows.
+9. The user menu design, right-click placement, and the remaining spot positions. Not decided.
+10. Lip-sync measurement, the external Nudge, UI polish, connectors. Not decided.
+11. Windows and PowerShell 5, and physical-device checks. Not run. Her laptop was down on 2026-11-12, so these are blocked on the owner.
+12. Issue #1. Whether Claude posts a progress comment under her account. Not posted.
+13. Scheduled tasks. Task trig_01MnfpZqC9z7GJoCei4Q32xk is left over from 2026-11-05. Delete it only if she says so. A poke-test task was switched off on 2026-11-03 and not deleted.
+
+### 10.3 Claude-side items still open
+
+- The sandbox fast tier has not been run. Claude said on 2026-11-05 that it would run it, and it has not.
+- PC-025 is not done. It is about reporting what the app can do based on real initialization.
+- The flaky test test_portable_save_as_and_reopen_uses_real_disk_without_vendor_picker failed once under load on 2026-11-05 and then passed 16 of 16. It did not fail in the 2026-11-12 clean run. The cause is unknown.
+- The regression count is unresolved. Claude's 2026-11-03 chat said 230 after a recheck. The 2026-11-06 chat reported 324 for the bridge and orchestrator set. Nobody has reconciled the two.
+- The camera save bug, the VDIReport annotation and the test race are listed in section 3.
+- The 2026-11-12 clean run was 2,370 passed, 8 skipped, 1 failed, from 2,377 collected. It is not the 2,476-test figure from the 2026-11-06 chat, which was on the unpushed peq copy.
+
+### 10.4 GPT's branches, GPT's open issues
+
+- gpt/control-ui-wiring-2026-11-08. A full-suite run on 2026-11-09 gave 2,367 passed, 6 failed, 6 skipped. All six failures are browser recording tests. The Stop button never enables on four of them, PANIC takes over a second to cut on one, and a wait times out on another. Four fail consistently, and they also fail on the November 6 version. GPT tested on an older Chromium. Claude's run was on current Chrome on a slower machine. A deliberate browser-crash test freezes the tools and was not run. Check PANIC on the owner's laptop.
+- chatgpt-work-2026-11-05. GPT claimed 2,371 passing tests and then marked its own readiness checks NOT CLEARED. The largest bug it found: in a 30-minute test with two guests, guest audio dropped within one to four minutes. This is GPT's own finding and is unresolved.
+- gpt/primp-canvas-preparation-2026-11-07. Paint does not show. Full-strength black ink changed the screen by 3 out of 255. The cause is that the starter avatars keep the cyan hologram glow, which adds light over whatever is painted. The avatars are also block placeholders with a domed head and no face. GPT's 36 Primp unit tests pass. The paint problem is not covered by them.
+- Decisions GPT made without the owner's approval. Each needs her decision.
+  - The guest acceptance wording is "I accept the production terms, recording, AI participation and data processing for this visit." The owner's own terms are not in it: avatar thoughts recorded; English or translatable; the owner signs; the AI signs too.
+  - A 5 MB cap on every upload. Uploads used to be unlimited. That is roughly 10 to 20 seconds of replay video.
+  - An 8-hour guest pass, 5-minute invite codes, and a 200-person group cap.
+  - Replay uploads are public to anyone with the host's address. GPT flagged this itself.
+- The Blackbox replay doc is on gpt/live-studio-setup-2026-11-09 at docs/testing/BLACKBOX_CHAT_REPLAY_2026-11-09.md. Commit 1cfb2d2 on that branch backs up the November 9 live studio and Blackbox source. It is on GPT's branch, not claude-work.
+- Claude said on 2026-11-09 that the Iteration Wallet code is not in any of the repos it checked, and that GPT should push its branch first. Whether GPT has pushed it is unknown here.
+- The October-24 repo was read-only for Claude on 2026-11-02, at the owner's direction. Nothing was changed there.
+
+### 10.5 Other work from the same chats, not for this repo
+
+Several chats from 2026-11-01 to 2026-11-12 are not Beyond-October work. Examples: a fashion portfolio bundle sent as files on 2026-11-02, and several personal support conversations. They are not listed here on purpose. This repo is public.
