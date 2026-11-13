@@ -2,6 +2,33 @@
 
 Written for a cold reader. Every line says whether it was verified by running it, only read, or only listed.
 
+## Second run, same day (read this first; it supersedes the matching lines below)
+
+Commits added on `fable/integration-2026-11-13` after `2c32669`: `906594f` (PANIC), `6181a9a` (bridge), and the commit that adds this section. `main` is still `c82069b`, unmerged. The sandbox restarted once during this run; nothing was lost.
+
+Fixed and retested:
+
+1. PANIC (`static/production25d_app.js`). Cause was application logic, not only the sandbox. PANIC relied on the ordinary Stop's 100 ms timer poll, and the independent voice/reference encoders kept capturing until the program take's writer had settled. PANIC now stops every encoder inside the PANIC call. New test `test_panic_stops_the_encoder_without_waiting_for_any_timer` fails on the old code and passes now. `tests/test_recording_integration_browser.py`: 3 passed, run twice. Adjacent `test_production25d_browser.py`, `test_studio25d_recording_guard.py`, `test_studio25d_recording_ingest.py`: 38 passed. Browser: installed Chrome for Testing 153, headless, Linux. Not run on Windows or with real devices.
+2. `/api/alex/message` now goes through `AlexJeremyBridge.process_user_turn`, the same path as PubPartner turns. Verified by test and by the live trace: the packet is rebuilt after a message, after a correction, and is the same after restart.
+3. A Jeremy room signal no longer edits the user's own stress, clarity or energy. The signal response keeps its emergency handling and authority review; later packets carry the signal as `room_context` (about the room) next to `user_fragility_level`. Verified by test and live: a calm correction after a high-urgency room signal now stays out of ANCHOR with no breathing exercise (it was ANCHOR before). The user's own emergency still reaches ANCHOR (test).
+   Focused run after items 2 and 3: 161 passed, 1 skipped, 1 expected failure.
+
+Decisions made in this run that the owner may want to change:
+
+- `ROOM_SIGNAL_ACTIVE_SECONDS` is 15 minutes. That number is new and was chosen here.
+- On the turn after a room signal, `care_priority`, tone and pace in the packet come from Alex's read of the user again; the room emergency travels as `room_context` and in Jeremy's whisper. Before, the `/api/alex/message` route left the signal's values in the packet until the next signal.
+- In the signal response, `fragility_level` is still the raised room handling level (an existing test requires it); `user_fragility_level` is Alex's own read.
+
+Still broken or unknown:
+
+- `test_clacker_recording_browser.py` still times out. It needs 31 one-second checkpoints within 45 s; this sandbox's software encoder may simply be too slow. Not established.
+- `test_admitted_guest_recording_browser.py` was not re-run after the PANIC change; last result was `#recordStop` staying disabled. Cause not established.
+- Not started: CARE observations reaching the packet, clause-aware negation, speech and avatar focused tests.
+- Still open for release: no full-suite result on this HEAD, outbound privacy checked on one path only, no real model reply, nothing on Windows or real media.
+- No regressions seen in the focused runs. Suspected risk to watch: any caller that expected a room signal to change Alex's state for that user.
+
+Next smallest action: re-run `tests/test_admitted_guest_recording_browser.py` and `tests/test_clacker_recording_browser.py` with real Chromium on the owner's laptop. If the guest test still fails there, read why `#recordStop` is disabled in `setControls` (`static/production25d_app.js`, line 58 area).
+
 ## Where the work is
 
 - Branch: `fable/integration-2026-11-13`, created from `11-12-merge` at `d70952e52c81f89178f4ab557206fcde109bf970`.
