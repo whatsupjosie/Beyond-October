@@ -127,6 +127,16 @@ def _authorized_alex_user(identity: Dict[str, Any], user_id: Optional[str] = Non
 _care_eq = None
 
 
+_alex_bridge = None
+
+
+def set_alex_bridge(bridge):
+    """Route /api/alex/message through the same AlexJeremyBridge.process_user_turn
+    that PubPartner turns use, so this entry point cannot leave Jeremy's packet stale."""
+    global _alex_bridge
+    _alex_bridge = bridge
+
+
 def set_care_eq(care):
     """Share one CARE coordinator with Alex routes and the Alex/Jeremy Bridge."""
     global _care_eq
@@ -239,21 +249,43 @@ async def send_message(request: MessageRequest, identity: Dict[str, Any] = Depen
     
     try:
         metadata = dict(request.context or {})
-        care_facing_text = request.message
-        if _care_eq is not None and _care_eq.is_active(user_id):
-            owner_id = _own_care_identity(identity, user_id=user_id)
-            care_facing_text = _care_eq.receive(owner_id, request.message)
-            metadata["care_mode"] = "baby_masked"
-        response = await alex.process_message(
-            care_facing_text,
-            typing_speed=float(request.typing_speed or 60.0),
-            metadata=metadata,
-            user_id=user_id,
-        )
+        care_active = _care_eq is not None and _care_eq.is_active(user_id)
+        via_bridge = _alex_bridge is not None and hasattr(_alex_bridge, "process_user_turn")
+        if via_bridge:
+            # Same path as a PubPartner turn: Alex's analysis, System Alex's
+            # adjudication, and a fresh packet for Jeremy. CARE masking happens
+            # inside the bridge, once.
+            if care_active:
+                _own_care_identity(identity, user_id=user_id)
+                metadata["care_mode"] = "baby_masked"
+            response: Dict[str, Any] = {}
+            await _alex_bridge.process_user_turn(
+                user_id=user_id,
+                session_id=str(metadata.get("session_id") or "default")[:120],
+                text=request.message,
+                project_id=str(metadata.get("project_id") or "default")[:120],
+                room_id=str(metadata.get("room_id") or "default")[:120],
+                typing_speed=float(request.typing_speed or 60.0),
+                metadata=metadata,
+                analysis_out=response,
+            )
+        else:
+            care_facing_text = request.message
+            if care_active:
+                owner_id = _own_care_identity(identity, user_id=user_id)
+                care_facing_text = _care_eq.receive(owner_id, request.message)
+                metadata["care_mode"] = "baby_masked"
+            response = await alex.process_message(
+                care_facing_text,
+                typing_speed=float(request.typing_speed or 60.0),
+                metadata=metadata,
+                user_id=user_id,
+            )
 
         # Affect → choreography. Best-effort and fully isolated: a failure here
-        # must never break the chat response the user is waiting on.
-        if _choreo_hook is not None:
+        # must never break the chat response the user is waiting on. The bridge
+        # runs it after adjudication when the Alex instance has its own callback.
+        if _choreo_hook is not None and not (via_bridge and getattr(alex, "affect_choreo_callback", None) is not None):
             try:
                 await _choreo_hook(alex, user_id)
             except Exception as hook_exc:  # noqa: BLE001 - deliberate catch-all

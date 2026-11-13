@@ -1061,6 +1061,7 @@ async def lifespan(application: FastAPI):
         application.state.care_eq = care_eq_coordinator
         alex_routes.set_alex_instance(alex_core_instance)
         alex_routes.set_alex_provider(alex_bridge.alex_for)
+        alex_routes.set_alex_bridge(alex_bridge)
         application.include_router(alex_routes.router)
         application.include_router(create_pub_manager_authority_router(pub_manager_authority, alex_bridge))
         application.include_router(create_pub_manager_control_router(pub_manager_authority, alex_bridge))

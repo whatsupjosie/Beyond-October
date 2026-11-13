@@ -18,6 +18,9 @@ from .limited_exposure import (
 
 DEFAULT_PACKET_TTL_SECONDS = 60 * 60 * 8
 MAX_SIGNAL_HISTORY = 64
+# How long a Jeremy room signal keeps travelling with later packets as room
+# context. It never changes Alex's read of the user. Owner-adjustable value.
+ROOM_SIGNAL_ACTIVE_SECONDS = 15 * 60
 DEFAULT_SIGNAL_COOLDOWN_SECONDS = 0
 AUTHORITY_ACTIONS = {"freeze_actor", "hold_action", "mute_user", "kick_user", "ban_user"}
 AUTHORITY_ACTION_ALIASES = {
@@ -259,17 +262,15 @@ class AlexJeremyBridge:
         signals = signals[-MAX_SIGNAL_HISTORY:]
         self._write_json(self._signals_path(session_id, user_id), signals)
 
-        # Nudge Alex's live state so follow-up packets actually respond to room distress.
+        # A room signal is evidence about the room, not about this person. It used
+        # to raise the user's own stress, lower their clarity and energy, and could
+        # put Alex into ANCHOR for a calm user. The signal now stays separate: it is
+        # saved, overlaid on this response as room handling, and carried on later
+        # packets as ``room_context``. Alex's read of the user changes only from
+        # what the user does.
         stress_floor = {"low": 0.20, "medium": 0.45, "high": 0.75}.get(urgency, 0.25)
         room_bonus = {"stable": 0.0, "tense": 0.05, "destabilizing": 0.15, "critical": 0.25}.get(room_state, 0.0)
         target_stress = min(1.0, stress_floor + room_bonus)
-        alex._user_state.stress_level = max(alex._user_state.stress_level, target_stress)
-        if urgency in {"medium", "high"}:
-            alex._user_state.clarity_score = min(alex._user_state.clarity_score, 0.85 if urgency == "medium" else 0.5)
-        if urgency == "high":
-            alex._user_state.energy_level = min(alex._user_state.energy_level, 0.4)
-        alex._cached_stress_score = alex._user_state.calculate_stress_score()
-        alex._update_ai_state()
 
         intensity = max(0.25, target_stress)
         alex.memory.store(
@@ -348,6 +349,7 @@ class AlexJeremyBridge:
         room_id: str = "pubpartner",
         typing_speed: float = 60.0,
         metadata: Optional[Dict[str, Any]] = None,
+        analysis_out: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Run Alex's full per-message analysis and persist a bridge-safe packet.
 
@@ -431,6 +433,13 @@ class AlexJeremyBridge:
             event_id=judgment_label.origin_event_id or str((metadata or {}).get("message_id") or ""),
         )
         packet["data_class"] = judgment_label.classification.value
+        packet["user_fragility_level"] = packet.get("fragility_level", 0.0)
+        room_context = self._active_room_context(session_id=session_id, user_id=user_id)
+        if room_context:
+            packet["room_context"] = room_context
+        if analysis_out is not None:
+            # Private to the authenticated caller; never written to the shared packet.
+            analysis_out.update(analysis)
         packet.update({
             "bridge_scope": "message_analysis",
             "generated_at": time.time(),
@@ -665,10 +674,25 @@ class AlexJeremyBridge:
     def jeremy_whisper(self, *, user_id: str, session_id: str) -> str:
         packet = self.current_packet(user_id=user_id, session_id=session_id)
         tone = packet.get("tone_guidance", "steady")
-        fragility = float(packet.get("fragility_level", 0.0))
+        # The user's own level when the packet separates it; older packets only
+        # have the combined value.
+        fragility = float(packet.get("user_fragility_level", packet.get("fragility_level", 0.0)))
         flags = list(packet.get("do_not_touch", []))
         active = list(packet.get("active_threads", []))
         parts = [f"Jeremy note: keep tone {tone}."]
+        room = packet.get("room_context") or {}
+        if room.get("urgency") in {"medium", "high"} or room.get("room_state") in {"destabilizing", "critical"}:
+            parts.append(
+                f"Room signal: {room.get('room_state', 'stable')} / {room.get('urgency', 'low')}"
+                + (f" ({room.get('reason')})" if room.get("reason") else "")
+                + ". This describes the room, not this user's own state."
+            )
+            # The handling a room emergency calls for is kept; only the claim
+            # about the person is gone.
+            if room.get("urgency") == "high" or room.get("room_state") == "critical":
+                parts.append("While it lasts, minimize friction and keep steps small.")
+            else:
+                parts.append("While it lasts, use gentler pacing and reduced noise.")
         if fragility >= 0.7:
             parts.append("User appears fragile; minimize friction and keep steps small.")
         elif fragility >= 0.4:
@@ -816,7 +840,10 @@ class AlexJeremyBridge:
         elif room_state == "critical":
             fragility_floor = max(fragility_floor, 0.90)
 
+        # Keep Alex's own read of the user beside the room handling level.
+        packet.setdefault("user_fragility_level", float(packet.get("fragility_level", 0.0)))
         packet["fragility_level"] = max(float(packet.get("fragility_level", 0.0)), fragility_floor)
+        packet["room_context"] = self._room_context_from_signal(signal)
 
         priorities = {"low": 1, "medium": 2, "high": 3}
         current_priority = packet.get("care_priority", "low")
@@ -853,6 +880,31 @@ class AlexJeremyBridge:
             if reason not in active_threads:
                 packet["active_threads"] = ([reason] + active_threads)[:5]
         return packet
+
+    @staticmethod
+    def _room_context_from_signal(signal: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "source": "jeremy_signal",
+            "about": "room",
+            "room_state": signal.get("room_state", "stable"),
+            "urgency": signal.get("urgency", "low"),
+            "reason": str(signal.get("reason") or "")[:240],
+            "ts": signal.get("ts"),
+        }
+
+    def _active_room_context(self, *, session_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+        """Latest Jeremy room signal for this session, while it is still recent."""
+        signals = self._load_json(self._signals_path(session_id, user_id), default=[])
+        if not isinstance(signals, list) or not signals or not isinstance(signals[-1], dict):
+            return None
+        latest = signals[-1]
+        try:
+            age = time.time() - float(latest.get("ts") or 0.0)
+        except (TypeError, ValueError):
+            return None
+        if age < 0 or age > ROOM_SIGNAL_ACTIVE_SECONDS:
+            return None
+        return self._room_context_from_signal(latest)
 
     def _review_authority(self, signal: Dict[str, Any]) -> Dict[str, Any]:
         payload = signal.get("payload") if isinstance(signal.get("payload"), dict) else {}
