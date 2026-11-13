@@ -87,7 +87,7 @@ Path run through `run_reach.py` with a logged-in owner: `POST /api/pubpartner/se
 The owner authorized a safe merge if boot, meaningful user flows, focused regressions and privacy boundaries pass. Not cleared:
 
 1. Three recording-area browser tests fail here and the cause is not established.
-2. The full suite was not run on this HEAD, so the 107 commits ahead of `main` are not shown to work together beyond the 187 focused tests and the live traces above.
+2. The full suite was not run on this HEAD, so the 107 commits ahead of `main` are not shown to work together beyond three focused non-browser runs (82 passed; 80 passed with 1 expected failure; 23 passed with 1 skipped; some test files are in more than one run, so these do not add up to a unique count) and the live traces above.
 3. Outbound-call privacy was checked on one path out of roughly thirty modules.
 4. Nothing was run on Windows, with real media, or with a real model.
 
