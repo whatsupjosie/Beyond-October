@@ -102,3 +102,40 @@ async def test_hostile_turns_do_not_raise_the_battery_during_escalation(alex):
         await alex.process_message(text, typing_speed=60.0, metadata={"session_id": "s"})
     assert alex._user_state.energy_level <= 0.5
     assert alex._settled_turns < 2 or alex._turn_had_distress
+
+
+# 2026-11-13: valence used a raw substring count while _analyze_input used the
+# negation-aware matcher, so a correction ("I'm not upset") was stored in Alex
+# memory tagged "negative" and came back as context on later turns.
+@pytest.mark.parametrize("text", [
+    "No, you misread me. I'm not upset, I'm just tired.",
+    "I'm not sad and I'm not angry, today was fine.",
+    "That is not terrible at all.",
+    "The greatest hits were on, nothing else to report.",
+])
+def test_negated_or_embedded_feeling_words_are_not_scored_as_that_feeling(alex, text):
+    assert alex._estimate_valence(text) == 0.0, text
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("I am upset about the meeting.", -1.0),
+    ("I love this, it is wonderful.", 1.0),
+    ("I'm angry, not happy.", -1.0),
+])
+def test_plain_feeling_words_still_score(alex, text, expected):
+    assert alex._estimate_valence(text) == expected, text
+
+
+def test_correction_is_not_stored_as_a_negative_memory(alex):
+    import asyncio
+    asyncio.run(alex.process_message("No, you misread me. I'm not upset, I'm just tired."))
+    tags = alex.get_recent_memories(1)[0]["emotional_tags"]
+    assert "negative" not in tags and "distress" not in tags, tags
+
+
+@pytest.mark.xfail(strict=True, reason="Known limit of _keyword_hit, not fixed on 2026-11-13: "
+                   "the three-word negation window crosses a comma, so the 'not' before "
+                   "'happy' also cancels 'angry'. Changing the window is a matcher design "
+                   "decision that also affects the stress and fatigue reads.")
+def test_negation_window_does_not_cross_a_clause_boundary(alex):
+    assert alex._estimate_valence("I'm not happy, I'm angry.") == -1.0

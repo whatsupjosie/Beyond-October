@@ -1136,8 +1136,11 @@ class AlexCore:
         positive_words = ['happy', 'joy', 'love', 'great', 'wonderful', 'amazing', 'excited']
         negative_words = ['sad', 'angry', 'hate', 'terrible', 'awful', 'frustrated', 'upset']
         
-        pos_count = sum(1 for word in positive_words if word in text_lower)
-        neg_count = sum(1 for word in negative_words if word in text_lower)
+        # Whole-word and negation-aware, through the same _keyword_hit that
+        # _analyze_input uses. A raw substring count stored "I'm not upset"
+        # (a correction) as a negative memory, the opposite of what was said.
+        pos_count = sum(1 for word in positive_words if self._keyword_hit(text_lower, (word,)))
+        neg_count = sum(1 for word in negative_words if self._keyword_hit(text_lower, (word,)))
         
         if pos_count + neg_count == 0:
             return 0.0
