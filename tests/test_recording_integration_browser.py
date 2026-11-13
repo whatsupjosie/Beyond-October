@@ -8,7 +8,8 @@ def delay_first_delivery(page, timeslice):
     page.evaluate("""timeslice => {
       const Native = MediaRecorder;
       window.MediaRecorder = class extends Native {
-        constructor(...args) { super(...args); window.integrationRecorder = this; }
+        constructor(...args) { super(...args); window.integrationRecorder = this;
+          (window.integrationRecorders = window.integrationRecorders || []).push(this); }
         start() { return super.start(timeslice); }
         requestData() {}
       };
@@ -55,4 +56,35 @@ def test_panic_interrupts_an_already_waiting_ordinary_stop(studio):
     }""")
     assert result['elapsed'] < 1000
     assert result['bytes'] > 1000
+    assert page.problems == []
+
+
+def test_panic_stops_the_encoder_without_waiting_for_any_timer(studio):
+    """2026-11-13: PANIC used to rely on the ordinary Stop's 100 ms poll noticing a
+    flag. Browsers slow timers in background tabs, so that poll can take a second or
+    longer. Here every short timer is held for five seconds; PANIC must still stop
+    every encoder (program and independent sources) inside the PANIC call itself."""
+    page, _ = studio
+    delay_first_delivery(page, 60000)
+    page.wait_for_timeout(500)
+    result = page.evaluate("""async () => {
+      const nativeTimeout = window.setTimeout;
+      window.setTimeout = (fn, ms, ...rest) => nativeTimeout(fn, ms <= 200 ? 5000 : ms, ...rest);
+      try {
+        const ordinary = PubCast25DStudio.stopRecording();
+        await Promise.resolve();
+        const before = integrationRecorders.map(r => r.state);
+        const immediate = PubCast25DStudio.stopRecording({immediate:true});
+        const after = integrationRecorders.map(r => r.state);
+        window.setTimeout = nativeTimeout;
+        await Promise.all([ordinary, immediate]);
+        const sessions = await PubCast25DStore.list();
+        return {before, after, sessions: sessions.length,
+          bytes:(await PubCast25DStore.read(sessions[0].id)).blob.size};
+      } finally { window.setTimeout = nativeTimeout; }
+    }""")
+    # The program encoder and every independent voice/reference encoder.
+    assert len(result['before']) >= 2 and set(result['before']) == {'recording'}
+    assert set(result['after']) == {'inactive'}
+    assert result['sessions'] == 1 and result['bytes'] > 1000
     assert page.problems == []

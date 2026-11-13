@@ -486,12 +486,26 @@ function waitForFirstData(rec,ms){
  });
 }
 async function stopRecording(options){
- if(options?.immediate===true)state.recordingStopImmediate=true;
+ if(options?.immediate===true){
+  state.recordingStopImmediate=true;
+  // PANIC also stops the independent voice and reference encoders now. Without
+  // this they kept capturing until the program take's writer had settled.
+  for(const job of state.sourceRecordings?.jobs||[]){try{job.stop();}catch(_){}}
+ }
  if(state.recordingStarting){
    const op=state.recordingStarting;op.cancelled=true;state.recordingStarting=null;
    cleanupMedia(op.media);$("captureStatus").textContent="Recording start canceled.";setControls();return;
  }
- if(state.recordingPromise)return state.recordingPromise;
+ if(state.recordingPromise){
+  // PANIC must not depend on the ordinary Stop's 100 ms poll: browsers slow
+  // timers in background tabs to one second or more. Stop the encoder now;
+  // onstop is guarded, so the waiting ordinary Stop finishes the same take once.
+  if(options?.immediate===true&&state.recorder&&state.recorder.state==="recording"){
+   const live=state.recorder;
+   try{live.stop();}catch(e){state.mediaError=e;live.onstop();}
+  }
+  return state.recordingPromise;
+ }
  if(!state.recorder)return;
  const rec=state.recorder,completion=state.recordingComplete;
  state.recordingPromise=completion;setControls();
