@@ -2,6 +2,23 @@
 
 Written for a cold reader. Every line says whether it was verified by running it, only read, or only listed.
 
+## Closeout and restart order (2026-11-13, end of session)
+
+State at closeout: working tree clean, no stashes, nothing uncommitted or half-done. Last code commit is `6181a9a`; every commit after it changes only this file. `main` is `c82069b47b04eac56cca1fb4f6a4eb16c44d32ae`, untouched. No tests were run during closeout; the last results are the ones recorded in the section below.
+
+To resume: check out `fable/integration-2026-11-13`, install `requirements.txt` and `requirements-dev.txt`, and for browser tests in a sandbox without Playwright's Chromium use `handoffs/evidence_2026-11-13/use_system_chrome.py`. No GitHub Actions.
+
+Work in this order, one committed slice at a time:
+
+1. Admitted-guest recording: `tests/test_admitted_guest_recording_browser.py` (it runs a test from `tests/test_participant_audio_browser.py`, line 110). Last seen: `#recordStop` stays disabled. Not re-run since the PANIC change. Start at `setControls` in `static/production25d_app.js`.
+2. Clacker synchronisation: `tests/test_clacker_recording_browser.py`. Waits for 31 one-second checkpoints within 45 s and times out. First establish whether the sandbox encoder is just slow (count checkpoints reached) before changing code.
+3. CARE packet integration: reviewed CARE observations into the packet with provenance and confidence. Observations are stored by `modules/care_eq.py` (not yet read in full) and currently stay `unreviewed` and out of the packet.
+4. Clause-aware negation in `AlexCore._keyword_hit` (`modules/alex_core.py`). The strict xfail `test_negation_window_does_not_cross_a_clause_boundary` in `tests/test_alex_keyword_matching.py` is the target; the fatigue, stress and correction tests in that file must stay green.
+5. Full-suite run on this HEAD (none exists yet). STATUS.md records the last known full result on an older commit: 1,981 passed, 5 failed, 3 skipped.
+6. Outbound privacy audit: only the PubPartner private-audience path was checked. About thirty modules can call out; list is in the first run's notes below.
+
+Release gates still open: items 1, 2, 5 and 6 above; no real model reply; nothing run on Windows or with real media. Do not merge `main` until these are cleared and the owner authorizes it.
+
 ## Second run, same day (read this first; it supersedes the matching lines below)
 
 Commits added on `fable/integration-2026-11-13` after `2c32669`: `906594f` (PANIC), `6181a9a` (bridge), and the commit that adds this section. `main` is still `c82069b`, unmerged. The sandbox restarted once during this run; nothing was lost.
