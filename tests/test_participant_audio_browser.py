@@ -149,6 +149,15 @@ def test_two_peers_mix_controls_separate_durable_stems_and_original_server_expor
         page.wait_for_function('bands()[1]<-70 && bands()[0]>-35')
         two.wait_for_function('PubCastAudioContribution.closed')
         assert page.evaluate('!PubCastAudioDesk.closed')
+        fault=page.evaluate('PubCastAudioDesk.lastFault')
+        assert fault['diagnostic']['reason']=='underflow'
+        receiver=fault['diagnostic']['receiver']
+        assert receiver['queuedFrames']<128
+        assert receiver['receivedFrames']==receiver['renderedFrames']+receiver['queuedFrames']
+        assert receiver['currentFrame']>receiver['lastReceiveFrame']
+        assert 0<len(receiver['queueHistory'])<=12
+        assert fault['diagnostic']['transport']['packets']>0
+        assert 'underflow' in fault['message']
         page.evaluate("PubcastProgramAudio.consume({action:'stop',bus:'dialogue'})")
         one.wait_for_function('PubCastAudioContribution.closed')
         assert page.evaluate('PubcastProgramAudio.inputs.size===0 && PubCastAudioDesk.closed')

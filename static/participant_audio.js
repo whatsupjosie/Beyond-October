@@ -6,7 +6,7 @@
 'use strict';
 class ParticipantAudio {
  constructor({mixer=global.PubcastProgramAudio,onState=()=>{}}={}){
-  this.mixer=mixer;this.onState=onState;this.peers=new Map();this.closed=true;this.generation=0;
+  this.mixer=mixer;this.onState=onState;this.peers=new Map();this.closed=true;this.generation=0;this.lastFault=null;
  }
  report(message){this.onState(message,{closed:this.closed});}
  async request(path,method='GET',body,key){
@@ -39,7 +39,7 @@ class ParticipantAudio {
  async open(){
   if(!this.closed)throw Error('Close the current audio connection first');
   if(!this.mixer?.allowed())throw Error('Audio contributions are blocked in this room');
-  const generation=++this.generation;this.closed=false;this.host=true;
+  const generation=++this.generation;this.closed=false;this.host=true;this.lastFault=null;
   try{
    await this.mixer.ensureContext().resume();this.check(generation);
    const r=await this.request('/rooms','POST');await this.adopt(r,generation);
@@ -79,6 +79,10 @@ class ParticipantAudio {
   if(event.type==='error'){this.fail(Error(event.message));return;}
   if(!this.host)throw Error('Unexpected return audio');
   if(event.type==='left'||event.type==='fault'){
+   if(event.type==='fault'){
+    this.lastFault={peer:event.peer,message:event.message,diagnostic:event.diagnostic||null,observedAt:new Date().toISOString()};
+    console.warn('Participant audio fault',JSON.stringify({message:event.message,diagnostic:event.diagnostic||null}));
+   }
    this.drop(event.peer);this.report(event.message||'Participant disconnected; rejoin the invitation to reconnect.');return;
   }
   if(event.type!=='source'||this.peers.has(event.peer))throw Error('Invalid audio source');
