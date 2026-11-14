@@ -1,0 +1,88 @@
+{
+  "scope": "Existing editor core and export, using decoded marks and recorded camera-event timestamps as inputs. Diagnostic only. No visual cut-frame verification or Resolve conform.",
+  "cuts": [
+    {
+      "offsetMs": 74516,
+      "type": "camera.cut",
+      "payload": {
+        "from": "wide",
+        "to": "anchor",
+        "durationMs": 0,
+        "shared": true
+      }
+    },
+    {
+      "offsetMs": 134215,
+      "type": "camera.cut",
+      "payload": {
+        "from": "anchor",
+        "to": "coanchor",
+        "durationMs": 0,
+        "shared": true
+      }
+    }
+  ],
+  "tracks": [
+    {
+      "id": "program",
+      "kind": "camera",
+      "sync": {
+        "scale": 1.0008886133296324,
+        "interceptUs": -10751991.596641421,
+        "origin": "clacker",
+        "markers": 120,
+        "driftPpm": 888.613329632415,
+        "residualUs": 225507
+      },
+      "markerCount": 120
+    },
+    {
+      "id": "clacker",
+      "kind": "audio",
+      "sync": {
+        "scale": 1.0008939141607087,
+        "interceptUs": -10868818.767509818,
+        "origin": "clacker",
+        "markers": 120,
+        "driftPpm": 893.9141607087198,
+        "residualUs": 118260
+      },
+      "markerCount": 120
+    }
+  ],
+  "shots": [
+    {
+      "id": "cut-0",
+      "kind": "shot",
+      "trackId": "program",
+      "mediaRef": "local:program",
+      "timelineInUs": 0,
+      "timelineOutUs": 1000000,
+      "editInUs": 74516000,
+      "editOutUs": 75516000,
+      "sourceInUs": 63830224,
+      "sourceOutUs": 64831113,
+      "syncOrigin": "clacker",
+      "clackerMarkers": 120,
+      "manualOffsetUs": 0,
+      "driftPpm": 888.613329632415
+    },
+    {
+      "id": "cut-1",
+      "kind": "shot",
+      "trackId": "program",
+      "mediaRef": "local:program",
+      "timelineInUs": 1000000,
+      "timelineOutUs": 2000000,
+      "editInUs": 134215000,
+      "editOutUs": 135215000,
+      "sourceInUs": 123582274,
+      "sourceOutUs": 124583162,
+      "syncOrigin": "clacker",
+      "clackerMarkers": 120,
+      "manualOffsetUs": 0,
+      "driftPpm": 888.613329632415
+    }
+  ],
+  "edl": "TITLE: Recorded clacker interchange check\nFCM: NON-DROP FRAME\n\n* PUBCAST FRAME RATE: 30\n* EXPORT: SIMPLE CUTS + BLANK GAPS ONLY; RETAIN THE .pubcast-handoff.json FOR SYNC AND AUDIO\n001  P0000001 V     C        00:01:03:25 00:01:04:25 01:00:00:00 01:00:01:00\n* FROM CLIP NAME: endurance.webm\n* PUBCAST SOURCE TRACK: program\n002  P0000001 V     C        00:02:03:17 00:02:04:17 01:00:01:00 01:00:02:00\n* FROM CLIP NAME: endurance.webm\n* PUBCAST SOURCE TRACK: program\n"
+}

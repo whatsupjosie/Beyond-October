@@ -139,6 +139,16 @@ def test_thirty_minute_program_two_admitted_peers_and_reload(studio,production_b
         video = tmp_path / 'endurance.webm'
         download_selected(page, select, video)
         report['media_sha256'] = digest(video)
+        with page.expect_download(timeout=120000) as manifest:
+            page.click('#manifest')
+        manifest.value.save_as(tmp_path / 'session-manifest.json')
+        saved_session = json.loads((tmp_path / 'session-manifest.json').read_text())
+        assert saved_session == session
+        reference = page.locator('#sessionList button').filter(has_text='SYNC:')
+        assert reference.count() == 1
+        download_selected(page, reference, tmp_path / 'clacker-reference.webm')
+        report['clacker_sha256'] = digest(tmp_path / 'clacker-reference.webm')
+        save()
         probe=subprocess.run(['ffprobe','-v','error','-show_format','-show_streams','-of','json',str(video)],capture_output=True,text=True,check=True,timeout=90)
         info=json.loads(probe.stdout);report['ffprobe']=info
         duration, duration_source = media_duration(video, info)
