@@ -19,7 +19,7 @@ def decoded_marks(video, audio):
     times = np.array([float(frame['best_effort_timestamp_time'])
                       for frame in json.loads(timestamps)['frames']])
     pixels = subprocess.check_output(
-        ['ffmpeg', '-v', 'error', '-i', str(video), '-an', '-vf', 'crop=42:8:34:28,scale=1:1',
+        ['ffmpeg', '-v', 'error', '-i', str(video), '-an', '-vf', 'crop=42:8:34:28,scale=1:1,setpts=N',
          '-fps_mode', 'passthrough', '-pix_fmt', 'rgb24', '-f', 'rawvideo', 'pipe:1'], timeout=120,
     )
     rgb = np.frombuffer(pixels, dtype=np.uint8).reshape(-1, 3).astype(int)
@@ -44,15 +44,24 @@ def measure(video, audio, session, fps):
         raise ValueError('Program and clacker tracks reference different clocks')
     clock, = [entry for entry in session['syncReferences'] if entry['id'] == take['syncReferenceId']]
     interval = clock['intervalUs'] / 1_000_000
+    if not np.isfinite(interval) or interval <= 0 or not np.isfinite(fps) or fps <= 0:
+        raise ValueError('Clacker interval and export frame rate must be positive and finite')
     video_times, audio_times = decoded_marks(video, audio)
     expected = {mark['sequence'] for mark in clock['audioMarks']}
     expected.update(mark['sequence'] for mark in clock['videoMarks'])
     marks = {sequence: {'audio': [], 'video': []} for sequence in expected}
+    # Stop attributing by ordinal when the decoded clock has wandered enough
+    # that a nearest-cadence assignment could plausibly belong to another mark.
+    attribution_limit = interval / 4
+    unattributed = {'audio': [], 'video': []}
     for kind, times, offset in [('audio', audio_times, stem['offsetMs']),
                                 ('video', video_times, take['offsetMs'])]:
         for time in times:
             production_time = float(time) + offset / 1000
             sequence = round(production_time / interval)
+            if abs(production_time - sequence * interval) > attribution_limit:
+                unattributed[kind].append(production_time)
+                continue
             marks.setdefault(sequence, {'audio': [], 'video': []})[kind].append(production_time)
     measurements = []
     for sequence, mark in sorted(marks.items()):
@@ -75,6 +84,7 @@ def measure(video, audio, session, fps):
         'missing_video': [row['sequence'] for row in measurements if row['expected_in_manifest'] and not row['video']],
         'duplicates': [row['sequence'] for row in measurements if len(row['audio']) > 1 or len(row['video']) > 1],
         'unexpected': [row['sequence'] for row in measurements if not row['expected_in_manifest']],
+        'unattributed_seconds': unattributed, 'attribution_limit_seconds': attribution_limit,
         'measurements': measurements,
     }
 
