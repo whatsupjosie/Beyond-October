@@ -153,7 +153,7 @@ def test_two_peers_mix_controls_separate_durable_stems_and_original_server_expor
         assert fault['diagnostic']['reason']=='underflow'
         receiver=fault['diagnostic']['receiver']
         assert receiver['queuedFrames']<128
-        assert receiver['receivedFrames']==receiver['renderedFrames']+receiver['queuedFrames']
+        assert receiver['receivedFrames']==receiver['consumedFrames']+receiver['queuedFrames']
         assert receiver['currentFrame']>receiver['lastReceiveFrame']
         assert 0<len(receiver['queueHistory'])<=12
         assert fault['diagnostic']['transport']['packets']>0

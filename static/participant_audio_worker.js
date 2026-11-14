@@ -61,6 +61,7 @@ onmessage=e=>{
  }else if(message.type==='drop'&&host){drop(message.peer,'Participant audio stopped by the director.');
  }else if(message.type==='send'){
   message.port.onmessage=event=>{
+   if(event.data?.type==='sender-timing'){postMessage({...event.data,packetsSent:sequence,workerMs:performance.now()});return;}
    if(stopped||!(event.data instanceof ArrayBuffer))return;
    if(socket.readyState!==WebSocket.OPEN||socket.bufferedAmount>rate*.5){fail('Audio upload is too slow; reconnect your microphone.');return;}
    const packet=new Uint8Array(4+event.data.byteLength);new DataView(packet.buffer).setUint32(0,sequence++,true);packet.set(new Uint8Array(event.data),4);socket.send(packet);

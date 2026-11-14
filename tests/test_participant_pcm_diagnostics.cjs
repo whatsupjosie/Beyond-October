@@ -63,3 +63,38 @@ test('host keeps the fault through cleanup but clears it before opening a new de
  await assert.rejects(desk.open(),/deliberate open failure/);
  assert.equal(desk.lastFault,null);
 });
+
+for (const sourceRate of [0.998, 1.002]) {
+ test('bounded clock correction sustains live PCM at source rate '+sourceRate,()=>{
+  const r=receiver(), packet=new Int16Array(4096).fill(4096);
+  for(let i=0;i<6;i++)r.send(packet);
+  let inputClock=0, supplied=0;
+  for(let block=0;block<48000*180/128;block++){
+   inputClock+=128*sourceRate;
+   if(inputClock-supplied>=packet.length){r.send(packet);supplied+=packet.length;}
+   const output=r.render();
+   if(block%375===0)assert.ok(output.every(sample=>Math.abs(sample-.125)<1e-6));
+   if(r.messages.length)assert.fail(JSON.stringify(r.messages[0]));
+  }
+  assert.ok(Math.abs(r.node.rate-sourceRate)<.0003);
+  assert.ok(r.node.count>4800&&r.node.count<48000);
+  assert.ok(Math.abs(r.node.rate-1)<=.005);
+ });
+}
+
+
+test('fractional playout preserves high-band tone amplitude',()=>{
+ const r=receiver(), amplitude=16000, frequency=18000, angular=2*Math.PI*frequency/48000;
+ const samples=Int16Array.from({length:24576},(_,i)=>Math.round(amplitude*Math.sin(angular*i)));
+ r.send(samples);
+ r.node.phase=.5;
+ const actual=[];
+ for(let block=0;block<32;block++)actual.push(...r.render());
+ let error=0, reference=0;
+ for(let i=128;i<actual.length;i++){
+  const expected=amplitude/32768*Math.sin(angular*(i+.5));
+  error+=(actual[i]-expected)**2;
+  reference+=expected**2;
+ }
+ assert.ok(Math.sqrt(error/reference)<.01, '18 kHz fractional delay exceeded 1% RMS error');
+});

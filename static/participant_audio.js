@@ -1,6 +1,6 @@
 /* Authenticated one-way PCM contribution; one canonical program mixer.
- * Ordered frames, fixed playout lead and strict latency/backpressure bounds.
- * A late/gapped stream is disconnected explicitly, never silently accelerated.
+ * Ordered frames, bounded playout lead and strict latency/backpressure bounds.
+ * Receiver-clock compensation is bounded; gaps still disconnect explicitly.
  */
 (function(global){
 'use strict';
@@ -34,6 +34,7 @@ class ParticipantAudio {
   });this.check(generation);
   worker.onerror=()=>{if(generation===this.generation)this.fail(Error('Audio worker failed'));};
   worker.onmessage=e=>{if(this.closed||generation!==this.generation)return;
+   if(e.data.type==='sender-timing'){this.senderTiming=e.data;return;}
    try{this.receive(e.data);}catch(error){this.fail(error);}};
  }
  async open(){
@@ -57,7 +58,7 @@ class ParticipantAudio {
   if(!this.closed)throw Error('Leave the current audio connection first');
   if(!consent)throw Error('Consent to send and record your microphone is required');
   if(/dressing/.test(location.pathname)||this.mixer?.room==='dressing')throw Error('Leave the dressing room before contributing audio');
-  const generation=++this.generation;this.closed=false;this.host=false;
+  const generation=++this.generation;this.closed=false;this.host=false;this.senderTiming=null;
   try{
    this.report('Requesting microphone permission…');
    const media=stream||await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true},video:false});
@@ -68,7 +69,7 @@ class ParticipantAudio {
    if(this.context.sampleRate!==r.sample_rate)throw Error('This device cannot match the production audio sample rate');
    await this.context.audioWorklet.addModule('/static/blackbox_pcm_worklet.js');this.check(generation);
    await this.socket(generation,this.context.sampleRate);this.check(generation);
-   this.source=this.context.createMediaStreamSource(media);this.node=new AudioWorkletNode(this.context,'blackbox-pcm');
+   this.source=this.context.createMediaStreamSource(media);this.node=new AudioWorkletNode(this.context,'blackbox-pcm',{processorOptions:{measure:true}});
    this.worker.postMessage({type:'send',port:this.node.port},[this.node.port]);
    this.source.connect(this.node);this.node.connect(this.context.destination);
    media.getAudioTracks().forEach(t=>t.addEventListener('ended',()=>this.close().catch(()=>{}),{once:true}));
