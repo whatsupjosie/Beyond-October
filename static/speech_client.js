@@ -33,57 +33,66 @@
   async function speak(text, options = {}) {
     stop();
     const mine = generation, abort = controller = new AbortController();
-    const mixer = global.PubcastProgramAudio;
-    if (!mixer?.allowed()) throw new Error('Speech is unavailable in this room');
-    // Resume in the initiating click gesture, before network/model work.
-    mixer.ensureContext(); await mixer.context.resume();
-    for (const part of chunks(String(text || ''))) {
-      if (mine !== generation) return {canceled: true};
-      let url = null, handle = null;
-      try {
-        const payload = {text: part};
-        for (const key of ['voice_id', 'character_id', 'speed', 'language']) {
-          if (options[key] != null) payload[key] = options[key];
-        }
-        const response = await request('/api/tts/synthesize', {
-          method: 'POST', signal: abort.signal, headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify(payload)
-        });
-        if (!(response.headers.get('content-type') || '').startsWith('audio/wav')) throw new Error('The speech provider returned no WAV');
-        const blob = await response.blob();
+    try {
+      const mixer = global.PubcastProgramAudio;
+      if (!mixer?.allowed()) throw new Error('Speech is unavailable in this room');
+      // Resume in the initiating click gesture, before network/model work.
+      mixer.ensureContext(); await mixer.context.resume();
+      for (const part of chunks(String(text || ''))) {
         if (mine !== generation) return {canceled: true};
-        url = URL.createObjectURL(blob);
-        const metadata = {
-          characterId: payload.character_id || 'default', voiceId: response.headers.get('X-Voice'),
-          engine: response.headers.get('X-Engine'), duration: Number(response.headers.get('X-Duration')),
-          sampleRate: Number(response.headers.get('X-Sample-Rate')), sampleCount: Number(response.headers.get('X-Audio-Samples'))
-        };
-        handle = await mixer.playUrl(url, {bus: 'dialogue', signal: abort.signal});
-        if (mine !== generation) { handle.stop(); return {canceled: true}; }
-        playing = handle;
-        const completed = new Promise((resolve, reject) => {
-          handle.onStop = () => resolve(handle.audio.ended);
-          handle.audio.addEventListener('error', () => reject(new Error('Speech playback failed')), {once: true});
-          if (handle.audio.ended) resolve(true);
-        });
-        // Observed browser playback metadata, not a sample-accurate lip-sync clock.
-        metadata.observedStart = performance.now();
-        global.dispatchEvent(new CustomEvent('pubcast:speech-start', {detail: metadata}));
-        options.onStart?.(metadata);
-        const ended = await completed;
-        global.dispatchEvent(new CustomEvent('pubcast:speech-end', {detail: {...metadata, ended, observedEnd: performance.now()}}));
-        if (!ended || mine !== generation) return {canceled: true};
-      } catch (error) {
-        if (error.name === 'AbortError' || mine !== generation) return {canceled: true};
-        throw error;
-      } finally {
-        handle?.stop();
-        if (playing === handle) playing = null;
-        if (url) URL.revokeObjectURL(url);
+        let url = null, handle = null, metadata = null, onError = null, ended = false;
+        try {
+          const payload = {text: part};
+          for (const key of ['voice_id', 'character_id', 'speed', 'language']) {
+            if (options[key] != null) payload[key] = options[key];
+          }
+          const response = await request('/api/tts/synthesize', {
+            method: 'POST', signal: abort.signal, headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+          });
+          if (!(response.headers.get('content-type') || '').startsWith('audio/wav')) throw new Error('The speech provider returned no WAV');
+          const blob = await response.blob();
+          if (mine !== generation) return {canceled: true};
+          url = URL.createObjectURL(blob);
+          const playbackMetadata = {
+            characterId: payload.character_id || 'default', voiceId: response.headers.get('X-Voice'),
+            engine: response.headers.get('X-Engine'), duration: Number(response.headers.get('X-Duration')),
+            sampleRate: Number(response.headers.get('X-Sample-Rate')), sampleCount: Number(response.headers.get('X-Audio-Samples'))
+          };
+          handle = await mixer.playUrl(url, {bus: 'dialogue', signal: abort.signal});
+          if (mine !== generation) { handle.stop(); return {canceled: true}; }
+          playing = handle;
+          const completed = new Promise((resolve, reject) => {
+            handle.onStop = () => resolve(handle.audio.ended);
+            onError = () => reject(new Error('Speech playback failed'));
+            handle.audio.addEventListener('error', onError, {once: true});
+            if (handle.audio.ended) resolve(true);
+          });
+          // Observed browser playback metadata, not a sample-accurate lip-sync clock.
+          metadata = {...playbackMetadata, observedStart: performance.now()};
+          global.dispatchEvent(new CustomEvent('pubcast:speech-start', {detail: metadata}));
+          options.onStart?.(metadata);
+          ended = await completed;
+          if (!ended || mine !== generation) return {canceled: true};
+        } catch (error) {
+          if (error.name === 'AbortError' || mine !== generation) return {canceled: true};
+          throw error;
+        } finally {
+          if (onError) handle.audio.removeEventListener('error', onError);
+          handle?.stop();
+          if (playing === handle) playing = null;
+          if (url) URL.revokeObjectURL(url);
+          if (metadata) {
+            global.dispatchEvent(new CustomEvent('pubcast:speech-end', {
+              detail: {...metadata, ended, observedEnd: performance.now()}
+            }));
+          }
+        }
       }
+      return {canceled: false};
+    } finally {
+      if (controller === abort) controller = null;
     }
-    if (controller === abort) controller = null;
-    return {canceled: false};
   }
 
   class Dictation {
