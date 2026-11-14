@@ -59,7 +59,7 @@
             engine: response.headers.get('X-Engine'), duration: Number(response.headers.get('X-Duration')),
             sampleRate: Number(response.headers.get('X-Sample-Rate')), sampleCount: Number(response.headers.get('X-Audio-Samples'))
           };
-          handle = await mixer.playUrl(url, {bus: 'dialogue', signal: abort.signal});
+          handle = await mixer.playUrl(url, {bus: 'dialogue', signal: abort.signal, measureSpeech: !!options.onPlayback});
           if (mine !== generation) { handle.stop(); return {canceled: true}; }
           playing = handle;
           const completed = new Promise((resolve, reject) => {
@@ -72,6 +72,7 @@
           metadata = {...playbackMetadata, observedStart: performance.now()};
           global.dispatchEvent(new CustomEvent('pubcast:speech-start', {detail: metadata}));
           options.onStart?.(metadata);
+          options.onPlayback?.(handle);
           ended = await completed;
           if (!ended || mine !== generation) return {canceled: true};
         } catch (error) {

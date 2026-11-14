@@ -56,11 +56,14 @@ async function safe(fn){
 }
 function setControls(){
  const active=!!state.session,rec=!!state.recorder,stopping=!!state.recordingPromise,starting=!!state.recordingStarting;
- el.start.disabled=active;el.genre.disabled=active;el.stop.disabled=!active||stopping;
+ el.start.disabled=active||state.castingPete;el.genre.disabled=active||state.castingPete;el.stop.disabled=!active||stopping||state.endingProduction;
  el.record.disabled=!active||rec||stopping||starting||!state.storageReady;
  el.recordStop.disabled=(!rec&&!starting)||stopping;
  el.recordStop.textContent=starting?"CANCEL RECORDING START":"STOP RECORDING";
  el.record.disabled=el.record.disabled||!!state.recovery;
+ $("castPete").disabled=active||!!state.castingPete||!!state.peteActor;
+ $("speakPete").disabled=!active||!state.peteActor||!!state.peteSpeaking||state.panicActive||state.endingProduction;
+ $("stopPete").disabled=!state.peteSpeaking;
  $("recoveryPanel").hidden=!state.recovery;
  $("archiveSave").disabled=!state.selected?.take||!state.selected?.blob||rec||starting||stopping||!!selectedServer||!archive||archive.status().busy;
  $("archiveRefresh").disabled=rec||starting||stopping;
@@ -98,13 +101,15 @@ function refreshCameraUI(){
  el.previewShot.textContent="PVW: "+(camera(state.previewId)?.label||"—");
 }
 function loadGenre(id){
- if(state.session)throw Error("Finish the current production before changing the set");
+ if(state.session||state.castingPete)throw Error("Finish production or casting before changing the set");
  const pkg=Core.PACKAGES[id];if(!pkg)throw Error("Unknown package "+id);
  Core.validate(pkg);
  // All GLB actor instances belong to ONE current production package.
  // Clear before replacing; unique IDs prevent an old async loader from
  // overwriting a new package's actor with the same performer number.
  state.avatarGeneration++;
+ state.peteActor=null;
+ $("peteStatus").textContent="";
  if(state.avatarBridge?.clear)for(const id of state.loadedActorIds)state.avatarBridge.clear(id);
  state.loadedActorIds.clear();
  state.pkg=pkg;
@@ -204,6 +209,7 @@ async function syncServerVideoCues(){
    const panicSeq=Number(remote.panic_seq)||0;
    if(panicSeq>state.lastPanicSeq&&panicSeq>Date.parse(state.session.startedAt)/1000){
      state.lastPanicSeq=panicSeq;state.blackout=true;state.panicActive=true;
+     window.PubcastSpeech?.stop();
      cue("remote_panic",{panicSeq});
      status("PANIC: BLACKOUT");
      if(state.recorder||state.recordingStarting)await stopRecording({immediate:true});
@@ -247,7 +253,7 @@ function reset(){
  cue("blocking.reset",{});log("Stage blocking reset");
 }
 async function startProduction(){
- if(state.session)throw Error("A production is already running");
+ if(state.session||state.castingPete)throw Error("Production or casting is already underway");
  const sess=Core.makeSession(state.pkg,Date.now());state.session=sess;
  emit("production.start",{package:state.pkg.id,program:state.programId});
  try{if(state.storageReady)await Store.save(sess)}catch(e){state.session=null;throw Error("Cannot persist session start: "+e.message);}
@@ -282,25 +288,30 @@ async function startProduction(){
  }
 }
 async function stopProduction(){
- await window.PubCastAudioDesk?.close();
- if(!state.session)return;
- if(state.recorder||state.recordingStarting)await stopRecording();
- if(state.recovery)throw Error("Save the unsaved take before ending this production. A recovery copy can also be downloaded below.");
- state.clacker?.close();state.clacker=null;
- const sess=state.session;
- emit("production.stop",{});
- Core.finish(sess,Date.now());
- if(state.storageReady)await Store.save(sess);
- try{await window.PubCastCameraPool?.endProduction?.();}catch(e){log("POOL CLOSE WARNING "+e.message);}
- if(state.mediaPublisher){
-   try{await state.mediaPublisher.stop()}catch(e){log("LIVE MEDIA RELEASE WARNING "+e.message)}
-   state.mediaPublisher=null;
- }
- state.sharedSwitcher?.detach();state.sharedSwitcher=null;
- state.remoteProgram=null;state.remotePreview=null;
- el.switcherLink.textContent="VIDEO: LOCAL ONLY";
- el.liveMedia.textContent="REMOTE FRAMES: OFF";el.liveMedia.style.color="";
- state.session=null;log("PRODUCTION END "+sess.id);setControls();await refreshSessions();
+ if(state.endingProduction)return;
+ state.endingProduction=true;setControls();
+ try{
+  window.PubcastSpeech?.stop();
+  await window.PubCastAudioDesk?.close();
+  if(!state.session)return;
+  if(state.recorder||state.recordingStarting)await stopRecording();
+  if(state.recovery)throw Error("Save the unsaved take before ending this production. A recovery copy can also be downloaded below.");
+  state.clacker?.close();state.clacker=null;
+  const sess=state.session;
+  emit("production.stop",{});
+  Core.finish(sess,Date.now());
+  if(state.storageReady)await Store.save(sess);
+  try{await window.PubCastCameraPool?.endProduction?.();}catch(e){log("POOL CLOSE WARNING "+e.message);}
+  if(state.mediaPublisher){
+    try{await state.mediaPublisher.stop()}catch(e){log("LIVE MEDIA RELEASE WARNING "+e.message)}
+    state.mediaPublisher=null;
+  }
+  state.sharedSwitcher?.detach();state.sharedSwitcher=null;
+  state.remoteProgram=null;state.remotePreview=null;
+  el.switcherLink.textContent="VIDEO: LOCAL ONLY";
+  el.liveMedia.textContent="REMOTE FRAMES: OFF";el.liveMedia.style.color="";
+  state.session=null;log("PRODUCTION END "+sess.id);setControls();await refreshSessions();
+ }finally{state.endingProduction=false;setControls();}
 }
 function recordedMime(){
  if(typeof MediaRecorder==="undefined")throw Error("MediaRecorder is unavailable in this browser");
@@ -681,6 +692,47 @@ async function loadActors(){
  state.avatarLoadTask=work();
  return state.avatarLoadTask;
 }
+async function castPete(){
+ if(state.session||state.castingPete||state.peteActor)return;
+ const actor=el.performer.value, bridge=state.avatarBridge;
+ if(!actor)throw Error("Select a performer slot first");
+ if(!bridge)throw Error("Avatar renderer unavailable");
+ state.castingPete=true;setControls();
+ try{
+  await state.avatarLoadTask;
+  await bridge.load(actor,"/assets/pete_avatar_pubcast_v56.glb","Pete",{requireJaw:true});
+  state.loadedActorIds.add(actor);
+  state.peteActor=actor;
+  $("peteStatus").textContent="Pete is cast. Start production to speak a line.";
+ }finally{state.castingPete=false;setControls();}
+}
+async function speakPete(){
+ const actor=state.peteActor, text=$("peteLine").value.trim();
+ if(!state.session||!actor||state.peteSpeaking||state.panicActive||state.endingProduction)return;
+ if(!text){$("peteStatus").textContent="Enter a line for Pete.";return;}
+ state.peteSpeaking=true;setControls();
+ $("peteStatus").textContent="Preparing Pete’s line…";
+ try{
+  const result=await window.PubcastSpeech.speak(text,{character_id:"pete",onPlayback:handle=>{
+   state.petePlayback={handle,samples:new Float32Array(handle.analyser.fftSize)};
+   $("peteStatus").textContent="Pete is speaking.";
+  }});
+  $("peteStatus").textContent=result.canceled?"Line stopped.":"Line finished.";
+ }catch(error){$("peteStatus").textContent=error.message;}
+ finally{
+  state.petePlayback=null;state.peteSpeaking=false;
+  state.avatarBridge?.setJaw(actor,0);setControls();
+ }
+}
+function updatePeteMouth(){
+ const playback=state.petePlayback;
+ if(!playback)return;
+ const {handle,samples}=playback;
+ if(handle.audio.paused||handle.audio.ended){state.avatarBridge.setJaw(state.peteActor,0);return;}
+ handle.analyser.getFloatTimeDomainData(samples);
+ const rms=Math.sqrt(samples.reduce((sum,sample)=>sum+sample*sample,0)/samples.length);
+ state.avatarBridge.setJaw(state.peteActor,(rms-.012)*8);
+}
 function frame(now){
  window.requestAnimationFrame(frame);
  if(document.hidden||now-state.lastTick<32)return;
@@ -689,6 +741,7 @@ function frame(now){
  const pkg=state.pkg;if(!pkg)return;
  if(state.avatarError){el.avatarStatus.textContent=state.avatarError;state.avatarError="";}
  try{
+  updatePeteMouth();
   state.actorFrameStamp=now;
   Render.renderCamera(pr,pkg,Core.shot(pkg,state.programId),state,world,dt);
   const previewState=Object.assign({},state,{blackout:false,lowerThird:false,reuseActorFrame:true});
@@ -772,6 +825,9 @@ function initializeControls(){
  $("gesture").addEventListener("click",()=>safe(animate));
  $("reset").addEventListener("click",()=>safe(reset));
  $("lower").addEventListener("click",()=>safe(()=>{state.lowerThird=!state.lowerThird;cue("lower_third",{enabled:state.lowerThird,text:state.lowerText})}));
+ $("castPete").addEventListener("click",()=>safe(castPete));
+ $("speakPete").addEventListener("click",()=>safe(speakPete));
+ $("stopPete").addEventListener("click",()=>window.PubcastSpeech?.stop());
  $("black").addEventListener("click",()=>safe(async()=>{
    const enabled=!state.blackout;
    if(state.sharedSwitcher?.connected()){

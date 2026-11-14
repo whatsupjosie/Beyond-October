@@ -246,9 +246,15 @@
         lastNode.connect(panner);
         lastNode = panner;
       }
+      const analyser = options.measureSpeech ? this.context.createAnalyser() : null;
+      if (analyser) {
+        analyser.fftSize = 512;
+        lastNode.connect(analyser);
+        lastNode = analyser;
+      }
       lastNode.connect(gain);
       gain.connect(bus.gain);
-      const handle = { audio, source, gain, panner, busName, directorAnnouncement: options.directorAnnouncement === true, stop: () => this.stopHandle(handle) };
+      const handle = { audio, source, gain, panner, analyser, busName, directorAnnouncement: options.directorAnnouncement === true, stop: () => this.stopHandle(handle) };
       this.active.add(handle);
       if (options.signal) {
         handle.abortSignal = options.signal;
@@ -298,6 +304,7 @@
       try { handle.source?.disconnect?.(); } catch (_) {}
       try { handle.gain?.disconnect?.(); } catch (_) {}
       try { handle.panner?.disconnect?.(); } catch (_) {}
+      try { handle.analyser?.disconnect?.(); } catch (_) {}
       handle.onStop?.();
       this.active.delete(handle);
       const bus = this.buses.get(handle.busName);
