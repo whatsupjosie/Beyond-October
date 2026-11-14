@@ -101,6 +101,7 @@ def test_thirty_minute_program_two_admitted_peers_and_reload(studio,production_b
             sample=page.evaluate('''()=>({state:PubCast25DStudio.state(),peers:PubcastProgramAudio.inputs.size,bands:bands(),heap:performance.memory?.usedJSHeapSize||null,audioReports:enduranceAudioReports,receiverFault:PubCastAudioDesk.lastFault??null,deskStatus:document.getElementById('participantAudioStatus')?.textContent})''')
             sample['elapsed_seconds']=time.monotonic()-started;sample['minute']=minute
             sample['peer_status']=[peer.locator('#status').inner_text() for ctx,peer in peers]
+            sample['sender_timing'] = [peer.evaluate('PubCastAudioContribution.senderTiming??null') for ctx,peer in peers]
             report['minutes'].append(sample);save();print('ENDURANCE',minute,sample['state']['journal'],flush=True)
             assert sample['state']['journal']['bytes']>previous
             previous=sample['state']['journal']['bytes']
