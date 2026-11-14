@@ -1,0 +1,660 @@
+{
+  "tested_local_commit": "f6004e6",
+  "tested_tree": "c1f4970d069fb710beba00b182d86467e977677d",
+  "environment": "Linux, Playwright Chromium 141, SwiftShader, generated guest tones in independent browser processes",
+  "baseline_sender_run": {
+    "fault": {
+      "reason": "underflow",
+      "receiver": {
+        "sampleRate": 44100,
+        "currentFrame": 13209216,
+        "queuedFrames": 0,
+        "capacityFrames": 66150,
+        "incomingFrames": 0,
+        "receivedFrames": 12738560,
+        "renderedFrames": 12738560,
+        "firstReceiveFrame": 451584,
+        "lastReceiveFrame": 13199232,
+        "startFrame": 470656,
+        "maxReceiveGapFrames": 6144,
+        "queueHistory": [
+          {
+            "frame": 10596608,
+            "queuedFrames": 11648,
+            "receivedFrames": 10137600,
+            "renderedFrames": 10125952
+          },
+          {
+            "frame": 10817152,
+            "queuedFrames": 12288,
+            "receivedFrames": 10358784,
+            "renderedFrames": 10346496
+          },
+          {
+            "frame": 11037696,
+            "queuedFrames": 8832,
+            "receivedFrames": 10575872,
+            "renderedFrames": 10567040
+          },
+          {
+            "frame": 11258240,
+            "queuedFrames": 9472,
+            "receivedFrames": 10797056,
+            "renderedFrames": 10787584
+          },
+          {
+            "frame": 11478784,
+            "queuedFrames": 10112,
+            "receivedFrames": 11018240,
+            "renderedFrames": 11008128
+          },
+          {
+            "frame": 11699328,
+            "queuedFrames": 6656,
+            "receivedFrames": 11235328,
+            "renderedFrames": 11228672
+          },
+          {
+            "frame": 11919872,
+            "queuedFrames": 7296,
+            "receivedFrames": 11456512,
+            "renderedFrames": 11449216
+          },
+          {
+            "frame": 12140416,
+            "queuedFrames": 7936,
+            "receivedFrames": 11677696,
+            "renderedFrames": 11669760
+          },
+          {
+            "frame": 12360960,
+            "queuedFrames": 8576,
+            "receivedFrames": 11898880,
+            "renderedFrames": 11890304
+          },
+          {
+            "frame": 12581504,
+            "queuedFrames": 9216,
+            "receivedFrames": 12120064,
+            "renderedFrames": 12110848
+          },
+          {
+            "frame": 12802048,
+            "queuedFrames": 5760,
+            "receivedFrames": 12337152,
+            "renderedFrames": 12331392
+          },
+          {
+            "frame": 13022592,
+            "queuedFrames": 6400,
+            "receivedFrames": 12558336,
+            "renderedFrames": 12551936
+          }
+        ]
+      },
+      "transport": {
+        "packets": 3110,
+        "firstPacketAtMs": 8823.40000000014,
+        "lastPacketAtMs": 297962,
+        "maxPacketGapMs": 134.80000000004657,
+        "faultAtMs": 298187.6000000001
+      }
+    },
+    "minutes": [
+      {
+        "minute": 1,
+        "guest_inputs": 2,
+        "sender_timing": [
+          {
+            "type": "sender-timing",
+            "sampleRate": 44100,
+            "startFrame": 2304,
+            "frame": 2869376,
+            "inputFrames": 2867072,
+            "missingBlocks": 0,
+            "packetsSent": 699,
+            "workerMs": 65137.10000000009
+          },
+          {
+            "type": "sender-timing",
+            "sampleRate": 44100,
+            "startFrame": 2688,
+            "frame": 2649216,
+            "inputFrames": 2646528,
+            "missingBlocks": 0,
+            "packetsSent": 646,
+            "workerMs": 60162.69999999995
+          }
+        ]
+      },
+      {
+        "minute": 2,
+        "guest_inputs": 2,
+        "sender_timing": [
+          {
+            "type": "sender-timing",
+            "sampleRate": 44100,
+            "startFrame": 2304,
+            "frame": 5515904,
+            "inputFrames": 5513600,
+            "missingBlocks": 0,
+            "packetsSent": 1346,
+            "workerMs": 125216.30000000005
+          },
+          {
+            "type": "sender-timing",
+            "sampleRate": 44100,
+            "startFrame": 2688,
+            "frame": 5295744,
+            "inputFrames": 5293056,
+            "missingBlocks": 0,
+            "packetsSent": 1292,
+            "workerMs": 120243
+          }
+        ]
+      },
+      {
+        "minute": 3,
+        "guest_inputs": 2,
+        "sender_timing": [
+          {
+            "type": "sender-timing",
+            "sampleRate": 44100,
+            "startFrame": 2304,
+            "frame": 8162432,
+            "inputFrames": 8160128,
+            "missingBlocks": 0,
+            "packetsSent": 1992,
+            "workerMs": 185286.69999999995
+          },
+          {
+            "type": "sender-timing",
+            "sampleRate": 44100,
+            "startFrame": 2688,
+            "frame": 7942272,
+            "inputFrames": 7939584,
+            "missingBlocks": 0,
+            "packetsSent": 1938,
+            "workerMs": 180342
+          }
+        ]
+      },
+      {
+        "minute": 4,
+        "guest_inputs": 2,
+        "sender_timing": [
+          {
+            "type": "sender-timing",
+            "sampleRate": 44100,
+            "startFrame": 2304,
+            "frame": 10808960,
+            "inputFrames": 10806656,
+            "missingBlocks": 0,
+            "packetsSent": 2638,
+            "workerMs": 245336.69999999995
+          },
+          {
+            "type": "sender-timing",
+            "sampleRate": 44100,
+            "startFrame": 2688,
+            "frame": 10588800,
+            "inputFrames": 10586112,
+            "missingBlocks": 0,
+            "packetsSent": 2584,
+            "workerMs": 240382.5
+          }
+        ]
+      },
+      {
+        "minute": 5,
+        "guest_inputs": 1,
+        "sender_timing": [
+          {
+            "type": "sender-timing",
+            "sampleRate": 44100,
+            "startFrame": 2304,
+            "frame": 13455488,
+            "inputFrames": 13453184,
+            "missingBlocks": 0,
+            "packetsSent": 3284,
+            "workerMs": 305427.1000000001
+          },
+          {
+            "type": "sender-timing",
+            "sampleRate": 44100,
+            "startFrame": 2688,
+            "frame": 12573696,
+            "inputFrames": 12571008,
+            "missingBlocks": 0,
+            "packetsSent": 3069,
+            "workerMs": 285462.40000000014
+          }
+        ]
+      }
+    ]
+  },
+  "candidate": {
+    "status": "PASS_FOR_1800_SECOND_PROGRAM_AUDIO_ENDURANCE_ONLY",
+    "target_seconds": 1800,
+    "recording_observed_seconds": 1802.467503941,
+    "encoded_duration_seconds": 1805.1699999999998,
+    "encoded_duration_source": "packets",
+    "decoded_audio": [
+      {
+        "at": 1,
+        "amplitudes": [
+          0.0847652242845552,
+          0.08455189053305061
+        ]
+      },
+      {
+        "at": 722.068,
+        "amplitudes": [
+          0.08482978503885585,
+          0.07303718767272567
+        ]
+      },
+      {
+        "at": 1803.1699999999998,
+        "amplitudes": [
+          0.08493768561447522,
+          0.07544618767267591
+        ]
+      }
+    ],
+    "explicit_rejoin": true,
+    "sync_observations": {
+      "audio_marks": 121,
+      "video_marks": 121,
+      "missing_visual_sequences": [],
+      "encoded_pixel_alignment": "not inferred from paint timestamps"
+    },
+    "media_sha256": "a452a85814a382d2d4df15313010aeeda438e05a548253029276f6eced3fd6ca",
+    "reopened_sha256": "a452a85814a382d2d4df15313010aeeda438e05a548253029276f6eced3fd6ca",
+    "faults": [],
+    "minutes": [
+      {
+        "minute": 1,
+        "guest_inputs": 2,
+        "program": "wide",
+        "journal": {
+          "bytes": 3093404,
+          "chunks": 56,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 2,
+        "guest_inputs": 2,
+        "program": "anchor",
+        "journal": {
+          "bytes": 6296104,
+          "chunks": 110,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 3,
+        "guest_inputs": 2,
+        "program": "coanchor",
+        "journal": {
+          "bytes": 9432630,
+          "chunks": 165,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 4,
+        "guest_inputs": 2,
+        "program": "two",
+        "journal": {
+          "bytes": 12217396,
+          "chunks": 221,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 5,
+        "guest_inputs": 2,
+        "program": "presentation",
+        "journal": {
+          "bytes": 15362134,
+          "chunks": 275,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 6,
+        "guest_inputs": 2,
+        "program": "wide",
+        "journal": {
+          "bytes": 18967006,
+          "chunks": 328,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 7,
+        "guest_inputs": 2,
+        "program": "anchor",
+        "journal": {
+          "bytes": 22359409,
+          "chunks": 384,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 8,
+        "guest_inputs": 2,
+        "program": "coanchor",
+        "journal": {
+          "bytes": 25434390,
+          "chunks": 438,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 9,
+        "guest_inputs": 2,
+        "program": "two",
+        "journal": {
+          "bytes": 28063942,
+          "chunks": 492,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 10,
+        "guest_inputs": 2,
+        "program": "presentation",
+        "journal": {
+          "bytes": 31171962,
+          "chunks": 546,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 11,
+        "guest_inputs": 2,
+        "program": "wide",
+        "journal": {
+          "bytes": 34759041,
+          "chunks": 601,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 12,
+        "guest_inputs": 2,
+        "program": "anchor",
+        "journal": {
+          "bytes": 37968162,
+          "chunks": 655,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 13,
+        "guest_inputs": 2,
+        "program": "coanchor",
+        "journal": {
+          "bytes": 41008966,
+          "chunks": 709,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 14,
+        "guest_inputs": 2,
+        "program": "two",
+        "journal": {
+          "bytes": 43774178,
+          "chunks": 764,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 15,
+        "guest_inputs": 2,
+        "program": "presentation",
+        "journal": {
+          "bytes": 46987769,
+          "chunks": 819,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 16,
+        "guest_inputs": 2,
+        "program": "wide",
+        "journal": {
+          "bytes": 50631685,
+          "chunks": 873,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 17,
+        "guest_inputs": 2,
+        "program": "anchor",
+        "journal": {
+          "bytes": 53759677,
+          "chunks": 928,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 18,
+        "guest_inputs": 2,
+        "program": "coanchor",
+        "journal": {
+          "bytes": 56733548,
+          "chunks": 981,
+          "pendingBytes": 53242,
+          "pendingChunks": 1,
+          "error": null
+        }
+      },
+      {
+        "minute": 19,
+        "guest_inputs": 2,
+        "program": "two",
+        "journal": {
+          "bytes": 59405943,
+          "chunks": 1035,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 20,
+        "guest_inputs": 2,
+        "program": "presentation",
+        "journal": {
+          "bytes": 62585972,
+          "chunks": 1088,
+          "pendingBytes": 49821,
+          "pendingChunks": 1,
+          "error": null
+        }
+      },
+      {
+        "minute": 21,
+        "guest_inputs": 2,
+        "program": "wide",
+        "journal": {
+          "bytes": 66184443,
+          "chunks": 1142,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 22,
+        "guest_inputs": 2,
+        "program": "anchor",
+        "journal": {
+          "bytes": 69344428,
+          "chunks": 1198,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 23,
+        "guest_inputs": 2,
+        "program": "coanchor",
+        "journal": {
+          "bytes": 72466784,
+          "chunks": 1251,
+          "pendingBytes": 50188,
+          "pendingChunks": 1,
+          "error": null
+        }
+      },
+      {
+        "minute": 24,
+        "guest_inputs": 2,
+        "program": "two",
+        "journal": {
+          "bytes": 75290370,
+          "chunks": 1307,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 25,
+        "guest_inputs": 2,
+        "program": "presentation",
+        "journal": {
+          "bytes": 78524260,
+          "chunks": 1360,
+          "pendingBytes": 62718,
+          "pendingChunks": 1,
+          "error": null
+        }
+      },
+      {
+        "minute": 26,
+        "guest_inputs": 2,
+        "program": "wide",
+        "journal": {
+          "bytes": 82067955,
+          "chunks": 1415,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 27,
+        "guest_inputs": 2,
+        "program": "anchor",
+        "journal": {
+          "bytes": 85060416,
+          "chunks": 1470,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 28,
+        "guest_inputs": 2,
+        "program": "coanchor",
+        "journal": {
+          "bytes": 88051833,
+          "chunks": 1523,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 29,
+        "guest_inputs": 2,
+        "program": "two",
+        "journal": {
+          "bytes": 90798188,
+          "chunks": 1577,
+          "pendingBytes": 0,
+          "pendingChunks": 0,
+          "error": null
+        }
+      },
+      {
+        "minute": 30,
+        "guest_inputs": 2,
+        "program": "presentation",
+        "journal": {
+          "bytes": 93893416,
+          "chunks": 1631,
+          "pendingBytes": 46017,
+          "pendingChunks": 1,
+          "error": null
+        }
+      }
+    ],
+    "saved_tracks": [
+      {
+        "kind": "voice",
+        "bytes": 14562136,
+        "incomplete": false
+      },
+      {
+        "kind": "voice",
+        "bytes": 14543248,
+        "incomplete": false
+      },
+      {
+        "kind": "voice",
+        "bytes": 29119362,
+        "incomplete": false
+      },
+      {
+        "kind": "sync-reference",
+        "bytes": 605819,
+        "incomplete": false
+      }
+    ]
+  }
+}
