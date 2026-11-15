@@ -42,7 +42,7 @@
       const g=el("optgroup",null,s);g.label=group;for(const [key,p] of Object.entries(C.profiles).filter(([k,p])=>p.group===group)){const o=el("option",p.label,g);o.value=key;}
     }
     s.value=current.profile;field(d,"Template",s);
-    const info=el("p","",d);function refresh(){const p=C.profiles[s.value];info.textContent="Available paragraph roles: "+p.roles.map(k=>C.names[k]).join(" · ")+". This is a starting convention, not certification for a specific broadcaster, studio or submission.";}s.onchange=refresh;refresh();
+    const info=el("p","",d);function refresh(){const p=C.profiles[s.value];info.textContent=p.guidance+" Available paragraph roles: "+p.roles.map(k=>C.names[k]).join(" · ")+". This is a starting convention, not certification for a specific broadcaster, studio or submission.";}s.onchange=refresh;refresh();
     el("p","Changing the template does not rewrite the manuscript or convert narrative content. Previously chosen paragraph roles remain preserved; review them after changing formats.",d);
     const source=documentId;button(d,"Apply template",()=>{ready();if(documentId!==source)throw Error("Manuscript changed; reopen format.");snapshot();manuscriptFormat.profile=s.value;update();d.close();});
     button(d,"Cancel",()=>d.close());d.showModal();
@@ -72,7 +72,7 @@
     el("p","Page layout applies to formatted preview and HTML export. It does not change the text or calculate exact manuscript pagination.",d);
     button(d,"Apply",()=>{ready();if(source!==documentId)throw Error("Manuscript changed.");snapshot();manuscriptFormat.page={size:size.value,orientation:orientation.value,margin:Number(margin.value)};update();d.close();});button(d,"Cancel",()=>d.close());d.showModal();
   }
-  function output(){return C.exportHtml(documentTitle,committed.slice(),syncManuscriptFormat());}
+  function output(){return C.exportHtml(documentTitle,committed.slice(),syncManuscriptFormat(),chapters);}
   function preview(){
     const d=dialog("Formatted manuscript preview");d.classList.add("wide");
     el("p","Committed manuscript only. Drafts, latent prose, notes and chat are excluded. This is a browser layout proof, not certified screenplay pagination.",d);
@@ -91,8 +91,12 @@
   commandMenu("Insert",[["New chapter",go("newChapterBtn")]]);
   commandMenu("Format",[["Document type / script presets",templates],["Paragraph style, alignment, indent…",paragraph],["Formatting recovery",unmapped]]);
   commandMenu("Layout",[["Page setup",page],["Formatted preview",preview]]);
-  commandMenu("Review",[["Scene intelligence",go("narrativeOpen")],["Revision history",go("narrativeHistory")],["Lock scene",go("lockSceneBtn")],["Lock all",go("lockAllBtn")],["Unlock",go("unlockBtn")],["Commit presented draft",go("approveBtn")]]);
+  commandMenu("Review",[["Scene intelligence",go("narrativeOpen")],["Archive presented draft",go("narrativeArchiveDraft")],["Revision history",go("narrativeHistory")],["Lock scene",go("lockSceneBtn")],["Lock all",go("lockAllBtn")],["Unlock",go("unlockBtn")],["Commit presented draft",go("approveBtn")]]);
   commandMenu("View",[["Write / Collab",go("modeBadge")],["Toggle sidebar",go("sidebarToggle")],["Zoom manuscript in",()=>adjustZoom("manuscript",1)],["Zoom manuscript out",()=>adjustZoom("manuscript",-1)],["Formatted preview",preview]]);
   commandMenu("Tools",[["Word and character count",stats],["Read presented draft",go("playBtn")],["Stop reading / generation",go("stopBtn")],["Model settings",go("hmLLMSettings")],["Keyboard shortcuts",go("hmKeyboardHelp")]]);
   commandMenu("Studio",[["Inbox",go("twoiNotesInbox")],["Write note",go("twoiWriteNote")],["Place sticky note",go("twoiPlaceNote")]]);
+  const quick=select(menu,"Quick paragraph element",[]);let lastProfile=null;
+  function refreshQuick(){const profile=syncManuscriptFormat().profile;if(profile===lastProfile)return;lastProfile=profile;quick.replaceChildren();const first=el("option","Element…",quick);first.value="";for(const role of C.profiles[profile].roles){const o=el("option",C.names[role],quick);o.value=role;}quick.value="";quick.title=C.profiles[profile].label;}
+  quick.onchange=()=>{const role=quick.value;quick.value="";if(!role)return;safe(()=>{ready();const indices=stableSelection(),next=C.clone(syncManuscriptFormat());for(const i of indices){const current=next.rows.find(r=>r.index===i)?.style||C.defaultStyle(role);C.apply(next,committed,[i],{...current,role},lockedLines);}snapshot();manuscriptFormat=next;update();});};
+  document.addEventListener("foresight:work-change",refreshQuick);window.addEventListener("focus",refreshQuick);const renderPrevious=render;render=function(){renderPrevious();refreshQuick();};refreshQuick();
 })();
