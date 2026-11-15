@@ -60,8 +60,8 @@
     const top=make("div",undefined,panel);top.className="narrative-actions";
     button("Close",top,()=>{if(!formChanged()||confirm("Discard unsaved dossier edits?"))panel.close();});
     button("Cancel model request",top,()=>{if(generating){stopPlaying();say("Cancellation requested. No new draft will be applied.");}});
-    button("New scene",top,()=>{if(formChanged()&&!confirm("Discard unsaved dossier edits?"))return;if(!ownerReady()||generating||chatSending||buffer.some(x=>x.trim()))return say("Finish the current draft or active request first.");const c=current();if(c&&c.end===null){c.end=committed.length;anchorScene(c);}const start=committed.length;const s=anchorScene(C.scene(id(),"Scene "+(state.scenes.length+1),start,null));state.scenes.push(s);selectScene(s.id);save();fill();updateBar();});
-    const selectLabel=make("label","Active scene",panel);sceneSelect=make("select",undefined,selectLabel);sceneSelect.onchange=()=>{if(formChanged()&&!confirm("Discard unsaved dossier edits?")){sceneSelect.value=state.activeSceneId||"";return;}if(!ownerReady()||generating||chatSending||buffer.some(x=>x.trim())){sceneSelect.value=state.activeSceneId||"";return say("Resolve the current draft or request before switching scenes.");}selectScene(sceneSelect.value||null);save();fill();updateBar();};
+    button("New scene",top,()=>{if(formChanged()&&!confirm("Discard unsaved dossier edits?"))return;if(!ownerReady()||generating||chatSending||buffer.length||state.presentedOriginal)return say("Finish the current draft or active request first.");snapshot();const c=current();if(c&&c.end===null){c.end=committed.length;anchorScene(c);}const start=committed.length;const s=anchorScene(C.scene(id(),"Scene "+(state.scenes.length+1),start,null));state.scenes.push(s);selectScene(s.id);save();fill();updateBar();});
+    const selectLabel=make("label","Active scene",panel);sceneSelect=make("select",undefined,selectLabel);sceneSelect.onchange=()=>{if(formChanged()&&!confirm("Discard unsaved dossier edits?")){sceneSelect.value=state.activeSceneId||"";return;}if(!ownerReady()||generating||chatSending||buffer.length||state.presentedOriginal){sceneSelect.value=state.activeSceneId||"";return say("Resolve the current draft or request before switching scenes.");}snapshot();selectScene(sceneSelect.value||null);save();fill();updateBar();};
     panelBody=make("div",undefined,panel);
     field("Scene title","title",1,"input");field("First manuscript line (1-based)","start",1,"input");form.start.min="1";
     field("Last manuscript line (blank = current end)","end",1,"input");form.end.min="0";
@@ -70,6 +70,9 @@
     form.information.placeholder="Audience | the letter exists | unaware | suspects";
     make("p","Knowledge states: knows, suspects, unaware, false belief, uncertain. Intended states may also be withhold, reveal, maintain, misdirect or resolve.",panelBody);
     field("Confirmed author decisions / corrections","decisions",3);
+    field("Confirmed scene outcomes (recipient | fact | actual state)","confirmedOutcomes",3);
+    form.confirmedOutcomes.placeholder="Audience | the letter exists | knows";
+    make("p","Only record an outcome here after the author confirms it actually happened. Future reveals belong in Information distribution.",panelBody);
     const actions=make("div",undefined,panel);actions.className="narrative-actions";
     button("Save dossier",actions,apply);
     button("Suggest dossier",actions,()=>run("dossier"));
@@ -92,12 +95,12 @@
     const defaultStart=chapters.length?Math.min(committed.length,chapters[chapters.length-1].startLine):0;
     form.title.value=s?.title||"Scene "+(state.scenes.length+1);form.start.value=(s?.start??defaultStart)+1;form.end.value=s?.end??"";
     form.medium.value=s?.medium||"prose";for(const f of C.fields)form[f].value=s?.[f]||"";
-    form.decisions.value=s?.decisions||"";
+    form.decisions.value=s?.decisions||"";form.confirmedOutcomes.value=s?.confirmedOutcomes||"";
     refreshReport();
     refreshArchive();
   }
   function refreshReport(){
-    const values=[state.review,state.proposal].filter(x=>x?.sceneId===state.activeSceneId);
+    const values=(state.advisories||[]).filter(x=>x.sceneId===state.activeSceneId);
     if(!values.length){report.textContent="No assessment for this scene yet.";return;}
     report.textContent=values.map(v=>{
       let matching=false;try{matching=v.source===anchor([stamp(build(v.kind||"review"))]);}catch{}
@@ -107,8 +110,8 @@
   function openPanel(){if(!ownerReady()){say("Wait for the account to open.");return;}if(!panel)makePanel();fill();panel.showModal();}
   function formChanged(){
     if(!panel?.open)return false;const s=current();
-    if(!s)return C.fields.some(f=>form[f].value.trim())||!!form.decisions.value.trim();
-    return form.title.value.trim()!==s.title||Number(form.start.value)-1!==s.start||(form.end.value.trim()===""?null:Number(form.end.value))!==s.end||form.medium.value!==(s.medium||"prose")||form.decisions.value!==(s.decisions||"")||C.fields.some(f=>form[f].value!==s[f]);
+    if(!s)return C.fields.some(f=>form[f].value.trim())||!!form.decisions.value.trim()||!!form.confirmedOutcomes.value.trim();
+    return form.title.value.trim()!==s.title||Number(form.start.value)-1!==s.start||(form.end.value.trim()===""?null:Number(form.end.value))!==s.end||form.medium.value!==(s.medium||"prose")||form.decisions.value!==(s.decisions||"")||form.confirmedOutcomes.value!==(s.confirmedOutcomes||"")||C.fields.some(f=>form[f].value!==s[f]);
   }
   function apply(){
     try{
@@ -116,9 +119,9 @@
       const start=Number(form.start.value)-1,end=form.end.value.trim()===""?null:Number(form.end.value);
       if(start<0||start>committed.length||end!==null&&(end>committed.length||end<start))throw Error("Scene range is outside the current manuscript.");
       const old=current();const s=C.scene(old?.id||id(),form.title.value.trim(),start,end,Object.fromEntries(C.fields.map(f=>[f,form[f].value])));
-      C.disclosure(s.information);s.medium=form.medium.value;s.decisions=form.decisions.value;
+      C.disclosure(s.information);C.outcomes(form.confirmedOutcomes.value);s.medium=form.medium.value;s.decisions=form.decisions.value;s.confirmedOutcomes=form.confirmedOutcomes.value;
       anchorScene(s);
-      if(old){state.scenes=state.scenes.map(x=>x.id===old.id?s:x);}else{state.scenes.push(s);selectScene(s.id);}
+      snapshot();if(old){state.scenes=state.scenes.map(x=>x.id===old.id?s:x);}else{state.scenes.push(s);selectScene(s.id);}
       save();fill();updateBar();say("Dossier saved. Existing latent prose remains provisional.");
     }catch(e){say(e.message);}
   }
@@ -128,6 +131,7 @@
     const history=typeof chatHistory==="undefined"?[]:chatHistory.filter(x=>!x.delivery).slice(-20).map(x=>({role:x.role,content:x.content}));
     const feedback=state.archive.filter(x=>x.sceneId===s.id&&["rejected presented draft","committed presented draft","author revised presented draft"].includes(x.kind)).slice(-6).map(x=>({kind:x.kind,text:x.text}));
     const ctx=C.context({lines:committed.slice(),chapters,active:s,buffer:buffer.slice(),decisions:[{confirmed:s.decisions||""},{recentDiscussion:history},{recentReviewOutcomes:feedback}],latent:kind==="draft"?state.latent:"",medium:s.medium||"prose"});
+    ctx.continuity=C.continuity(state.scenes,s,committed.length);
     ctx.references=references.map(r=>({name:r.name,type:r.type,content:r.content}));
     return ctx;
   }
@@ -160,9 +164,8 @@
       if(!fresh){C.archive(state,"stale "+kind,raw,meta());save();say("The manuscript, partner, or dossier changed. The stale response was archived, not presented.");return false;}
       if(kind!=="draft"){
         const value={sceneId:state.activeSceneId,text:raw,source:anchor([source]),kind,createdAt:new Date().toISOString()};
-        const key=kind==="review"?"review":"proposal";const previous=state[key];if(previous)C.archive(state,"superseded "+key,previous.text,{...meta(),sceneId:previous.sceneId});
-        state[key]=value;
-        if(report)report.textContent=raw;save();say("Advisory ready. No manuscript text was changed.");return true;
+        C.putAdvisory(state,value);
+        if(report)refreshReport();save();say("Advisory ready. No manuscript text was changed.");return true;
       }
       let d;try{d=C.parseDraft(raw);}catch(e){C.archive(state,"unparsed model response",raw,meta());save();throw e;}
       // No model code can write to committed. ONLY the author's explicit
@@ -170,7 +173,7 @@
       snapshot();
       C.archive(state,"superseded latent draft",state.latent,meta());
       state.latent=d.latent;
-      if(d.notes){if(state.review)C.archive(state,"superseded review",state.review.text,{...meta(),sceneId:state.review.sceneId});state.review={sceneId:state.activeSceneId,text:d.notes,source:anchor([source]),kind:"draft",createdAt:new Date().toISOString()};}
+      if(d.notes)C.putAdvisory(state,{sceneId:state.activeSceneId,text:d.notes,source:anchor([source]),kind:"draft",createdAt:new Date().toISOString()});
       state.presentedOriginal=d.presented;state.presentedSceneId=state.activeSceneId;state.presentedBasis=anchor([JSON.stringify([ctx.section,ctx.previous,ctx.decisions[0],ctx.scene,ctx.knowledge])]);buffer=d.presented.split("\n");buffer.forEach(ppMarkGenerated);
       save();render();updateBar();refreshArchive();if(report&&d.notes)report.textContent=d.notes;
       say("Draft presented within the two-page approximation. Review before continuing.");if(panel?.open)panel.close();return true;
@@ -193,7 +196,7 @@
   $("approveBtn").onclick=approveBuffer;
   toggleMode=function(){
     if(generating||chatSending||editingIdx!==null)return say("Finish the active request or inline edit before switching modes.");
-    if(coWriting&&buffer.length)return say("Commit or archive the presented draft explicitly before switching modes.");
+    if(coWriting&&(buffer.length||state.presentedOriginal))return say("Commit or archive the presented draft explicitly before switching modes.");
     snapshot();originalToggle();updateBar();
   };
   $("modeBadge").onclick=toggleMode;
