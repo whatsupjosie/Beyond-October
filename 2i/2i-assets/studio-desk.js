@@ -6,9 +6,10 @@
   const el=(tag,text,parent)=>{const n=document.createElement(tag);if(text!==null)n.textContent=text;if(parent)parent.append(n);return n;};
   const controls=el("div",null,$("mcSection").querySelector(".section-body"));controls.id="twoiStudioControls";
   const button=(label,action)=>{const b=el("button",label,controls);b.type="button";b.className="mc-btn";b.onclick=action;return b;};
-  let loading=null;
+  let loading=null,opening=false;
   async function notes(compose){
     if(initializing||!networked||!serverReady){addChat("notice","Connect and sign in to Bella Faux Pas before opening production notes.");return;}
+    if(opening)return;opening=true;
     try{
       if(!window.PubCastNotes){
         if(!loading)loading=new Promise((resolve,reject)=>{const script=el("script",null,document.head);script.src="/static/production_notes.js";script.onload=resolve;script.onerror=()=>{script.remove();loading=null;reject(Error("Production notes could not load."));};});
@@ -18,10 +19,19 @@
       await window.PubCastNotes.open();
       if(compose)await window.PubCastNotes.compose({});
     }catch(error){addChat("notice",error.message);}
+    finally{opening=false;}
   }
   button("Studio notes",()=>notes(false));button("Write a note",()=>notes(true));
   if(config.returnPath)button(config.seated?"Stand up · return to room":"Return to studio",async()=>{
-    try{if(!await preserveBeforeSwitch())return;location.assign(config.returnPath);}catch(error){addChat("notice",error.message);}
+    try{
+      if(initializing){addChat("notice","Wait for the manuscript to open before leaving.");return;}
+      if(!await preserveBeforeSwitch())return;
+      if(!rememberStudioResume()){
+        addChat("notice","Unable to retain this tab's manuscript handoff. Save or export your work before leaving.");
+        return;
+      }
+      location.assign(config.returnPath);
+    }catch(error){addChat("notice",error.message);}
   });
   if(!config.seated)return;
   const figure=el("figure",null,$("notebookFrame"));figure.id="twoiDeskScene";

@@ -8,6 +8,8 @@ const requestedIdParam=new URLSearchParams(location.search).get('document');
 const requestedDocumentId=/^[A-Za-z0-9_-]{1,100}$/.test(requestedIdParam||'')?requestedIdParam:null;
 const priorEditorWriter=typeof history.state?.twoiWriter==='string'?history.state.twoiWriter:null;
 const editorWriter=uuid();
+const studioEntry=new URLSearchParams(location.search).has('studio_room');
+let studioResume=null;
 /* Editor recovery selection — kept pure for regression tests. */
 function uniqueEditorRecoveries(records){
   const copies=new Map();
@@ -27,6 +29,13 @@ function chooseEditorRecovery({documentId,previousWriter,explicit,records}){
   if(explicit)return clean||null;
   const dirty=candidates.filter(r=>r.dirty);
   return dirty.length===1?dirty[0]:clean||null;
+}
+function parseStudioResume(raw){
+  try{
+    const x=typeof raw==='string'?JSON.parse(raw):raw;
+    if(!x||typeof x.id!=='string'||!/^[A-Za-z0-9_-]{1,100}$/.test(x.id)||typeof x.writer!=='string'||!/^[A-Za-z0-9_-]{1,120}$/.test(x.writer))return null;
+    return {id:x.id,writer:x.writer};
+  }catch{return null;}
 }
 /* End editor recovery selection. */
 function stored(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; } }
@@ -76,6 +85,10 @@ function rememberWorkspace() {
   pinEditorDocument();
 }
 function recoveryWriterKey(id,writer=editorWriter){return RECOVERY_KEY+':writer:'+writer+':'+id;}
+function rememberStudioResume(){
+  if(!serverReady||initializing||reachFileMode)return false;
+  try{sessionStorage.setItem(RECOVERY_KEY+':studio-handoff',JSON.stringify({id:documentId,writer:editorWriter}));return true;}catch{return false;}
+}
 // Manuscripts and account state always belong to the local Reach host.
 // A separately configured AI endpoint must never redirect document writes.
 function baseURL() { return (networked ? location.origin : 'http://localhost:8000').replace(/\/+$/, ''); }
@@ -449,6 +462,11 @@ async function connectReach() {
     const next = stored(WORKSPACE_KEY, {clientId:workspace.clientId,documentId:uuid()});
     workspace = next; documentId=reachFileMode ? 'file_'+reachFileMode : (requestedDocumentId||workspace.documentId||uuid()); revision=0;
   }
+  // Read only this authenticated owner's per-tab handoff. Explicit version URLs win.
+  if(studioEntry&&!requestedDocumentId&&!reachFileMode){
+    try{studioResume=parseStudioResume(sessionStorage.getItem(RECOVERY_KEY+':studio-handoff'));}catch{}
+    if(studioResume)documentId=studioResume.id;
+  }
   serverReady=true;
   if (!modelConfig) $('partnerNote').textContent='No local model configured · paid models will not be selected automatically.';
   // Character profiles are optional; their outage must not block manuscript storage.
@@ -662,7 +680,7 @@ async function startReach() {
   }
   if(reachFileMode){initializing=false;return;}
   const candidates=browserManuscripts();
-  const recovery=chooseEditorRecovery({documentId,previousWriter:priorEditorWriter,explicit:!!requestedDocumentId,records:candidates});
+  const recovery=chooseEditorRecovery({documentId,previousWriter:studioResume?.writer||priorEditorWriter,explicit:!!(requestedDocumentId||studioResume),records:candidates});
   if(candidates.some(r=>r.id===documentId&&r.dirty&&r!==recovery&&r.recoveryKey!==recovery?.recoveryKey))
     addChat('notice','Other unsaved browser copies exist. They remain available separately in My manuscripts; no other editor\'s draft was silently adopted.');
   if(recovery?.id===documentId) {
@@ -674,7 +692,7 @@ async function startReach() {
       if(!documentDirty) {validateDocumentState(saved.state);documentTitle=saved.title;revision=saved.revision;loadDocState(saved.state);writeRecovery();setSaveStatus('Saved to Reach · revision '+revision);}
       else if(saved.revision!==revision) {saveConflict=true;setSaveStatus('Newer Reach copy exists · save a copy');}
     } catch(error) {
-      if(requestedDocumentId&&!recoverySafe){
+      if((requestedDocumentId||studioResume)&&!recoverySafe){
         setSaveStatus('Requested version unavailable · open My manuscripts');
         addChat('notice','The requested manuscript was not loaded. This is a separate empty recovery workspace, not the requested version.');
         // Never turn an unknown or inaccessible explicit version ID into
