@@ -231,6 +231,51 @@ function makeNarrativeCore(){
     const row={...clone(meta),kind:"author testimony",text,statement:{target,category,supersedes}};
     archive.push(row);return index;
   }
+  const captureModes=["essential","significant","comprehensive"];
+  const sessionEvents=["start","end","coverage-limit","approval","rejection","milestone","statement","candidate","advisory","edit","undo","redo"];
+  const sessionIdValid=x=>typeof x==="string"&&/^[a-zA-Z0-9_-]{1,100}$/.test(x);
+  function editDelta(before,after){
+    if(typeof before!=="string"||typeof after!=="string")throw Error("Invalid text comparison.");
+    let start=0,suffix=0;
+    while(start<before.length&&start<after.length&&before[start]===after[start])start++;
+    // Avoid splitting a UTF-16 surrogate pair at a matching boundary.
+    if(start>0&&/[\uD800-\uDBFF]/.test(before[start-1])&&(/[\uDC00-\uDFFF]/.test(before[start]||"")||/[\uDC00-\uDFFF]/.test(after[start]||"")))start--;
+    while(suffix<before.length-start&&suffix<after.length-start&&before[before.length-1-suffix]===after[after.length-1-suffix])suffix++;
+    if(suffix>0&&/[\uDC00-\uDFFF]/.test(before[before.length-suffix])&&(/[\uD800-\uDBFF]/.test(before[before.length-suffix-1]||"")||/[\uD800-\uDBFF]/.test(after[after.length-suffix-1]||"")))suffix--;
+    return {offset:start,removed:before.slice(start,before.length-suffix),inserted:after.slice(start,after.length-suffix)};
+  }
+  function sessionObservation(row){
+    const s=row?.session;
+    if(row?.kind!=="creative session event"||!s||!sessionIdValid(s.id)||!captureModes.includes(s.mode)||!sessionEvents.includes(s.event)||!Number.isInteger(s.sequence)||s.sequence<1||typeof row.text!=="string"||row.text.length>8000)return null;
+    const result={id:s.id,mode:s.mode,event:s.event,sequence:s.sequence};
+    if(s.event==="edit"){
+      if(!["committed","draft","inline"].includes(s.surface)||!Number.isInteger(s.offset)||s.offset<0||!Number.isInteger(s.removedLength)||s.removedLength<0||!Number.isInteger(s.insertedLength)||s.insertedLength<0)return null;
+      result.surface=s.surface;result.offset=s.offset;result.removedLength=s.removedLength;result.insertedLength=s.insertedLength;
+      if(s.surface==="inline"){if(!Number.isInteger(s.line)||s.line<0)return null;result.line=s.line;}
+      result.inputType=["typing","paste","drop","composition","history","other"].includes(s.inputType)?s.inputType:"other";
+      if(s.mode==="comprehensive"){
+        if(typeof s.removed!=="string"||typeof s.inserted!=="string"||s.removed.length!==s.removedLength||s.inserted.length!==s.insertedLength)return null;
+        result.removed=s.removed;result.inserted=s.inserted;
+      }
+    }
+    if(["approval","rejection","statement"].includes(s.event)&&Number.isInteger(s.archiveIndex)&&s.archiveIndex>=0)result.archiveIndex=s.archiveIndex;
+    if(s.event==="candidate"||s.event==="advisory"){if(["draft","review","dossier"].includes(s.requestKind))result.requestKind=s.requestKind;}
+    if(s.event==="end"||s.event==="coverage-limit"){if(["explicit","switch","budget","error"].includes(s.reason))result.reason=s.reason;}
+    return result;
+  }
+  function sessionEvent(capture,event,details={},text=""){
+    if(!capture||!sessionIdValid(capture.id)||!captureModes.includes(capture.mode)||!sessionEvents.includes(event))throw Error("Invalid creative capture.");
+    const row={kind:"creative session event",text,session:{...details,id:capture.id,mode:capture.mode,event,sequence:capture.sequence+1}};
+    const clean=sessionObservation(row);if(!clean)throw Error("Invalid session observation.");
+    // Rebuild from an allowlist to avoid storing event objects, credentials or arbitrary metadata.
+    return {kind:row.kind,text:event==="milestone"?text:"",session:clean};
+  }
+  function observedEdit(capture,{surface,before,after,line,inputType}){
+    if(!capture||capture.mode==="essential"||before===after)return null;
+    const d=editDelta(before,after),type=["typing","paste","drop","composition","history"].includes(inputType)?inputType:"other";
+    if(capture.mode==="significant"&&d.removed.length+d.inserted.length<24&&!["paste","drop","history"].includes(type))return null;
+    return {surface,offset:d.offset,removedLength:d.removed.length,insertedLength:d.inserted.length,inputType:type,...(surface==="inline"?{line}:{}),...(capture.mode==="comprehensive"?{removed:d.removed,inserted:d.inserted}:{})};
+  }
   // A disclosure is derived from existing, mutable document records. It is
   // intentionally not a second journal, attribution score, or certification.
   function contributionReport(state,{includePrivateText=false}={}){
@@ -242,23 +287,26 @@ function makeNarrativeCore(){
     const approvals=archive.map((_,index)=>approvalObservation(archive,index)).filter(Boolean);
     const approvalObservations={recorded:approvals.length,exactCandidateMatches:approvals.filter(x=>x.comparison?.exact).length,changedCandidates:approvals.filter(x=>x.comparison&&!x.comparison.exact).length,unlinkedApprovals:approvals.filter(x=>!x.comparison).length};
     const statements=archive.map((_,index)=>authorStatement(archive,index)).filter(Boolean);
-    const report={authorStatements:{recorded:statements.length,disputes:statements.filter(s=>s.category==="dispute").length,clarifications:statements.filter(s=>s.category==="clarification").length,unverified:true},approvalObservations,format:"2i-contribution-disclosure",version:1,verification:"unverified document records; not a certification",scope:includePrivateText?"private creative archive":"aggregate only",archiveRecordCount:archive.length,recordCounts:counts,otherArchiveRecords:other,currentAdvisoryRecords:Array.isArray(state?.advisories)?state.advisories.length:0,hasPresentedModelCandidate:typeof state?.presentedOriginal==="string"&&state.presentedOriginal.length>0,limitations:[
+    const observations=archive.map(sessionObservation).filter(Boolean);
+    const sessionSummary={recordedEvents:observations.length,starts:observations.filter(x=>x.event==="start").length,ends:observations.filter(x=>x.event==="end").length,coverageLimits:observations.filter(x=>x.event==="coverage-limit").length,observedEdits:observations.filter(x=>x.event==="edit").length};
+    const report={sessionSummary,authorStatements:{recorded:statements.length,disputes:statements.filter(s=>s.category==="dispute").length,clarifications:statements.filter(s=>s.category==="clarification").length,unverified:true},approvalObservations,format:"2i-contribution-disclosure",version:1,verification:"unverified document records; not a certification",scope:includePrivateText?"private creative archive":"aggregate only",archiveRecordCount:archive.length,recordCounts:counts,otherArchiveRecords:other,currentAdvisoryRecords:Array.isArray(state?.advisories)?state.advisories.length:0,hasPresentedModelCandidate:typeof state?.presentedOriginal==="string"&&state.presentedOriginal.length>0,limitations:[
       "Record counts are not creative significance, word-level attribution, or evidence of exclusive human or AI authorship.",
       "Committed presented draft includes material of unknown or mixed origin; approval does not prove composition.",
       "Records can be imported, edited, duplicated, inherited on forks, or retained across undo. They do not prove who performed a physical action.",
       "Matching Unicode prefix and suffix are historical text correspondence only; a changed middle has unknown origin. Absence of records does not establish human authorship.",
       "Author statements are self-reported testimony, preserved separately from observed records; they do not override software evidence or determine authorship.",
+      "Optional session capture observes selected editor actions only. Imported records, unmatched session starts, unsupported edit paths, reloads and coverage limits may leave gaps; input type is not proof of human composition.",
       "This is not a complete session history, independent Blackbox witness, tamper-proof signature or certification."
     ]};
     if(includePrivateText){
       const scalar=x=>typeof x==="string"?x:null;
-      report.privateArchive=archive.map((r,index)=>({recordIndex:index,kind:scalar(r.kind),text:scalar(r.text),createdAt:scalar(r.createdAt),sceneId:scalar(r.sceneId),sourceDocumentId:scalar(r.documentId),revision:Number.isInteger(r.revision)?r.revision:null,approvalObservation:approvalObservation(archive,index),authorStatement:authorStatement(archive,index)}));
+      report.privateArchive=archive.map((r,index)=>({recordIndex:index,kind:scalar(r.kind),text:scalar(r.text),createdAt:scalar(r.createdAt),sceneId:scalar(r.sceneId),sourceDocumentId:scalar(r.documentId),revision:Number.isInteger(r.revision)?r.revision:null,approvalObservation:approvalObservation(archive,index),authorStatement:authorStatement(archive,index),sessionObservation:sessionObservation(r)}));
       report.privateCurrentAdvisories=(state?.advisories||[]).map(a=>({kind:scalar(a.kind),text:scalar(a.text),sceneId:scalar(a.sceneId),createdAt:scalar(a.createdAt)}));
       report.privatePresentedCandidate=scalar(state?.presentedOriginal);
     }
     return report;
   }
-  return {compareDraftText,recordDraftApproval,approvalObservation,statementKinds,authorStatement,appendAuthorStatement,contributionReport,fields,clone,fresh,restore,scene,disclosure,footprint,fits,partition,priorContext,context,prompt,parseDraft,archive,selectScene,remapProtected,captureUndo,restoreUndo,outcomes,continuity,putAdvisory};
+  return {captureModes,editDelta,sessionObservation,sessionEvent,observedEdit,compareDraftText,recordDraftApproval,approvalObservation,statementKinds,authorStatement,appendAuthorStatement,contributionReport,fields,clone,fresh,restore,scene,disclosure,footprint,fits,partition,priorContext,context,prompt,parseDraft,archive,selectScene,remapProtected,captureUndo,restoreUndo,outcomes,continuity,putAdvisory};
 }
 const NarrativeCore=makeNarrativeCore();
 if(typeof module!=="undefined"&&module.exports)module.exports=NarrativeCore;

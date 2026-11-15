@@ -1347,6 +1347,7 @@ function restoreUndoPoint(s,kind) {
   if(typeof s.coWriting==='boolean'){coWriting=s.coWriting;updateModeUI();}
   selectedIdx=null;editingIdx=null;
   if(!coWriting)soloTextarea.value=committed.join('\n');
+  if(kind==='undo'||kind==='redo')window.twoiCreativeSession?.record(kind);
   markDirty();render();
 }
 function undo() {
@@ -2074,6 +2075,7 @@ function renderManuscriptLines() {
           snapshot();
           const before = committed[i];
           committed[i] = ta.value;
+          window.twoiCreativeSession?.observeEdit({surface:'inline',line:i,before,after:ta.value,inputType:'other'});
           editingIdx = null; markDirty(); render();
           if (before !== ta.value && ppWasGenerated(before)) {
             ppVoiceSignal('rewritten', before, ta.value);
@@ -2136,8 +2138,9 @@ function updateLineNumbers() {
 
 // Sync solo textarea scroll with line numbers
 soloTextarea.addEventListener('scroll', () => { lineNumbers.scrollTop = soloTextarea.scrollTop; });
-soloTextarea.addEventListener('input', () => {
-  const next=soloTextarea.value.split('\n');
+function creativeInputType(event){const t=String(event?.inputType||"");return t.includes("Paste")?"paste":t.includes("Drop")?"drop":/composition/i.test(t)||event?.isComposing?"composition":t.startsWith("history")?"history":/^(insertText|insertLineBreak|insertParagraph|deleteContent)/.test(t)?"typing":"other";}
+soloTextarea.addEventListener('input', (event) => {
+  const next=soloTextarea.value.split('\n'),old=committed.join('\n');
   if(window.twoiNarrativeHistory){
     try{
       const previous=committed.join('\n'),target=next.join('\n');
@@ -2150,11 +2153,11 @@ soloTextarea.addEventListener('input', () => {
       addChat('notice',error.message);updateLineNumbers();return;
     }
   }
-  updateLineNumbers();committed=next;markDirty();
+  updateLineNumbers();committed=next;window.twoiCreativeSession?.observeEdit({surface:'committed',before:old,after:next.join('\n'),inputType:creativeInputType(event)});markDirty();
 });
-draftArea.addEventListener('input', () => {
-  buffer = draftArea.value.split('\n');
-  markDirty();
+draftArea.addEventListener('input', (event) => {
+  const before=buffer.join('\n');buffer = draftArea.value.split('\n');
+  window.twoiCreativeSession?.observeEdit({surface:'draft',before,after:buffer.join('\n'),inputType:creativeInputType(event)});markDirty();
 });
 
 // ── LLM MODAL ──────────────────────────────────────────────────────

@@ -219,7 +219,7 @@ async function preserveBeforeSwitch() {
     addChat('notice', 'An inline edit, message or generation is still active. Finish or cancel it before changing manuscripts.');
     return false;
   }
-  const sourceId=documentId;await saveDocument();
+  const sourceId=documentId;window.twoiCreativeSession?.stopForSwitch();await saveDocument();
   if(sourceId!==documentId||generating||chatSending){addChat('notice','The current manuscript or request changed. Retry the switch.');return false;}
   if(documentDirty&&!recoverySafe){addChat('notice','Your current manuscript could not be saved. Export a .2i copy before switching manuscripts.');return false;}
   return true;

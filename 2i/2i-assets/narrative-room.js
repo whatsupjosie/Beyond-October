@@ -16,6 +16,74 @@
   const say=(s)=>{if(notice)notice.textContent=s;const bar=$("narrativeStatus");if(bar)bar.textContent=s;};
   const save=()=>{markDirty();if(typeof writeRecovery==="function")writeRecovery();};
   const meta=()=>({sceneId:state.activeSceneId,documentId:scope(),createdAt:new Date().toISOString(),revision:typeof revision==="undefined"?null:revision});
+  // Runtime-only consent. Imported/forked history never starts a recorder.
+  // All retained events live in the existing private narrative archive.
+  let capture=null,sessionNotice="";
+  const sessionActive=()=>!!capture&&capture.document===scope();
+  function recordSession(event,details={},text=""){
+    if(!sessionActive())return false;
+    try{
+      const row=C.sessionEvent(capture,event,details,text),size=JSON.stringify(row).length*3;
+      const reserve=2048;
+      if(event!=="end"&&event!=="coverage-limit"&&(capture.events>=500||capture.bytes+size>capture.budget-reserve)){
+        const gap=C.sessionEvent(capture,"coverage-limit",{reason:"budget"});state.archive.push({...meta(),...gap});capture.sequence++;capture.events++;
+        const ended=C.sessionEvent(capture,"end",{reason:"budget"});state.archive.push({...meta(),...ended});capture=null;
+        sessionNotice="Session capture stopped at its storage limit; later actions are not recorded. Existing manuscript and evidence retained.";
+        say(sessionNotice);updateSessionControl();return true;
+      }
+      state.archive.push({...meta(),...row});capture.sequence++;capture.events++;capture.bytes+=size;
+      return true;
+    }catch(error){
+      try{const gap=C.sessionEvent(capture,"coverage-limit",{reason:"error"});state.archive.push({...meta(),...gap});}catch{}
+      capture=null;sessionNotice="Session capture stopped after an error; coverage is incomplete. Manuscript editing remains available.";say(sessionNotice);updateSessionControl();return true;
+    }
+  }
+  function observeEdit(data){
+    if(!sessionActive())return false;
+    try{const details=C.observedEdit(capture,data);return details?recordSession("edit",details):false;}
+    catch{recordSession("coverage-limit",{reason:"error"});stopCapture("error");return true;}
+  }
+  function stopCapture(reason="explicit"){
+    if(!sessionActive())return false;
+    recordSession("end",{reason});capture=null;sessionNotice="Creative session ended. Recorded material remains in the private manuscript archive.";updateSessionControl();save();return true;
+  }
+  function startCapture(mode){
+    if(!ownerReady()||generating||chatSending||editingIdx!==null||sessionActive()||!C.captureModes.includes(mode))throw Error("Finish active work or the current session before starting another.");
+    const estimate=JSON.stringify(getDocState()).length*3,budget=Math.min(96000,Math.max(0,1600000-estimate));
+    if(budget<8192)throw Error("This manuscript has insufficient estimated sync capacity for additional recording. Export a native copy or work in a smaller manuscript.");
+    capture={id:id(),mode,document:scope(),sequence:0,events:0,bytes:0,budget};
+    if(!recordSession("start"))throw Error("Capture could not start.");
+    sessionNotice="Creative capture active: "+mode+". It is limited to supported actions, not continuous surveillance.";updateSessionControl();save();
+  }
+  function updateSessionControl(){
+    const button=$("narrativeSession");if(button)button.textContent=sessionActive()?"Creative session · "+capture.mode:"Creative session · off";
+  }
+  function openSession(){
+    if(!ownerReady()||generating||chatSending||editingIdx!==null)return say("Finish active work before changing session capture.");
+    const old=$("twoiSessionDialog");if(old)old.remove();
+    const d=make("dialog",undefined,document.body);d.id="twoiSessionDialog";d.setAttribute("aria-label","Private creative session");
+    Object.assign(d.style,{width:"min(620px,94vw)",maxHeight:"85dvh",overflow:"auto",padding:"16px",background:"#fffaf0",color:"#29231b",borderRadius:"10px"});
+    const source=scope();
+    make("h2","Private creative session",d);
+    make("p","Opt in for this document and live editor only. Existing draft recovery and normal revision saving continue regardless. Capture is saved with the private native manuscript, including normal Reach sync if connected; it is not sent to a model or public disclosure. No automatic restart after reload, import or fork.",d);
+    make("p",sessionNotice||"Capture is currently off.",d);
+    const info=make("p","",d);info.setAttribute("role","status");
+    const verify=()=>{if(source!==scope()||generating||chatSending||editingIdx!==null)throw Error("The document or active work changed. Reopen this dialog.");};
+    function attempt(fn){try{verify();fn();d.close();}catch(e){info.textContent=e.message;}}
+    if(sessionActive()){
+      make("p",capture.mode+" · "+capture.events+" events · approximately "+Math.ceil(capture.bytes/1024)+" KiB of "+Math.floor(capture.budget/1024)+" KiB budget",d);
+      const note=make("textarea",undefined,d);note.rows=3;note.maxLength=8000;note.placeholder="Optional private milestone or creative decision";
+      button("Record milestone",d,()=>attempt(()=>{if(!note.value.trim())throw Error("Enter a milestone.");recordSession("milestone",{},note.value);save();}));
+      button("End session",d,()=>attempt(()=>stopCapture("explicit")));
+    }else{
+      const select=make("select",undefined,make("label","Capture depth",d));for(const [mode,label] of [["essential","Essential — approvals, rejections, decisions"],["significant","Significant — plus presented candidates, advisories, large edits and paste/drop metadata"],["comprehensive","Comprehensive — plus exact deltas at supported writing inputs"]]){const o=make("option",label,select);o.value=mode;}
+      select.value="essential";
+      make("p","Comprehensive recording can retain removed or pasted private text. All modes are bounded (up to 500 events / 96 KB estimated per session); unsupported actions and interrupted sessions may leave gaps. No keys, credentials, microphone, or unrelated activity are captured.",d);
+      button("Start private capture",d,()=>attempt(()=>{if(!confirm("Start "+select.value+" private capture? Recorded content remains with this manuscript and its normal recovery/sync copies."))throw Error("Capture not started.");startCapture(select.value);}));
+    }
+    button("Close",d,()=>d.close());d.addEventListener("close",()=>d.remove(),{once:true});d.showModal();
+  }
+  window.twoiCreativeSession={observeEdit,record:recordSession,stopForSwitch:()=>stopCapture("switch"),active:sessionActive};
   // Detect accidental movement of numeric anchors. Not a cryptographic permission
   // check. Authors explicitly re-anchor a scene if an earlier edit moved it.
   function anchor(lines){let a=2166136261,b=0;for(const line of lines){for(let i=0;i<line.length;i++){a=Math.imul(a^line.charCodeAt(i),16777619);b++;}a=Math.imul(a^10,16777619);}return lines.length+":"+b+":"+(a>>>0);}
@@ -39,7 +107,7 @@
     const pending=(data.pool||[]).slice(data.pointer||0).join("\n");
     if(pending){C.archive(restored,"legacy queue",pending,{migration:true});restored.latent+=(restored.latent?"\n":"")+pending;}
     serial++;audioSerial++;activeAudio=null;reading=null;playing=false;inReaction=false;cancelSpeech();
-    state=restored;
+    capture=null;sessionNotice="";state=restored;updateSessionControl();
     PP_GEN.clear();for(const text of data.generatedLineTexts||[])if(typeof text==="string")ppMarkGenerated(text);
     PP.intelligence=null;PP.online=false;PP.lastCommit=0;ppRenderCast();ppRenderFlags();ppSetStatus("checking document");
     originalLoad({...data,pool:[],pointer:0,coWriting:!!data.coWriting||!!data.buffer?.length,references:data.references||[]});
@@ -159,7 +227,7 @@
     if(!ownerReady()||!coWriting||generating||chatSending||editingIdx!==null)return say("Finish the active request or edit and enter Collab mode first.");
     if(!buffer.length&&!state.presentedOriginal)return say("There is no presented draft to archive.");
     if(!confirm("Archive this entire uncommitted draft? It will remain recoverable, but will leave the active manuscript draft."))return;
-    snapshot();C.archive(state,"rejected presented draft",buffer.join("\n"),meta());if(state.presentedOriginal&&state.presentedOriginal!==buffer.join("\n"))C.archive(state,"original rejected AI draft",state.presentedOriginal,meta());state.presentedOriginal="";state.presentedBasis=null;state.presentedSceneId=null;buffer=[];reading=null;stopPlaying();save();render();updateBar();refreshArchive();say("Draft archived. Reconsider any remaining latent material before presenting it.");
+    snapshot();const rejectionIndex=state.archive.length;C.archive(state,"rejected presented draft",buffer.join("\n"),meta());if(state.presentedOriginal&&state.presentedOriginal!==buffer.join("\n"))C.archive(state,"original rejected AI draft",state.presentedOriginal,meta());recordSession("rejection",state.archive.length>rejectionIndex?{archiveIndex:rejectionIndex}:{});state.presentedOriginal="";state.presentedBasis=null;state.presentedSceneId=null;buffer=[];reading=null;stopPlaying();save();render();updateBar();refreshArchive();say("Draft archived. Reconsider any remaining latent material before presenting it.");
   }
   async function run(kind){
     if(!ownerReady()||generating||chatSending||editingIdx!==null){say("Finish the active request or inline edit first.");return false;}
@@ -184,6 +252,7 @@
       if(kind!=="draft"){
         const value={sceneId:state.activeSceneId,text:raw,source:anchor([source]),kind,createdAt:new Date().toISOString()};
         C.putAdvisory(state,value);
+        if(sessionActive()&&capture.mode!=="essential")recordSession("advisory",{requestKind:kind});
         if(report)refreshReport();save();say("Advisory ready. No manuscript text was changed.");return true;
       }
       let d;try{d=C.parseDraft(raw);}catch(e){C.archive(state,"unparsed model response",raw,meta());save();throw e;}
@@ -194,6 +263,7 @@
       state.latent=d.latent;
       if(d.notes)C.putAdvisory(state,{sceneId:state.activeSceneId,text:d.notes,source:anchor([source]),kind:"draft",createdAt:new Date().toISOString()});
       state.presentedOriginal=d.presented;state.presentedSceneId=state.activeSceneId;state.presentedBasis=reviewBasis(ctx);buffer=d.presented.split("\n");buffer.forEach(ppMarkGenerated);
+      if(sessionActive()&&capture.mode!=="essential")recordSession("candidate",{requestKind:"draft"});
       save();render();updateBar();refreshArchive();if(report&&d.notes)report.textContent=d.notes;
       say("Draft presented within the two-page approximation. Review before continuing.");if(panel?.open)panel.close();return true;
     }catch(e){say(e.name==="AbortError"?"Request cancelled; manuscript unchanged.":e.message);return false;}
@@ -215,6 +285,7 @@
     const applied=committed.length===firstLine+batch.length&&batch.every((line,index)=>committed[firstLine+index]===line)&&buffer.length===0;
     if(!applied){say(failure?"Approval did not finish: "+failure.message:"Approval could not be confirmed. Draft records were not marked committed.");return;}
     C.recordDraftApproval(state,{candidate,accepted,firstLine,lineCount:batch.length,meta:context});
+    recordSession("approval",{archiveIndex:state.archive.length-1});
     state.presentedOriginal="";state.presentedBasis=null;state.presentedSceneId=null;save();updateBar();refreshArchive();
     if(failure)say("Text committed; a post-commit action failed: "+failure.message);
   };
@@ -272,8 +343,8 @@
     const saveButton=button("Append private statement",d,()=>{
       try{if(source!==scope()||basis!==JSON.stringify(state.archive)||generating||chatSending||editingIdx!==null)throw Error("The document or archive changed; reopen statements.");
         if(!candidates.length)throw Error("There is no source record to annotate.");
-        C.appendAuthorStatement(state,{target:Number(select.value),category:category.value,text:note.value,supersedes:prior.value===""?null:Number(prior.value),meta:meta()});
-        save();d.close();say("Author statement appended. Existing evidence remains unchanged.");
+        const index=C.appendAuthorStatement(state,{target:Number(select.value),category:category.value,text:note.value,supersedes:prior.value===""?null:Number(prior.value),meta:meta()});
+        recordSession("statement",{archiveIndex:index});save();d.close();say("Author statement appended. Existing evidence remains unchanged.");
       }catch(error){info.textContent=error.message;}
     });saveButton.disabled=!candidates.length;
     button("Close",d,()=>d.close());d.addEventListener("close",()=>d.remove(),{once:true});refresh();d.showModal();
@@ -293,6 +364,7 @@
     make("li",report.currentAdvisoryRecords+" · current advisory record(s)",counts);
     const a=report.approvalObservations;
     make("p","Recorded approvals: "+a.recorded+" · exact match "+a.exactCandidateMatches+" · changed "+a.changedCandidates+" · no linked candidate "+a.unlinkedApprovals+". These describe text correspondence, not who wrote it.",d);
+    make("p",report.sessionSummary.starts+" recorded session starts · "+report.sessionSummary.ends+" ends · "+report.sessionSummary.coverageLimits+" coverage limits. Capture is incomplete by design.",d);
     make("p",report.authorStatements.recorded+" author statement(s), including "+report.authorStatements.disputes+" dispute(s). Self-reported; not independently verified.",d);
     make("p",report.hasPresentedModelCandidate?"A model candidate is currently recorded as presented.":"No currently presented model candidate is recorded.",d);
     const limitations=make("ul",undefined,d);for(const line of report.limitations)make("li",line,limitations);
@@ -308,6 +380,7 @@
   const controls=$("mcSection").querySelector(".section-body");
   button("Scene intelligence",controls,openPanel).id="narrativeOpen";
   button("Contribution records",controls,openContributionReport).id="narrativeContribution";
+  button("Creative session · off",controls,openSession).id="narrativeSession";
   button("Revision history",controls,()=>{if(typeof showRevisionHistory==="function")showRevisionHistory();else say("Connect Reach to view server revisions.");}).id="narrativeHistory";
   button("Archive draft",controls,archiveDraft).id="narrativeArchiveDraft";
   const budget=make("p","",controls);budget.id="narrativeBudget";
