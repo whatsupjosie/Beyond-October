@@ -7,21 +7,32 @@
   const controls=el("div",null,$("mcSection").querySelector(".section-body"));controls.id="twoiStudioControls";
   const button=(label,action)=>{const b=el("button",label,controls);b.type="button";b.className="mc-btn";b.onclick=action;return b;};
   let loading=null,opening=false;
-  async function notes(compose){
+  async function ensureNotes(){
+    if(!window.PubCastNotes){
+      if(!loading)loading=new Promise((resolve,reject)=>{const script=el('script',null,document.head);script.src='/static/production_notes.js';script.onload=resolve;script.onerror=()=>{script.remove();loading=null;reject(Error('Production notes could not load.'));};});
+      await loading;
+      if(config.room)window.PubCastNotes.onView(config.room+'/'+q.get('studio_view'));
+    }
+    return window.PubCastNotes;
+  }
+  async function notes(action){
     if(initializing||!networked||!serverReady){addChat("notice","Connect and sign in to Bella Faux Pas before opening production notes.");return;}
     if(opening)return;opening=true;
     try{
-      if(!window.PubCastNotes){
-        if(!loading)loading=new Promise((resolve,reject)=>{const script=el("script",null,document.head);script.src="/static/production_notes.js";script.onload=resolve;script.onerror=()=>{script.remove();loading=null;reject(Error("Production notes could not load."));};});
-        await loading;
-      }
-      // Reuse recipient selection and delivery. Never copy manuscript or AI conversation automatically.
-      await window.PubCastNotes.open();
-      if(compose)await window.PubCastNotes.compose({});
+      const service=await ensureNotes();
+      // Reuse the actual room menu, not a parallel message composer.
+      await service.open();
+      if(action==="compose")await service.compose({});
+      if(action==="place")await service.place();
     }catch(error){addChat("notice",error.message);}
     finally{opening=false;}
   }
-  button("Studio notes",()=>notes(false));button("Write a note",()=>notes(true));
+  const inbox=button("Studio notes",()=>notes("inbox"));inbox.id="twoiNotesInbox";
+  button("Write a note",()=>notes("compose")).id="twoiWriteNote";
+  button("Place sticky note",()=>notes("place")).id="twoiPlaceNote";
+  document.addEventListener("pubcast:notes-unread",e=>{const n=e.detail?.count;inbox.textContent=Number.isInteger(n)&&n>0?"Studio notes ("+n+" unread)":"Studio notes";});
+  // Start the shared inbox poll only after the authenticated native editor is ready.
+  window.reachStarted?.then(()=>{if(networked&&serverReady)ensureNotes().catch(()=>{});}).catch(()=>{});
   if(config.returnPath)button(config.seated?"Stand up · return to room":"Return to studio",async()=>{
     try{
       if(initializing){addChat("notice","Wait for the manuscript to open before leaving.");return;}

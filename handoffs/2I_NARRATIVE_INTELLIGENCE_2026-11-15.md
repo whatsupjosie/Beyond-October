@@ -73,3 +73,7 @@ Ten isolated pure-core checks actually executed in the JavaScript execution envi
 
 ### Studio reentry protection
 - Stand-up/return remembers the authenticated owner's manuscript ID and editor recovery identity in tab-local session storage after the existing preservation guard. The next studio entry restores that version and its own recovery; an explicit version URL still takes precedence. Never adopt someone else's dirty copy on reentry. If session handoff cannot be retained, stay in the editor and warn. Concurrent note composer launch is guarded. 6 focused source checks passed; real browser/session behavior remains untested.
+
+## Remote note placement in native 2i
+- Dedicated Studio notes, Write a note and Place sticky note commands invoke the very same Bella production notes controller and room/surface catalogue. Composer supports person-first selection, optional room filtering for locations, and room filters in per-recipient preview. Existing room-first place workflow preserved. Mirror remains mandatory; existing three-note visual cap unchanged. Per-person overrides require a fresh preview before send, including individual notes.
+- Unread count on 2i inbox updates from the shared authenticated polling service (20-second normal interval, not websocket instant delivery). No automatic sending or actual test note sent. 7 source checks passed (room filtering, existing cap and syntax); live host and browser remain acceptance gates.

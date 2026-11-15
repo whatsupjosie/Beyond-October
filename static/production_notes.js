@@ -90,6 +90,15 @@
 `;
   const style = document.createElement("style"); style.textContent = css; document.head.appendChild(style);
 
+  function roomPlacementOptions(file,catalog,room){
+  const allowed=new Set(catalog.map(x=>x.id));
+  const list=[];
+  for(const [id,s] of Object.entries(file?.spots||{})){
+    if(!allowed.has(id)||id==="mirror")continue;
+    if((s.surfaces||[]).some(x=>String(x.view).split("/")[0]===room))list.push(id);
+  }
+  return list;
+}
   /* ---------------------------------------------------------------- state */
   const N = {
     enabled: false, notes: [], unread: 0, file: null, people: null, me: null, spotCatalog: null,
@@ -121,6 +130,7 @@
     const r = await api("/api/notes?box=inbox");
     if (!r.ok) { N.enabled = r.status !== 401 && r.status !== 403 ? N.enabled : false; return false; }
     N.enabled = true; N.notes = r.data.notes; N.unread = r.data.unread;
+    document.dispatchEvent(new CustomEvent('pubcast:notes-unread',{detail:{count:N.unread}}));
     const keep = new Set(N.notes.map(n => n.id));
     for (const k of N.bitmaps.keys()) if (!keep.has(k.split("|")[0]) && !k.startsWith("menu|")) N.bitmaps.delete(k);
     return true;
@@ -567,6 +577,7 @@
 
   async function compose(o) {
     N.mode = "compose";
+    await loadSpotFile();
     N.people = null;
     const crew = await people();
     if (!crew) { alertInLayer("Your crew list could not be loaded."); return; }
@@ -639,13 +650,18 @@
     if (re) body.value = "\n\n" + "On " + new Date(re.created_at * 1000).toLocaleString() + ", " + re.from.display_name + " wrote:\n" + re.body.split("\n").map(l => "> " + l).join("\n");
     const lbody = el("label", null, "Message"); lbody.appendChild(body); form.appendChild(lbody);
     const spotRow = el("div", "pn-row"); spotRow.appendChild(el("span", null, "Stick it to"));
+    const roomPicker=el('select');roomPicker.setAttribute('aria-label','Room for sticky note');roomPicker.add(new Option('All configured locations',''));
+    for(const [room] of placesByRoom())roomPicker.add(new Option(roomLabel(room),room));
+    const roomLabelField=el('label',null,'Choose room (optional)');roomLabelField.append(roomPicker);form.append(roomLabelField);
+    form.append(el('p',null,'The recipient’s dressing-room makeup mirror always receives a copy. Choose another room and surface if you want another placement. Preview recipients to set different locations for different people.'));
     const spotBox = el("div", "pn-picks");
     for (const s of N.spotCatalog) {
       const b = btn(s.label, "pn-pick", () => { if (s.always) return; spots.has(s.id) ? spots.delete(s.id) : spots.add(s.id); invalidate(); b.setAttribute("aria-pressed", String(spots.has(s.id))); });
-      b.setAttribute("aria-pressed", String(spots.has(s.id))); if (s.always) { b.disabled = true; b.title = "Every note goes on the mirror"; }
+      b.setAttribute("aria-pressed", String(spots.has(s.id))); b.dataset.location=s.id; if (s.always) { b.disabled = true; b.title = "Every note goes on the mirror"; }
       spotBox.appendChild(b);
     }
     spotRow.appendChild(spotBox); form.appendChild(spotRow);
+    roomPicker.onchange=()=>{const ids=roomPlacementOptions(N.file,N.spotCatalog,roomPicker.value);for(const b of spotBox.children)b.hidden=!!roomPicker.value&&b.dataset.location!=='mirror'&&!ids.includes(b.dataset.location)&&!spots.has(b.dataset.location);};
     const files = el("input"); files.type = "file"; files.multiple = true;
     const lfiles = el("label", null, "Attachments (up to 8, 10 MB each)"); lfiles.appendChild(files); form.appendChild(lfiles);
     const emailRow = el("label", "pn-row"); const emailBox = el("input"); emailBox.type = "checkbox";
@@ -667,9 +683,11 @@
       const result=await api('/api/notes/preview',json(noteData()));if(!result.ok)throw Error(result.text);
       previewToken=result.data.preview;previewRecipients=result.data.recipients;review.replaceChildren(el('h3',null,'Review actual recipients and locations'));
       for(const person of previewRecipients){
-        const row=el('label',null,person.display_name+' · '+person.kind.toUpperCase());
+        const row=el('div','pn-recipient-placement');row.append(el('strong',null,person.display_name+' · '+person.kind.toUpperCase()));
+        const room=el('select');room.setAttribute('aria-label','Room for '+person.display_name);room.add(new Option('All configured rooms',''));for(const [key] of placesByRoom())room.add(new Option(roomLabel(key),key));row.append(room);
         const select=el('select');select.multiple=true;select.setAttribute('aria-label','Locations for '+person.display_name);
         for(const spot of N.spotCatalog){const option=new Option(spot.label,spot.id);option.selected=person.spots.includes(spot.id);option.disabled=spot.always;select.add(option);}
+        room.onchange=()=>{const ids=roomPlacementOptions(N.file,N.spotCatalog,room.value);for(const option of select.options)option.hidden=!!room.value&&!option.selected&&option.value!=='mirror'&&!ids.includes(option.value);};
         select.onchange=()=>{placements[person.user_id]=['mirror',...[...select.selectedOptions].map(o=>o.value).filter(v=>v!=='mirror')];previewToken=null;msg.textContent='Locations changed. Preview recipients again before sending.';};
         row.append(select);review.append(row);
       }
@@ -681,7 +699,7 @@
     const actions = el("div", "pn-actions");
     const sendBtn = btn("Stick it", "pn-brass primary", async () => {
       msg.className = "pn-msg"; msg.textContent = "";
-      let note;try{note=noteData();if(note.group_id&&!previewToken){await preview();return;}if(previewToken)note.preview=previewToken;}catch(e){msg.textContent=e.message;return;}
+      let note;try{note=noteData();if((note.group_id||Object.keys(placements).length)&&!previewToken){await preview();return;}if(previewToken)note.preview=previewToken;}catch(e){msg.textContent=e.message;return;}
       if (!note.subject.trim()) { msg.textContent = "Write a subject: it is what shows on the sticky note."; subj.focus(); return; }
       if (!note.to.length && !note.cc.length && !note.bcc.length) { msg.textContent = "Choose who the note is for."; return; }
       sendBtn.disabled = true; sendBtn.textContent = "Sticking…";
@@ -747,6 +765,6 @@
   poll();
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { pollDelay = POLL_MS; clearTimeout(pollTimer); poll(); } });
 
-  window.PubCastNotes = { drawScene, click, hotspotNotes, onView, refresh, open: openMenuPublic, openNote, compose, state: N,
+  window.PubCastNotes = { drawScene, click, hotspotNotes, onView, refresh, open: openMenuPublic, openNote, compose, place:placeRooms, state: N,
     _noteQuad: noteQuad, _homography: homography };
 })();
