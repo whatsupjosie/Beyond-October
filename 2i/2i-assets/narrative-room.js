@@ -9,6 +9,7 @@
   const id=()=>crypto.randomUUID?crypto.randomUUID():"scene_"+Date.now()+"_"+Math.random().toString(36).slice(2);
   const current=()=>state.scenes.find(s=>s.id===state.activeSceneId)||null;
   function selectScene(next){C.selectScene(state,next);}
+  window.twoiNarrativeHistory={capture:()=>C.captureUndo(state,[...PP_GEN]),restore:(point,displaced,kind)=>{state=C.restoreUndo(state,point,displaced,kind);PP_GEN.clear();for(const text of point.generated||[])ppMarkGenerated(text);}};
   const scope=()=>typeof documentId==="undefined"?"standalone":documentId;
   const partner=()=>typeof partnerId==="undefined"?"pubpartner":partnerId;
   const ownerReady=()=>typeof initializing==="undefined"||!initializing;
@@ -38,7 +39,7 @@
     state=restored;
     PP_GEN.clear();for(const text of data.generatedLineTexts||[])if(typeof text==="string")ppMarkGenerated(text);
     PP.intelligence=null;PP.online=false;PP.lastCommit=0;ppRenderCast();ppRenderFlags();ppSetStatus("checking document");
-    originalLoad({...data,pool:[],pointer:0,coWriting:!!data.coWriting,references:data.references||[]});
+    originalLoad({...data,pool:[],pointer:0,coWriting:!!data.coWriting||!!data.buffer?.length,references:data.references||[]});
     if(panel?.open)fill();
     updateBar();
   };
@@ -132,16 +133,16 @@
   }
   const stamp=ctx=>JSON.stringify([scope(),partner(),ctx,C.clone(state.scenes),state.activeSceneId]);
   function archiveDraft(){
-    if(!ownerReady()||!coWriting||generating||chatSending)return say("Finish the active request and enter Collab mode first.");
-    if(!buffer.length)return say("There is no presented draft to archive.");
+    if(!ownerReady()||!coWriting||generating||chatSending||editingIdx!==null)return say("Finish the active request or edit and enter Collab mode first.");
+    if(!buffer.length&&!state.presentedOriginal)return say("There is no presented draft to archive.");
     if(!confirm("Archive this entire uncommitted draft? It will remain recoverable, but will leave the active manuscript draft."))return;
     snapshot();C.archive(state,"rejected presented draft",buffer.join("\n"),meta());if(state.presentedOriginal&&state.presentedOriginal!==buffer.join("\n"))C.archive(state,"original rejected AI draft",state.presentedOriginal,meta());state.presentedOriginal="";state.presentedBasis=null;state.presentedSceneId=null;buffer=[];reading=null;stopPlaying();save();render();updateBar();refreshArchive();say("Draft archived. Reconsider any remaining latent material before presenting it.");
   }
   async function run(kind){
-    if(!ownerReady()||generating||chatSending){say("Finish the active request first.");return false;}
+    if(!ownerReady()||generating||chatSending||editingIdx!==null){say("Finish the active request or inline edit first.");return false;}
     if(formChanged()){say("Save the changed scene dossier before requesting model work.");return false;}
     if(kind==="draft"&&!coWriting){say("Enter Collab mode to generate manuscript prose.");return false;}
-    if(kind==="draft"&&(buffer.length||reading)){say("Review, commit or archive the existing presented draft before requesting more.");return false;}
+    if(kind==="draft"&&(buffer.length||reading||state.presentedOriginal)){say("Review, commit or archive the existing presented draft before requesting more.");return false;}
     if(playing)stopPlaying();
     let ctx,prompts,source,token,origin;
     try{
@@ -153,7 +154,7 @@
     document.dispatchEvent(new Event("foresight:work-change"));say(kind==="draft"?"Rereading and reconsidering…":"Reading for editorial assessment…");render();
     let raw="";
     try{
-      raw=await callLLM(prompts);
+      raw=await callLLM(prompts,{narrativeKind:kind});
       if(origin!==scope())throw Error("The document changed during the request; no result was applied.");
       let fresh=false;try{fresh=token===serial&&source===stamp(build(kind));}catch{}
       if(!fresh){C.archive(state,"stale "+kind,raw,meta());save();say("The manuscript, partner, or dossier changed. The stale response was archived, not presented.");return false;}
@@ -166,10 +167,11 @@
       let d;try{d=C.parseDraft(raw);}catch(e){C.archive(state,"unparsed model response",raw,meta());save();throw e;}
       // No model code can write to committed. ONLY the author's explicit
       // Commit draft action can move this text across the editorial boundary.
+      snapshot();
       C.archive(state,"superseded latent draft",state.latent,meta());
       state.latent=d.latent;
       if(d.notes){if(state.review)C.archive(state,"superseded review",state.review.text,{...meta(),sceneId:state.review.sceneId});state.review={sceneId:state.activeSceneId,text:d.notes,source:anchor([source]),kind:"draft",createdAt:new Date().toISOString()};}
-      snapshot();state.presentedOriginal=d.presented;state.presentedSceneId=state.activeSceneId;state.presentedBasis=anchor([JSON.stringify([ctx.section,ctx.previous,ctx.decisions[0],ctx.scene,ctx.knowledge])]);buffer=d.presented.split("\n");buffer.forEach(ppMarkGenerated);
+      state.presentedOriginal=d.presented;state.presentedSceneId=state.activeSceneId;state.presentedBasis=anchor([JSON.stringify([ctx.section,ctx.previous,ctx.decisions[0],ctx.scene,ctx.knowledge])]);buffer=d.presented.split("\n");buffer.forEach(ppMarkGenerated);
       save();render();updateBar();refreshArchive();if(report&&d.notes)report.textContent=d.notes;
       say("Draft presented within the two-page approximation. Review before continuing.");if(panel?.open)panel.close();return true;
     }catch(e){say(e.name==="AbortError"?"Request cancelled; manuscript unchanged.":e.message);return false;}
@@ -178,7 +180,8 @@
   // A commit must be consciously authorized. Never approve because of a
   // mode switch or elapsed playback time. Preserve the exact presented batch.
   approveBuffer=function(){
-    if(!ownerReady()||generating||chatSending)return say("Finish the active request before committing.");
+    if(!ownerReady()||generating||chatSending||editingIdx!==null)return say("Finish the active request or inline edit before committing.");
+    if(playing)stopAudio();
     if(!buffer.length)return;
     if(state.presentedOriginal&&state.presentedSceneId===state.activeSceneId){
       let matches=false;try{const ctx=build("draft");matches=state.presentedBasis===anchor([JSON.stringify([ctx.section,ctx.previous,ctx.decisions[0],ctx.scene,ctx.knowledge])]);}catch{}
@@ -189,9 +192,9 @@
   };
   $("approveBtn").onclick=approveBuffer;
   toggleMode=function(){
-    if(generating||chatSending)return say("Finish the active request before switching modes.");
+    if(generating||chatSending||editingIdx!==null)return say("Finish the active request or inline edit before switching modes.");
     if(coWriting&&buffer.length)return say("Commit or archive the presented draft explicitly before switching modes.");
-    originalToggle();updateBar();
+    snapshot();originalToggle();updateBar();
   };
   $("modeBadge").onclick=toggleMode;
   // Playback reads the displayed text only; no timer or skip action can

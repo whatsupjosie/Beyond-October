@@ -71,6 +71,35 @@ function makeNarrativeCore(){
     if(next){const rows=state.latentByScene||[];state.latent=rows.find(x=>x.id===next)?.text||"";state.latentByScene=rows.filter(x=>x.id!==next);}
     state.activeSceneId=next;
   }
+  // Conservative contiguous-edit mapping. An edit crossing a locked line
+  // requires explicit unlock; purely preceding changes remap the lock.
+  function remapProtected(before,after,locked){
+    let first=0,last=0;
+    while(first<before.length&&first<after.length&&before[first]===after[first])first++;
+    while(last<before.length-first&&last<after.length-first&&before[before.length-last-1]===after[after.length-last-1])last++;
+    const oldEnd=before.length-last,delta=after.length-before.length,next=[];
+    for(const i of locked){
+      if(!Number.isInteger(i)||i<0||i>=before.length)throw Error("Invalid protected line index.");
+      if(i<first)next.push(i);
+      else if(i>=oldEnd)next.push(i+delta);
+      else throw Error("This edit touches protected manuscript lines. Explicitly unlock them in Collab first.");
+    }
+    return next;
+  }
+  function captureUndo(state,generated=[]){
+    const {archive:ignored,...editable}=state;
+    return {narrative:clone(editable),generated:[...generated]};
+  }
+  function restoreUndo(state,point,displaced,kind){
+    const next=restore({...clone(point.narrative),archive:clone(state.archive)});
+    const old=[{id:state.activeSceneId,text:state.latent},...(state.latentByScene||[])];
+    const restored=[{id:next.activeSceneId,text:next.latent},...(next.latentByScene||[])];
+    for(const x of old)if(x.text&&!restored.some(y=>y.id===x.id&&y.text===x.text)&&!next.archive.some(y=>y.sceneId===x.id&&y.text===x.text))
+      archive(next,kind+" displaced latent",x.text,{sceneId:x.id});
+    if(displaced&&!next.archive.some(x=>x.sceneId===state.activeSceneId&&x.text===displaced))
+      archive(next,kind+" displaced draft",displaced,{sceneId:state.activeSceneId});
+    return next;
+  }
   function priorContext(lines,chapters,start){
     const candidates=[...new Set(chapters.map(c=>c.startLine).filter(n=>Number.isInteger(n)&&n>=0&&n<start))].sort((a,b)=>a-b);
     // Include up to three preceding chapter starts, including any prefix of
@@ -104,7 +133,7 @@ function makeNarrativeCore(){
     if(typeof text!=="string"||!text)return;
     state.archive.push({kind,text,...clone(meta)});
   }
-  return {fields,clone,fresh,restore,scene,disclosure,footprint,fits,partition,priorContext,context,prompt,parseDraft,archive,selectScene};
+  return {fields,clone,fresh,restore,scene,disclosure,footprint,fits,partition,priorContext,context,prompt,parseDraft,archive,selectScene,remapProtected,captureUndo,restoreUndo};
 }
 const NarrativeCore=makeNarrativeCore();
 if(typeof module!=="undefined"&&module.exports)module.exports=NarrativeCore;

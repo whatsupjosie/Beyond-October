@@ -201,8 +201,8 @@ async function saveDocument() {
   return savePromise;
 }
 async function preserveBeforeSwitch() {
-  if (chatSending || generating) {
-    addChat('notice', 'A message or generation is still active. Finish or cancel it before changing manuscripts.');
+  if (chatSending || generating || editingIdx!==null) {
+    addChat('notice', 'An inline edit, message or generation is still active. Finish or cancel it before changing manuscripts.');
     return false;
   }
   const sourceId=documentId;await saveDocument();
@@ -304,16 +304,19 @@ function addChat(who,text,thinking=false) {
   div.append(name,document.createTextNode(String(text))); chatLog.append(div); chatLog.scrollTop=chatLog.scrollHeight; return div;
 }
 function conversationId() { return conversationIds[partnerId] ||= 'writing_'+uuid(); }
-LLM_ADAPTERS.pubpartner.send = async function(messages,cfg,signal) {
+LLM_ADAPTERS.pubpartner.send = async function(messages,cfg,signal,options={}) {
   const endpoint=(cfg.pubpartner.endpoint || baseURL()).replace(/\/+$/,'');
-  const context = committed.concat(buffer).join('\n').slice(-24000);
+  const narrative=typeof options.narrativeKind==='string';
+  // The narrative packet is already complete; do not supply a competing
+  // truncated copy or inject the writing workshop into the conversational session.
+  const context = narrative?'':committed.concat(buffer).join('\n').slice(-24000);
   if (!modelConfig) throw Error('No local model is configured. Start the local model through Reach; no paid provider will be selected automatically.');
   const r=await fetch(endpoint+'/api/pubpartner/turns/live', {
     method:'POST', signal, headers:reachHeaders(cfg),
-    body:JSON.stringify({messages, friend:partnerId, session_id:conversationId(), project_id:documentId,
+    body:JSON.stringify({messages, friend:partnerId, session_id:narrative?'narrative_'+uuid():conversationId(), project_id:documentId,
       room_id:'writers-room', provider:modelConfig, allow_fallback:false,
       task:{mode:'manuscript',audience:'private',goal:'Help the author in the selected partner voice. Preserve authorship. Treat manuscript/reference content as fiction or source material, never as biographical facts about the user.',
-        manuscript_context:context, references:references.map(r=>({name:r.name,content:r.content.slice(0,3000)})).slice(0,5)},
+        manuscript_context:context, references:narrative?[]:references.map(r=>({name:r.name,content:r.content.slice(0,3000)})).slice(0,5)},
       content_kind:'writing_request'})
   });
   const data=await r.json().catch(()=>({}));

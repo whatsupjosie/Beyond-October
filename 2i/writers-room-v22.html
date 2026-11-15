@@ -1270,11 +1270,11 @@ const LLM_ADAPTERS = {
 };
 
 function llmOk() { return LLM_ADAPTERS[llmCfg.provider]?.configured(llmCfg) || false; }
-async function callLLM(msgs) {
+async function callLLM(msgs,options={}) {
   const a = LLM_ADAPTERS[llmCfg.provider];
   if (!a || !a.configured(llmCfg)) throw new Error('LLM not configured');
   const request = new AbortController(); abortController = request;
-  try { return await a.send(msgs, llmCfg, request.signal); }
+  try { return await a.send(msgs, llmCfg, request.signal, options); }
   finally { if (abortController === request) abortController = null; }
 }
 function cancelLLM() { if (abortController) { abortController.abort(); abortController = null; } }
@@ -1322,29 +1322,35 @@ const chatInput = $('chatInput');
 const contextMenu = $('contextMenu');
 
 // ── UNDO / REDO ────────────────────────────────────────────────────
+function captureUndoPoint() {
+  const point={committed:[...committed],buffer:[...buffer],lockedLines:new Set(lockedLines),chapters:JSON.parse(JSON.stringify(chapters))};
+  if(window.twoiNarrativeHistory){point.coWriting=coWriting;point.narrative=window.twoiNarrativeHistory.capture();}
+  return point;
+}
 function snapshot() {
-  undoStack.push({
-    committed: [...committed],
-    buffer: [...buffer],
-    lockedLines: new Set(lockedLines),
-    chapters: JSON.parse(JSON.stringify(chapters))
-  });
+  undoStack.push(captureUndoPoint());
   if (undoStack.length > MAX_UNDO) undoStack.shift();
   redoStack = [];
 }
+function restoreUndoPoint(s,kind) {
+  if(s.narrative&&window.twoiNarrativeHistory)window.twoiNarrativeHistory.restore(s.narrative,buffer.join('\n')===s.buffer.join('\n')?'':buffer.join('\n'),kind);
+  committed=s.committed;buffer=s.buffer;lockedLines=s.lockedLines;chapters=s.chapters;
+  if(typeof s.coWriting==='boolean'){coWriting=s.coWriting;updateModeUI();}
+  selectedIdx=null;editingIdx=null;
+  if(!coWriting)soloTextarea.value=committed.join('\n');
+  markDirty();render();
+}
 function undo() {
   if (!undoStack.length) return;
-  redoStack.push({ committed: [...committed], buffer: [...buffer], lockedLines: new Set(lockedLines), chapters: JSON.parse(JSON.stringify(chapters)) });
-  const s = undoStack.pop();
-  committed = s.committed; buffer = s.buffer; lockedLines = s.lockedLines; chapters = s.chapters;
-  markDirty(); render();
+  if(window.twoiNarrativeHistory&&(generating||chatSending||editingIdx!==null)){addChat('notice','Finish the active edit or request before undoing.');return;}
+  if(window.twoiNarrativeHistory&&playing)stopPlaying();
+  redoStack.push(captureUndoPoint());restoreUndoPoint(undoStack.pop(),'undo');
 }
 function redo() {
   if (!redoStack.length) return;
-  undoStack.push({ committed: [...committed], buffer: [...buffer], lockedLines: new Set(lockedLines), chapters: JSON.parse(JSON.stringify(chapters)) });
-  const s = redoStack.pop();
-  committed = s.committed; buffer = s.buffer; lockedLines = s.lockedLines; chapters = s.chapters;
-  markDirty(); render();
+  if(window.twoiNarrativeHistory&&(generating||chatSending||editingIdx!==null)){addChat('notice','Finish the active edit or request before redoing.');return;}
+  if(window.twoiNarrativeHistory&&playing)stopPlaying();
+  undoStack.push(captureUndoPoint());restoreUndoPoint(redoStack.pop(),'redo');
 }
 
 // ── DIRTY / AUTOSAVE ───────────────────────────────────────────────
@@ -1856,6 +1862,19 @@ $('frReplaceAllBtn').onclick = () => {
     $('frResult').className = 'test-result err';
     return;
   }
+  if(window.twoiNarrativeHistory){
+    if(generating||chatSending||editingIdx!==null){$('frResult').textContent='Finish the current edit or request first.';return;}
+    if(playing)stopPlaying();
+    if(/[\r\n]/.test(replace)){ $('frResult').textContent='Use the editor for multiline replacements.';return; }
+    const safeReplace=s=>s.split(find).join(replace);
+    const next=committed.map((l,i)=>lockedLines.has(i)?l:safeReplace(l));
+    const nextBuffer=buffer.map(safeReplace);
+    const skipped=committed.filter((l,i)=>lockedLines.has(i)&&l.includes(find)).reduce((n,l)=>n+l.split(find).length-1,0);
+    const hits=committed.reduce((n,l,i)=>n+(lockedLines.has(i)?0:l.split(find).length-1),0)+buffer.reduce((n,l)=>n+l.split(find).length-1,0);
+    if(hits){snapshot();committed=next;buffer=nextBuffer;if(!coWriting)soloTextarea.value=committed.join('\n');markDirty();render();}
+    $('frResult').textContent=hits+' replacement(s) made · '+skipped+' protected occurrence(s) skipped';
+    $('frResult').className='test-result ok';return;
+  }
   snapshot();
   let count = 0;
   // Replace in committed
@@ -1906,6 +1925,7 @@ function showContextMenu(e, idx) {
 document.addEventListener('click', () => contextMenu.classList.remove('open'));
 
 $('ctxEdit').onclick = () => {
+  if(window.twoiNarrativeHistory&&(generating||chatSending||playing)){addChat('notice','Finish the active request or playback before inline editing.');return;}
   if (selectedIdx === null) return;
   if (lockedLines.has(selectedIdx)) { addChat('pp', 'Unlock the line first.'); return; }
   editingIdx = selectedIdx; render();
@@ -2025,7 +2045,9 @@ function renderManuscriptLines() {
       const ta = document.createElement('textarea'); ta.value = text; ta.rows = 2;
       ta.addEventListener('keydown', e => {
         if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault(); snapshot();
+          e.preventDefault();
+          if(window.twoiNarrativeHistory&&lockedLines.has(i)){addChat('notice','Unlock the line before editing.');editingIdx=null;render();return;}
+          snapshot();
           const before = committed[i];
           committed[i] = ta.value;
           editingIdx = null; markDirty(); render();
@@ -2047,6 +2069,7 @@ function renderManuscriptLines() {
       div.onclick = () => { selectedIdx = (selectedIdx === i) ? null : i; render(); };
       div.oncontextmenu = e => showContextMenu(e, i);
       div.ondblclick = () => {
+        if(window.twoiNarrativeHistory&&(generating||chatSending||playing)){addChat('notice','Finish the active request or playback before inline editing.');return;}
         if (lockedLines.has(i)) { addChat('pp', 'Unlock the line to edit it.'); return; }
         editingIdx = i; render();
       };
@@ -2088,9 +2111,20 @@ function updateLineNumbers() {
 // Sync solo textarea scroll with line numbers
 soloTextarea.addEventListener('scroll', () => { lineNumbers.scrollTop = soloTextarea.scrollTop; });
 soloTextarea.addEventListener('input', () => {
-  updateLineNumbers();
-  committed = soloTextarea.value.split('\n');
-  markDirty();
+  const next=soloTextarea.value.split('\n');
+  if(window.twoiNarrativeHistory){
+    try{
+      const previous=committed.join('\n'),target=next.join('\n');
+      const mapped=NarrativeCore.remapProtected(committed,next,lockedLines);
+      if(typeof keepChapterPositions==='function'&&previous!==target)keepChapterPositions(previous,target);
+      lockedLines=new Set(mapped);
+    }catch(error){
+      const at=soloTextarea.selectionStart;
+      soloTextarea.value=committed.join('\n');soloTextarea.setSelectionRange(Math.min(at,soloTextarea.value.length),Math.min(at,soloTextarea.value.length));
+      addChat('notice',error.message);updateLineNumbers();return;
+    }
+  }
+  updateLineNumbers();committed=next;markDirty();
 });
 draftArea.addEventListener('input', () => {
   buffer = draftArea.value.split('\n');
