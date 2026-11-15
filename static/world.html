@@ -1753,12 +1753,7 @@ function callHotspotAPI(action, data={}) {
 // ── USE_HANDLERS — wire hotspots to backend ──────────────────────────────
 const USE_HANDLERS = {
   async typewriter() {
-    const res = await callHotspotAPI('typewriter');
-    showNookModal('SCRIPT EDITOR',
-      `<p>Draft ID: <b>${res.result?.draft_id || 'new'}</b></p>`,
-      [{ label:'WRITE SCRIPT', action: () => alert('Script editor — coming next session') },
-       { label:'REVIEW SCRIPTS', action: () => callHotspotAPI('scripts').then(r => alert(r.result?.scripts?.join('\n') || 'None yet')) }]
-    );
+    location.assign('/world-walk?view=dressing_room%2Ftypewriter_standing_above');
   },
   async phone() {
     const user = (() => { try { return JSON.parse(sessionStorage.getItem('pubcast_user') || 'null') || {}; } catch(e) { return {}; } })();

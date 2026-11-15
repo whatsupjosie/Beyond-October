@@ -110,6 +110,8 @@ textarea { width: 100%; height: 90px; background: var(--bg); color: var(--ink); 
       <span class="chip warn" id="chipStatus">PREVIEW &middot; proposed, nothing approved</span>
       <span class="chip" id="chipRoom"></span>
       <span class="chip live" id="chipLive" title="Connection to the PubCast host">&#9679; Offline</span>
+      <button id="twoiNotebook" type="button">Notebook</button>
+      <button id="twoiSeat" type="button" hidden>Sit at typewriter</button>
       <a class="chip" id="classicLink" href="/world" title="Open this room in the classic PubWorld page">Classic view</a>
     </div>
     <div id="bubble" hidden role="dialog" aria-live="polite"></div>
@@ -217,6 +219,7 @@ textarea { width: 100%; height: 90px; background: var(--bg); color: var(--ink); 
 <script type="module" src="/static/world_walk_glb.js"></script>
 <script src="/static/world_walk_live.js"></script>
 <script src="/static/production_notes.js"></script>
+<script src="/static/2i_studio_bridge.js"></script>
 <script src="/static/keymap.js"></script>
 <script>
 "use strict";
@@ -508,6 +511,7 @@ async function setView(roomId, viewId, opts) {
   const L = window.PubCastLive;
   if (L) L.enterView({ room: room.id, view: view.id, liveId: room.live_id || "", layoutId: room.layout_id || "" });
   if (window.PubCastNotes) window.PubCastNotes.onView(S.key);
+  $("twoiSeat").hidden=room.id!=="writers_room"&&!(room.id==="dressing_room"&&view.id==="typewriter_sitting");
   return true;
 }
 function goTo(roomId, fromRoomId) {
@@ -518,7 +522,16 @@ function goTo(roomId, fromRoomId) {
   S.history = [];
   setView(roomId, room.views[0].id, { from: fromRoomId });
 }
+function openTwoiAtSeat(seated) {
+  if(!S.room||!S.view||inputLocked())return;
+  if(seated&&!TwoiStudioBridge.seatAllowed(S.room.id))return;
+  HELD.clear(); S.target=null; S.path=[]; hideBubble(); keepProgress(true);
+  const base=S.history[0]||{room:S.room.id,view:S.view.id};
+  const view=seated?(S.room.id==="dressing_room"?"wide":"main"):base.view;
+  location.assign(TwoiStudioBridge.entry(S.room.id,view,seated));
+}
 function openCloseup(viewId) {
+  if(S.room?.id==="dressing_room"&&viewId==="typewriter_sitting"){openTwoiAtSeat(true);return;}
   S.history.push({ room: S.room.id, view: S.view.id, pos: S.pos.slice() });
   setView(S.room.id, viewId, {});
 }
@@ -1035,7 +1048,7 @@ function showHotspotBubble(h) {
   const btns = [];
   const stuck = window.PubCastNotes ? window.PubCastNotes.hotspotNotes(S.key, h.id) : [];
   for (const n of stuck) btns.push(makeButton("Read note: " + n.subject, () => { hideBubble(); window.PubCastNotes.openNote(n.id, true); }));
-  if (a.type === "view") btns.push(makeButton("Open " + h.label, () => { hideBubble(); openCloseup(a.view); }));
+  if (a.type === "view") btns.push(makeButton(a.view==="typewriter_sitting"?"Sit and write":"Open " + h.label, () => { hideBubble(); openCloseup(a.view); }));
   if (live) btns.push(makeButton(a.type === "view" ? "Use it here" : "Use", () => runLive(h, live, null)));
   btns.push(makeButton("Close", () => hideBubble()));
   const text = a.type === "view" ? (a.event || "Opens a close-up view.") : (a.event || a.animation || a.program || "");
@@ -1135,6 +1148,8 @@ window.addEventListener("keydown", e => {
   if (e.key === "Escape") { if (!$("bubble").hidden) hideBubble(); else if (S.history.length) goBack(); }
 });
 $("back").addEventListener("click", goBack);
+$("twoiNotebook").addEventListener("click",()=>openTwoiAtSeat(false));
+$("twoiSeat").addEventListener("click",()=>openTwoiAtSeat(true));
 $("viewSel").addEventListener("change", e => {
   const [r, v] = e.target.value.split("/"); S.history = []; setView(r, v, {});
   e.target.blur();                                  // so the arrow keys walk instead of flipping through rooms
