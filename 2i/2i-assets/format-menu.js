@@ -93,8 +93,10 @@
   commandMenu("Format",[["Document type / script presets",templates],["Paragraph style, alignment, indent…",paragraph],["Formatting recovery",unmapped]]);
   commandMenu("Layout",[["Page setup",page],["Formatted preview",preview]]);
   commandMenu("Review",[["Scene intelligence",go("narrativeOpen")],["Archive presented draft",go("narrativeArchiveDraft")],["Revision history",go("narrativeHistory")],["Lock scene",go("lockSceneBtn")],["Lock all",go("lockAllBtn")],["Unlock",go("unlockBtn")],["Commit presented draft",go("approveBtn")]]);
-  commandMenu("View",[["Write / Collab",go("modeBadge")],["Toggle sidebar",go("sidebarToggle")],["Zoom manuscript in",()=>adjustZoom("manuscript",1)],["Zoom manuscript out",()=>adjustZoom("manuscript",-1)],["Formatted preview",preview]]);
-  commandMenu("Tools",[["Word and character count",stats],["Read presented draft",go("playBtn")],["Stop reading / generation",go("stopBtn")],["Model settings",go("hmLLMSettings")],["Keyboard shortcuts",go("hmKeyboardHelp")]]);
+  const present=mode=>()=>window.twoiSetPresentation(mode);
+  const presentations=typeof window.twoiSetPresentation==="function"?[["Standard document view",present("standard")],["Notebook view",present("notebook")],...(window.twoiCanPresent("typewriter")?[["Typewriter view",present("typewriter")]]:[])]:[];
+  commandMenu("View",[...presentations,["Write / Collab",go("modeBadge")],["Toggle sidebar",go("sidebarToggle")],["Zoom manuscript in",()=>adjustZoom("manuscript",1)],["Zoom manuscript out",()=>adjustZoom("manuscript",-1)],["Formatted preview",preview]]);
+  commandMenu("Tools",[["Word and character count",stats],["Read presented draft",go("playBtn")],["Stop reading / generation",go("stopBtn")],["Model settings",go("hmLLMSettings")]]);
   commandMenu("Help",[["Keyboard shortcuts",go("hmKeyboardHelp")]]);
   commandMenu("Studio",[["Inbox",go("twoiNotesInbox")],["Write note",go("twoiWriteNote")],["Place sticky note",go("twoiPlaceNote")]]);
 

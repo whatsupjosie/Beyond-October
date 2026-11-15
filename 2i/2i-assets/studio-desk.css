@@ -2,8 +2,8 @@
 /* Presentation only; same manuscript engine and state. */
 @font-face{font-family:"2i Hand";src:url("/static/fonts/caveat-latin-700-normal.woff2") format("woff2");font-weight:700;font-display:swap}
 .app-shell:has(>#twoiVersionBar){grid-template-rows:76px auto minmax(0,1fr) 52px}
-body[data-twoi-desk] .solo-textarea,body[data-twoi-desk] .m-line,body[data-twoi-desk] .draft-area,body[data-twoi-desk] .m-line-edit textarea{font-family:"2i Hand","Kalam",cursive;font-weight:700;font-size:calc(23px * var(--zoom-manuscript,1));line-height:1.55}
-body[data-twoi-desk] .line-numbers{line-height:calc(35.65px * var(--zoom-manuscript,1))}
+body[data-twoi-desk="notebook"] .solo-textarea,body[data-twoi-desk="notebook"] .m-line,body[data-twoi-desk="notebook"] .draft-area,body[data-twoi-desk="notebook"] .m-line-edit textarea{font-family:"2i Hand","Kalam",cursive;font-weight:700;font-size:calc(23px * var(--zoom-manuscript,1));line-height:1.55}
+body[data-twoi-desk="notebook"] .line-numbers{line-height:calc(35.65px * var(--zoom-manuscript,1))}
 body[data-twoi-desk="typewriter"] .notebook-frame{background:#17304b;flex-direction:column;padding:8px;overflow:hidden}
 body[data-twoi-desk="typewriter"] .notebook-inner{margin:0;min-height:0;flex:1}
 body[data-twoi-desk="typewriter"] .spiral-spine,body[data-twoi-desk="typewriter"] #lanternCanvas{display:none}
@@ -20,3 +20,19 @@ body[data-twoi-desk="typewriter"] .line-numbers{line-height:calc(25.6px * var(--
 #twoiAudioOptions{display:flex;flex-wrap:wrap;gap:8px;font:12px/1.4 system-ui;color:#ead6aa;padding:3px}
 body[data-twoi-desk] #pnLayer{position:fixed;z-index:10000}
 @media(max-width:850px){.app-shell:has(>#twoiVersionBar){grid-template-rows:auto auto 1fr auto}body[data-twoi-desk="typewriter"] .notebook-frame{min-height:85dvh;height:85dvh}#twoiDeskScene{width:min(100%,300px,42dvh)}}
+
+/* Ordinary document: editorial paper, neutral workspace; never alters text or file state. */
+body[data-twoi-desk="standard"] .notebook-frame{background:#e3e0da;border:0;border-image:none;box-shadow:none;padding:clamp(8px,2vw,24px);justify-content:center}
+body[data-twoi-desk="standard"] .notebook-inner{max-width:900px;margin:0;min-width:0}
+body[data-twoi-desk="standard"] .spiral-spine,body[data-twoi-desk="standard"] #lanternCanvas{display:none}
+body[data-twoi-desk="standard"] .page-sheets{border-radius:3px;box-shadow:0 1px 8px #27221c25;border:1px solid #c7c1b7}
+body[data-twoi-desk="standard"] .manuscript-zone{--ink:#252b32;--paper:#fffefa;background:var(--paper);color:var(--ink);box-shadow:none}
+body[data-twoi-desk="standard"] .draft-zone{--ink:#343943}
+body[data-twoi-desk="standard"] .solo-textarea,body[data-twoi-desk="standard"] .m-line,body[data-twoi-desk="standard"] .draft-area,body[data-twoi-desk="standard"] .m-line-edit textarea,body[data-twoi-desk="standard"] .reading-line{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:calc(17px * var(--zoom-manuscript,1));line-height:1.65}
+body[data-twoi-desk="standard"] .line-numbers{line-height:calc(28.05px * var(--zoom-manuscript,1))}
+body[data-twoi-desk="standard"] .solo-textarea{padding-top:18px}
+body[data-twoi-desk="standard"] .m-line{padding-top:0;padding-bottom:0}
+body[data-twoi-desk="standard"] .m-line.selected{background:#dbe8f1;box-shadow:inset 3px 0 0 #38576d}
+body[data-twoi-desk="standard"] .solo-textarea:focus-visible,body[data-twoi-desk="standard"] .draft-area:focus-visible{outline:2px solid #526d7f;outline-offset:-2px}
+#twoiDeskScene[hidden]{display:none!important}
+@media(max-width:850px){body[data-twoi-desk="standard"] .notebook-frame{padding:5px}body[data-twoi-desk="standard"] .solo-textarea{padding-right:12px}}

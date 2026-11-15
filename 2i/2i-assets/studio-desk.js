@@ -1,8 +1,16 @@
 /* Native 2i studio presentation and shared production notes. */
 (function installStudioDesk(){
-  if(reachFileMode)return;
+  function presentationMode(config,fileMode){return fileMode?"standard":config.seated?"typewriter":config.room?"notebook":"standard";}
+  function canPresent(mode,seated){return mode==="standard"||mode==="notebook"||(mode==="typewriter"&&seated===true);}
+  if(reachFileMode){document.body.dataset.twoiDesk="standard";return;}
   const q=new URLSearchParams(location.search),config=TwoiStudioBridge.presentation(q.get("studio_room"),q.get("studio_view"),q.get("desk"));
-  document.body.dataset.twoiDesk=config.seated?"typewriter":"notebook";
+  document.body.dataset.twoiDesk=presentationMode(config,false);
+  window.twoiCanPresent=mode=>canPresent(mode,config.seated);
+  window.twoiSetPresentation=mode=>{
+    if(!window.twoiCanPresent(mode))throw Error("This presentation requires a designated writing station.");
+    document.body.dataset.twoiDesk=mode;
+    document.dispatchEvent(new CustomEvent("twoi:presentation-change",{detail:{mode}}));
+  };
   const el=(tag,text,parent)=>{const n=document.createElement(tag);if(text!==null)n.textContent=text;if(parent)parent.append(n);return n;};
   const controls=el("div",null,$("mcSection").querySelector(".section-body"));controls.id="twoiStudioControls";
   const button=(label,action)=>{const b=el("button",label,controls);b.type="button";b.className="mc-btn";b.onclick=action;return b;};
@@ -63,9 +71,11 @@
     const l=el("label",null,options),i=el("input",null,l);i.type="checkbox";i.checked=preferences[name];l.append(document.createTextNode(" "+label));i.onchange=()=>{preferences[name]=i.checked;try{localStorage.setItem(key,JSON.stringify(preferences));}catch{}};
   }
   toggle("click","Key clicks");toggle("bell","Line-end bell");
+  const syncPresentation=()=>{const active=document.body.dataset.twoiDesk==="typewriter";figure.hidden=!active;options.style.display=active?"":"none";if(active)syncPaper();};
+  document.addEventListener("twoi:presentation-change",syncPresentation);syncPresentation();
   let ctx=null,lastClick=0;
   function sound(kind){
-    if(!preferences[kind])return;
+    if(document.body.dataset.twoiDesk!=="typewriter"||!preferences[kind])return;
     // Private UI effects only; not production/broadcast audio.
     try{
       const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;

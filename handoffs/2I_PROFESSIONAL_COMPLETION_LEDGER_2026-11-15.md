@@ -16,3 +16,12 @@ Base: `84d9e27c7e74f1345d6d07401a125b54ca2c82c2`, the narrative intelligence bra
 | Functional, adversarial, usability passes | Pending | Actual test results recorded, browser/device evidence distinguished |
 
 Execution constraint: GitHub connector available; direct repository clone failed DNS in the local shell. Full repository execution, engine acquisition and browser integration tests cannot be claimed from this environment. Targeted code changes and bounded tests remain possible. Do not promote inherited implementation claims to freshly verified results.
+
+## Checkpoint 1 — command discovery
+- Implemented a searchable command palette in the existing native menu module, with shared command bindings, Ctrl/Command+Shift+P and touch button, literal multi-term ranking, disabled-control filtering and active-document guard. Added Help menu; removed duplicate keyboard-help placement from Tools.
+- Eight ranking logic checks executed in the available JavaScript runtime; all passed. Seven committed-source wiring checks passed. No real DOM/browser test run.
+
+## Checkpoint 2 — standard document presentation
+- Non-studio native launches and file-workspace launches default to a restrained standard editorial paper view. Studio notebook and designated seated typewriter defaults retained. Native View menu switches presentation in-place; typewriter offered only while at an authorized designated seat (UI context, not an access-control boundary). Studio entry/exit and document save code unchanged. Typewriter artwork and sound are hidden/suppressed in other presentations.
+- Nine presentation routing/eligibility logic checks executed in available JS runtime; all passed. Browser, phone, actual file workspace appearance and data-preservation end-to-end not executed. This is a first presentation pass, not WYSIWYG or final design acceptance.
+- Next gates: actual Node regression and browser checks; tray rich-document opening; native state invariance and seat handoff; command availability under every editor state; menu completion; provenance; actual rich engine build and offline qualification.
