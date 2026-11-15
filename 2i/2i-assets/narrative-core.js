@@ -182,6 +182,37 @@ function makeNarrativeCore(){
     if(typeof text!=="string"||!text)return;
     state.archive.push({kind,text,...clone(meta)});
   }
+  // Content correspondence is not authorship. Count Unicode code points, not UTF-16
+  // units, and never guess correspondences in a changed middle.
+  function compareDraftText(candidate,accepted){
+    const a=Array.from(candidate),b=Array.from(accepted);
+    let prefix=0,suffix=0;
+    while(prefix<a.length&&prefix<b.length&&a[prefix]===b[prefix])prefix++;
+    while(suffix<a.length-prefix&&suffix<b.length-prefix&&a[a.length-1-suffix]===b[b.length-1-suffix])suffix++;
+    return {unit:"unicode-code-point",candidateLength:a.length,acceptedLength:b.length,matchingPrefix:prefix,matchingSuffix:suffix,exact:prefix===a.length&&prefix===b.length};
+  }
+  function recordDraftApproval(state,{candidate,accepted,firstLine,lineCount,meta:context}){
+    if(typeof accepted!=="string"||!Number.isInteger(firstLine)||firstLine<0||!Number.isInteger(lineCount)||lineCount<1||accepted.split("\n").length!==lineCount)throw Error("Invalid confirmed draft range.");
+    // Retain both versions in the existing archive; avoid duplicating unchanged
+    // model text. Range is historical at approval, never a live attribution map.
+    let candidateRecordIndex=null;
+    if(typeof candidate==="string"&&candidate.length>0){
+      if(candidate!==accepted){candidateRecordIndex=state.archive.length;archive(state,"author revised presented draft",candidate,context);}
+      else candidateRecordIndex=state.archive.length;
+    }
+    state.archive.push({...clone(context),kind:"committed presented draft",text:accepted,approvalEvidence:{firstLine,lineCount,candidateRecordIndex}});
+  }
+  function approvalObservation(archive,index){
+    const row=archive[index],e=row?.approvalEvidence;
+    if(row?.kind!=="committed presented draft"||typeof row.text!=="string"||!e||!Number.isInteger(e.firstLine)||e.firstLine<0||!Number.isInteger(e.lineCount)||e.lineCount!==row.text.split("\n").length)return null;
+    const result={historicalFirstLine:e.firstLine,historicalLineCount:e.lineCount,candidateRecordIndex:null,comparison:null};
+    if(e.candidateRecordIndex===null)return result;
+    if(!Number.isInteger(e.candidateRecordIndex)||e.candidateRecordIndex<0||e.candidateRecordIndex>index)return null;
+    const candidate=archive[e.candidateRecordIndex];
+    if(!candidate||typeof candidate.text!=="string"||!candidate.text.length)return null;
+    if(e.candidateRecordIndex!==index&&(candidate.kind!=="author revised presented draft"||e.candidateRecordIndex!==index-1||candidate.documentId!==row.documentId||candidate.sceneId!==row.sceneId||candidate.createdAt!==row.createdAt))return null;
+    return {...result,candidateRecordIndex:e.candidateRecordIndex,comparison:compareDraftText(candidate.text,row.text)};
+  }
   // A disclosure is derived from existing, mutable document records. It is
   // intentionally not a second journal, attribution score, or certification.
   function contributionReport(state,{includePrivateText=false}={}){
@@ -190,22 +221,24 @@ function makeNarrativeCore(){
     const counts=Object.fromEntries(kinds.map(k=>[k,0]));
     let other=0;
     for(const row of archive){if(Object.hasOwn(counts,row.kind))counts[row.kind]++;else other++;}
-    const report={format:"2i-contribution-disclosure",version:1,verification:"unverified document records; not a certification",scope:includePrivateText?"private creative archive":"aggregate only",archiveRecordCount:archive.length,recordCounts:counts,otherArchiveRecords:other,currentAdvisoryRecords:Array.isArray(state?.advisories)?state.advisories.length:0,hasPresentedModelCandidate:typeof state?.presentedOriginal==="string"&&state.presentedOriginal.length>0,limitations:[
+    const approvals=archive.map((_,index)=>approvalObservation(archive,index)).filter(Boolean);
+    const approvalObservations={recorded:approvals.length,exactCandidateMatches:approvals.filter(x=>x.comparison?.exact).length,changedCandidates:approvals.filter(x=>x.comparison&&!x.comparison.exact).length,unlinkedApprovals:approvals.filter(x=>!x.comparison).length};
+    const report={approvalObservations,format:"2i-contribution-disclosure",version:1,verification:"unverified document records; not a certification",scope:includePrivateText?"private creative archive":"aggregate only",archiveRecordCount:archive.length,recordCounts:counts,otherArchiveRecords:other,currentAdvisoryRecords:Array.isArray(state?.advisories)?state.advisories.length:0,hasPresentedModelCandidate:typeof state?.presentedOriginal==="string"&&state.presentedOriginal.length>0,limitations:[
       "Record counts are not creative significance, word-level attribution, or evidence of exclusive human or AI authorship.",
       "Committed presented draft includes material of unknown or mixed origin; approval does not prove composition.",
       "Records can be imported, edited, duplicated, inherited on forks, or retained across undo. They do not prove who performed a physical action.",
-      "A revised-draft record preserves earlier offered text, not a character-level attribution map. Absence of records does not establish human authorship.",
+      "Matching Unicode prefix and suffix are historical text correspondence only; a changed middle has unknown origin. Absence of records does not establish human authorship.",
       "This is not a complete session history, independent Blackbox witness, tamper-proof signature or certification."
     ]};
     if(includePrivateText){
       const scalar=x=>typeof x==="string"?x:null;
-      report.privateArchive=archive.map((r,index)=>({recordIndex:index,kind:scalar(r.kind),text:scalar(r.text),createdAt:scalar(r.createdAt),sceneId:scalar(r.sceneId),sourceDocumentId:scalar(r.documentId),revision:Number.isInteger(r.revision)?r.revision:null}));
+      report.privateArchive=archive.map((r,index)=>({recordIndex:index,kind:scalar(r.kind),text:scalar(r.text),createdAt:scalar(r.createdAt),sceneId:scalar(r.sceneId),sourceDocumentId:scalar(r.documentId),revision:Number.isInteger(r.revision)?r.revision:null,approvalObservation:approvalObservation(archive,index)}));
       report.privateCurrentAdvisories=(state?.advisories||[]).map(a=>({kind:scalar(a.kind),text:scalar(a.text),sceneId:scalar(a.sceneId),createdAt:scalar(a.createdAt)}));
       report.privatePresentedCandidate=scalar(state?.presentedOriginal);
     }
     return report;
   }
-  return {contributionReport,fields,clone,fresh,restore,scene,disclosure,footprint,fits,partition,priorContext,context,prompt,parseDraft,archive,selectScene,remapProtected,captureUndo,restoreUndo,outcomes,continuity,putAdvisory};
+  return {compareDraftText,recordDraftApproval,approvalObservation,contributionReport,fields,clone,fresh,restore,scene,disclosure,footprint,fits,partition,priorContext,context,prompt,parseDraft,archive,selectScene,remapProtected,captureUndo,restoreUndo,outcomes,continuity,putAdvisory};
 }
 const NarrativeCore=makeNarrativeCore();
 if(typeof module!=="undefined"&&module.exports)module.exports=NarrativeCore;

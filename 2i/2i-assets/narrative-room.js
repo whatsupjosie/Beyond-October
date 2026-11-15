@@ -208,9 +208,15 @@
     if(state.presentedOriginal&&state.presentedSceneId===state.activeSceneId){
       let matches=false;try{const ctx=build("draft");matches=state.presentedBasis===reviewBasis(ctx);}catch{}
       if(!matches&&!confirm("The scene or author decisions changed after this draft was generated. Commit it anyway, or cancel to archive and reconsider?"))return;
-      if(state.presentedOriginal!==buffer.join("\n")){C.archive(state,"author revised presented draft",state.presentedOriginal,meta());}
     }
-    C.archive(state,"committed presented draft",buffer.join("\n"),meta());originalApprove();state.presentedOriginal="";state.presentedBasis=null;state.presentedSceneId=null;save();updateBar();refreshArchive();
+    const firstLine=committed.length,batch=buffer.slice(),accepted=batch.join("\n"),candidate=state.presentedSceneId===state.activeSceneId?state.presentedOriginal:null,context=meta();
+    let failure=null;
+    try{originalApprove();}catch(error){failure=error;}
+    const applied=committed.length===firstLine+batch.length&&batch.every((line,index)=>committed[firstLine+index]===line)&&buffer.length===0;
+    if(!applied){say(failure?"Approval did not finish: "+failure.message:"Approval could not be confirmed. Draft records were not marked committed.");return;}
+    C.recordDraftApproval(state,{candidate,accepted,firstLine,lineCount:batch.length,meta:context});
+    state.presentedOriginal="";state.presentedBasis=null;state.presentedSceneId=null;save();updateBar();refreshArchive();
+    if(failure)say("Text committed; a post-commit action failed: "+failure.message);
   };
   $("approveBtn").onclick=approveBuffer;
   toggleMode=function(){
@@ -248,6 +254,8 @@
     for(const [kind,count] of Object.entries(report.recordCounts))if(count)make("li",count+" · "+kind,counts);
     make("li",report.otherArchiveRecords+" · other archive record(s)",counts);
     make("li",report.currentAdvisoryRecords+" · current advisory record(s)",counts);
+    const a=report.approvalObservations;
+    make("p","Recorded approvals: "+a.recorded+" · exact match "+a.exactCandidateMatches+" · changed "+a.changedCandidates+" · no linked candidate "+a.unlinkedApprovals+". These describe text correspondence, not who wrote it.",d);
     make("p",report.hasPresentedModelCandidate?"A model candidate is currently recorded as presented.":"No currently presented model candidate is recorded.",d);
     const limitations=make("ul",undefined,d);for(const line of report.limitations)make("li",line,limitations);
     const ensureCurrent=()=>{if(source!==scope()||generating||chatSending||editingIdx!==null)throw Error("The manuscript or active request changed. Reopen contribution records.");};
