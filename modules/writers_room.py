@@ -6,6 +6,8 @@ partner or System Alex memory. The existing PubPartner spine owns live turns.
 from __future__ import annotations
 
 import json
+import hashlib
+import zlib
 import os
 import re
 import sqlite3
@@ -14,7 +16,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field, field_validator
 
 from .route_security import current_identity
@@ -61,6 +63,19 @@ def create_writers_room_router(data_dir: Path) -> APIRouter:
             owner TEXT NOT NULL, id TEXT NOT NULL, revision INTEGER NOT NULL,
             title TEXT NOT NULL, payload TEXT NOT NULL, updated REAL NOT NULL,
             PRIMARY KEY(owner, id))""")
+        db.execute("""CREATE TABLE IF NOT EXISTS document_revisions (
+            owner TEXT NOT NULL, document_id TEXT NOT NULL, revision INTEGER NOT NULL,
+            title TEXT NOT NULL, payload BLOB NOT NULL, digest TEXT NOT NULL, updated REAL NOT NULL,
+            PRIMARY KEY(owner, document_id, revision))""")
+        # Preserve the latest available pre-upgrade snapshot; do not invent
+        # older revisions that prior versions had replaced.
+        missing = db.execute("""SELECT d.* FROM documents d
+            WHERE NOT EXISTS (SELECT 1 FROM document_revisions r
+                WHERE r.owner=d.owner AND r.document_id=d.id AND r.revision=d.revision)""").fetchall()
+        for row in missing:
+            raw = row["payload"].encode("utf-8")
+            db.execute("INSERT OR IGNORE INTO document_revisions VALUES (?,?,?,?,?,?,?)",
+                (row["owner"],row["id"],row["revision"],row["title"],zlib.compress(raw),hashlib.sha256(raw).hexdigest(),row["updated"]))
 
     def document_id(value):
         if not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", value):
@@ -92,6 +107,39 @@ def create_writers_room_router(data_dir: Path) -> APIRouter:
             raise HTTPException(404, "document not found")
         return {"ok": True, "id": doc_id, "revision": row["revision"], "updated": row["updated"], **json.loads(row["payload"])}
 
+    @router.get("/documents/{doc_id}/revisions")
+    async def list_revisions(doc_id: str, limit: int = Query(100, ge=1, le=500),
+                             before: int | None = Query(None, ge=1),
+                             identity=Depends(current_identity)):
+        doc_id = document_id(doc_id)
+        with connect() as db:
+            rows = db.execute("""SELECT revision,title,updated FROM document_revisions
+                WHERE owner=? AND document_id=? AND (? IS NULL OR revision < ?)
+                ORDER BY revision DESC LIMIT ?""",
+                (identity["user_id"],doc_id,before,before,limit+1)).fetchall()
+        more = len(rows) > limit
+        rows = rows[:limit]
+        return {"ok":True,"id":doc_id,"revisions":[dict(row) for row in rows],
+                "next_before":rows[-1]["revision"] if more else None}
+
+    @router.get("/documents/{doc_id}/revisions/{number}")
+    async def read_revision(doc_id: str, number: int, identity=Depends(current_identity)):
+        doc_id = document_id(doc_id)
+        with connect() as db:
+            row = db.execute("""SELECT revision,payload,digest,updated FROM document_revisions
+                WHERE owner=? AND document_id=? AND revision=?""",
+                (identity["user_id"],doc_id,number)).fetchone()
+        if row is None:
+            raise HTTPException(404,"document revision not found")
+        try:
+            raw = zlib.decompress(row["payload"])
+            if hashlib.sha256(raw).hexdigest() != row["digest"]:
+                raise ValueError("revision checksum mismatch")
+            payload = json.loads(raw)
+        except (ValueError, TypeError, zlib.error, UnicodeError) as error:
+            raise HTTPException(500,"Stored revision failed integrity verification; no replacement was made") from error
+        return {"ok":True,"id":doc_id,"revision":row["revision"],"updated":row["updated"],**payload}
+
     @router.put("/documents/{doc_id}")
     async def write_document(doc_id: str, body: DocumentWrite, identity=Depends(current_identity)):
         document_id(doc_id)
@@ -106,6 +154,9 @@ def create_writers_room_router(data_dir: Path) -> APIRouter:
                 raise HTTPException(409, {"error": "revision_conflict", "revision": revision, "message": "This document changed elsewhere. Save a copy or reload before continuing."})
             revision += 1
             now = time.time()
+            raw = payload.encode("utf-8")
+            db.execute("INSERT INTO document_revisions VALUES (?,?,?,?,?,?,?)",
+                (identity["user_id"],doc_id,revision,body.title,zlib.compress(raw),hashlib.sha256(raw).hexdigest(),now))
             db.execute("INSERT OR REPLACE INTO documents VALUES (?,?,?,?,?,?)", (identity["user_id"], doc_id, revision, body.title, payload, now))
         return {"ok": True, "id": doc_id, "revision": revision, "updated": now}
 

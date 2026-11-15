@@ -394,6 +394,70 @@ async function connectReach() {
   $('partnerSelect').value=partnerId;
   restoreConversation();
 }
+
+async function showRevisionHistory() {
+  if (reachFileMode || !networked) {addChat('notice','Server revision history requires a connected native manuscript.');return;}
+  if (initializing || generating || chatSending) {addChat('notice','Finish the active request before opening revision history.');return;}
+  const sourceId=documentId;
+  const entry=await saveDocument();
+  if(sourceId!==documentId)return;
+  const old=document.getElementById('reachRevisionHistory');if(old)old.remove();
+  const d=document.createElement('dialog');d.id='reachRevisionHistory';
+  d.setAttribute('aria-label','Manuscript revision history');
+  Object.assign(d.style,{width:'min(680px,94vw)',maxHeight:'85dvh',overflow:'auto',background:'#f7efe0',color:'#29231b',border:'1px solid #8b7250',borderRadius:'12px',padding:'16px'});
+  document.body.append(d);
+  const add=(tag,text,parent=d)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;parent.append(e);return e;};
+  const action=(text,parent,fn)=>{const b=add('button',text,parent);b.type='button';b.className='mc-btn';b.style.margin='4px';b.onclick=fn;return b;};
+  add('h2','Saved revisions');
+  add('p','Older revisions are read-only here. Export a copy or recover one as a separate manuscript; the current manuscript is never replaced.');
+  if(entry!==true)add('p','Current changes may not have reached the server. Only confirmed server revisions are listed.');
+  const status=add('p','Loading…');status.setAttribute('role','status');
+  const list=add('div',undefined);const nav=add('div',undefined);
+  action('Close',nav,()=>d.close());
+  const more=action('Older revisions',nav,()=>load());more.disabled=true;
+  let before=null,busy=false;
+  async function load(){
+    if(busy)return;busy=true;more.disabled=true;
+    try{
+      const params=before===null?'':'?before='+encodeURIComponent(before);
+      const result=await api('/api/writers-room/documents/'+encodeURIComponent(sourceId)+'/revisions'+params);
+      if(!d.open)return;
+      if(!result.revisions.length&&list.childElementCount===0)status.textContent='No confirmed server revisions yet.';
+      else status.textContent='Saved snapshots only · '+(result.next_before?'more available':'end of history');
+      for(const row of result.revisions){
+        const box=add('div',undefined,list);box.style.borderTop='1px solid #ad9b83';box.style.padding='8px 0';
+        add('strong','Revision '+row.revision+' · '+row.title,box);
+        add('p',new Date(row.updated*1000).toLocaleString(),box);
+        async function retrieve(mode){
+          if(busy)return;busy=true;more.disabled=true;
+          try{
+            const snapshot=await api('/api/writers-room/documents/'+encodeURIComponent(sourceId)+'/revisions/'+row.revision);
+            const copy={format:snapshot.format,version:snapshot.version,title:snapshot.title,state:snapshot.state};
+            validateDocumentState(copy.state);
+            if(mode==='export'){
+              downloadFile('revision-'+row.revision+'.2i',JSON.stringify(copy,null,2),'application/json');
+              status.textContent='Revision exported without changing the current manuscript.';
+            }else{
+              if(sourceId!==documentId)throw Error('The active manuscript changed. Open revision history again.');
+              if(!confirm('Open this revision as a separate recovered manuscript? Your current manuscript will be preserved.'))return;
+              copy.title=(String(copy.title).slice(0,170)+' — recovered r'+row.revision);
+              await importDocument(new Blob([JSON.stringify(copy)],{type:'application/json'}));
+              if(documentId!==sourceId)d.close();
+              else status.textContent='Recovery was not applied. The current manuscript remains active.';
+            }
+          }catch(error){status.textContent=error.message;}
+          finally{busy=false;more.disabled=before===null;}
+        }
+        action('Export .2i',box,()=>retrieve('export'));
+        action('Open as recovered copy',box,()=>retrieve('recover'));
+      }
+      before=result.next_before??null;
+    }catch(error){status.textContent='Revision history unavailable: '+error.message;}
+    finally{busy=false;more.disabled=before===null;}
+  }
+  d.addEventListener('close',()=>d.remove(),{once:true});d.showModal();await load();
+}
+
 async function showShelf() {
   await saveDocument();
   const shelf=$('reachShelfList');shelf.replaceChildren();

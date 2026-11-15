@@ -14,6 +14,11 @@ Ten isolated pure-core checks actually executed in the JavaScript execution envi
 1. Browser test with scripted five-page reply; change author decision; archive and reconsider latent; verify playback cannot generate or commit; reload active draft; switch device/partner/document; deliver stale response late.
 2. Run Node/editor/storage/speech focused tests and full suite. Verify model JSON compliance and provider-side context limits; no silent omission of active section.
 3. Exact rendered pagination; durable paragraph anchors replacing numeric ranges guarded by fingerprint.
-4. Server-side authorization and protected-region checks beyond client proposal-only mode; permanent versions and restore UI; archive capacity and storage retention. Existing 2 MB document state limit remains.
+4. Server-side authorization and protected-region checks beyond client proposal-only mode; verify new revision history and restore UI; archive capacity and storage retention. Existing 2 MB document state limit remains.
 5. Cross-scene knowledge registry with evidence and false beliefs, character canon/voice profiles, adaptation mapping among separate media versions, editorial flags with quoted evidence. Scene fields and matrices are currently explicit author-editable entries, suggestions remain advisory.
 6. Audit privacy for selected provider: explicit model request includes reference text. Native manuscript integration only; file mode unchanged. Test legacy provenance, undo, standalone fallback and navigation.
+
+## Revision preservation follow-up
+- Every successful owner-scoped save now stores a compressed, SHA-256-checked revision snapshot in the same SQLite transaction as the current document. Existing databases seed the most recent pre-upgrade revision, not previously overwritten versions. A stale write cannot create a revision.
+- Native editor's Revision history UI lists confirmed server revisions, pages backward, exports .2i, or imports a selected revision as a new recovered manuscript without overwriting the current one.
+- Added isolated API tests covering stale writes, pagination, owner isolation, corruption and pre-existing database migration. Run in the actual repository before merging. Compression/checksum detects corruption but is not tamper-proof storage, backup, or a retention policy. The existing document-size bound is unchanged.

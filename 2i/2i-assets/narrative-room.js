@@ -211,6 +211,7 @@
   $("stopBtn").onclick=stopPlaying;$("skipBtn").onclick=()=>{if(!playing||!activeAudio)return;cancelSpeech();audioSerial++;nextAudio();};
   const controls=$("mcSection").querySelector(".section-body");
   button("Scene intelligence",controls,openPanel).id="narrativeOpen";
+  button("Revision history",controls,()=>{if(typeof showRevisionHistory==="function")showRevisionHistory();else say("Connect Reach to view server revisions.");}).id="narrativeHistory";
   button("Archive draft",controls,archiveDraft).id="narrativeArchiveDraft";
   const budget=make("p","",controls);budget.id="narrativeBudget";
   const status=make("p","",controls);status.id="narrativeStatus";status.setAttribute("role","status");
