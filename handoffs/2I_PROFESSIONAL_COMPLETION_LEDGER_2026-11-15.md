@@ -10,7 +10,7 @@ Base: `84d9e27c7e74f1345d6d07401a125b54ca2c82c2`, the narrative intelligence bra
 | Twenty format presets and rich document engine | Partial inherited | Real format distinctions and lossless supported round trip |
 | Narrative and editorial intelligence | Partial inherited | Evidence-linked diagnostics, author decides |
 | Production notes | Partial inherited | Reuse existing service, recipient/location/end-to-end verification |
-| Creative provenance and session recorder | Pending audit | Evidence separated from AI testimony; private by default; no certification claim |
+| Creative provenance and session recorder | Existing archive inspected; partial disclosure implemented | Evidence separated from AI testimony; private by default; no certification claim |
 | Competitive audit | Pending | Prioritize user pain points and verified existing gaps |
 | Standalone and ecosystem release gates | Pending | Independent use and shared services verified separately |
 | Functional, adversarial, usability passes | Pending | Actual test results recorded, browser/device evidence distinguished |
@@ -34,6 +34,14 @@ Execution constraint: GitHub connector available; direct repository clone failed
 
 ## Checkpoint 3 — menu completeness and safety (continuation)
 - Recovered the collaboration rule: every requested requirement remains open until proven; only the author changes scope. No weaker standard for AI contributions or self-authored changes. Preserve authorship and separate existing implementation from actual operation.
-- Replaced imported reference metadata HTML interpolation with DOM text and event handlers; duplicate legacy identifiers cannot make a reference-row delete remove another record. Added a searchable reference archive over the existing data, Manuscript menu, exact committed-only text export, and explicit warning that Markdown includes presented draft. All eleven requested menu headings now exist; individual missing features remain open.
+- Replaced imported reference metadata HTML interpolation with DOM text and event handlers; duplicate legacy identifiers cannot make a reference-row delete remove another record. Added a searchable reference archive over the existing data, Manuscript menu, exact committed-only text export, and explicit warning that Markdown includes presented draft. All twelve requested menu headings now exist; individual missing features remain open.
 - Scoped manuscript keyboard shortcuts away from dialog fields, chat inputs, composition and already-handled events; added Shift+Ctrl/Command+Z and updated help. Removed unsupported Space shortcut claim. Full native undo behavior still needs real-browser tests.
 - Executed 14 shortcut-policy assertions and compiled changed JavaScript plus inline script syntax. No local repository clone (DNS independently reconfirmed); real browser/full-suite still blocked.
+
+## Checkpoint 3 adversarial follow-up
+- Menu count initially misstated as eleven; comparison against the actual user mandate confirmed twelve distinct required headings, all present. Corrected above. Four simulated reference-record safety checks passed (literal hostile metadata; exact duplicate-ID open; exact delete; stale row no-op). Existing native undo capture in reach.js retained. Node test file added but not executed under Node.
+
+## Checkpoint 4 — private contribution reporting from existing records
+- Inspected the existing narrative archive, revision store, Blackbox runtime/append-only recorder and Iteration Wallet product laws. Reused the native archive; no redundant recorder or automatic private-content transfer to Blackbox or Wallet.
+- Added Review > Creative contribution records, an aggregate-only disclosure export (no source text, scene/document IDs, titles, or arbitrary archive labels), plus separately confirmed private archive export with text. Distinguishes counts of archived record types from attribution and warns about imports, forks, undo, incomplete coverage and lack of independent verification. No verdict, seal, or authorship percentages. Private export uses explicit confirmation; no automatic upload or public registration.
+- Twelve pure report checks passed against the new core and three scripts compiled in the available JS runtime. UI, server persistence and physical device tests not yet done. Fine-grained attribution, opt-in recording modes, author annotation/dispute workflow, evidence integrity and Blackbox/Wallet integration are still open; report is not a substitute for them.

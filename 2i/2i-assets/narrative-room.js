@@ -226,8 +226,32 @@
   tick=()=>run("draft");
   $("genBtn").onclick=()=>run("draft");$("playBtn").onclick=()=>playing?stopPlaying():startPlaying();
   $("stopBtn").onclick=stopPlaying;$("skipBtn").onclick=()=>{if(!playing||!activeAudio)return;cancelSpeech();audioSerial++;nextAudio();};
+  function openContributionReport(){
+    if(!ownerReady()||generating||chatSending||editingIdx!==null){say("Finish the active request or inline edit before reviewing contribution records.");return;}
+    const old=$("twoiContributionDialog");if(old)old.remove();
+    const d=make("dialog",undefined,document.body);d.id="twoiContributionDialog";d.setAttribute("aria-label","Contribution records");
+    Object.assign(d.style,{width:"min(640px,94vw)",maxHeight:"85dvh",overflow:"auto",padding:"16px",background:"#fffaf0",color:"#29231b",border:"1px solid #8b7250",borderRadius:"10px"});
+    const source=scope(),report=C.contributionReport(state);
+    make("h2","Creative contribution records",d);
+    make("p","The AI provides testimony. The software provides evidence. Neither delivers the verdict.",d);
+    make("p","This is an aggregate of existing document records, not an independent witness or a determination of authorship.",d);
+    const counts=make("ul",undefined,d);
+    for(const [kind,count] of Object.entries(report.recordCounts))if(count)make("li",count+" · "+kind,counts);
+    make("li",report.otherArchiveRecords+" · other archive record(s)",counts);
+    make("li",report.currentAdvisoryRecords+" · current advisory record(s)",counts);
+    make("p",report.hasPresentedModelCandidate?"A model candidate is currently recorded as presented.":"No currently presented model candidate is recorded.",d);
+    const limitations=make("ul",undefined,d);for(const line of report.limitations)make("li",line,limitations);
+    const ensureCurrent=()=>{if(source!==scope()||generating||chatSending||editingIdx!==null)throw Error("The manuscript or active request changed. Reopen contribution records.");};
+    const info=make("p","",d);info.setAttribute("role","status");
+    function download(privateText){try{ensureCurrent();if(privateText&&!confirm("Export a PRIVATE copy containing creative drafts, rejected alternatives and advisory text? Keep it separate from any public disclosure."))return;const evidence=C.contributionReport(state,{includePrivateText:privateText});downloadFile(privateText?"2i-private-creative-archive.json":"2i-contribution-summary.json",JSON.stringify(evidence,null,2),"application/json");info.textContent="Download requested. No certification issued; no upload performed.";}catch(error){info.textContent=error.message;}}
+    button("Export aggregate only",d,()=>download(false));
+    button("Export private archive (contains text)",d,()=>download(true));
+    button("Close",d,()=>d.close());
+    d.addEventListener("close",()=>d.remove(),{once:true});d.showModal();
+  }
   const controls=$("mcSection").querySelector(".section-body");
   button("Scene intelligence",controls,openPanel).id="narrativeOpen";
+  button("Contribution records",controls,openContributionReport).id="narrativeContribution";
   button("Revision history",controls,()=>{if(typeof showRevisionHistory==="function")showRevisionHistory();else say("Connect Reach to view server revisions.");}).id="narrativeHistory";
   button("Archive draft",controls,archiveDraft).id="narrativeArchiveDraft";
   const budget=make("p","",controls);budget.id="narrativeBudget";

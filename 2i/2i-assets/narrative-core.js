@@ -182,7 +182,30 @@ function makeNarrativeCore(){
     if(typeof text!=="string"||!text)return;
     state.archive.push({kind,text,...clone(meta)});
   }
-  return {fields,clone,fresh,restore,scene,disclosure,footprint,fits,partition,priorContext,context,prompt,parseDraft,archive,selectScene,remapProtected,captureUndo,restoreUndo,outcomes,continuity,putAdvisory};
+  // A disclosure is derived from existing, mutable document records. It is
+  // intentionally not a second journal, attribution score, or certification.
+  function contributionReport(state,{includePrivateText=false}={}){
+    const archive=Array.isArray(state?.archive)?state.archive:[];
+    const kinds=["committed presented draft","author revised presented draft","rejected presented draft","original rejected AI draft","superseded latent draft","legacy last-read candidate","legacy queue","unparsed model response"];
+    const counts=Object.fromEntries(kinds.map(k=>[k,0]));
+    let other=0;
+    for(const row of archive){if(Object.hasOwn(counts,row.kind))counts[row.kind]++;else other++;}
+    const report={format:"2i-contribution-disclosure",version:1,verification:"unverified document records; not a certification",scope:includePrivateText?"private creative archive":"aggregate only",archiveRecordCount:archive.length,recordCounts:counts,otherArchiveRecords:other,currentAdvisoryRecords:Array.isArray(state?.advisories)?state.advisories.length:0,hasPresentedModelCandidate:typeof state?.presentedOriginal==="string"&&state.presentedOriginal.length>0,limitations:[
+      "Record counts are not creative significance, word-level attribution, or evidence of exclusive human or AI authorship.",
+      "Committed presented draft includes material of unknown or mixed origin; approval does not prove composition.",
+      "Records can be imported, edited, duplicated, inherited on forks, or retained across undo. They do not prove who performed a physical action.",
+      "A revised-draft record preserves earlier offered text, not a character-level attribution map. Absence of records does not establish human authorship.",
+      "This is not a complete session history, independent Blackbox witness, tamper-proof signature or certification."
+    ]};
+    if(includePrivateText){
+      const scalar=x=>typeof x==="string"?x:null;
+      report.privateArchive=archive.map((r,index)=>({recordIndex:index,kind:scalar(r.kind),text:scalar(r.text),createdAt:scalar(r.createdAt),sceneId:scalar(r.sceneId),sourceDocumentId:scalar(r.documentId),revision:Number.isInteger(r.revision)?r.revision:null}));
+      report.privateCurrentAdvisories=(state?.advisories||[]).map(a=>({kind:scalar(a.kind),text:scalar(a.text),sceneId:scalar(a.sceneId),createdAt:scalar(a.createdAt)}));
+      report.privatePresentedCandidate=scalar(state?.presentedOriginal);
+    }
+    return report;
+  }
+  return {contributionReport,fields,clone,fresh,restore,scene,disclosure,footprint,fits,partition,priorContext,context,prompt,parseDraft,archive,selectScene,remapProtected,captureUndo,restoreUndo,outcomes,continuity,putAdvisory};
 }
 const NarrativeCore=makeNarrativeCore();
 if(typeof module!=="undefined"&&module.exports)module.exports=NarrativeCore;

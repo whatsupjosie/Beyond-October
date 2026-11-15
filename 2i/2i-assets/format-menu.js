@@ -103,7 +103,7 @@
   commandMenu("Layout",[["Page setup",page],["Formatted preview",preview]]);
   commandMenu("References",[["Browse or search references",referenceArchive,"research notes archive"],["Add reference",go("addRefBtn")]]);
   commandMenu("Manuscript",[["Scene intelligence",go("narrativeOpen")],["New chapter",go("newChapterBtn")],["Generate draft",go("genBtn")],["Commit presented draft",go("approveBtn")],["Archive presented draft",go("narrativeArchiveDraft")]]);
-  commandMenu("Review",[["Revision history",go("narrativeHistory")],["Lock scene",go("lockSceneBtn")],["Lock all",go("lockAllBtn")],["Unlock",go("unlockBtn")]]);
+  commandMenu("Review",[["Revision history",go("narrativeHistory")],["Creative contribution records",go("narrativeContribution"),"authorship provenance evidence disclosure"],["Lock scene",go("lockSceneBtn")],["Lock all",go("lockAllBtn")],["Unlock",go("unlockBtn")]]);
   const present=mode=>()=>window.twoiSetPresentation(mode);
   const presentations=typeof window.twoiSetPresentation==="function"?[["Standard document view",present("standard")],["Notebook view",present("notebook")],...(window.twoiCanPresent("typewriter")?[["Typewriter view",present("typewriter")]]:[])]:[];
   commandMenu("View",[...presentations,["Write / Collab",go("modeBadge")],["Toggle sidebar",go("sidebarToggle")],["Zoom manuscript in",()=>adjustZoom("manuscript",1)],["Zoom manuscript out",()=>adjustZoom("manuscript",-1)],["Formatted preview",preview]]);
