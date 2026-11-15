@@ -1,0 +1,33 @@
+name: 2i professional regression
+on:
+  push:
+    branches:
+      - gpt/2i-professional-completion-2026-11-15
+    paths:
+      - '2i/**'
+      - 'static/2i_studio_bridge.js'
+      - 'static/foresight_files.js'
+      - 'tests/test_2i_*'
+      - 'tests/test_twoi_*'
+      - '.github/workflows/2i-professional-regression.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: twoi-regression-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  node-regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Check runtime
+        run: |
+          node --version
+          node -e "if (+process.versions.node.split('.')[0] < 20) process.exit(1)"
+      - name: Run 2i regression suite
+        run: node --test tests/test_2i_*_node.js tests/test_twoi_rich_browser_contract_node.js
