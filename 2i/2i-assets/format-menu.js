@@ -5,14 +5,25 @@
   const el=(tag,text,parent)=>{const n=document.createElement(tag);if(text!==null)n.textContent=text;if(parent)parent.append(n);return n;};
   const menu=el("nav",null);menu.id="twoiMenuBar";menu.setAttribute("aria-label","2i document menus");
   ($("twoiVersionBar")||document.querySelector(".top-bar")).after(menu);
-  const go=id=>{const run=()=>{const b=$(id);if(!b||b.disabled||b.getAttribute("aria-disabled")==="true")throw Error("This control is not available in the current mode.");b.click();};run.available=()=>{const b=$(id);return !!b&&!b.disabled&&b.getAttribute("aria-disabled")!=="true";};return run;};
+  function commandAvailable(command){try{return !command.run.available||!!command.run.available();}catch{return false;}}
+  const conditional=(run,allowed)=>{run.available=allowed;return run;};
+  const go=(id,allowed=()=>true)=>{const run=()=>{if(!run.available())throw Error("This control is not available in the current mode.");$(id).click();};run.available=()=>{const b=$(id);return !!b&&!b.disabled&&b.getAttribute("aria-disabled")!=="true"&&!!allowed();};return run;};
+  const idle=()=>!initializing&&!generating&&!chatSending&&editingIdx===null;
+  const collabIdle=()=>coWriting&&idle();
   function safe(fn){try{const r=fn();if(r?.catch)r.catch(e=>addChat("notice",e.message));}catch(e){addChat("notice",e.message);}}
   function select(host,label,items,initial=""){
     const s=el("select",null,host);s.setAttribute("aria-label",label);
     for(const [value,name] of items){const o=el("option",name,s);o.value=value;}s.value=initial;return s;
   }
   const commands=[];
-  function commandMenu(label,items){const entries=items.map(([name,run,keywords])=>({group:label,label:name,run,keywords}));commands.push(...entries);const s=select(menu,label,[["",label],...entries.map((cmd,i)=>[String(i),cmd.label])]);s.onchange=()=>{const i=s.value;s.value="";if(i!=="")safe(entries[Number(i)].run);};}
+  function commandMenu(label,items){
+    const entries=items.map(([name,run,keywords])=>({group:label,label:name,run,keywords}));commands.push(...entries);
+    const s=select(menu,label,[["",label],...entries.map((cmd,i)=>[String(i),cmd.label])]);
+    const refresh=()=>{entries.forEach((cmd,i)=>{const option=s.options[i+1];if(option)option.disabled=!commandAvailable(cmd);});};
+    s.addEventListener("focus",refresh);s.addEventListener("pointerdown",refresh);
+    s.onchange=()=>{const i=s.value;s.value="";if(i==="")return;const cmd=entries[Number(i)];safe(()=>{if(!cmd||!commandAvailable(cmd))throw Error("That command is unavailable in the current editor state.");return cmd.run();});};
+    refresh();
+  }
   const button=(host,label,fn)=>{const b=el("button",label,host);b.type="button";b.className="mc-btn";b.onclick=()=>safe(fn);return b;};
   let selection={document:null,indices:[]};
   const recordSelection=()=>{
@@ -75,10 +86,20 @@
   }
   function output(){return C.exportHtml(documentTitle,committed.slice(),syncManuscriptFormat(),chapters);}
   function preview(){
+    ready();const source=documentId,html=output(),filename=safeName()+".html";
     const d=dialog("Formatted manuscript preview");d.classList.add("wide");
-    el("p","Committed manuscript only. Drafts, latent prose, notes and chat are excluded. This is a browser layout proof, not certified screenplay pagination.",d);
-    const frame=el("iframe",null,d);frame.title="Formatted manuscript";frame.setAttribute("sandbox","");frame.srcdoc=output();
-    button(d,"Export printable HTML",()=>downloadFile(safeName()+".html",output(),"text/html"));button(d,"Close",()=>d.close());d.showModal();
+    el("p","Snapshot of committed manuscript only. Drafts, latent prose, notes and chat are excluded. Browser print pagination can differ from professional production requirements.",d);
+    const frame=el("iframe",null);frame.title="Formatted manuscript";
+    // The exported markup escapes manuscript text; scripts remain forbidden.
+    // Same-origin is necessary to invoke the isolated iframe's print method.
+    frame.setAttribute("sandbox","allow-same-origin allow-modals");
+    const status=textStatus(d);
+    const print=button(d,"Print this snapshot",()=>{
+      try{if(source!==documentId)throw Error("The active manuscript changed. Reopen the preview.");if(typeof frame.contentWindow?.print!=="function")throw Error("This browser does not support printing the preview. Export printable HTML instead.");frame.contentWindow.focus();frame.contentWindow.print();status.textContent="Print dialog requested. Check your browser's print preview.";}catch(error){status.textContent=error.message;}
+    });print.disabled=true;
+    button(d,"Export this snapshot as HTML",()=>downloadFile(filename,html,"text/html"));
+    button(d,"Close",()=>d.close());
+    frame.addEventListener("load",()=>{print.disabled=false;});frame.srcdoc=html;d.insertBefore(frame,status);d.showModal();
   }
   function stats(){const d=dialog("Document statistics"),t=committed.join("\n"),draft=buffer.join("\n"),wc=x=>x.trim().split(/\s+/).filter(Boolean).length;el("p","Committed: "+wc(t)+" words · "+[...t].length+" characters · "+committed.length+" lines",d);el("p","Presented draft: "+wc(draft)+" words. Withheld material is not included.",d);el("p","Estimated reading time: "+Math.ceil(wc(t)/200)+" min at 200 words/min.",d);button(d,"Close",()=>d.close());d.showModal();}
   function unmapped(){
@@ -96,19 +117,19 @@
     function refresh(){list.replaceChildren();const term=q.value.toLowerCase().trim();const rows=references.filter(r=>!term||r.name.toLowerCase().includes(term)||r.content.toLowerCase().includes(term));status.textContent=rows.length+" matching reference(s)";for(const r of rows){const b=button(list,r.name,()=>{if(source!==documentId||!references.includes(r))throw Error("The reference changed. Reopen the archive.");d.close();viewReferenceRecord(r);});b.style.display="block";b.style.whiteSpace="normal";b.style.minHeight="42px";}}
     q.addEventListener("input",refresh);button(d,"Add reference",()=>{if(source!==documentId)throw Error("The manuscript changed.");d.close();go("addRefBtn")();});button(d,"Close",()=>d.close());refresh();d.showModal();q.focus();
   }
-  commandMenu("File",[["New",go("hmNewDoc")],["Open .2i",go("hmOpenDoc")],["My manuscripts",go("shelfBtn")],["Save",go("saveBtn")],["Save a copy (.2i)",go("hmSaveAs")],["Export Markdown (includes presented draft)",go("exportBtn"),"markdown md"],["Export committed text only",exportCommitted,"plain txt manuscript privacy"],["Export formatted HTML",()=>downloadFile(safeName()+".html",output(),"text/html")],["Restore autosave",go("hmRestoreAutosave")],["Rename",go("hmRenameDoc")]]);
-  commandMenu("Edit",[["Undo",()=>undo()],["Redo",()=>redo()],["Find & replace",go("hmFindReplace")]]);
+  commandMenu("File",[["New",go("hmNewDoc")],["Open .2i",go("hmOpenDoc")],["My manuscripts",go("shelfBtn")],["Save",go("saveBtn",()=>!initializing&&editingIdx===null)],["Save a copy (.2i)",go("hmSaveAs")],["Export Markdown (includes presented draft)",go("exportBtn"),"markdown md"],["Export committed text only",exportCommitted,"plain txt manuscript privacy"],["Export formatted HTML",conditional(()=>downloadFile(safeName()+".html",output(),"text/html"),idle)],["Print committed manuscript…",conditional(preview,idle),"print page paper pdf"],["Restore autosave",go("hmRestoreAutosave")],["Rename",go("hmRenameDoc")]]);
+  commandMenu("Edit",[["Undo manuscript operation",conditional(()=>undo(),()=>idle()&&undoStack.length>0)],["Redo manuscript operation",conditional(()=>redo(),()=>idle()&&redoStack.length>0)],["Find & replace",go("hmFindReplace")]]);
   commandMenu("Insert",[["New chapter",go("newChapterBtn")]]);
   commandMenu("Format",[["Document type / script presets",templates],["Paragraph style, alignment, indent…",paragraph],["Formatting recovery",unmapped]]);
   commandMenu("Layout",[["Page setup",page],["Formatted preview",preview]]);
   commandMenu("References",[["Browse or search references",referenceArchive,"research notes archive"],["Add reference",go("addRefBtn")]]);
-  commandMenu("Manuscript",[["Scene intelligence",go("narrativeOpen")],["New chapter",go("newChapterBtn")],["Generate draft",go("genBtn")],["Commit presented draft",go("approveBtn")],["Archive presented draft",go("narrativeArchiveDraft")]]);
-  commandMenu("Review",[["Revision history",go("narrativeHistory")],["Creative contribution records",go("narrativeContribution"),"authorship provenance evidence disclosure"],["Lock scene",go("lockSceneBtn")],["Lock all",go("lockAllBtn")],["Unlock",go("unlockBtn")]]);
+  commandMenu("Manuscript",[["Scene intelligence",go("narrativeOpen")],["New chapter",go("newChapterBtn")],["Generate draft",go("genBtn",()=>collabIdle()&&llmOk()&&!buffer.length)],["Commit presented draft",go("approveBtn",()=>collabIdle()&&buffer.length>0)],["Archive presented draft",go("narrativeArchiveDraft",collabIdle)]]);
+  commandMenu("Review",[["Revision history",go("narrativeHistory",()=>idle()&&networked&&serverReady)],["Story versions",go("twoiVersionManage",()=>idle()&&networked&&serverReady)],["Creative contribution records",go("narrativeContribution",idle),"authorship provenance evidence disclosure"],["Lock scene",go("lockSceneBtn")],["Lock all",go("lockAllBtn")],["Unlock",go("unlockBtn")]]);
   const present=mode=>()=>window.twoiSetPresentation(mode);
   const presentations=typeof window.twoiSetPresentation==="function"?[["Standard document view",present("standard")],["Notebook view",present("notebook")],...(window.twoiCanPresent("typewriter")?[["Typewriter view",present("typewriter")]]:[])]:[];
   commandMenu("View",[...presentations,["Write / Collab",go("modeBadge")],["Toggle sidebar",go("sidebarToggle")],["Zoom manuscript in",()=>adjustZoom("manuscript",1)],["Zoom manuscript out",()=>adjustZoom("manuscript",-1)],["Formatted preview",preview]]);
-  commandMenu("Tools",[["Word and character count",stats],["Read presented draft",go("playBtn")],["Stop reading / generation",go("stopBtn")],["Model settings",go("hmLLMSettings")]]);
-  commandMenu("Studio",[["Inbox",go("twoiNotesInbox")],["Write note",go("twoiWriteNote")],["Place sticky note",go("twoiPlaceNote")]]);
+  commandMenu("Tools",[["Word and character count",stats],["Read / pause presented draft",go("playBtn",()=>coWriting&&(playing||(!generating&&!chatSending&&buffer.some(s=>s.trim()))))],["Stop reading / generation",go("stopBtn",()=>playing||generating)],["Model settings",go("hmLLMSettings")]]);
+  commandMenu("Studio",[["Inbox",go("twoiNotesInbox",()=>!initializing&&networked&&serverReady)],["Write note",go("twoiWriteNote",()=>!initializing&&networked&&serverReady)],["Place sticky note",go("twoiPlaceNote",()=>!initializing&&networked&&serverReady)]]);
   commandMenu("Help",[["Keyboard shortcuts",go("hmKeyboardHelp")]]);
 
   function rankCommands(commands,query){
@@ -132,7 +153,7 @@
     const list=el("div",null,d);Object.assign(list.style,{display:"grid",gap:"6px",maxHeight:"52dvh",overflowY:"auto"});
     const close=button(d,"Close",()=>d.close());close.style.marginTop="12px";
     let rows=[],executing=false;
-    const available=cmd=>!cmd.run.available||cmd.run.available();
+    const available=commandAvailable;
     function execute(cmd){
       if(source!==documentId){status.textContent="The active manuscript changed. Reopen the command palette.";return;}
       if(!available(cmd)){status.textContent="That command is no longer available.";refresh();return;}

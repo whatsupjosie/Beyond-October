@@ -24,7 +24,7 @@ if(typeof document!=="undefined")(function installVersionIdentity(){
   const bar=el("div",undefined);bar.id="twoiVersionBar";bar.setAttribute("aria-label","Current manuscript version");
   document.querySelector(".top-bar").after(bar);
   const info=el("span","Local / unconfirmed",bar), marks=el("span",undefined,bar);
-  const manage=button("Versions",bar,()=>openVersions());
+  const manage=button("Versions",bar,()=>openVersions());manage.id="twoiVersionManage";
   function markPills(host,values){
     host.replaceChildren();
     values.forEach(m=>{const a=el("span",m,host);a.className="twoi-version-mark"+(m==="REVIEWED"?" twoi-review-green":m==="NEEDS REVIEW"?" twoi-review-amber":m==="DEPARTED"?" twoi-version-departed":"");});
