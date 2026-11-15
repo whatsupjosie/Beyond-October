@@ -241,6 +241,43 @@
   tick=()=>run("draft");
   $("genBtn").onclick=()=>run("draft");$("playBtn").onclick=()=>playing?stopPlaying():startPlaying();
   $("stopBtn").onclick=stopPlaying;$("skipBtn").onclick=()=>{if(!playing||!activeAudio)return;cancelSpeech();audioSerial++;nextAudio();};
+  function openTestimony(){
+    if(!ownerReady()||generating||chatSending||editingIdx!==null)return say("Finish active work before making an author statement.");
+    const old=$("twoiTestimonyDialog");if(old)old.remove();
+    const d=make("dialog",undefined,document.body);d.id="twoiTestimonyDialog";d.setAttribute("aria-label","Author statements and disputes");
+    Object.assign(d.style,{width:"min(660px,94vw)",maxHeight:"85dvh",overflow:"auto",padding:"16px",background:"#fffaf0",color:"#29231b",borderRadius:"10px"});
+    const source=scope(),basis=JSON.stringify(state.archive);
+    make("h2","Author statements and disputes",d);
+    make("p","Your statement is testimony, not a replacement for the recorded source. Add a correction or dispute without erasing either record. Private text is not included in the aggregate disclosure.",d);
+    const label=make("label","Source record",d),select=make("select",undefined,label);
+    const candidates=state.archive.map((r,i)=>({r,i})).filter(x=>x.r.kind!=="author testimony");
+    for(const {r,i} of candidates){const o=make("option","Record "+(i+1)+" · "+r.kind+" · "+r.text.slice(0,70),select);o.value=String(i);}
+    const quote=make("pre","",d);Object.assign(quote.style,{whiteSpace:"pre-wrap",overflowWrap:"anywhere",maxHeight:"20dvh",overflow:"auto"});
+    const history=make("div",undefined,d);
+    const category=make("select",undefined,make("label","Statement type",d));for(const k of C.statementKinds){const o=make("option",k,category);o.value=k;}
+    const prior=make("select",undefined,make("label","Earlier statement to supersede (optional)",d));
+    const note=make("textarea",undefined,make("label","Your statement",d));note.rows=5;note.maxLength=8000;note.style.width="100%";
+    const info=make("p","",d);info.setAttribute("role","status");
+    function refresh(){
+      const i=Number(select.value),row=state.archive[i];quote.textContent=row?.text??"No source record available.";
+      prior.replaceChildren();const none=make("option","No earlier statement",prior);none.value="";
+      history.replaceChildren();
+      for(let j=0;j<state.archive.length;j++){const claim=C.authorStatement(state.archive,j);if(!claim||claim.targetRecordIndex!==i)continue;
+        const p=make("p","Statement "+(j+1)+" · "+claim.category+(claim.supersedes===null?"":" · supersedes "+(claim.supersedes+1))+": "+state.archive[j].text,history);p.style.whiteSpace="pre-wrap";p.style.overflowWrap="anywhere";
+        const o=make("option","Statement "+(j+1)+" · "+claim.category,prior);o.value=String(j);
+      }
+      prior.value="";
+    }
+    select.onchange=refresh;
+    const saveButton=button("Append private statement",d,()=>{
+      try{if(source!==scope()||basis!==JSON.stringify(state.archive)||generating||chatSending||editingIdx!==null)throw Error("The document or archive changed; reopen statements.");
+        if(!candidates.length)throw Error("There is no source record to annotate.");
+        C.appendAuthorStatement(state,{target:Number(select.value),category:category.value,text:note.value,supersedes:prior.value===""?null:Number(prior.value),meta:meta()});
+        save();d.close();say("Author statement appended. Existing evidence remains unchanged.");
+      }catch(error){info.textContent=error.message;}
+    });saveButton.disabled=!candidates.length;
+    button("Close",d,()=>d.close());d.addEventListener("close",()=>d.remove(),{once:true});refresh();d.showModal();
+  }
   function openContributionReport(){
     if(!ownerReady()||generating||chatSending||editingIdx!==null){say("Finish the active request or inline edit before reviewing contribution records.");return;}
     const old=$("twoiContributionDialog");if(old)old.remove();
@@ -256,11 +293,13 @@
     make("li",report.currentAdvisoryRecords+" · current advisory record(s)",counts);
     const a=report.approvalObservations;
     make("p","Recorded approvals: "+a.recorded+" · exact match "+a.exactCandidateMatches+" · changed "+a.changedCandidates+" · no linked candidate "+a.unlinkedApprovals+". These describe text correspondence, not who wrote it.",d);
+    make("p",report.authorStatements.recorded+" author statement(s), including "+report.authorStatements.disputes+" dispute(s). Self-reported; not independently verified.",d);
     make("p",report.hasPresentedModelCandidate?"A model candidate is currently recorded as presented.":"No currently presented model candidate is recorded.",d);
     const limitations=make("ul",undefined,d);for(const line of report.limitations)make("li",line,limitations);
     const ensureCurrent=()=>{if(source!==scope()||generating||chatSending||editingIdx!==null)throw Error("The manuscript or active request changed. Reopen contribution records.");};
     const info=make("p","",d);info.setAttribute("role","status");
     function download(privateText){try{ensureCurrent();if(privateText&&!confirm("Export a PRIVATE copy containing creative drafts, rejected alternatives and advisory text? Keep it separate from any public disclosure."))return;const evidence=C.contributionReport(state,{includePrivateText:privateText});downloadFile(privateText?"2i-private-creative-archive.json":"2i-contribution-summary.json",JSON.stringify(evidence,null,2),"application/json");info.textContent="Download requested. No certification issued; no upload performed.";}catch(error){info.textContent=error.message;}}
+    button("Author statements and disputes",d,()=>{ensureCurrent();d.close();openTestimony();});
     button("Export aggregate only",d,()=>download(false));
     button("Export private archive (contains text)",d,()=>download(true));
     button("Close",d,()=>d.close());

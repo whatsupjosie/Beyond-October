@@ -213,6 +213,24 @@ function makeNarrativeCore(){
     if(e.candidateRecordIndex!==index&&(candidate.kind!=="author revised presented draft"||e.candidateRecordIndex!==index-1||candidate.documentId!==row.documentId||candidate.sceneId!==row.sceneId||candidate.createdAt!==row.createdAt))return null;
     return {...result,candidateRecordIndex:e.candidateRecordIndex,comparison:compareDraftText(candidate.text,row.text)};
   }
+  const statementKinds=["composition claim","dictation claim","AI assistance claim","mechanical correction claim","structural assistance claim","dispute","clarification"];
+  function authorStatement(archive,index){
+    const row=archive[index],s=row?.statement;
+    if(row?.kind!=="author testimony"||typeof row.text!=="string"||!row.text.trim()||row.text.length>8000||!s||!statementKinds.includes(s.category)||!Number.isInteger(s.target)||s.target<0||s.target>=index||!archive[s.target]||archive[s.target].kind==="author testimony")return null;
+    if(s.supersedes!==null){
+      if(!Number.isInteger(s.supersedes)||s.supersedes<0||s.supersedes>=index)return null;
+      const old=archive[s.supersedes];
+      if(old?.kind!=="author testimony"||old.statement?.target!==s.target)return null;
+    }
+    return {recordIndex:index,targetRecordIndex:s.target,category:s.category,supersedes:s.supersedes,verification:"self-reported statement; not corroborated"};
+  }
+  function appendAuthorStatement(state,{target,category,text,supersedes=null,meta={}}){
+    const archive=state.archive,index=archive.length;
+    if(!statementKinds.includes(category)||!Number.isInteger(target)||target<0||target>=index||archive[target]?.kind==="author testimony"||typeof text!=="string"||!text.trim()||text.length>8000)throw Error("Select a source record and enter a statement of up to 8,000 characters.");
+    if(supersedes!==null){const prior=authorStatement(archive,supersedes);if(!prior||prior.targetRecordIndex!==target)throw Error("The earlier statement does not refer to this record.");}
+    const row={...clone(meta),kind:"author testimony",text,statement:{target,category,supersedes}};
+    archive.push(row);return index;
+  }
   // A disclosure is derived from existing, mutable document records. It is
   // intentionally not a second journal, attribution score, or certification.
   function contributionReport(state,{includePrivateText=false}={}){
@@ -223,22 +241,24 @@ function makeNarrativeCore(){
     for(const row of archive){if(Object.hasOwn(counts,row.kind))counts[row.kind]++;else other++;}
     const approvals=archive.map((_,index)=>approvalObservation(archive,index)).filter(Boolean);
     const approvalObservations={recorded:approvals.length,exactCandidateMatches:approvals.filter(x=>x.comparison?.exact).length,changedCandidates:approvals.filter(x=>x.comparison&&!x.comparison.exact).length,unlinkedApprovals:approvals.filter(x=>!x.comparison).length};
-    const report={approvalObservations,format:"2i-contribution-disclosure",version:1,verification:"unverified document records; not a certification",scope:includePrivateText?"private creative archive":"aggregate only",archiveRecordCount:archive.length,recordCounts:counts,otherArchiveRecords:other,currentAdvisoryRecords:Array.isArray(state?.advisories)?state.advisories.length:0,hasPresentedModelCandidate:typeof state?.presentedOriginal==="string"&&state.presentedOriginal.length>0,limitations:[
+    const statements=archive.map((_,index)=>authorStatement(archive,index)).filter(Boolean);
+    const report={authorStatements:{recorded:statements.length,disputes:statements.filter(s=>s.category==="dispute").length,clarifications:statements.filter(s=>s.category==="clarification").length,unverified:true},approvalObservations,format:"2i-contribution-disclosure",version:1,verification:"unverified document records; not a certification",scope:includePrivateText?"private creative archive":"aggregate only",archiveRecordCount:archive.length,recordCounts:counts,otherArchiveRecords:other,currentAdvisoryRecords:Array.isArray(state?.advisories)?state.advisories.length:0,hasPresentedModelCandidate:typeof state?.presentedOriginal==="string"&&state.presentedOriginal.length>0,limitations:[
       "Record counts are not creative significance, word-level attribution, or evidence of exclusive human or AI authorship.",
       "Committed presented draft includes material of unknown or mixed origin; approval does not prove composition.",
       "Records can be imported, edited, duplicated, inherited on forks, or retained across undo. They do not prove who performed a physical action.",
       "Matching Unicode prefix and suffix are historical text correspondence only; a changed middle has unknown origin. Absence of records does not establish human authorship.",
+      "Author statements are self-reported testimony, preserved separately from observed records; they do not override software evidence or determine authorship.",
       "This is not a complete session history, independent Blackbox witness, tamper-proof signature or certification."
     ]};
     if(includePrivateText){
       const scalar=x=>typeof x==="string"?x:null;
-      report.privateArchive=archive.map((r,index)=>({recordIndex:index,kind:scalar(r.kind),text:scalar(r.text),createdAt:scalar(r.createdAt),sceneId:scalar(r.sceneId),sourceDocumentId:scalar(r.documentId),revision:Number.isInteger(r.revision)?r.revision:null,approvalObservation:approvalObservation(archive,index)}));
+      report.privateArchive=archive.map((r,index)=>({recordIndex:index,kind:scalar(r.kind),text:scalar(r.text),createdAt:scalar(r.createdAt),sceneId:scalar(r.sceneId),sourceDocumentId:scalar(r.documentId),revision:Number.isInteger(r.revision)?r.revision:null,approvalObservation:approvalObservation(archive,index),authorStatement:authorStatement(archive,index)}));
       report.privateCurrentAdvisories=(state?.advisories||[]).map(a=>({kind:scalar(a.kind),text:scalar(a.text),sceneId:scalar(a.sceneId),createdAt:scalar(a.createdAt)}));
       report.privatePresentedCandidate=scalar(state?.presentedOriginal);
     }
     return report;
   }
-  return {compareDraftText,recordDraftApproval,approvalObservation,contributionReport,fields,clone,fresh,restore,scene,disclosure,footprint,fits,partition,priorContext,context,prompt,parseDraft,archive,selectScene,remapProtected,captureUndo,restoreUndo,outcomes,continuity,putAdvisory};
+  return {compareDraftText,recordDraftApproval,approvalObservation,statementKinds,authorStatement,appendAuthorStatement,contributionReport,fields,clone,fresh,restore,scene,disclosure,footprint,fits,partition,priorContext,context,prompt,parseDraft,archive,selectScene,remapProtected,captureUndo,restoreUndo,outcomes,continuity,putAdvisory};
 }
 const NarrativeCore=makeNarrativeCore();
 if(typeof module!=="undefined"&&module.exports)module.exports=NarrativeCore;

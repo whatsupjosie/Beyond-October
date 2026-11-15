@@ -89,3 +89,7 @@ Execution constraint: GitHub connector available; direct repository clone failed
 
 ### CI recheck
 GitHub Actions runs 43775885432, 43775981890 and 43776097435 also reported failure. Latest job 133002626619 returned zero step summaries and its logs endpoint returned BlobNotFound (404). Cause still undetermined; no successful full Node checkout run established. Continue direct isolated checks while retaining this blocker. Main remained c82069b47b04eac56cca1fb4f6a4eb16c44d32ae.
+
+## Checkpoint 11 — author testimony and disputes
+- Added private author statements attached to existing source records, including composition/dictation/assistance claims, disputes and clarifications. Corrections append with an explicit supersedes link; neither original statement nor software record is overwritten. Aggregate disclosure contains only counts, private report exposes linked statements and historical evidence. No attribution scores or automatic adjudication. Uses existing narrative archive and undo retention.
+- 12 targeted pure assertions passed; scripts and regression test compiled. Browser UI, actual authenticated persistence and independent evidence integrity remain open. Imported unsupported/malformed statements are not counted as validated testimony. No custody action.
