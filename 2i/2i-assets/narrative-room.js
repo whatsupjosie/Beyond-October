@@ -22,7 +22,7 @@
   function anchorScene(s){s.prefixAnchor=anchor(committed.slice(0,s.start));s.suffixAnchor=s.end===null?null:anchor(committed.slice(s.end));return s;}
   function outcomeBasis(s){return anchor([JSON.stringify([s.start,s.end??committed.length,committed.slice(s.start,s.end??committed.length),s.confirmedOutcomes||""])]);}
   function verifiedOutcomes(s){return !!s.outcomeBasis&&s.outcomeBasis===outcomeBasis(s);}
-  function reviewBasis(ctx){return anchor([JSON.stringify([scope(),partner(),ctx.section,ctx.previous,ctx.scene,ctx.knowledge,ctx.continuity,ctx.references,ctx.decisions[0]])]);}
+  function reviewBasis(ctx){return anchor([JSON.stringify([scope(),partner(),ctx.section,ctx.previous,ctx.scene,ctx.knowledge,ctx.continuity,ctx.references,ctx.documentFormat,ctx.decisions[0]])]);}
   function checkAnchor(s){
     if(s.prefixAnchor!==undefined&&s.prefixAnchor!==anchor(committed.slice(0,s.start)))throw Error("Earlier material changed. Review the scene's start line and save its dossier before continuing.");
     if(s.end!==null&&s.suffixAnchor!==undefined&&s.suffixAnchor!==anchor(committed.slice(s.end)))throw Error("Later material changed. Review the scene's end line and save its dossier before continuing.");
@@ -139,6 +139,7 @@
     const history=typeof chatHistory==="undefined"?[]:chatHistory.filter(x=>!x.delivery).slice(-20).map(x=>({role:x.role,content:x.content}));
     const feedback=state.archive.filter(x=>x.sceneId===s.id&&["rejected presented draft","original rejected AI draft","committed presented draft","author revised presented draft"].includes(x.kind)).slice(-6).map(x=>({kind:x.kind,text:x.text}));
     const ctx=C.context({lines:committed.slice(),chapters,active:s,buffer:buffer.slice(),decisions:[{confirmed:s.decisions||""},{recentDiscussion:history},{recentReviewOutcomes:feedback}],latent:kind==="draft"?state.latent:"",medium:s.medium||"prose"});
+    if(typeof getFormatContext==='function')ctx.documentFormat=getFormatContext();
     ctx.continuity=C.continuity(state.scenes,s,committed.length,verifiedOutcomes);
     if(s.confirmedOutcomes&&!verifiedOutcomes(s)){ctx.scene.confirmedOutcomesHistorical=ctx.scene.confirmedOutcomes;ctx.scene.confirmedOutcomes="";}
     ctx.references=references.map(r=>({name:r.name,type:r.type,content:r.content}));

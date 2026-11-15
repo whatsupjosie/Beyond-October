@@ -111,6 +111,7 @@ async function api(path, options={}) {
   return body;
 }
 function validateDocumentState(state) {
+  if(state?.formatting!==undefined){if(typeof TwoiFormatCore==='undefined')throw Error('Formatting runtime unavailable; retain the original.');TwoiFormatCore.restore(state.formatting,state.committed||[]);}
   if (!state || typeof state !== 'object' || Array.isArray(state)) throw Error('This file has no valid document state.');
   for (const key of ['committed','buffer','pool']) {
     if (state[key] !== undefined && (!Array.isArray(state[key]) || state[key].some(v => typeof v !== 'string'))) throw Error('Invalid manuscript lines.');

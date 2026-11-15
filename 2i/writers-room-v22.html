@@ -7,6 +7,8 @@
 <script src="/static/reach_auth.js"></script>
 <link rel="stylesheet" href="/2i-assets/reach.css">
 <link rel="stylesheet" href="/2i-assets/studio-desk.css">
+<link rel="stylesheet" href="/2i-assets/format-menu.css">
+<script src="/2i-assets/format-core.js"></script>
 <style>
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1283,6 +1285,10 @@ function cancelLLM() { if (abortController) { abortController.abort(); abortCont
 // ── CORE STATE ─────────────────────────────────────────────────────
 let coWriting = false;  // false = WRITE mode, true = COLLAB mode
 let committed = [];     // finalized manuscript lines
+const nativeFormatting=!new URLSearchParams(location.search).has('file');
+let manuscriptFormat=TwoiFormatCore.fresh(), formatPrevious=[];
+function syncManuscriptFormat(){if(nativeFormatting){TwoiFormatCore.reconcile(manuscriptFormat,formatPrevious,committed);formatPrevious=committed.slice();}return manuscriptFormat;}
+function getFormatContext(){return nativeFormatting?TwoiFormatCore.profileContext(syncManuscriptFormat()):null;}
 let buffer = [];        // draft lines (collab mode)
 let pool = [];          // generated lines waiting to be read
 let pointer = 0;        // next line in pool
@@ -1326,6 +1332,7 @@ const contextMenu = $('contextMenu');
 function captureUndoPoint() {
   const point={committed:[...committed],buffer:[...buffer],lockedLines:new Set(lockedLines),chapters:JSON.parse(JSON.stringify(chapters))};
   if(window.twoiNarrativeHistory){point.coWriting=coWriting;point.narrative=window.twoiNarrativeHistory.capture();}
+  if(nativeFormatting)point.formatting=TwoiFormatCore.clone(syncManuscriptFormat());
   return point;
 }
 function snapshot() {
@@ -1336,6 +1343,7 @@ function snapshot() {
 function restoreUndoPoint(s,kind) {
   if(s.narrative&&window.twoiNarrativeHistory)window.twoiNarrativeHistory.restore(s.narrative,buffer.join('\n')===s.buffer.join('\n')?'':buffer.join('\n'),kind);
   committed=s.committed;buffer=s.buffer;lockedLines=s.lockedLines;chapters=s.chapters;
+  if(nativeFormatting){manuscriptFormat=TwoiFormatCore.restore(s.formatting,committed);formatPrevious=committed.slice();}
   if(typeof s.coWriting==='boolean'){coWriting=s.coWriting;updateModeUI();}
   selectedIdx=null;editingIdx=null;
   if(!coWriting)soloTextarea.value=committed.join('\n');
@@ -1401,6 +1409,7 @@ function getDocState() {
     committed, buffer, pool, pointer, chapters,
     lockedLines: [...lockedLines],
     coWriting, references,
+    ...(nativeFormatting?{formatting:TwoiFormatCore.clone(syncManuscriptFormat())}:{}),
     ...(typeof partnerId !== 'undefined' ? {
       partnerId,
       conversations: {...conversations, [partnerId]: [...chatHistory]},
@@ -1413,6 +1422,7 @@ function docPayload() {
 }
 function loadDocState(state) {
   committed = state.committed || [];
+  if(nativeFormatting){manuscriptFormat=TwoiFormatCore.restore(state.formatting,committed);formatPrevious=committed.slice();}
   buffer = state.buffer || [];
   pool = state.pool || [];
   pointer = state.pointer || 0;
@@ -2022,6 +2032,7 @@ function render() {
 }
 
 function renderManuscriptLines() {
+  const styles=nativeFormatting?new Map(syncManuscriptFormat().rows.map(r=>[r.index,r.style])):new Map();
   manuscriptLines.innerHTML = '';
   let lineNum = 1;
   committed.forEach((text, i) => {
@@ -2067,6 +2078,7 @@ function renderManuscriptLines() {
       const div = document.createElement('div');
       div.className = 'm-line' + (selectedIdx === i ? ' selected' : '') + (lockedLines.has(i) ? ' locked' : '');
       div.innerHTML = `<span class="line-num">${lineNum}</span>${escHtml(text)}`;
+      if(styles.has(i)){const span=document.createElement('span');span.className='twoiFormattedLine';span.textContent=text;span.style.cssText=TwoiFormatCore.styleCss(styles.get(i),TwoiFormatCore.profiles[manuscriptFormat.profile].kind);div.replaceChildren(div.querySelector('.line-num'),span);}
       div.onclick = () => { selectedIdx = (selectedIdx === i) ? null : i; render(); };
       div.oncontextmenu = e => showContextMenu(e, i);
       div.ondblclick = () => {
@@ -2783,6 +2795,7 @@ function ppForgetGenerated(t) { PP_GEN.delete(ppKey(t)); }
 <script src="/2i-assets/version-identity.js"></script>
 <script src="/static/2i_studio_bridge.js"></script>
 <script src="/2i-assets/studio-desk.js"></script>
+<script src="/2i-assets/format-menu.js"></script>
 <script src="/static/foresight_files.js"></script>
 <script src="/2i-assets/file-workspace.js"></script>
 </body>

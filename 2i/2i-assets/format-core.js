@@ -1,0 +1,121 @@
+/* Native manuscript format metadata; presentation is independent of text. */
+function makeFormatCore(){
+  const clone=x=>JSON.parse(JSON.stringify(x));
+  const scripts=["scene","action","character","dialogue","parenthetical","transition","shot","act","cast","cue","sound","music","general"];
+  const prose=["body","heading1","heading2","heading3","quote","list","title","subtitle","caption","general"];
+  const pitch=["title","subtitle","logline","heading1","heading2","body","quote","list","summary","character_profile","episode","audience","general"];
+  const profiles={
+    manuscript:{label:"Novel / manuscript",group:"Prose",roles:prose,kind:"prose"},
+    story:{label:"Short story",group:"Prose",roles:prose,kind:"prose"},
+    general:{label:"General document",group:"Prose",roles:prose,kind:"prose"},
+    cinema:{label:"Feature film screenplay",group:"Screen & stage",roles:scripts,kind:"script"},
+    shortfilm:{label:"Short film screenplay",group:"Screen & stage",roles:scripts,kind:"script"},
+    tv_drama:{label:"Television drama / single-camera",group:"Screen & stage",roles:scripts,kind:"script"},
+    tv_comedy:{label:"Single-camera comedy",group:"Screen & stage",roles:scripts,kind:"script"},
+    multicam:{label:"Multi-camera sitcom",group:"Screen & stage",roles:scripts,kind:"multi"},
+    threecam:{label:"Three-camera studio sitcom",group:"Screen & stage",roles:scripts,kind:"multi"},
+    sketch:{label:"Sketch / variety show",group:"Screen & stage",roles:scripts,kind:"multi"},
+    stage:{label:"Stage play",group:"Screen & stage",roles:scripts,kind:"script"},
+    documentary:{label:"Documentary / two-column audio-video",group:"Production",roles:["segment","visual","audio","voiceover","interview","sound","music","cue","general"],kind:"av"},
+    broadcast:{label:"Live television / news / rundown",group:"Production",roles:["segment","visual","audio","voiceover","interview","sound","music","cue","general"],kind:"av"},
+    commercial:{label:"Commercial / promotional video",group:"Production",roles:["segment","visual","audio","voiceover","sound","music","cue","general"],kind:"av"},
+    podcast:{label:"Podcast / radio drama",group:"Production",roles:["segment","character","dialogue","voiceover","sound","music","cue","general"],kind:"script"},
+    pitch:{label:"One-page pitch / one-sheet",group:"Development",roles:pitch,kind:"prose"},
+    treatment:{label:"Film / TV treatment",group:"Development",roles:pitch,kind:"prose"},
+    synopsis:{label:"Synopsis / summary",group:"Development",roles:pitch,kind:"prose"},
+    bible:{label:"Series bible",group:"Development",roles:pitch,kind:"prose"},
+    outline:{label:"Story outline / scene breakdown",group:"Development",roles:pitch,kind:"prose"}
+  };
+  const names={body:"Body text",heading1:"Heading 1",heading2:"Heading 2",heading3:"Heading 3",quote:"Block quote",list:"List paragraph",title:"Title",subtitle:"Subtitle",caption:"Caption",general:"General",scene:"Scene heading",action:"Action",character:"Character cue",dialogue:"Dialogue",parenthetical:"Parenthetical",transition:"Transition",shot:"Shot",act:"Act / teaser",cast:"Scene cast",cue:"Production cue",sound:"Sound effect",music:"Music",segment:"Segment",visual:"Video / image",audio:"Audio",voiceover:"Voice-over",interview:"Interview",logline:"Logline",summary:"Summary",character_profile:"Character profile",episode:"Episode outline",audience:"Audience / positioning"};
+  const allRoles=new Set(Object.keys(names)), fonts=["default","serif","sans","mono"], aligns=["default","left","center","right","justify"];
+  const fresh=()=>({version:1,profile:"manuscript",page:{size:"letter",orientation:"portrait",margin:1},rows:[],unmapped:[]});
+  function validStyle(s){
+    if(!s||!allRoles.has(s.role)||!aligns.includes(s.align)||!fonts.includes(s.font)||!Number.isFinite(s.indent)||s.indent<0||s.indent>4||!Number.isFinite(s.size)||s.size<0||s.size>48||![0,1,1.15,1.5,2].includes(s.spacing)||["bold","italic","underline"].some(k=>typeof s[k]!=="boolean"))throw Error("Invalid paragraph format.");
+    return clone(s);
+  }
+  const defaultStyle=role=>({role,align:"default",font:"default",indent:0,size:0,spacing:0,bold:false,italic:false,underline:false});
+  function restore(raw,lines=[]){
+    if(raw===undefined||raw===null)return fresh();
+    if(raw.version!==1||!Object.hasOwn(profiles,raw.profile)||!raw.page||!["letter","a4","legal"].includes(raw.page.size)||!["portrait","landscape"].includes(raw.page.orientation)||![0.5,0.75,1,1.25,1.5].includes(raw.page.margin)||!Array.isArray(raw.rows)||!Array.isArray(raw.unmapped))throw Error("Invalid document formatting.");
+    const out=clone(raw),ids=new Set();
+    for(const r of [...out.rows,...out.unmapped]){
+      if(!r||!Number.isInteger(r.index)||r.index<0||typeof r.text!=="string")throw Error("Invalid format anchor.");
+      validStyle(r.style);
+    }
+    for(const r of out.rows){if(ids.has(r.index))throw Error("Duplicate format anchor.");ids.add(r.index);}
+    out.rows=out.rows.filter(r=>{if(lines[r.index]===r.text)return true;out.unmapped.push({...r,reason:"source text no longer matches"});return false;});
+    return out;
+  }
+  function reconcile(state,before,after){
+    if(before.length===after.length&&before.every((x,i)=>x===after[i]))return state;
+    let first=0,last=0;
+    while(first<before.length&&first<after.length&&before[first]===after[first])first++;
+    while(last<before.length-first&&last<after.length-first&&before[before.length-last-1]===after[after.length-last-1])last++;
+    const end=before.length-last,newEnd=after.length-last,delta=after.length-before.length;
+    const kept=[];
+    for(const r of state.rows){
+      let index=null;
+      if(before[r.index]===r.text){
+        if(r.index<first)index=r.index;
+        else if(r.index>=end)index=r.index+delta;
+        else if(end-first===1&&newEnd-first===1)index=first;
+      }
+      if(index!==null&&index>=0&&index<after.length)kept.push({...r,index,text:after[index]});
+      else state.unmapped.push({...r,reason:"edit changed paragraph structure"});
+    }
+    state.rows=kept;return state;
+  }
+  function apply(state,lines,indices,style,locks=[]){
+    const clean=validStyle(style),locked=new Set(locks),selected=new Set(indices);
+    if(!selected.size||[...selected].some(i=>!Number.isInteger(i)||i<0||i>=lines.length))throw Error("Select a valid committed paragraph.");
+    if([...selected].some(i=>locked.has(i)))throw Error("Unlock protected paragraphs before changing their individual formatting.");
+    if(!profiles[state.profile].roles.includes(clean.role))throw Error("That paragraph role does not belong to the current template.");
+    state.rows=state.rows.filter(r=>!selected.has(r.index));
+    for(const i of selected)state.rows.push({index:i,text:lines[i],style:clone(clean)});
+    state.rows.sort((a,b)=>a.index-b.index);return state;
+  }
+  function clear(state,indices,locks=[]){const selected=new Set(indices),locked=new Set(locks);if([...selected].some(i=>locked.has(i)))throw Error("Unlock protected paragraphs before clearing their formatting.");state.rows=state.rows.filter(r=>!selected.has(r.index));return state;}
+  const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  function roleCss(role,kind){
+    const script=kind==="script"||kind==="multi";
+    const table={title:"text-align:center;font-size:20pt;font-weight:bold;margin-bottom:18pt",subtitle:"text-align:center;font-style:italic",heading1:"font-size:18pt;font-weight:bold;break-after:avoid",heading2:"font-size:15pt;font-weight:bold;break-after:avoid",heading3:"font-size:13pt;font-weight:bold;break-after:avoid",quote:"margin-left:0.5in;margin-right:0.5in;font-style:italic",list:"margin-left:0.35in",caption:"font-size:10pt;font-style:italic",logline:"font-weight:bold",scene:"text-transform:uppercase;break-after:avoid;margin-top:12pt",shot:"text-transform:uppercase;break-after:avoid",character:"text-transform:uppercase;margin-left:2.1in;break-after:avoid",dialogue:"margin-left:1in;margin-right:1.5in;margin-bottom:6pt",parenthetical:"margin-left:1.6in;margin-right:2in;break-after:avoid",transition:"text-align:right;text-transform:uppercase",act:"text-align:center;text-transform:uppercase;text-decoration:underline;break-after:avoid",cast:"font-style:italic;break-after:avoid",cue:"text-transform:uppercase;font-weight:bold",segment:"font-weight:bold;break-after:avoid"};
+    let css=table[role]||"";
+    if(kind==="multi"&&role==="action")css+=";text-transform:uppercase";
+    if(kind==="multi"&&role==="dialogue")css+=";line-height:2";
+    if(!script&&role==="body")css+=";text-indent:0.5in";
+    return css;
+  }
+  function styleCss(s,kind){
+    const css=[roleCss(s.role,kind)];
+    if(s.align!=="default")css.push("text-align:"+s.align);
+    if(s.font!=="default")css.push("font-family:"+({serif:"Georgia,serif",sans:"Arial,sans-serif",mono:"'Courier New',monospace"}[s.font]));
+    if(s.indent)css.push("margin-left:"+s.indent+"in");
+    if(s.size)css.push("font-size:"+s.size+"pt");
+    if(s.spacing)css.push("line-height:"+s.spacing);
+    if(s.bold)css.push("font-weight:bold");if(s.italic)css.push("font-style:italic");if(s.underline)css.push("text-decoration:underline");
+    return css.join(";");
+  }
+  function profileContext(state){const p=profiles[state.profile];return {documentType:state.profile,label:p.label,kind:p.kind,allowedParagraphRoles:[...p.roles],instruction:"Use this document convention; never insert formatting markup or change the author's text without approval. Paragraph roles are a presentation layer."};}
+  function exportHtml(title,lines,state){
+    const p=profiles[state.profile],by=new Map(state.rows.map(r=>[r.index,r])),av=p.kind==="av",script=p.kind==="script"||p.kind==="multi";
+    const page=state.page,dimensions={letter:["8.5in","11in"],a4:["210mm","297mm"],legal:["8.5in","14in"]}[page.size],width=dimensions[page.orientation==="portrait"?0:1],height=dimensions[page.orientation==="portrait"?1:0];
+    const entries=lines.map((text,i)=>{const row=by.get(i);const style=row&&row.text===text?row.style:defaultStyle(script?"action":"general");return {text,style};});
+    const element=(e)=>'<p class="paragraph" style="'+esc(styleCss(e.style,p.kind))+'">'+(e.text?esc(e.text):"&nbsp;")+'</p>';
+    let body="";
+    if(av){
+      body='<table><thead><tr><th>VIDEO / VISUAL</th><th>AUDIO / SOUND</th></tr></thead><tbody>';
+      const visual=new Set(["visual"]),audio=new Set(["audio","voiceover","interview","sound","music"]);
+      for(let i=0;i<entries.length;i++){
+        const e=entries[i],next=entries[i+1];
+        if(visual.has(e.style.role)){const paired=next&&audio.has(next.style.role);body+="<tr><td>"+element(e)+"</td><td>"+(paired?element(next):"")+"</td></tr>";if(paired)i++;}
+        else if(audio.has(e.style.role))body+="<tr><td></td><td>"+element(e)+"</td></tr>";
+        else body+='<tr><td colspan="2">'+element(e)+"</td></tr>";
+      }body+="</tbody></table>";
+    }else body=entries.map(element).join("\n");
+    const defaultFont=script?"'Courier New',monospace":"Georgia,serif",defaultSpacing=script?1:1.5;
+    return '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(title)+'</title><style>@page{size:'+width+" "+height+";margin:"+page.margin+'in}*{box-sizing:border-box}html{background:#e8e5df}body{max-width:'+width+';min-height:'+height+';margin:16px auto;padding:'+page.margin+'in;background:white;color:#191919;font:12pt/'+defaultSpacing+' '+defaultFont+'}.paragraph{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:0;margin-bottom:6pt;orphans:2;widows:2}table{border-collapse:collapse;width:100%;table-layout:fixed}td,th{width:50%;border:1px solid #555;padding:8pt;vertical-align:top}tr{break-inside:avoid}@media print{html{background:white}body{margin:0;padding:0;max-width:none;min-height:0}}</style><body>'+body+'</body></html>';
+  }
+  return {profiles,names,fresh,restore,reconcile,apply,clear,defaultStyle,styleCss,exportHtml,profileContext,clone};
+}
+const TwoiFormatCore=makeFormatCore();
+if(typeof module!=="undefined"&&module.exports)module.exports=TwoiFormatCore;
