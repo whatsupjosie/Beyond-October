@@ -106,7 +106,9 @@ def make_router(data_dir: Path):
         if not isinstance(context,list) or len(context)>50 or any(not isinstance(x,str) or len(x)>10000 for x in context): raise HTTPException(422,'invalid context')
         spine=getattr(request.app.state,'pubpartner_spine',None)
         if spine is None: raise HTTPException(503,'PubPartner inference not running')
-        instruction=b.get('instruction', 'Continue the manuscript in the established voice.')
+        instruction=b.get('instruction')
+        if instruction is None:
+            instruction='Continue the manuscript in the established voice.'
         if not isinstance(instruction,str) or not instruction.strip() or len(instruction)>2000:
             raise HTTPException(422,'instruction must be 1–2000 characters')
         message='Continue this manuscript. Return only new prose, no preamble.\nInstruction: '+instruction+'\nRecent manuscript:\n'+'\n'.join(context)

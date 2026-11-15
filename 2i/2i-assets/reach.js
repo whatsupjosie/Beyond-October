@@ -139,8 +139,8 @@ async function saveDocument() {
   return savePromise;
 }
 async function preserveBeforeSwitch() {
-  if (chatSending) {
-    addChat('notice', 'A message is still being delivered. Wait for its result before changing manuscripts.');
+  if (chatSending || generating) {
+    addChat('notice', 'A message or generation is still active. Finish or cancel it before changing manuscripts.');
     return false;
   }
   await saveDocument();
@@ -329,9 +329,9 @@ async function sendChat() {
   }
 }
 async function switchPartner() {
-  if (chatSending) {
+  if (chatSending || generating) {
     $('partnerSelect').value = partnerId;
-    addChat('notice','Wait for the pending reply before switching partners.');
+    addChat('notice','Finish or cancel the pending reply or generation before switching partners.');
     return;
   }
   cancelLLM(); conversations[partnerId]=chatHistory;
@@ -487,7 +487,7 @@ document.addEventListener('drop',async event=>{
 },true);
 window.addEventListener('pagehide',writeRecovery);
 window.addEventListener('beforeunload',event=>{
-  if (chatSending || (documentDirty && !recoverySafe)) {
+  if (chatSending || generating || (documentDirty && !recoverySafe)) {
     event.preventDefault();
     event.returnValue = '';
   }

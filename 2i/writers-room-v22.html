@@ -2374,25 +2374,12 @@ const PP = {
 /* ── identity ──────────────────────────────────────────────────────── */
 
 function ppIdentity() {
-  let uid = localStorage.getItem('2i_user_id');
-  if (!uid) {
-    uid = 'user_' + Math.random().toString(36).slice(2, 14);
-    localStorage.setItem('2i_user_id', uid);
-  }
-  PP.userId = uid;
-
-  // Project identity follows the document, not the browser session, so
-  // intelligence stays attached to the manuscript across machines.
-  let pid = (typeof docMeta === 'object' && docMeta && docMeta.projectId) || null;
-  if (!pid) {
-    pid = localStorage.getItem('2i_project_' + (docTitle || 'untitled'));
-    if (!pid) {
-      pid = 'proj_' + Math.random().toString(36).slice(2, 14);
-      localStorage.setItem('2i_project_' + (docTitle || 'untitled'), pid);
-    }
-  }
-  PP.projectId = pid;
-  return pid;
+  // Reach's durable document identity is authoritative. The server scopes
+  // all manuscript data to the authenticated account, not this client ID.
+  if (typeof documentId === 'undefined' || !documentId) throw Error('Document identity is not ready');
+  PP.userId = (typeof workspace !== 'undefined' && workspace.clientId) || 'local-writer';
+  PP.projectId = documentId;
+  return PP.projectId;
 }
 
 function ppBase() {
@@ -2409,7 +2396,7 @@ function ppChapters() {
   // committed[]. A manuscript with no chapter breaks is one chapter.
   const out = [];
   if (!chapters.length) {
-    out.push({ index: 0, title: docTitle || 'Untitled', lines: committed.slice() });
+    out.push({ index: 0, title: documentTitle || 'Untitled', lines: committed.slice() });
     return out;
   }
   const sorted = chapters
@@ -2492,7 +2479,7 @@ async function ppCommit({ force = false } = {}) {
         project_id: PP.projectId,
         chapters: ppChapters(),
         force_reindex: force,
-        metadata: { title: docTitle || 'Untitled', words: ppWordCount() },
+        metadata: { title: documentTitle || 'Untitled', words: ppWordCount() },
       }),
     }, 30000);
 
@@ -2618,7 +2605,7 @@ async function ppGenerate(instruction) {
       project_id: PP.projectId,
       context_lines: committed.slice(-8).concat(buffer),
       current_chapter: ppCurrentChapterIndex(),
-      instruction: instruction || null,
+      instruction: instruction || 'Continue the manuscript in the established voice.',
       max_tokens: 400,
     }),
   }, 60000);
@@ -2740,6 +2727,8 @@ function ppWasGenerated(t) { return PP_GEN.has(ppKey(t)); }
 function ppForgetGenerated(t) { PP_GEN.delete(ppKey(t)); }
 
 </script>
+<script src="/2i-assets/narrative-core.js"></script>
+<script src="/2i-assets/narrative-room.js"></script>
 <script src="/2i-assets/reach.js"></script>
 <script src="/static/foresight_files.js"></script>
 <script src="/2i-assets/file-workspace.js"></script>
