@@ -59,3 +59,8 @@ Ten isolated pure-core checks actually executed in the JavaScript execution envi
 
 ## Simulated editor integration evidence
 - Ran the actual branch narrative-core.js and narrative-room.js together against a minimal in-memory DOM and host adapter. All 6 scenarios passed: oversized reply exact preservation and presentation gate; read-only playback; explicit approval and draft-metadata undo; cleared-text rejection archive; cancellation; changed-source invalidation; malformed reply isolation. (Approval/undo is one scenario, so 6 scenarios total.) Added a reproducible Node test. This is not real browser/host/model or end-to-end persistence evidence. First harness attempt lacked URLSearchParams in its JS environment; corrected the test stub before the passing run.
+
+## Regression sweep and continuity reconfirmation
+- Re-executed 19 existing JavaScript regression test cases (including the six simulated editor scenarios nested in one case) via a small in-memory Node-compatible assertion/require adapter on committed source, not an actual Node runtime; 19 passed, zero failed before this follow-up.
+- Confirmed outcomes now carry a fingerprint of source scene text and outcome rows; stale outcomes are flagged, removed from canonical context, and cannot silently reinstate an obsolete earlier state. Author reconfirmation required when a previously confirmed outcome's text changes. A draft's review basis includes prior continuity and references; cleared-and-rejected AI text enters reconsideration context. Undo also preserves displaced advisories.
+- 4 targeted checks passed against updated code; full browser/Node/API/provider/host verification remains an acceptance gate. This fingerprint is a change detector, not an immutable server security boundary.
