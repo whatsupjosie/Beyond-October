@@ -1113,12 +1113,12 @@ html, body {
     <div class="modal-body" style="font-family:'IBM Plex Mono',monospace; font-size:11px; line-height:2;">
       <span style="color:var(--gold)">Ctrl+S</span> — Save document<br>
       <span style="color:var(--gold)">Ctrl+Z</span> — Undo<br>
-      <span style="color:var(--gold)">Ctrl+Y</span> — Redo<br>
+      <span style="color:var(--gold)">Ctrl+Y / Ctrl+Shift+Z</span> — Redo<br>
+      <span style="color:var(--gold)">Ctrl+Shift+P</span> — Command palette (native manuscript)<br>
       <span style="color:var(--gold)">Ctrl+F</span> — Find &amp; replace<br>
       <span style="color:var(--gold)">Ctrl+E</span> — Export manuscript<br>
       <span style="color:var(--gold)">Ctrl+Enter</span> — Commit draft (collab mode)<br>
       <span style="color:var(--gold)">Ctrl+G</span> — Generate next (collab mode)<br>
-      <span style="color:var(--gold)">Space</span> — Play/Pause (when draft area unfocused)<br>
       <span style="color:var(--gold)">Escape</span> — Close menus/modals
     </div>
     <div class="modal-actions">
@@ -1820,26 +1820,35 @@ function renderRefs() {
     return;
   }
   const icons = { chapter:'📖', research:'🔬', notes:'📝', character:'👤' };
-  filtered.forEach(r => {
-    const el = document.createElement('div'); el.className = 'ref-item';
-    el.innerHTML = `<div class="ref-icon">${icons[r.type] || '📄'}</div>
-      <div class="ref-meta">
-        <div class="ref-name">${escHtml(r.name)}</div>
-        <div class="ref-type">${r.type}</div>
-        <div class="ref-date">${r.date}</div>
-      </div>
-      <div class="ref-actions">
-        <button class="ref-action-btn" title="View" onclick="viewRef(${r.id})">📋</button>
-        <button class="ref-action-btn" title="Delete" onclick="if(confirm('Delete this reference?'))deleteReference(${r.id})">✕</button>
-      </div>`;
-    container.appendChild(el);
-  });
+  filtered.forEach(r => container.appendChild(createReferenceRow(r,icons)));
+}
+// All reference metadata originates in editable/importable document data.
+// Render it as text, never markup, and select the exact record rather than
+// interpolating a possibly duplicate or untrusted imported identifier.
+function createReferenceRow(r,icons) {
+  const node=(tag,cls,text,parent)=>{const n=document.createElement(tag);n.className=cls;if(text!==undefined)n.textContent=text;if(parent)parent.appendChild(n);return n;};
+  const scalar=value=>typeof value==='string'||typeof value==='number'?String(value):'';
+  const row=node('div','ref-item');
+  const type=scalar(r.type),icon=Object.hasOwn(icons,type)?icons[type]:'📄';
+  node('div','ref-icon',icon,row);
+  const meta=node('div','ref-meta',undefined,row);
+  node('div','ref-name',scalar(r.name),meta);node('div','ref-type',type,meta);node('div','ref-date',scalar(r.date),meta);
+  const actions=node('div','ref-actions',undefined,row);
+  const view=node('button','ref-action-btn','📋',actions);view.type='button';view.title='View';view.setAttribute('aria-label','View reference '+scalar(r.name));view.onclick=()=>viewReferenceRecord(r);
+  const del=node('button','ref-action-btn','✕',actions);del.type='button';del.title='Delete';del.setAttribute('aria-label','Delete reference '+scalar(r.name));
+  del.onclick=()=>{if(!references.includes(r)||!confirm('Delete this reference?'))return;references=references.filter(x=>x!==r);markDirty();renderRefs();};
+  return row;
+}
+function viewReferenceRecord(r) {
+  if(!references.includes(r))return false;
+  $('refViewerTitle').textContent=r.name;
+  $('refViewerBody').textContent=r.content;
+  $('refViewer').classList.add('open');
+  return true;
 }
 function viewRef(id) {
-  const r = references.find(x => x.id === id); if (!r) return;
-  $('refViewerTitle').textContent = r.name;
-  $('refViewerBody').textContent = r.content;
-  $('refViewer').classList.add('open');
+  const r=references.find(x=>x.id===id);
+  if(r)viewReferenceRecord(r);
 }
 function closeRefViewer() { $('refViewer').classList.remove('open'); }
 function setRefFilter(btn, filter) {
@@ -2282,24 +2291,40 @@ $('hmRestoreAutosave').onclick = async () => {
 };
 
 // ── KEYBOARD SHORTCUTS ─────────────────────────────────────────────
-document.addEventListener('keydown', e => {
-  // Escape: close modals/menus
-  if (e.key === 'Escape') {
-    document.querySelectorAll('.modal-backdrop.open').forEach(m => m.classList.remove('open'));
-    contextMenu.classList.remove('open');
-    closeMenu();
-    if (editingIdx !== null) { editingIdx = null; render(); }
-    return;
-  }
-  if (e.ctrlKey || e.metaKey) {
-    if (e.key === 's') { e.preventDefault(); saveDocument(); }
-    if (e.key === 'z') { e.preventDefault(); undo(); }
-    if (e.key === 'y') { e.preventDefault(); redo(); }
-    if (e.key === 'f') { e.preventDefault(); $('frResult').textContent = ''; openModal('frModalBackdrop'); setTimeout(() => $('frFind').focus(), 100); }
-    if (e.key === 'e') { e.preventDefault(); exportManuscript(); }
-    if (e.key === 'Enter' && coWriting) { e.preventDefault(); approveBuffer(); }
-    if (e.key === 'g' && coWriting) { e.preventDefault(); if (!generating) tick(); }
-  }
+// Keep text-entry shortcuts local to their field, and never let an open
+// dialog trigger a manuscript mutation behind it.
+function manuscriptShortcut(event,context) {
+  if(event.defaultPrevented||event.isComposing||context.nativeDialog)return null;
+  const key=String(event.key||'').toLowerCase();
+  if(key==='escape')return context.legacyModal?'close-modal':'escape-editor';
+  if(context.legacyModal||context.otherTextField||event.altKey||!(event.ctrlKey||event.metaKey))return null;
+  if(event.repeat&&['s','e','enter','g'].includes(key))return null;
+  if(key==='z')return event.shiftKey?'redo':'undo';
+  if(event.shiftKey)return null;
+  if(key==='y')return 'redo';
+  if(key==='s')return 'save';
+  if(key==='f')return 'find';
+  if(key==='e')return 'export';
+  if(key==='enter'&&context.collab)return 'commit';
+  if(key==='g'&&context.collab)return 'generate';
+  return null;
+}
+document.addEventListener('keydown',e=>{
+  const target=e.target,editor=target===soloTextarea||target===draftArea||!!target?.closest?.('.m-line-edit textarea');
+  const otherTextField=!editor&&!!target?.closest?.('input,textarea,select,[contenteditable]:not([contenteditable="false"])');
+  const action=manuscriptShortcut(e,{nativeDialog:!!document.querySelector('dialog[open]'),legacyModal:!!document.querySelector('.modal-backdrop.open'),otherTextField,collab:coWriting});
+  if(!action)return;
+  if(target?.closest?.('.m-line-edit textarea')&&(action==='undo'||action==='redo'))return;
+  e.preventDefault();
+  if(action==='close-modal'){document.querySelectorAll('.modal-backdrop.open').forEach(m=>m.classList.remove('open'));closeMenu();return;}
+  if(action==='escape-editor'){contextMenu.classList.remove('open');closeMenu();if(editingIdx!==null){editingIdx=null;render();}return;}
+  if(action==='save')saveDocument();
+  else if(action==='undo')undo();
+  else if(action==='redo')redo();
+  else if(action==='find'){$('frResult').textContent='';openModal('frModalBackdrop');setTimeout(()=>$('frFind').focus(),100);}
+  else if(action==='export')exportManuscript();
+  else if(action==='commit')approveBuffer();
+  else if(action==='generate'&&!generating)tick();
 });
 
 // ── CANVAS: LANTERN LIGHT ──────────────────────────────────────────

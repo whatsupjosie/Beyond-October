@@ -87,18 +87,29 @@
     for(const r of rows){const p=el("pre",r.text+"\n"+JSON.stringify(r.style,null,2),d);p.style.whiteSpace="pre-wrap";}
     button(d,"Close",()=>d.close());d.showModal();
   }
-  commandMenu("File",[["New",go("hmNewDoc")],["Open .2i",go("hmOpenDoc")],["My manuscripts",go("shelfBtn")],["Save",go("saveBtn")],["Save a copy (.2i)",go("hmSaveAs")],["Export Markdown",go("exportBtn")],["Export formatted HTML",()=>downloadFile(safeName()+".html",output(),"text/html")],["Restore autosave",go("hmRestoreAutosave")],["Rename",go("hmRenameDoc")]]);
+  function committedText(){return committed.join("\n");}
+  function exportCommitted(){downloadFile(safeName()+".txt",committedText(),"text/plain;charset=utf-8");}
+  function referenceArchive(){
+    const d=dialog("Reference archive"),source=documentId;
+    const q=el("input",null,d);q.type="search";q.placeholder="Search names or contents";q.setAttribute("aria-label","Search reference archive");q.style.width="100%";
+    const list=el("div",null,d),status=textStatus(d);
+    function refresh(){list.replaceChildren();const term=q.value.toLowerCase().trim();const rows=references.filter(r=>!term||r.name.toLowerCase().includes(term)||r.content.toLowerCase().includes(term));status.textContent=rows.length+" matching reference(s)";for(const r of rows){const b=button(list,r.name,()=>{if(source!==documentId||!references.includes(r))throw Error("The reference changed. Reopen the archive.");d.close();viewReferenceRecord(r);});b.style.display="block";b.style.whiteSpace="normal";b.style.minHeight="42px";}}
+    q.addEventListener("input",refresh);button(d,"Add reference",()=>{if(source!==documentId)throw Error("The manuscript changed.");d.close();go("addRefBtn")();});button(d,"Close",()=>d.close());refresh();d.showModal();q.focus();
+  }
+  commandMenu("File",[["New",go("hmNewDoc")],["Open .2i",go("hmOpenDoc")],["My manuscripts",go("shelfBtn")],["Save",go("saveBtn")],["Save a copy (.2i)",go("hmSaveAs")],["Export Markdown (includes presented draft)",go("exportBtn"),"markdown md"],["Export committed text only",exportCommitted,"plain txt manuscript privacy"],["Export formatted HTML",()=>downloadFile(safeName()+".html",output(),"text/html")],["Restore autosave",go("hmRestoreAutosave")],["Rename",go("hmRenameDoc")]]);
   commandMenu("Edit",[["Undo",()=>undo()],["Redo",()=>redo()],["Find & replace",go("hmFindReplace")]]);
   commandMenu("Insert",[["New chapter",go("newChapterBtn")]]);
   commandMenu("Format",[["Document type / script presets",templates],["Paragraph style, alignment, indent…",paragraph],["Formatting recovery",unmapped]]);
   commandMenu("Layout",[["Page setup",page],["Formatted preview",preview]]);
-  commandMenu("Review",[["Scene intelligence",go("narrativeOpen")],["Archive presented draft",go("narrativeArchiveDraft")],["Revision history",go("narrativeHistory")],["Lock scene",go("lockSceneBtn")],["Lock all",go("lockAllBtn")],["Unlock",go("unlockBtn")],["Commit presented draft",go("approveBtn")]]);
+  commandMenu("References",[["Browse or search references",referenceArchive,"research notes archive"],["Add reference",go("addRefBtn")]]);
+  commandMenu("Manuscript",[["Scene intelligence",go("narrativeOpen")],["New chapter",go("newChapterBtn")],["Generate draft",go("genBtn")],["Commit presented draft",go("approveBtn")],["Archive presented draft",go("narrativeArchiveDraft")]]);
+  commandMenu("Review",[["Revision history",go("narrativeHistory")],["Lock scene",go("lockSceneBtn")],["Lock all",go("lockAllBtn")],["Unlock",go("unlockBtn")]]);
   const present=mode=>()=>window.twoiSetPresentation(mode);
   const presentations=typeof window.twoiSetPresentation==="function"?[["Standard document view",present("standard")],["Notebook view",present("notebook")],...(window.twoiCanPresent("typewriter")?[["Typewriter view",present("typewriter")]]:[])]:[];
   commandMenu("View",[...presentations,["Write / Collab",go("modeBadge")],["Toggle sidebar",go("sidebarToggle")],["Zoom manuscript in",()=>adjustZoom("manuscript",1)],["Zoom manuscript out",()=>adjustZoom("manuscript",-1)],["Formatted preview",preview]]);
   commandMenu("Tools",[["Word and character count",stats],["Read presented draft",go("playBtn")],["Stop reading / generation",go("stopBtn")],["Model settings",go("hmLLMSettings")]]);
-  commandMenu("Help",[["Keyboard shortcuts",go("hmKeyboardHelp")]]);
   commandMenu("Studio",[["Inbox",go("twoiNotesInbox")],["Write note",go("twoiWriteNote")],["Place sticky note",go("twoiPlaceNote")]]);
+  commandMenu("Help",[["Keyboard shortcuts",go("hmKeyboardHelp")]]);
 
   function rankCommands(commands,query){
   const terms=String(query||"").toLowerCase().trim().split(/\s+/).filter(Boolean);
