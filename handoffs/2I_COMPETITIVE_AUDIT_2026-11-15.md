@@ -1,0 +1,31 @@
+# 2i competitive audit — 2026-11-15
+Scope: public documentation and selected anecdotal user reports; not hands-on product benchmarks or claims of market-wide failure rates.
+
+| Product | Documented benchmark | 2i implication |
+|---|---|---|
+| Microsoft Word | AutoRecover, version restoration/comparison; subscription cloud AutoSave. [Support](https://support.microsoft.com/en-us/word/recover-an-earlier-version-of-a-word-file), [AutoSave](https://support.microsoft.com/en-us/office/collab-files/what-is-autosave) | Exact recovery, version comparison, lossless rich export, explicit copy before edits. |
+| LibreOffice Writer | Change recording, accept/reject and compare. [Guide](https://books.libreoffice.org/en/GS252/GS25202-GettingStartedWithWriter.html) | Real editable range-level formatting and review, not just HTML approximation. |
+| Apple Pages | Read-only revision previews and save-copy or replace. [iPhone help](https://support.apple.com/en-mide/guide/pages-iphone/tan7f1de6ec5/ios) | Phone-friendly revision browsing and non-destructive recovery. |
+| Scrivener | Device sync conflict copies and documented desktop/iOS feature differences. [Sync](https://scrivener.tenderapp.com/help/kb/ios/dropbox-syncing-with-ios), [iOS limits](https://scrivener.tenderapp.com/help/kb/ios/will-all-desktop-features-be-added-to-scrivener-for-ios) | Clearly independent copies, no silent winner, parity for essential mobile operations. |
+| Final Draft | Typed screenplay, Beat Board, production reports, revision colors and page locks. [Features](https://www.finaldraft.com/products/features/), [revision workflow](https://kb.finaldraft.com/hc/en-us/articles/27813588722708-How-do-I-use-Revision-Mode) | True pagination and production exchange remain release gates, colors are version status not authorship. |
+| Fade In | Flexible interchange, character dialogue review, scene/page locks and reports. [Features](https://www.fadeinpro.com/dl/page.pl?content=features), [version notes](https://www.fadeinpro.com/page.pl?content=version_notes) | Typed dialogue review and interoperability regression tests. |
+| WriterDuet | Multiple export formats, explicit connection state, offline backup caveats, optional external backups. [Offline](https://www.writerduet.com/article/234-write-offline), [exports](https://www.writerduet.com/article/261-export-a-document), [backup](https://www.writerduet.com/article/201-project-backups) | Distinguish browser recovery, confirmed sync, external copies and unresolved conflict. |
+| Highland Pro | Cross-device writing and low-distraction tools. [Creator launch](https://johnaugust.com/2025/introducing-highland-pro) | Calm surface, accessible controls, unobtrusive tools. |
+| Beat | Portable Fountain, local/offline workflow, extensibility. [Official](https://www.beat-app.fi/) | Open interchange and local-first writing; no new lock-in. |
+| novelWriter | Date-stamped project ZIP backup and manual backup. [Project docs](https://novelwriter.io/docs/user_interface/projects.html) | Explicit native backup inventory and recovery verification. |
+| Quoll Writer | Story assets, mentions, notes and configurable problem finder. [Features](https://www.quollwriter.com/en/features.html) | Reuse narrative dossier and reference archive; evidence-based opt-in diagnostics. |
+| bibisco | Story organization, timeline, character relationships, exports, human-only text generation policy. [FAQ](https://bibisco.com/bibisco-faq/) | Strong no-AI writing mode and optional model participation; structure remains useful without AI. |
+| iA Writer | Focus modes, author-marked ranges, author metadata excluded on common export. [Authorship](https://ia.net/writer/support/editor/authorship), [focus](https://ia.net/writer/how-to/write-with-focus) | Author-marked passages are not unique. Distinguish self-reported testimony, observed behavior and independent witness; keep evidence outside ordinary exports. |
+
+## Anecdotal pain points (not prevalence estimates)
+- Scrivener users report stale mobile copies, repeated conflict alerts and lost chapter changes: [May 12 2026](https://www.reddit.com/r/scrivener/comments/1tbdtle/ios_to_pc_sync_lost_a_chapter/), [Nov 13 2026](https://www.reddit.com/r/scrivener/comments/1xvhzny/scrivener_not_syncing_to_drop_box/). Official docs acknowledge conflicts are possible. Test interrupted device switch, multiple tabs, reload and independent recovery.
+- Final Draft Cloud complaint describes saves/freezes/export problems; other commenters report years of stable desktop use: [Oct 21 2026](https://www.reddit.com/r/Screenwriting/comments/1xbrbgy/i_cannot_believe_final_draft_is_the_industry/). Another user reports losing a script after computer repair wiped their local files: [Jan 22 2026](https://www.reddit.com/r/Screenwriting/comments/1qk8mhd/psa_for_all_final_draft_users/). Test local-vs-server acknowledgment, file copy, exact re-open after failure, export.
+- No broad user-review sample was completed for every competitor. Do not infer a failure rate or rank products based on these anecdotes.
+- FDX typed example: [public sample](https://github.com/rsdoiel/fdx/blob/main/testdata/sample-01.fdx); [Fountain specification](https://fountain.io/syntax/). FDX subset implemented now; target-app validation and Fountain importer/exporter pending.
+
+## Acceptance order
+1. Never lose a word: saved/recovered/unsaved labels, two-device conflict, offline edits, exact export and no implicit rewrite. Never equate successful syntax checks with persistence.
+2. Professional interchange: build acquired engine, test real DOCX round trip, FDX target-app import, Fountain with unsupported syntax warnings; production pagination/locks separately.
+3. Editorial work: existing script roles, navigator, dossier, character cue review; add offline lexical data and focused reading, author-controlled diagnostics.
+4. Provenance: local opt-in session and testimony exist as partial implementations; independent authenticated Blackbox revision witness still pending. No automatic Iteration Wallet custody actions.
+5. Phone and standalone: real viewport input, real recovery, every menu dispatch, verified screen reader and low-resource behavior, no model required for ordinary writing.

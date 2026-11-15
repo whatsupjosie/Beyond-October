@@ -171,6 +171,40 @@ function makeFormatCore(){
     const defaultFont=script?"'Courier New',monospace":"Georgia,serif",defaultSpacing=script?1:1.5;
     return '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(title)+'</title><style>@page{size:'+width+" "+height+";margin:"+page.margin+'in}*{box-sizing:border-box}html{background:#e8e5df}body{max-width:'+width+';min-height:'+height+';margin:16px auto;padding:'+page.margin+'in;background:white;color:#191919;font:12pt/'+defaultSpacing+' '+defaultFont+'}.chapter{text-align:center;break-after:avoid;margin:22pt 0 8pt}.chapter-subtitle{text-align:center;font-style:italic;break-after:avoid}.paragraph{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:0;margin-bottom:6pt;orphans:2;widows:2}table{border-collapse:collapse;width:100%;table-layout:fixed}td,th{width:50%;border:1px solid #555;padding:8pt;vertical-align:top}tr{break-inside:avoid}@media print{html{background:white}body{margin:0;padding:0;max-width:none;min-height:0}}</style><body>'+body+'</body></html>';
   }
+  function scriptRows(lines,state){
+    const map=new Map((state.rows||[]).map(r=>[r.index,r]));
+    return lines.map((text,index)=>{const row=map.get(index),explicit=row?.text===text;return {index,text,role:explicit?row.style.role:"action",explicit};});
+  }
+  function xmlText(s){
+    for(const char of s){const cp=char.codePointAt(0);if(!(cp===9||cp===10||cp===13||cp>=32&&cp<=0xD7FF||cp>=0xE000&&cp<=0xFFFD||cp>=0x10000&&cp<=0x10FFFF))throw Error("The manuscript contains a character XML 1.0 cannot represent. Export native .2i or text; no words were changed.");}
+    return esc(s).replace(/\r/g,"&#13;");
+  }
+  function exportFdx(lines,state){
+    if(!["script","multi"].includes(profiles[state.profile]?.kind))throw Error("Choose a screenplay or stage/script preset before exporting FDX.");
+    if(!lines.length)throw Error("There is no committed manuscript to export.");
+    const map={scene:"Scene Heading",action:"Action",character:"Character",dialogue:"Dialogue",parenthetical:"Parenthetical",transition:"Transition",shot:"Shot",general:"General"};
+    const rows=scriptRows(lines,state),fallback=new Set(),untyped=rows.filter(r=>!r.explicit&&r.text.trim()).length;
+    const content=rows.map(r=>{if(r.explicit&&!Object.hasOwn(map,r.role))fallback.add(r.role);const type=Object.hasOwn(map,r.role)?map[r.role]:"General";return '<Paragraph Type="'+type+'"><Text xml:space="preserve">'+xmlText(r.text)+'</Text></Paragraph>';}).join("\n");
+    return {xml:'<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n<FinalDraft DocumentType="Script" Template="No" Version="5">\n<Content>\n'+content+'\n</Content>\n</FinalDraft>\n',untyped,fallbackRoles:[...fallback].sort(),paragraphs:rows.length};
+  }
+  function dialogueIndex(lines,state){
+    const rows=scriptRows(lines,state),speakers=new Map(),scenes=[],unassigned=[],untagged=rows.filter(r=>!r.explicit&&r.text.trim()).length;
+    let scene=null,cue=null;
+    for(const r of rows){
+      if(!r.explicit){if(r.text.trim())cue=null;continue;}
+      if(r.role==="scene"||r.role==="act"||r.role==="segment"){
+        scene={index:r.index,title:r.text,kind:r.role,cues:0,dialogue:0};scenes.push(scene);cue=null;
+      }else if(r.role==="character"){
+        if(!r.text.trim()){cue=null;continue;}
+        if(!speakers.has(r.text))speakers.set(r.text,{name:r.text,cues:[],dialogue:[]});
+        cue=speakers.get(r.text);cue.cues.push(r.index);if(scene)scene.cues++;
+      }else if(r.role==="dialogue"||r.role==="parenthetical"){
+        if(!cue)unassigned.push({index:r.index,role:r.role,text:r.text});
+        else{cue.dialogue.push({index:r.index,role:r.role,text:r.text,sceneIndex:scene?.index??null});if(scene&&r.role==="dialogue")scene.dialogue++;}
+      }else cue=null;
+    }
+    return {speakers:[...speakers.values()],scenes,unassigned,untagged};
+  }
   // Read-only paragraph comparison. The common prefix and suffix are removed
   // first. Large changed regions fall back to a lossless coarse replacement
   // rather than allocating an unbounded quadratic matrix on modest hardware.
@@ -200,7 +234,7 @@ function makeFormatCore(){
     }
     return {method,oldCount:oldLines.length,newCount:newLines.length,blocks,removedCount:blocks.reduce((n,b)=>n+b.removed.length,0),addedCount:blocks.reduce((n,b)=>n+b.added.length,0)};
   }
-  return {profiles,names,fresh,restore,reconcile,apply,clear,defaultStyle,styleCss,exportHtml,profileContext,clone,compareLines,addAnnotation,changeAnnotation};
+  return {profiles,names,fresh,restore,reconcile,apply,clear,defaultStyle,styleCss,exportHtml,profileContext,clone,scriptRows,exportFdx,dialogueIndex,compareLines,addAnnotation,changeAnnotation};
 }
 const TwoiFormatCore=makeFormatCore();
 if(typeof module!=="undefined"&&module.exports)module.exports=TwoiFormatCore;
