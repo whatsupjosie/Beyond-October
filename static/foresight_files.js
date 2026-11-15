@@ -113,7 +113,8 @@ async function mount(c,host,file,options={}){
   const bar=node('div',{style:'display:flex;flex-wrap:wrap;gap:6px'}),status=node('div',{role:'status',style:'font-size:12px;white-space:pre-wrap'}),area=node('div',{style:'flex:1;min-height:0;overflow:auto'});
   wrap.append(bar,status,area);body.append(wrap);
   let alive=true, value, editor, image, canvas, url, handle, timer, saving=Promise.resolve(), serial=0, diagnosticVersion=-1, changed=false, processing=Promise.resolve();
-  let richMode=false,richSource=null,richEditor=null,richOpening=false;
+  let richMode=false,richSource=null,richEditor=null,richOpening=false,richMetadataDirty=false;
+  function richMetadataChanged(){if(richMode){richMetadataDirty=true;serial++;}}
   const say=s=>{if(alive)status.textContent=s};
   function button(label,fn){const b=node('button',{type:'button',class:'fp-btn'},label);b.onclick=()=>Promise.resolve().then(fn).catch(e=>say(e.message));bar.append(b);return b}
   function snapshot(){if(richMode)return {...value,updated:Date.now()};return {...value,draft:editor?(options.getText?.()??editor.value):value.draft,title:options.getTitle?.()||value.title,twoiState:options.getState?{...value.twoiState,...structuredClone(options.getState())}:value.twoiState,updated:Date.now()}}
@@ -122,20 +123,25 @@ async function mount(c,host,file,options={}){
     clearTimeout(timer);
     if(richMode&&richEditor){
       saving=saving.catch(()=>{}).then(async()=>{
-        if(!changed)return value;
-        const version=serial,raw=await richEditor.saveBytes();
-        const docx=new Blob([raw],{type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
-        if(docx.size>24*1024*1024)throw Error("Working DOCX exceeds the 24 MiB archive limit. Download your edited DOCX before closing.");
-        const v={...snapshot(),richDraft:docx,richDraftDocumentId:richSource.document_id,richDraftSourceHash:richSource.original_sha256};
+        if(!changed&&!richMetadataDirty)return value;
+        const version=serial,capture=changed;
+        let docx=null;
+        if(capture){
+          const raw=await richEditor.saveBytes();
+          docx=new Blob([raw],{type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+          if(docx.size>24*1024*1024)throw Error("Working DOCX exceeds the 24 MiB archive limit. Download your edited DOCX before closing.");
+        }
+        const v=docx?{...snapshot(),richDraft:docx,richDraftDocumentId:richSource.document_id,richDraftSourceHash:richSource.original_sha256}:snapshot();
         const saved=await record(v.id,v,value.revision||0);
-        value.richDraft=docx;value.richDraftDocumentId=v.richDraftDocumentId;value.richDraftSourceHash=v.richDraftSourceHash;value.revision=saved.revision;
-        if(serial===version){changed=false;say("Formatted working copy saved in this browser · source archive unchanged");}
+        if(docx){value.richDraft=docx;value.richDraftDocumentId=v.richDraftDocumentId;value.richDraftSourceHash=v.richDraftSourceHash;}
+        value.revision=saved.revision;
+        if(serial===version){changed=false;richMetadataDirty=false;say("Formatted working copy saved in this browser · source archive unchanged");}
         return v;
       });
       return saving;
     }
     const v=snapshot(),version=serial;
-    saving=saving.catch(()=>{}).then(()=>record(v.id,v,value.revision||0)).then(saved=>{value.revision=saved.revision;if(serial===version){changed=false;if(diagnosticVersion!==version)say(handle?'Saved to chosen file and PubCast · source snapshot retained':'Working copy saved in PubCast · source snapshot retained')}return v});
+    saving=saving.catch(()=>{}).then(()=>record(v.id,v,value.revision||0)).then(saved=>{value.revision=saved.revision;if(serial===version){changed=false;richMetadataDirty=false;if(diagnosticVersion!==version)say(richMode?'Rich working copy saved in this browser · source archive unchanged':handle?'Saved to chosen file and PubCast · source snapshot retained':'Working copy saved in PubCast · source snapshot retained')}return v});
     return saving;
   }
   function dirty(){serial++;changed=true;say('Unsaved changes');host.changed();clearTimeout(timer);timer=setTimeout(()=>persist().catch(e=>say('Save failed: '+e.message)),richMode?1500:350)}
@@ -145,14 +151,17 @@ async function mount(c,host,file,options={}){
     return value.richDraft;
   }
   async function currentRichDocx(){
-    if(richEditor)return new Blob([await richEditor.saveBytes()],{type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+    if(richEditor&&changed)return new Blob([await richEditor.saveBytes()],{type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
     return checkedRichDraft()||decodedBlob(richSource.working_docx_b64,"application/vnd.openxmlformats-officedocument.wordprocessingml.document");
   }
   async function richArchiveOutput(){
     if(!richSource)throw Error("Rich archive has not been verified.");
-    if(!richEditor&&!value.richDraft)return value.original;
+    if(!changed&&!value.richDraft)return value.original;
     const working=await currentRichDocx(),data=await base64(working);
-    const packed=await (await api("native-rich/create",{document_id:richSource.document_id,original_name:richSource.original_name,original_mime:richSource.original_mime,original_data_b64:richSource.original_data_b64,working_docx_b64:data,metadata:richSource.metadata||{}})).json();
+    return packVerifiedRich({document_id:richSource.document_id,original_name:richSource.original_name,original_mime:richSource.original_mime,original_data_b64:richSource.original_data_b64,working_docx_b64:data,metadata:richSource.metadata||{}});
+  }
+  async function packVerifiedRich(payload){
+    const packed=await (await api("native-rich/create",payload)).json();
     if(packed.kind!=="rich-v5"||typeof packed.data_b64!=="string")throw Error("Rich archive packaging failed; the original remains unchanged.");
     const archive=decodedBlob(packed.data_b64,"application/zip");
     if(archive.size!==packed.size||!root.crypto?.subtle)throw Error("Could not verify exported archive size or integrity.");
@@ -189,7 +198,7 @@ async function mount(c,host,file,options={}){
     if(editor&&['pdf','png','jpg','jpeg','xlsx','pptx','doc','odt','zip'].includes(target))throw Error('Use a text, DOCX or 2i destination for this editable copy; this format cannot be written.');
     if(canvas&&target!=='png')throw Error('Edited images must be saved as PNG; choose a .png destination.');
     const blob=await output(format);
-    if(picked){const stream=await picked.createWritable();try{await stream.write(blob);await stream.close()}catch(e){await stream.abort().catch(()=>{});throw e}handle=picked;delete value.workspace;value.handle=handle;value.savedFormat=format;value.name=picked.name;c.data.name=value.name;host.setTitle(value.name);say('Saved file: '+picked.name)}
+    if(picked){const stream=await picked.createWritable();try{await stream.write(blob);await stream.close()}catch(e){await stream.abort().catch(()=>{});throw e}handle=picked;delete value.workspace;value.handle=handle;value.savedFormat=format;value.name=picked.name;c.data.name=value.name;host.setTitle(value.name);richMetadataChanged();say('Saved file: '+picked.name)}
     else {download(name,blob);say('Copy downloaded · destination follows your browser settings')}
 
     await persist();
@@ -203,7 +212,7 @@ async function mount(c,host,file,options={}){
     if(editor&&['pdf','png','jpg','jpeg','xlsx','pptx','doc','odt','zip'].includes(target))throw Error('Choose a text, DOCX or 2i filename for this text copy.');
     if(value.working&&target!=='png')throw Error('Edited images are saved as PNG.');
     const saved=await workspace('file',{path,data:await base64(await output(format)),expected_revision:value.workspace?.path===path?value.workspace.revision:null});
-    value.workspace={path:saved.path,revision:saved.revision,format};handle=undefined;delete value.handle;await persist();say('Saved local file: '+saved.path);return true;
+    value.workspace={path:saved.path,revision:saved.revision,format};handle=undefined;delete value.handle;richMetadataChanged();await persist();say('Saved local file: '+saved.path);return true;
   }
   async function save(){
     if(richMode)return persist(); // Explicit export writes files; ordinary Save retains the working copy locally.
@@ -212,7 +221,7 @@ async function mount(c,host,file,options={}){
     return persist();
   }
   const session={save,export:async()=>{const data=await output();return {name:outputName(),data,type:data.type}},
-    pending:()=>changed,dispose:()=>{alive=false;clearTimeout(timer);if(value)persist().catch(console.error).finally(()=>richEditor?.destroy());else richEditor?.destroy();if(url)URL.revokeObjectURL(url);if(image)image.src='';const media=area.querySelector('video,audio');if(media){media.pause();media.removeAttribute('src');media.load()}},
+    pending:()=>changed||richMetadataDirty,dispose:()=>{alive=false;clearTimeout(timer);if(value)persist().catch(console.error).finally(()=>richEditor?.destroy());else richEditor?.destroy();if(url)URL.revokeObjectURL(url);if(image)image.src='';const media=area.querySelector('video,audio');if(media){media.pause();media.removeAttribute('src');media.load()}},
     flush:persist,saveAs:saveToWorkspace};
   sessions.set(c,session);
   try{
@@ -226,7 +235,7 @@ async function mount(c,host,file,options={}){
     button('Local account…',async()=>{await persist();const top=window.top;top.location.assign('/login?next='+encodeURIComponent(top.location.pathname+top.location.search))});
     const saveControl=button('Save',()=>session.save());button('Save As…',saveToWorkspace);button('Save to device…',saveAs);
     button('Download original',()=>download(value.original.name||value.name,value.original));
-    button('Rename working copy',async()=>{const n=prompt('Working copy filename',value.name);if(n?.trim()){const name=n.trim().replace(/[\\/]/g,'_').slice(0,255);if(richMode&&ext(name)!=='2i')throw Error('A rich archive must keep its .2i extension.');value.name=name;c.data.name=value.name;host.setTitle(value.name);if(richMode&&richEditor)changed=true;await persist();host.changed()}});
+    button('Rename working copy',async()=>{const n=prompt('Working copy filename',value.name);if(n?.trim()){const name=n.trim().replace(/[\\/]/g,'_').slice(0,255);if(richMode&&ext(name)!=='2i')throw Error('A rich archive must keep its .2i extension.');value.name=name;c.data.name=value.name;host.setTitle(value.name);richMetadataChanged();await persist();host.changed()}});
     const extension=ext(value.name), mime=value.mime||'';
     if(extension==='2i'&&await isRich2i(value.original)){
       richMode=true;saveControl.textContent='Save working copy locally';
@@ -246,7 +255,7 @@ async function mount(c,host,file,options={}){
       button('Download preserved source',()=>download(rich.original_name,decodedBlob(rich.original_data_b64,rich.original_mime)));
       button('Download working DOCX',async()=>download(rich.original_name.replace(/\.[^.]+$/,'')+'-working.docx',await currentRichDocx()));
       button('Download verified rich 2i',async()=>download(outputName(),await richArchiveOutput()));
-      if(value.richDraft)button('Download local recovery DOCX',()=>download('recovered-working.docx',value.richDraft));
+      if(value.richDraft){button('Download local recovery DOCX',()=>download('recovered-working.docx',value.richDraft));button('Download original working revision',()=>download('source-working.docx',decodedBlob(rich.working_docx_b64,'application/vnd.openxmlformats-officedocument.wordprocessingml.document')));}
       const open=button('Open local rich editor',async()=>{
         if(richOpening||richEditor)return;
         if(!rich.original_sha256)throw Error('Verified source identity is unavailable. Use the download controls; the source is unchanged.');
@@ -314,6 +323,14 @@ async function mount(c,host,file,options={}){
       editor=options.editor||node('textarea',{'aria-label':'File editor',spellcheck:'false',style:'box-sizing:border-box;width:100%;height:100%;min-height:180px;resize:none;background:#171511;color:#f3e5ca;border:1px solid #887455;padding:12px;font:14px/1.5 monospace;tab-size:4'});
       editor.value=value.draft;options.load?.(value);editor.addEventListener('input',dirty);editor.addEventListener('foresight-native-change',dirty);if(!options.editor)area.append(editor);else area.style.display='none';
       button('Export DOCX',async()=>{download(outputName('docx'),await output('docx'));say('DOCX text copy downloaded; original unchanged')});
+      if(extension==='docx')button('Download rich 2i copy of original DOCX',async()=>{
+        if(!confirm('Create a separate formatted .2i archive from the ORIGINAL DOCX? This does not include edits to this plain-text copy. Your text copy and original remain unchanged.'))return;
+        const source=value.original,name=source?.name||value.name;
+        if(!source||source.size>24*1024*1024||ext(name)!=='docx')throw Error('A valid original DOCX within the archive limit is required.');
+        const encoded=await base64(source);
+        const blob=await packVerifiedRich({document_id:newId(),original_name:name,original_mime:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',original_data_b64:encoded,working_docx_b64:encoded,metadata:{title:name.replace(/\.docx$/i,'')}});
+        download(name.replace(/\.docx$/i,'')+'.2i',blob);say('Separate rich 2i archive created from original formatted bytes. Open it to use the optional rich editor; text copy unchanged.');
+      });
       if(/\.py$/i.test(value.name)){button('Check Python',async()=>{const version=serial,text=options.getText?.()??editor.value;const r=await workspace('check-python',{name:value.name,text});if(serial===version&&(options.getText?.()??editor.value)===text){diagnosticVersion=version;say(r.message)}});button('Run Python',async()=>{await persist();if(parent===window)window.open('/static/foresight_shell.html?script='+encodeURIComponent(value.id),'_blank','noopener');else parent.postMessage({type:'foresight:run-python',fileId:value.id,name:value.name},location.origin)})}
       if(options.getState)button('Export 2i manuscript',async()=>download(value.name.replace(/\.[^.]*$/,'')+'.2i',await output('2i')));
       if(extension==='pdf')button('View original PDF',()=>{options.onPreview?.(true);area.style.display='block';if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(value.original);const f=node('iframe',{src:url,title:value.name,style:'width:100%;height:100%;border:0'});area.replaceChildren(f);button('Return to editor',()=>{if(options.editor){area.replaceChildren();area.style.display='none';options.onPreview?.(false)}else area.replaceChildren(editor)})});
