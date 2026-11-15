@@ -113,18 +113,56 @@ async function mount(c,host,file,options={}){
   const bar=node('div',{style:'display:flex;flex-wrap:wrap;gap:6px'}),status=node('div',{role:'status',style:'font-size:12px;white-space:pre-wrap'}),area=node('div',{style:'flex:1;min-height:0;overflow:auto'});
   wrap.append(bar,status,area);body.append(wrap);
   let alive=true, value, editor, image, canvas, url, handle, timer, saving=Promise.resolve(), serial=0, diagnosticVersion=-1, changed=false, processing=Promise.resolve();
+  let richMode=false,richSource=null,richEditor=null,richOpening=false;
   const say=s=>{if(alive)status.textContent=s};
   function button(label,fn){const b=node('button',{type:'button',class:'fp-btn'},label);b.onclick=()=>Promise.resolve().then(fn).catch(e=>say(e.message));bar.append(b);return b}
-  function snapshot(){return {...value,draft:editor?(options.getText?.()??editor.value):value.draft,title:options.getTitle?.()||value.title,twoiState:options.getState?{...value.twoiState,...structuredClone(options.getState())}:value.twoiState,updated:Date.now()}}
+  function snapshot(){if(richMode)return {...value,updated:Date.now()};return {...value,draft:editor?(options.getText?.()??editor.value):value.draft,title:options.getTitle?.()||value.title,twoiState:options.getState?{...value.twoiState,...structuredClone(options.getState())}:value.twoiState,updated:Date.now()}}
   function persist(){
     if(!value)return Promise.reject(Error('File has not finished opening'));
-    clearTimeout(timer);const v=snapshot(),version=serial;
+    clearTimeout(timer);
+    if(richMode&&richEditor){
+      saving=saving.catch(()=>{}).then(async()=>{
+        if(!changed)return value;
+        const version=serial,raw=await richEditor.saveBytes();
+        const docx=new Blob([raw],{type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+        if(docx.size>24*1024*1024)throw Error("Working DOCX exceeds the 24 MiB archive limit. Download your edited DOCX before closing.");
+        const v={...snapshot(),richDraft:docx,richDraftDocumentId:richSource.document_id,richDraftSourceHash:richSource.original_sha256};
+        const saved=await record(v.id,v,value.revision||0);
+        value.richDraft=docx;value.richDraftDocumentId=v.richDraftDocumentId;value.richDraftSourceHash=v.richDraftSourceHash;value.revision=saved.revision;
+        if(serial===version){changed=false;say("Formatted working copy saved in this browser · source archive unchanged");}
+        return v;
+      });
+      return saving;
+    }
+    const v=snapshot(),version=serial;
     saving=saving.catch(()=>{}).then(()=>record(v.id,v,value.revision||0)).then(saved=>{value.revision=saved.revision;if(serial===version){changed=false;if(diagnosticVersion!==version)say(handle?'Saved to chosen file and PubCast · source snapshot retained':'Working copy saved in PubCast · source snapshot retained')}return v});
     return saving;
   }
-  function dirty(){serial++;changed=true;say('Unsaved changes');host.changed();clearTimeout(timer);timer=setTimeout(()=>persist().catch(e=>say('Save failed: '+e.message)),350)}
+  function dirty(){serial++;changed=true;say('Unsaved changes');host.changed();clearTimeout(timer);timer=setTimeout(()=>persist().catch(e=>say('Save failed: '+e.message)),richMode?1500:350)}
+  function checkedRichDraft(){
+    if(!value.richDraft)return null;
+    if(!richSource||value.richDraftDocumentId!==richSource.document_id||!richSource.original_sha256||value.richDraftSourceHash!==richSource.original_sha256)throw Error("Recovered DOCX identity does not match the preserved source. Download original and recovery separately; no replacement was made.");
+    return value.richDraft;
+  }
+  async function currentRichDocx(){
+    if(richEditor)return new Blob([await richEditor.saveBytes()],{type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+    return checkedRichDraft()||decodedBlob(richSource.working_docx_b64,"application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+  }
+  async function richArchiveOutput(){
+    if(!richSource)throw Error("Rich archive has not been verified.");
+    if(!richEditor&&!value.richDraft)return value.original;
+    const working=await currentRichDocx(),data=await base64(working);
+    const packed=await (await api("native-rich/create",{document_id:richSource.document_id,original_name:richSource.original_name,original_mime:richSource.original_mime,original_data_b64:richSource.original_data_b64,working_docx_b64:data,metadata:richSource.metadata||{}})).json();
+    if(packed.kind!=="rich-v5"||typeof packed.data_b64!=="string")throw Error("Rich archive packaging failed; the original remains unchanged.");
+    const archive=decodedBlob(packed.data_b64,"application/zip");
+    if(archive.size!==packed.size||!root.crypto?.subtle)throw Error("Could not verify exported archive size or integrity.");
+    const hash=Array.from(new Uint8Array(await root.crypto.subtle.digest("SHA-256",await archive.arrayBuffer())),b=>b.toString(16).padStart(2,"0")).join("");
+    if(hash!==packed.sha256)throw Error("Exported rich archive failed integrity verification.");
+    return archive;
+  }
   async function output(format){
     await processing;
+    if(richMode)return richArchiveOutput();
     if(!format&&editor&&ext(value.name)==='2i')format='2i';
     if(editor){
       if(format==='2i')return new Blob([JSON.stringify({format:'2i-document',version:4,title:options.getTitle?.()||value.title||value.name,state:{...value.twoiState,...options.getState?.()}},null,2)],{type:'application/json'});
@@ -135,6 +173,7 @@ async function mount(c,host,file,options={}){
   }
   function outputName(format){
     const name=value.name;
+    if(richMode)return /\.2i$/i.test(name)?name:name.replace(/\.[^.]*$/,'')+'.2i';
     if(format==='docx')return name.replace(/\.[^.]*$/,'')+'.docx';
     if(editor&&value.converted)return name.replace(/\.[^.]*$/,'')+'.txt';
     if(value.working)return name.replace(/\.[^.]*$/,'')+'.png';
@@ -145,6 +184,7 @@ async function mount(c,host,file,options={}){
     const name=outputName();let picked;
     if(root.showSaveFilePicker) {try{picked=await root.showSaveFilePicker({suggestedName:name})}catch(e){if(e.name==='AbortError')return;throw e}}
     const target=ext(picked?.name||name);
+    if(richMode&&target!=='2i')throw Error('Choose a .2i archive destination. Use Download working DOCX for Word format.');
     const format=editor&&['docx','2i'].includes(target)?target:undefined;
     if(editor&&['pdf','png','jpg','jpeg','xlsx','pptx','doc','odt','zip'].includes(target))throw Error('Use a text, DOCX or 2i destination for this editable copy; this format cannot be written.');
     if(canvas&&target!=='png')throw Error('Edited images must be saved as PNG; choose a .png destination.');
@@ -159,18 +199,20 @@ async function mount(c,host,file,options={}){
     if(chosen===null)return false;
     const path=chosen.trim();if(!path)throw Error('Enter a filename');
     const target=ext(path),format=editor&&['docx','2i'].includes(target)?target:undefined;
+    if(richMode&&target!=='2i')throw Error('Choose a .2i archive filename. Use Download working DOCX for Word format.');
     if(editor&&['pdf','png','jpg','jpeg','xlsx','pptx','doc','odt','zip'].includes(target))throw Error('Choose a text, DOCX or 2i filename for this text copy.');
     if(value.working&&target!=='png')throw Error('Edited images are saved as PNG.');
     const saved=await workspace('file',{path,data:await base64(await output(format)),expected_revision:value.workspace?.path===path?value.workspace.revision:null});
     value.workspace={path:saved.path,revision:saved.revision,format};handle=undefined;delete value.handle;await persist();say('Saved local file: '+saved.path);return true;
   }
   async function save(){
+    if(richMode)return persist(); // Explicit export writes files; ordinary Save retains the working copy locally.
     if(value.workspace){const saved=await workspace('file',{path:value.workspace.path,data:await base64(await output(value.workspace.format)),expected_revision:value.workspace.revision});value.workspace.revision=saved.revision;await persist();say('Saved local file: '+saved.path);return true;}
     if(handle){if(handle.queryPermission&&await handle.queryPermission({mode:'readwrite'})!=='granted'&&await handle.requestPermission({mode:'readwrite'})!=='granted')throw Error('File permission was not granted. Use Save As to choose a destination.');const blob=await output(value.savedFormat);const stream=await handle.createWritable();try{await stream.write(blob);await stream.close()}catch(e){await stream.abort().catch(()=>{});throw e}}
     return persist();
   }
   const session={save,export:async()=>{const data=await output();return {name:outputName(),data,type:data.type}},
-    pending:()=>changed,dispose:()=>{alive=false;clearTimeout(timer);if(value)persist().catch(console.error);if(url)URL.revokeObjectURL(url);if(image)image.src='';const media=area.querySelector('video,audio');if(media){media.pause();media.removeAttribute('src');media.load()}},
+    pending:()=>changed,dispose:()=>{alive=false;clearTimeout(timer);if(value)persist().catch(console.error).finally(()=>richEditor?.destroy());else richEditor?.destroy();if(url)URL.revokeObjectURL(url);if(image)image.src='';const media=area.querySelector('video,audio');if(media){media.pause();media.removeAttribute('src');media.load()}},
     flush:persist,saveAs:saveToWorkspace};
   sessions.set(c,session);
   try{
@@ -182,27 +224,51 @@ async function mount(c,host,file,options={}){
     handle=value.handle;
     options.onReady?.(value);
     button('Local account…',async()=>{await persist();const top=window.top;top.location.assign('/login?next='+encodeURIComponent(top.location.pathname+top.location.search))});
-    button('Save',()=>session.save());button('Save As…',saveToWorkspace);button('Save to device…',saveAs);
+    const saveControl=button('Save',()=>session.save());button('Save As…',saveToWorkspace);button('Save to device…',saveAs);
     button('Download original',()=>download(value.original.name||value.name,value.original));
-    button('Rename working copy',async()=>{const n=prompt('Working copy filename',value.name);if(n?.trim()){value.name=n.trim().replace(/[\\/]/g,'_').slice(0,255);c.data.name=value.name;host.setTitle(value.name);await persist();host.changed()}});
+    button('Rename working copy',async()=>{const n=prompt('Working copy filename',value.name);if(n?.trim()){const name=n.trim().replace(/[\\/]/g,'_').slice(0,255);if(richMode&&ext(name)!=='2i')throw Error('A rich archive must keep its .2i extension.');value.name=name;c.data.name=value.name;host.setTitle(value.name);if(richMode&&richEditor)changed=true;await persist();host.changed()}});
     const extension=ext(value.name), mime=value.mime||'';
     if(extension==='2i'&&await isRich2i(value.original)){
+      richMode=true;saveControl.textContent='Save working copy locally';
       // Authenticated reader verifies strict membership, digest, version and bounds.
       // A bad or future archive remains downloadable, never partially imported.
       say('Verifying rich 2i document…');
       const rich=await (await api('native-rich/read',{data_b64:await base64(value.original)})).json();
       if(rich.kind!=='rich-v5')throw Error('Unsupported rich document version');
+      richSource=rich;
       if(!alive)return session;
       options.onPreview?.(true);
       area.style.display='block';
       area.replaceChildren();
       area.append(node('h2',{},typeof rich.metadata?.title==='string'?rich.metadata.title:rich.original_name));
-      area.append(node('p',{},'This is a verified, formatting-preserving rich 2i working copy. Its original and edited DOCX are separately recoverable. Rich editing is not yet available in this installation.'));
+      area.append(node('p',{},'The source and formatted working DOCX are separately recoverable. Open the optional local rich editor if installed. Never silently convert this archive to plain text.'));
       area.append(node('p',{},'Document ID: '+rich.document_id));
       button('Download preserved source',()=>download(rich.original_name,decodedBlob(rich.original_data_b64,rich.original_mime)));
-      button('Download working DOCX',()=>download(rich.original_name.replace(/\.[^.]+$/,'')+'-working.docx',decodedBlob(rich.working_docx_b64,'application/vnd.openxmlformats-officedocument.wordprocessingml.document')));
-      button('Download verified rich 2i',()=>download(value.name,value.original));
-      say('Rich 2i archive verified · source and formatted working revision preserved · read-only until rich editor integration');
+      button('Download working DOCX',async()=>download(rich.original_name.replace(/\.[^.]+$/,'')+'-working.docx',await currentRichDocx()));
+      button('Download verified rich 2i',async()=>download(outputName(),await richArchiveOutput()));
+      if(value.richDraft)button('Download local recovery DOCX',()=>download('recovered-working.docx',value.richDraft));
+      const open=button('Open local rich editor',async()=>{
+        if(richOpening||richEditor)return;
+        if(!rich.original_sha256)throw Error('Verified source identity is unavailable. Use the download controls; the source is unchanged.');
+        richOpening=true;open.disabled=true;
+        try{
+          const working=await currentRichDocx();
+          if(value.richDraft&&!confirm('Open the saved local DOCX recovery for this source archive? The original remains separately downloadable.'))return;
+          const {mountRichEditor}=await import('/2i-assets/rich-editor.js');
+          if(!alive)return;
+          const editArea=node('div',{style:'height:100%;min-height:420px'});
+          area.append(editArea);
+          let candidate;
+          try{candidate=await mountRichEditor({container:editArea,bytes:new Uint8Array(await working.arrayBuffer()),onChange:()=>{if(alive)dirty();},onSave:()=>persist(),onError:e=>say(String(e?.message||e))});}
+          catch(e){editArea.remove();throw e;}
+          if(!alive){candidate.destroy();return;}
+          richEditor=candidate;for(const n of [...area.children])if(n!==editArea)n.remove();
+          say('Formatted editor open · local working copy autosaves · export a verified rich 2i archive or edited DOCX explicitly');
+        }catch(error){say('Local rich editing unavailable: '+error.message+' · original and working download controls remain available.');}
+        finally{richOpening=false;open.disabled=!!richEditor;}
+      });
+      if(value.richDraft){try{checkedRichDraft();say('A local saved DOCX recovery is available. The source archive is retained.');}catch(error){say(error.message);}}
+      else say('Rich 2i archive verified · source and formatted working revision preserved · read-only until the local rich editor is opened');
       return session;
     }
     if(mime.startsWith('image/')||/^(png|jpe?g|gif|webp|bmp|svg|avif)$/.test(extension)){

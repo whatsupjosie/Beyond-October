@@ -93,7 +93,8 @@ async function run({corrupt=false,legacy=false}={}) {
   assert.deepEqual(Buffer.from(await downloads[1].blob.arrayBuffer()),working);
   assert.deepEqual(Buffer.from(await downloads[2].blob.arrayBuffer()),source);
   assert.equal(records.get(file.id).original,file.original);
-  assert.match(host.body.children[0].children[1].textContent,/read-only until rich editor integration/i);
+  assert(labels.includes('Open local rich editor'));
+  assert.match(host.body.children[0].children[1].textContent,/read-only until the local rich editor is opened/i);
 }
 
 (async()=>{await run();await run({corrupt:true});await run({legacy:true});console.log('2i rich recovery UI contract: passed (verified, recoverable, failure-safe, v4 unchanged)')})().catch(e=>{console.error(e);process.exitCode=1});
