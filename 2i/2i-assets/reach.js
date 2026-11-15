@@ -455,11 +455,7 @@ async function showRevisionHistory() {
             }else{
               if(sourceId!==documentId)throw Error('The active manuscript changed. Open revision history again.');
               if(!confirm('Open this revision as a separate recovered manuscript? Your current manuscript will be preserved.'))return;
-              copy.title=(String(copy.title).slice(0,170)+' — recovered r'+row.revision);
-              // Keep the historical conversation text, but create independent
-              // live session IDs when the recovered branch next talks to a model.
-              copy.state={...copy.state,conversationIds:{}};
-              await importDocument(new Blob([JSON.stringify(copy)],{type:'application/json'}));
+              await forkSavedVersion(sourceId,row.revision,String(copy.title).slice(0,170)+' — recovered r'+row.revision);
               if(documentId!==sourceId)d.close();
               else status.textContent='Recovery was not applied. The current manuscript remains active.';
             }
@@ -503,6 +499,7 @@ async function showShelf() {
     const title=document.createElement('strong');title.textContent=doc.title;
     const stamp=document.createElement('small');stamp.textContent=doc.source==='browser'?'Browser recovery · '+new Date(doc.ts).toLocaleString():'Revision '+doc.revision+' · '+new Date(doc.updated*1000).toLocaleString();
     button.append(title,stamp);
+    if(typeof decorateVersionShelf==='function')decorateVersionShelf(button,doc);
     button.onclick=async()=>{
       try {
         if(!await preserveBeforeSwitch())return;
@@ -551,7 +548,15 @@ async function showAccount(setup) {
 $('shelfClose').onclick=()=>closeModal('reachShelf');
 $('shelfImport').onclick=()=>{closeModal('reachShelf');openDocument();};
 $('shelfNew').onclick=()=>{closeModal('reachShelf');newDocument();};
-$('shelfCopy').onclick=async()=>{if(!await preserveBeforeSwitch())return;documentId=uuid();revision=0;saveConflict=false;documentTitle=documentTitle.slice(0,193)+' — copy';markDirty();render();await saveDocument();closeModal('reachShelf');};
+$('shelfCopy').onclick=async()=>{
+  if(typeof createVersionFromCurrent==='function'&&networked&&!saveConflict){
+    try{if(await createVersionFromCurrent())closeModal('reachShelf');}catch(error){addChat('notice',error.message);}return;
+  }
+  // Conflict or offline recovery is an independent copy, not a confirmed
+  // server lineage. Keep the local text and isolate live conversation sessions.
+  if(!await preserveBeforeSwitch())return;documentId=uuid();revision=0;saveConflict=false;
+  conversationIds={};documentTitle=documentTitle.slice(0,193)+' — copy';markDirty();render();await saveDocument();closeModal('reachShelf');
+};
 // Native textarea undo must stay native while typing. Collab line edits use v20's stack.
 document.addEventListener('keydown',event=>{
   if(event.key==='Escape' && $('reachAccount').classList.contains('open')){event.preventDefault();event.stopImmediatePropagation();return;}
