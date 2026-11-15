@@ -5,13 +5,14 @@
   const el=(tag,text,parent)=>{const n=document.createElement(tag);if(text!==null)n.textContent=text;if(parent)parent.append(n);return n;};
   const menu=el("nav",null);menu.id="twoiMenuBar";menu.setAttribute("aria-label","2i document menus");
   ($("twoiVersionBar")||document.querySelector(".top-bar")).after(menu);
-  const go=id=>()=>{const b=$(id);if(!b)throw Error("This control is not available in the current mode.");b.click();};
+  const go=id=>{const run=()=>{const b=$(id);if(!b||b.disabled||b.getAttribute("aria-disabled")==="true")throw Error("This control is not available in the current mode.");b.click();};run.available=()=>{const b=$(id);return !!b&&!b.disabled&&b.getAttribute("aria-disabled")!=="true";};return run;};
   function safe(fn){try{const r=fn();if(r?.catch)r.catch(e=>addChat("notice",e.message));}catch(e){addChat("notice",e.message);}}
   function select(host,label,items,initial=""){
     const s=el("select",null,host);s.setAttribute("aria-label",label);
     for(const [value,name] of items){const o=el("option",name,s);o.value=value;}s.value=initial;return s;
   }
-  function commandMenu(label,items){const s=select(menu,label,[["",label],...items.map(([name],i)=>[String(i),name])]);s.onchange=()=>{const i=s.value;s.value="";if(i!=="")safe(items[Number(i)][1]);};}
+  const commands=[];
+  function commandMenu(label,items){const entries=items.map(([name,run,keywords])=>({group:label,label:name,run,keywords}));commands.push(...entries);const s=select(menu,label,[["",label],...entries.map((cmd,i)=>[String(i),cmd.label])]);s.onchange=()=>{const i=s.value;s.value="";if(i!=="")safe(entries[Number(i)].run);};}
   const button=(host,label,fn)=>{const b=el("button",label,host);b.type="button";b.className="mc-btn";b.onclick=()=>safe(fn);return b;};
   let selection={document:null,indices:[]};
   const recordSelection=()=>{
@@ -94,7 +95,67 @@
   commandMenu("Review",[["Scene intelligence",go("narrativeOpen")],["Archive presented draft",go("narrativeArchiveDraft")],["Revision history",go("narrativeHistory")],["Lock scene",go("lockSceneBtn")],["Lock all",go("lockAllBtn")],["Unlock",go("unlockBtn")],["Commit presented draft",go("approveBtn")]]);
   commandMenu("View",[["Write / Collab",go("modeBadge")],["Toggle sidebar",go("sidebarToggle")],["Zoom manuscript in",()=>adjustZoom("manuscript",1)],["Zoom manuscript out",()=>adjustZoom("manuscript",-1)],["Formatted preview",preview]]);
   commandMenu("Tools",[["Word and character count",stats],["Read presented draft",go("playBtn")],["Stop reading / generation",go("stopBtn")],["Model settings",go("hmLLMSettings")],["Keyboard shortcuts",go("hmKeyboardHelp")]]);
+  commandMenu("Help",[["Keyboard shortcuts",go("hmKeyboardHelp")]]);
   commandMenu("Studio",[["Inbox",go("twoiNotesInbox")],["Write note",go("twoiWriteNote")],["Place sticky note",go("twoiPlaceNote")]]);
+
+  function rankCommands(commands,query){
+  const terms=String(query||"").toLowerCase().trim().split(/\s+/).filter(Boolean);
+  return commands.map((cmd,index)=>{
+    const label=cmd.label.toLowerCase(), group=cmd.group.toLowerCase(), full=group+" "+label+" "+(cmd.keywords||"").toLowerCase();
+    if(!terms.every(term=>full.includes(term)))return null;
+    const score=terms.reduce((n,t)=>n+(label===t?12:label.startsWith(t)?7:label.includes(t)?4:group.includes(t)?2:1),0);
+    return {cmd,index,score};
+  }).filter(Boolean).sort((a,b)=>b.score-a.score||a.index-b.index).map(x=>x.cmd);
+}
+  function openPalette(){
+    if(document.querySelector("dialog[open], .modal-backdrop.open"))return;
+    recordSelection();
+    const origin=document.activeElement,source=documentId;
+    const d=el("dialog",null,document.body);d.id="twoiCommandPalette";d.setAttribute("aria-labelledby","twoiCommandTitle");
+    Object.assign(d.style,{width:"min(560px,94vw)",maxHeight:"85dvh",overflow:"auto",padding:"16px",borderRadius:"10px",background:"#f7efe0",color:"#29231b",border:"1px solid #8b7250"});
+    const heading=el("h2","Find a command",d);heading.id="twoiCommandTitle";
+    const search=el("input",null,d);search.type="search";search.placeholder="Search commands or menus…";search.setAttribute("aria-label","Search commands");search.autocomplete="off";Object.assign(search.style,{boxSizing:"border-box",width:"100%",minHeight:"42px",padding:"8px"});
+    const status=el("p","",d);status.setAttribute("role","status");
+    const list=el("div",null,d);Object.assign(list.style,{display:"grid",gap:"6px",maxHeight:"52dvh",overflowY:"auto"});
+    const close=button(d,"Close",()=>d.close());close.style.marginTop="12px";
+    let rows=[],executing=false;
+    const available=cmd=>!cmd.run.available||cmd.run.available();
+    function execute(cmd){
+      if(source!==documentId){status.textContent="The active manuscript changed. Reopen the command palette.";return;}
+      if(!available(cmd)){status.textContent="That command is no longer available.";refresh();return;}
+      executing=true;d.close();if(origin?.isConnected)origin.focus();safe(cmd.run);
+    }
+    function refresh(){
+      list.replaceChildren();rows=[];
+      const matches=rankCommands(commands.filter(available),search.value);
+      status.textContent=matches.length+(matches.length===1?" command":" commands")+" · Enter runs the first match; Esc closes.";
+      for(const cmd of matches){
+        const b=el("button",cmd.group+" · "+cmd.label,list);b.type="button";Object.assign(b.style,{textAlign:"left",minHeight:"42px",padding:"7px 10px",border:"1px solid #aa987c",borderRadius:"5px",background:"#fffaf1",color:"#29231b"});b.onclick=()=>execute(cmd);rows.push({b,cmd});
+      }
+      if(!matches.length)el("p","No matching available commands.",list);
+    }
+    search.addEventListener("input",refresh);
+    d.addEventListener("keydown",e=>{
+      e.stopPropagation(); // Never send search-box editing keystrokes to manuscript shortcuts.
+      if(e.key==="Escape"){e.preventDefault();d.close();return;}
+      if(e.isComposing)return;
+      if(e.target===search&&e.key==="Enter"){e.preventDefault();if(rows.length)execute(rows[0].cmd);}
+      if(e.key==="ArrowDown"||e.key==="ArrowUp"){
+        const i=rows.findIndex(r=>r.b===document.activeElement);
+        if(e.target!==search&&i<0)return;
+        if(!rows.length)return;e.preventDefault();
+        if(e.key==="ArrowUp"&&(i===0||i<0))search.focus();
+        else rows[Math.min(rows.length-1,Math.max(0,i+(e.key==="ArrowUp"?-1:1)))].b.focus();
+      }
+    });
+    d.addEventListener("close",()=>{d.remove();if(!executing&&origin?.isConnected)origin.focus();},{once:true});
+    refresh();d.showModal();search.focus();
+  }
+  const paletteButton=button(menu,"Commands",openPalette);paletteButton.id="twoiCommands";paletteButton.title="Find a command (Ctrl/Command+Shift+P)";paletteButton.setAttribute("aria-keyshortcuts","Control+Shift+P Meta+Shift+P");paletteButton.style.flex="0 0 auto";paletteButton.style.minHeight="34px";menu.prepend(paletteButton);
+  document.addEventListener("keydown",e=>{
+    if(e.isComposing||e.repeat||!(e.ctrlKey||e.metaKey)||!e.shiftKey||e.altKey||e.key.toLowerCase()!=="p"||document.querySelector("dialog[open], .modal-backdrop.open"))return;
+    e.preventDefault();e.stopPropagation();openPalette();
+  },true);
   const quick=select(menu,"Quick paragraph element",[]);let lastProfile=null;
   function refreshQuick(){const profile=syncManuscriptFormat().profile;if(profile===lastProfile)return;lastProfile=profile;quick.replaceChildren();const first=el("option","Element…",quick);first.value="";for(const role of C.profiles[profile].roles){const o=el("option",C.names[role],quick);o.value=role;}quick.value="";quick.title=C.profiles[profile].label;}
   quick.onchange=()=>{const role=quick.value;quick.value="";if(!role)return;safe(()=>{ready();const indices=stableSelection(),next=C.clone(syncManuscriptFormat());for(const i of indices){const current=next.rows.find(r=>r.index===i)?.style||C.defaultStyle(role);C.apply(next,committed,[i],{...current,role},lockedLines);}snapshot();manuscriptFormat=next;update();});};
