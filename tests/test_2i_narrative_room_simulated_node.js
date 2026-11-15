@@ -1,0 +1,36 @@
+function buildHarness(coreSource,roomSource){
+  class Element{
+    constructor(){this.children=[];this.value="";this.textContent="";this.open=false;this.hidden=false}
+    append(x){this.children.push(x)} replaceChildren(...a){this.children=a} setAttribute(){} addEventListener(){} querySelector(){return this.children[0]} showModal(){this.open=true} close(){this.open=false}
+  }
+  const body=new Element(),head=new Element(),all=n=>[n,...n.children.flatMap(all)],$=id=>all(body).find(x=>x.id===id)||null;
+  for(const id of ["genBtn","approveBtn","modeBadge","playBtn","stopBtn","skipBtn","mcSection","draftArea"]){const e=new Element();e.id=id;body.append(e)}
+  $("mcSection").append(new Element());
+  const document={body,head,createElement:()=>new Element(),addEventListener(){},dispatchEvent(){}},window={},location={search:""},URLSearchParams=class{has(){return false}},Event=class{},crypto={randomUUID:()=>"test-id"},confirm=()=>true;
+  let committed=["Opening."],buffer=[],chapters=[{startLine:0}],references=[],chatHistory=[],documentId="doc-a",partnerId="alex",revision=1;
+  let generating=false,chatSending=false,initializing=false,coWriting=true,reading=null,playing=false,inReaction=false,editingIdx=null;
+  let dirty=0,recoveries=0,requests=0,spoken=[],queue=[],PP_GEN=new Set(),PP={},undo=[];
+  const render=()=>{},markDirty=()=>dirty++,writeRecovery=()=>recoveries++,cancelSpeech=()=>{},cancelLLM=()=>{},ppRenderCast=()=>{},ppRenderFlags=()=>{},ppSetStatus=()=>{},llmOk=()=>true,ppMarkGenerated=t=>PP_GEN.add(t);
+  const snapshot=()=>undo.push({committed:[...committed],buffer:[...buffer],point:window.twoiNarrativeHistory.capture()});
+  let getDocState=()=>({committed:[...committed],buffer:[...buffer],chapters,references,coWriting});
+  let loadDocState=s=>{committed=[...(s.committed||[])];buffer=[...(s.buffer||[])];chapters=s.chapters||[{startLine:0}];references=s.references||[];coWriting=s.coWriting};
+  let toggleMode=()=>{coWriting=!coWriting},approveBuffer=()=>{snapshot();committed.push(...buffer);buffer=[]},stopPlaying=()=>{},startPlaying=()=>{},tick=()=>{},generateMore=()=>{};
+  const draftArea=$("draftArea"),speechRead=(line,done)=>{spoken.push(line);done()},callLLM=async()=>{requests++;if(!queue.length)throw Error("Unexpected model call");return await queue.shift()};
+  eval(coreSource+"\n"+roomSource);
+  const state=getDocState().narrative;
+  loadDocState({committed:["Opening."],buffer:[],chapters:[{startLine:0}],coWriting:true,narrative:{...state,scenes:[{id:"s",title:"Opening",start:0,end:null,...Object.fromEntries(["purpose","cast","motivation","information","subtext","ambiguity","choreography","emotionalProgression","dramaticProgression","audienceImpact","dependencies","editorialAttention","executionAssessment"].map(k=>[k,""]))}],activeSceneId:"s"}});
+  return {click:id=>$(id).onclick(),state:()=>getDocState(),stats:()=>({dirty,recoveries,requests,spoken:[...spoken],playing,generating}),reply:x=>queue.push(x),setCommitted:x=>{committed=x},clearBuffer:()=>{buffer=[]},restoreOnce:()=>{const x=undo.pop();window.twoiNarrativeHistory.restore(x.point,buffer.join("\n"),"undo");committed=x.committed;buffer=x.buffer}};
+}
+async function exercise(core,room){
+  const results=[],check=(x,msg)=>{if(!x)throw Error(msg)},model=(draft,latent="",notes="")=>JSON.stringify({draft,latent,notes});
+  async function run(name,fn){try{await fn();results.push({name,ok:true})}catch(e){results.push({name,ok:false,error:String(e)})}}
+  await run("oversized reply, explicit approval gate and read-only playback",async()=>{const h=buildHarness(core,room),raw="word ".repeat(1100);h.reply(model(raw,"future"));check(await h.click("genBtn"),"generation failed");const s=h.state();check(s.committed.join("")==="Opening.","protected changed");check(s.buffer.join("\n").trim().split(/\s+/).length<=500,"visible budget");check(s.buffer.join("\n")+s.narrative.latent===raw+"\nfuture","exact preservation");const count=h.stats().requests;check(!await h.click("genBtn"),"gate bypass");h.click("playBtn");check(h.stats().requests===count&&h.state().committed.length===1,"playback changed story")});
+  await run("explicit approval and undo restore draft metadata",async()=>{const h=buildHarness(core,room);h.reply(model("First draft.","future"));check(await h.click("genBtn"),"generate");h.click("modeBadge");check(h.state().coWriting,"mode auto-approved");h.click("approveBtn");check(h.state().committed.length===2&&!h.state().narrative.presentedOriginal,"approve failed");h.restoreOnce();check(h.state().buffer[0]==="First draft."&&h.state().narrative.presentedOriginal==="First draft.","undo mismatch");check(h.state().narrative.archive.some(x=>x.text==="First draft."),"archive lost")});
+  await run("clear textarea cannot bypass rejection gate",async()=>{const h=buildHarness(core,room);h.reply(model("Reject me.","future"));check(await h.click("genBtn"),"generate");h.clearBuffer();check(!await h.click("genBtn"),"gate bypass");h.click("narrativeArchiveDraft");check(h.state().narrative.archive.some(x=>x.text==="Reject me."),"original lost");h.reply(model("Replacement."));check(await h.click("genBtn"),"replacement blocked")});
+  await run("cancelled model reply cannot publish",async()=>{const h=buildHarness(core,room);let resolve;h.reply(new Promise(r=>resolve=r));const pending=h.click("genBtn");h.click("stopBtn");resolve(model("Cancelled."));check(!await pending,"cancel published");check(h.state().buffer.length===0&&h.state().committed.length===1,"cancel changed manuscript");check(h.state().narrative.archive.some(x=>x.kind==="stale draft"),"reply not archived")});
+  await run("source change invalidates delayed reply",async()=>{const h=buildHarness(core,room);let resolve;h.reply(new Promise(r=>resolve=r));const pending=h.click("genBtn");h.setCommitted(["Author change."]);resolve(model("Stale."));check(!await pending,"reply published");check(h.state().committed[0]==="Author change."&&h.state().buffer.length===0,"source overwritten")});
+  await run("malformed output retained outside manuscript",async()=>{const h=buildHarness(core,room);h.reply("not json");check(!await h.click("genBtn"),"published");check(h.state().buffer.length===0&&h.state().narrative.archive.some(x=>x.text==="not json"),"lost")});
+  return results;
+}
+const {test}=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path");
+test("narrative room simulated host integration",async()=>{const dir=path.join(__dirname,"../2i/2i-assets");const r=await exercise(fs.readFileSync(path.join(dir,"narrative-core.js"),"utf8"),fs.readFileSync(path.join(dir,"narrative-room.js"),"utf8"));assert.deepEqual(r.filter(x=>!x.ok),[]);});
