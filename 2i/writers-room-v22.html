@@ -2043,7 +2043,9 @@ function render() {
 function renderManuscriptLines() {
   const previousScroll=manuscriptZone.scrollTop;
   const follow=selectedIdx===null&&editingIdx===null&&manuscriptZone.scrollHeight-manuscriptZone.clientHeight-previousScroll<24;
-  const styles=nativeFormatting?new Map(syncManuscriptFormat().rows.map(r=>[r.index,r.style])):new Map();
+  const formatting=nativeFormatting?syncManuscriptFormat():null;
+  const styles=new Map((formatting?.rows||[]).map(r=>[r.index,r.style])),annotationCounts=new Map();
+  for(const a of formatting?.annotations||[])if(a.detachedReason===null&&a.status==="open"){const n=annotationCounts.get(a.index)||{bookmark:0,comment:0};n[a.kind]++;annotationCounts.set(a.index,n);}
   manuscriptLines.innerHTML = '';
   let lineNum = 1;
   committed.forEach((text, i) => {
@@ -2089,6 +2091,7 @@ function renderManuscriptLines() {
       div.className = 'm-line' + (selectedIdx === i ? ' selected' : '') + (lockedLines.has(i) ? ' locked' : '');div.dataset.paragraphIndex=String(i);div.tabIndex=-1;
       div.innerHTML = `<span class="line-num">${lineNum}</span>${escHtml(text)}`;
       if(styles.has(i)){const span=document.createElement('span');span.className='twoiFormattedLine';span.textContent=text;span.style.cssText=TwoiFormatCore.styleCss(styles.get(i),TwoiFormatCore.profiles[manuscriptFormat.profile].kind);div.replaceChildren(div.querySelector('.line-num'),span);}
+      if(annotationCounts.has(i)){const n=annotationCounts.get(i),marker=document.createElement("span");marker.className="twoiAnnotationMarker";marker.textContent=(n.bookmark?"◆ "+n.bookmark:"")+(n.bookmark&&n.comment?" · ":"")+(n.comment?"✎ "+n.comment:"");marker.title=n.bookmark+" bookmark(s), "+n.comment+" open comment(s)";marker.setAttribute("aria-label",marker.title);div.append(marker);}
       div.onclick = () => { selectedIdx = (selectedIdx === i) ? null : i; render(); };
       div.oncontextmenu = e => showContextMenu(e, i);
       div.ondblclick = () => {

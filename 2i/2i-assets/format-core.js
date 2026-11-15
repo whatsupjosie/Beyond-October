@@ -30,16 +30,70 @@ function makeFormatCore(){
   for(const [id,p] of Object.entries(profiles))p.guidance=guidance[id];
   const names={body:"Body text",heading1:"Heading 1",heading2:"Heading 2",heading3:"Heading 3",quote:"Block quote",list:"List paragraph",title:"Title",subtitle:"Subtitle",caption:"Caption",general:"General",scene:"Scene heading",action:"Action",character:"Character cue",dialogue:"Dialogue",parenthetical:"Parenthetical",transition:"Transition",shot:"Shot",act:"Act / teaser",cast:"Scene cast",cue:"Production cue",sound:"Sound effect",music:"Music",segment:"Segment",visual:"Video / image",audio:"Audio",voiceover:"Voice-over",interview:"Interview",logline:"Logline",summary:"Summary",character_profile:"Character profile",episode:"Episode outline",audience:"Audience / positioning"};
   const allRoles=new Set(Object.keys(names)), fonts=["default","serif","sans","mono"], aligns=["default","left","center","right","justify"];
-  const fresh=()=>({version:1,profile:"manuscript",page:{size:"letter",orientation:"portrait",margin:1},rows:[],unmapped:[]});
+  const fresh=()=>({version:1,profile:"manuscript",page:{size:"letter",orientation:"portrait",margin:1},rows:[],unmapped:[],annotations:[]});
   function validStyle(s){
     if(!s||!allRoles.has(s.role)||!aligns.includes(s.align)||!fonts.includes(s.font)||!Number.isFinite(s.indent)||s.indent<0||s.indent>4||!Number.isFinite(s.size)||s.size<0||s.size>48||![0,1,1.15,1.5,2].includes(s.spacing)||["bold","italic","underline"].some(k=>typeof s[k]!=="boolean"))throw Error("Invalid paragraph format.");
     return clone(s);
   }
   const defaultStyle=role=>({role,align:"default",font:"default",indent:0,size:0,spacing:0,bold:false,italic:false,underline:false});
+  // Paragraph-anchored private author annotations reuse the native document's
+  // existing snapshot, recovery, revision and undo state. Never guess a new
+  // anchor from text similarity. Detached notes retain the author's exact text.
+  function validAnnotation(a){
+    if(!a||typeof a.id!=="string"||!/^[a-zA-Z0-9_-]{1,100}$/.test(a.id)||!["bookmark","comment"].includes(a.kind)||!["open","resolved","archived"].includes(a.status)||a.kind==="bookmark"&&a.status==="resolved"||typeof a.label!=="string"||!a.label.trim()||a.label.length>160||typeof a.body!=="string"||a.body.length>8000||a.kind==="comment"&&!a.body.trim()||!Number.isInteger(a.index)||a.index<0||typeof a.text!=="string"||a.text.length>50000||typeof a.createdAt!=="string"||a.createdAt.length>80||a.detachedReason!==null&&typeof a.detachedReason!=="string"||!Array.isArray(a.priorAnchors)||a.priorAnchors.length>100)throw Error("Invalid document annotation; retain the original source.");
+    for(const p of a.priorAnchors)if(!p||!Number.isInteger(p.index)||p.index<0||typeof p.text!=="string"||p.text.length>50000||p.reason!==null&&typeof p.reason!=="string")throw Error("Invalid prior annotation anchor.");
+    if(a.statusBeforeArchive!==undefined&&!["open","resolved"].includes(a.statusBeforeArchive))throw Error("Invalid archived annotation state.");
+    return a;
+  }
+  function restoreAnnotations(items,lines){
+    if(items===undefined)return [];
+    if(!Array.isArray(items)||items.length>500)throw Error("Invalid annotation collection.");
+    const ids=new Set();
+    return items.map(a=>{validAnnotation(a);if(ids.has(a.id))throw Error("Duplicate annotation identity.");ids.add(a.id);const b=clone(a);if(b.detachedReason===null&&lines[b.index]!==b.text)b.detachedReason="Saved anchor no longer matches committed text.";return b;});
+  }
+  function reconcileAnnotations(state,before,after,first,last){
+    const items=state.annotations||[];if(!items.length)return;
+    const end=before.length-last,delta=after.length-before.length;
+    const beforeChanged=new Set(before.slice(first,end)),afterChanged=new Set(after.slice(first,after.length-last));
+    const count=lines=>{const result=new Map();for(const s of lines)result.set(s,(result.get(s)||0)+1);return result;};
+    const oldCount=count(before),newCount=count(after);
+    for(const a of items){
+      if(a.detachedReason!==null)continue;
+      let index=null;
+      if(before[a.index]===a.text){
+        if(a.index<first)index=a.index;
+        else if(a.index>=end)index=a.index+delta;
+      }
+      const ambiguous=(oldCount.get(a.text)>1||newCount.get(a.text)>1)&&(beforeChanged.has(a.text)||afterChanged.has(a.text)||oldCount.get(a.text)!==newCount.get(a.text));
+      if(!ambiguous&&index!==null&&after[index]===a.text)a.index=index;
+      else a.detachedReason=ambiguous?"Repeated paragraph became ambiguous; choose its location explicitly.":"Anchored paragraph was edited or removed; annotation retained.";
+    }
+  }
+  function addAnnotation(state,lines,data){
+    const items=state.annotations||(state.annotations=[]);
+    if(items.length>=500)throw Error("Annotation limit reached; retain this document and export a copy before adding more.");
+    if(!Number.isInteger(data.index)||data.index<0||data.index>=lines.length)throw Error("Select a committed paragraph.");
+    const item={id:data.id,kind:data.kind,label:data.label,body:data.body??"",index:data.index,text:lines[data.index],createdAt:data.createdAt,status:"open",detachedReason:null,priorAnchors:[]};
+    validAnnotation(item);if(items.some(a=>a.id===item.id))throw Error("Annotation identity already exists.");
+    items.push(item);return item;
+  }
+  function changeAnnotation(state,lines,id,action,index){
+    const a=(state.annotations||[]).find(x=>x.id===id);if(!a)throw Error("Annotation no longer exists.");
+    if(action==="resolve"&&a.kind==="comment"&&a.status==="open")a.status="resolved";
+    else if(action==="reopen"&&a.kind==="comment"&&a.status==="resolved")a.status="open";
+    else if(action==="archive"&&a.status!=="archived"){a.statusBeforeArchive=a.status;a.status="archived";}
+    else if(action==="restore"&&a.status==="archived"){a.status=a.kind==="comment"&&a.statusBeforeArchive==="resolved"?"resolved":"open";delete a.statusBeforeArchive;}
+    else if(action==="reattach"&&a.status!=="archived"&&a.detachedReason!==null){
+      if(!Number.isInteger(index)||index<0||index>=lines.length)throw Error("Select a valid committed paragraph.");
+      if(typeof lines[index]!=="string"||lines[index].length>50000||a.priorAnchors.length>=100)throw Error("Cannot retain another full annotation anchor within its limits.");
+      a.priorAnchors.push({index:a.index,text:a.text,reason:a.detachedReason});a.index=index;a.text=lines[index];a.detachedReason=null;
+    }else throw Error("Annotation action is not available.");
+    validAnnotation(a);return a;
+  }
   function restore(raw,lines=[]){
     if(raw===undefined||raw===null)return fresh();
     if(raw.version!==1||!Object.hasOwn(profiles,raw.profile)||!raw.page||!["letter","a4","legal"].includes(raw.page.size)||!["portrait","landscape"].includes(raw.page.orientation)||![0.5,0.75,1,1.25,1.5].includes(raw.page.margin)||!Array.isArray(raw.rows)||!Array.isArray(raw.unmapped))throw Error("Invalid document formatting.");
-    const out=clone(raw),ids=new Set();
+    const out=clone(raw),ids=new Set();out.annotations=restoreAnnotations(out.annotations,lines);
     for(const r of [...out.rows,...out.unmapped]){
       if(!r||!Number.isInteger(r.index)||r.index<0||typeof r.text!=="string")throw Error("Invalid format anchor.");
       validStyle(r.style);
@@ -65,7 +119,7 @@ function makeFormatCore(){
       if(index!==null&&index>=0&&index<after.length)kept.push({...r,index,text:after[index]});
       else state.unmapped.push({...r,reason:"edit changed paragraph structure"});
     }
-    state.rows=kept;return state;
+    state.rows=kept;reconcileAnnotations(state,before,after,first,last);return state;
   }
   function apply(state,lines,indices,style,locks=[]){
     const clean=validStyle(style),locked=new Set(locks),selected=new Set(indices);
@@ -146,7 +200,7 @@ function makeFormatCore(){
     }
     return {method,oldCount:oldLines.length,newCount:newLines.length,blocks,removedCount:blocks.reduce((n,b)=>n+b.removed.length,0),addedCount:blocks.reduce((n,b)=>n+b.added.length,0)};
   }
-  return {profiles,names,fresh,restore,reconcile,apply,clear,defaultStyle,styleCss,exportHtml,profileContext,clone,compareLines};
+  return {profiles,names,fresh,restore,reconcile,apply,clear,defaultStyle,styleCss,exportHtml,profileContext,clone,compareLines,addAnnotation,changeAnnotation};
 }
 const TwoiFormatCore=makeFormatCore();
 if(typeof module!=="undefined"&&module.exports)module.exports=TwoiFormatCore;

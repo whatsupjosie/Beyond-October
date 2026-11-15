@@ -119,6 +119,7 @@
     for(let i=0;i<chapters.length;i++){const c=chapters[i];rows.push({kind:"Chapter",title:c.title,index:c.startLine,reason:Number.isInteger(c.startLine)&&c.startLine>=0&&c.startLine<lines.length?"":"No committed text at this chapter yet.",key:"chapter:"+i});}
     for(const r of format.rows||[]){if(!["heading1","heading2","heading3","scene","act","segment"].includes(r.style.role))continue;if(lines[r.index]!==r.text)continue;rows.push({kind:C.names[r.style.role],title:r.text||"(Untitled heading)",index:r.index,reason:"",key:"format:"+r.index});}
     for(const s of scenes)rows.push({kind:"Scene dossier",title:s.title,index:s.start,reason:s.reason||"",key:"scene:"+s.id});
+    for(const a of format.annotations||[])if(a.kind==="bookmark"&&a.status!=="archived")rows.push({kind:"Bookmark",title:a.label,index:a.index,reason:a.detachedReason||"",key:"bookmark:"+a.id});
     return rows.sort((a,b)=>a.index-b.index);
   }
   function goToParagraph(index){
@@ -138,7 +139,7 @@
     ready();const d=dialog("Manuscript navigator"),source=documentId;
     const basis=committed.slice(),getRows=()=>outlineEntries(committed,chapters,syncManuscriptFormat(),typeof window.twoiSceneNavigation==="function"?window.twoiSceneNavigation():[]);
     const entries=getRows(),stamp=JSON.stringify(entries);
-    el("p","Browse committed chapters, styled headings and scene dossiers. Opening a passage does not change the active AI scene or your manuscript.",d);
+    el("p","Browse committed chapters, styled headings, bookmarks and scene dossiers. Opening a passage does not change the active AI scene or your manuscript.",d);
     const q=el("input",null,d);q.type="search";q.placeholder="Find a chapter, heading or scene";q.setAttribute("aria-label","Search manuscript outline");
     const list=el("div",null,d),status=textStatus(d);
     function verify(){ready();if(source!==documentId||basis.length!==committed.length||basis.some((s,i)=>s!==committed[i])||stamp!==JSON.stringify(getRows()))throw Error("The manuscript outline changed. Reopen the navigator.");}
@@ -147,6 +148,46 @@
     q.addEventListener("input",refresh);
     const number=el("input",null,d);number.type="number";number.min="1";number.max=String(committed.length);number.step="1";number.placeholder="Paragraph number";number.setAttribute("aria-label","Paragraph number");button(d,"Go to paragraph",()=>jump(Number(number.value)-1));
     button(d,"Close",()=>d.close());refresh();d.showModal();q.focus();
+  }
+  function annotate(kind){
+    ready();const indices=stableSelection(),index=indices[0],source=documentId,basis=committed.slice();paragraphOffset(basis,index);
+    const d=dialog(kind==="bookmark"?"Add bookmark":"Add editorial comment");
+    el("p","Private document annotation · paragraph "+(index+1)+(indices.length>1?" (first selected paragraph)":"")+". No manuscript words will change.",d);
+    const quote=el("p",basis[index]||"(Blank paragraph)",d);quote.style.whiteSpace="pre-wrap";quote.style.overflowWrap="anywhere";quote.style.maxHeight="18dvh";quote.style.overflow="auto";
+    const name=el("input",null);name.maxLength=160;name.value=kind==="bookmark"?"": "Editorial comment";field(d,"Label",name);
+    const body=el("textarea",null);body.rows=4;body.maxLength=8000;field(d,kind==="bookmark"?"Optional note":"Comment",body);
+    const status=textStatus(d);
+    button(d,"Save annotation",()=>{try{
+      ready();if(source!==documentId||basis.length!==committed.length||basis.some((s,i)=>s!==committed[i]))throw Error("Manuscript changed. Select the intended passage again.");
+      const next=C.clone(syncManuscriptFormat());C.addAnnotation(next,committed,{id:uuid(),kind,label:name.value,body:body.value,index,createdAt:new Date().toISOString()});
+      snapshot();manuscriptFormat=next;update();d.close();
+    }catch(e){status.textContent=e.message;}});
+    button(d,"Cancel",()=>d.close());d.showModal();(kind==="bookmark"?name:body).focus();
+  }
+  function annotationManager(){
+    ready();const source=documentId,basis=committed.slice(),d=dialog("Bookmarks and comments");
+    el("p","Annotations are private manuscript metadata, included in native saves and versions but excluded from plain-text and formatted manuscript exports. Detached notes retain their original source anchor.",d);
+    const q=el("input",null,d);q.type="search";q.placeholder="Search annotation labels and notes";q.setAttribute("aria-label","Search annotations");
+    const archived=el("input",null);archived.type="checkbox";field(d,"Show archived annotations",archived);
+    const list=el("div",null,d),status=textStatus(d);
+    function verify(){ready();if(source!==documentId||basis.length!==committed.length||basis.some((s,i)=>s!==committed[i]))throw Error("Manuscript changed. Reopen annotations.");}
+    function change(id,action,index){try{verify();const next=C.clone(syncManuscriptFormat());C.changeAnnotation(next,committed,id,action,index);snapshot();manuscriptFormat=next;update();refresh();}catch(e){status.textContent=e.message;}}
+    function refresh(){
+      list.replaceChildren();const term=q.value.toLowerCase().trim(),items=(syncManuscriptFormat().annotations||[]).filter(a=>(archived.checked||a.status!=="archived")&&(!term||(a.label+" "+a.body).toLowerCase().includes(term)));
+      status.textContent=items.length+" matching annotation(s)";
+      for(const a of items){const row=el("section",null,list);row.style.borderTop="1px solid #ad9b83";el("strong",(a.kind==="bookmark"?"Bookmark":"Comment")+" · "+a.label+" · "+a.status,row);
+        const note=el("p",a.body||"(No note)",row);note.style.whiteSpace="pre-wrap";note.style.overflowWrap="anywhere";
+        const anchor=el("p",(a.detachedReason?"Detached from paragraph ":"Paragraph ")+(a.index+1)+": "+a.text,row);anchor.style.whiteSpace="pre-wrap";anchor.style.overflowWrap="anywhere";anchor.style.maxHeight="16dvh";anchor.style.overflow="auto";
+        if(a.detachedReason)el("p",a.detachedReason,row);
+        if(a.priorAnchors.length)el("p",a.priorAnchors.length+" earlier anchor(s) retained in native document.",row);
+        if(a.status==="archived"){button(row,"Restore annotation",()=>change(a.id,"restore"));continue;}
+        if(!a.detachedReason)button(row,"Go to paragraph",()=>{verify();const current=(syncManuscriptFormat().annotations||[]).find(x=>x.id===a.id);if(!current||current.detachedReason||committed[current.index]!==current.text)throw Error("Annotation anchor changed.");d.close();goToParagraph(current.index);});
+        else button(row,"Reattach…",()=>{verify();const raw=prompt("Enter the intended committed paragraph number (1–"+committed.length+")",String(Math.min(a.index+1,committed.length)));if(raw===null)return;const index=Number(raw)-1;paragraphOffset(committed,index);if(confirm("Reattach to paragraph "+(index+1)+": "+committed[index].slice(0,200)+"? Original anchor is retained."))change(a.id,"reattach",index);});
+        if(a.kind==="comment")button(row,a.status==="resolved"?"Reopen comment":"Resolve comment",()=>change(a.id,a.status==="resolved"?"reopen":"resolve"));
+        button(row,"Archive",()=>{if(confirm("Archive this annotation? It remains recoverable."))change(a.id,"archive");});
+      }
+    }
+    q.addEventListener("input",refresh);archived.addEventListener("change",refresh);button(d,"Close",()=>d.close());refresh();d.showModal();q.focus();
   }
   function committedText(){return committed.join("\n");}
   function exportCommitted(){downloadFile(safeName()+".txt",committedText(),"text/plain;charset=utf-8");}
@@ -159,12 +200,12 @@
   }
   commandMenu("File",[["New",go("hmNewDoc")],["Open .2i",go("hmOpenDoc")],["My manuscripts",go("shelfBtn")],["Save",go("saveBtn",()=>!initializing&&editingIdx===null)],["Save a copy (.2i)",go("hmSaveAs")],["Export Markdown (includes presented draft)",go("exportBtn"),"markdown md"],["Export committed text only",exportCommitted,"plain txt manuscript privacy"],["Export formatted HTML",conditional(()=>downloadFile(safeName()+".html",output(),"text/html"),idle)],["Print committed manuscript…",conditional(preview,idle),"print page paper pdf"],["Restore autosave",go("hmRestoreAutosave")],["Rename",go("hmRenameDoc")]]);
   commandMenu("Edit",[["Undo manuscript operation",conditional(()=>undo(),()=>idle()&&undoStack.length>0)],["Redo manuscript operation",conditional(()=>redo(),()=>idle()&&redoStack.length>0)],["Find & replace",go("hmFindReplace")]]);
-  commandMenu("Insert",[["New chapter",go("newChapterBtn")]]);
+  commandMenu("Insert",[["New chapter",go("newChapterBtn")],["Add bookmark",conditional(()=>annotate("bookmark"),idle)],["Add editorial comment",conditional(()=>annotate("comment"),idle)]]);
   commandMenu("Format",[["Document type / script presets",templates],["Paragraph style, alignment, indent…",paragraph],["Formatting recovery",unmapped]]);
   commandMenu("Layout",[["Page setup",page],["Formatted preview",preview]]);
   commandMenu("References",[["Browse or search references",referenceArchive,"research notes archive"],["Add reference",go("addRefBtn")]]);
   commandMenu("Manuscript",[["Chapter and scene navigator",conditional(navigation,idle),"outline go to paragraph headings"],["Scene intelligence",go("narrativeOpen")],["New chapter",go("newChapterBtn")],["Generate draft",go("genBtn",()=>collabIdle()&&llmOk()&&!buffer.length)],["Commit presented draft",go("approveBtn",()=>collabIdle()&&buffer.length>0)],["Archive presented draft",go("narrativeArchiveDraft",collabIdle)]]);
-  commandMenu("Review",[["Revision history",go("narrativeHistory",()=>idle()&&networked&&serverReady)],["Story versions",go("twoiVersionManage",()=>idle()&&networked&&serverReady)],["Creative contribution records",go("narrativeContribution",idle),"authorship provenance evidence disclosure"],["Lock scene",go("lockSceneBtn")],["Lock all",go("lockAllBtn")],["Unlock",go("unlockBtn")]]);
+  commandMenu("Review",[["Revision history",go("narrativeHistory",()=>idle()&&networked&&serverReady)],["Story versions",go("twoiVersionManage",()=>idle()&&networked&&serverReady)],["Creative contribution records",go("narrativeContribution",idle),"authorship provenance evidence disclosure"],["Bookmarks and comments",conditional(annotationManager,idle),"resolve archive reattach editorial annotations"],["Lock scene",go("lockSceneBtn")],["Lock all",go("lockAllBtn")],["Unlock",go("unlockBtn")]]);
   const present=mode=>()=>window.twoiSetPresentation(mode);
   const presentations=typeof window.twoiSetPresentation==="function"?[["Standard document view",present("standard")],["Notebook view",present("notebook")],...(window.twoiCanPresent("typewriter")?[["Typewriter view",present("typewriter")]]:[])]:[];
   commandMenu("View",[...presentations,["Write / Collab",go("modeBadge")],["Toggle sidebar",go("sidebarToggle")],["Zoom manuscript in",()=>adjustZoom("manuscript",1)],["Zoom manuscript out",()=>adjustZoom("manuscript",-1)],["Formatted preview",preview]]);
