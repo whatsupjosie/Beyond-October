@@ -2041,13 +2041,14 @@ function render() {
 }
 
 function renderManuscriptLines() {
+  const previousScroll=manuscriptZone.scrollTop;
+  const follow=selectedIdx===null&&editingIdx===null&&manuscriptZone.scrollHeight-manuscriptZone.clientHeight-previousScroll<24;
   const styles=nativeFormatting?new Map(syncManuscriptFormat().rows.map(r=>[r.index,r.style])):new Map();
   manuscriptLines.innerHTML = '';
   let lineNum = 1;
   committed.forEach((text, i) => {
     // Check for chapter heading
-    const ch = chapters.find(c => c.startLine === i);
-    if (ch) {
+    for (const ch of chapters.filter(c => c.startLine === i)) {
       const heading = document.createElement('div'); heading.className = 'chapter-heading';
       heading.textContent = ch.title; manuscriptLines.appendChild(heading);
       if (ch.subtitle) {
@@ -2060,7 +2061,7 @@ function renderManuscriptLines() {
 
     if (editingIdx === i) {
       // Editing mode
-      const wrap = document.createElement('div'); wrap.className = 'm-line selected';
+      const wrap = document.createElement('div'); wrap.className = 'm-line selected';wrap.dataset.paragraphIndex=String(i);
       wrap.innerHTML = `<span class="line-num">${lineNum}</span>`;
       const editDiv = document.createElement('div'); editDiv.className = 'm-line-edit'; editDiv.style.flex = '1';
       const ta = document.createElement('textarea'); ta.value = text; ta.rows = 2;
@@ -2085,7 +2086,7 @@ function renderManuscriptLines() {
       setTimeout(() => ta.focus(), 0);
     } else {
       const div = document.createElement('div');
-      div.className = 'm-line' + (selectedIdx === i ? ' selected' : '') + (lockedLines.has(i) ? ' locked' : '');
+      div.className = 'm-line' + (selectedIdx === i ? ' selected' : '') + (lockedLines.has(i) ? ' locked' : '');div.dataset.paragraphIndex=String(i);div.tabIndex=-1;
       div.innerHTML = `<span class="line-num">${lineNum}</span>${escHtml(text)}`;
       if(styles.has(i)){const span=document.createElement('span');span.className='twoiFormattedLine';span.textContent=text;span.style.cssText=TwoiFormatCore.styleCss(styles.get(i),TwoiFormatCore.profiles[manuscriptFormat.profile].kind);div.replaceChildren(div.querySelector('.line-num'),span);}
       div.onclick = () => { selectedIdx = (selectedIdx === i) ? null : i; render(); };
@@ -2100,8 +2101,8 @@ function renderManuscriptLines() {
     lineNum++;
   });
 
-  // Scroll to bottom
-  manuscriptZone.scrollTop = manuscriptZone.scrollHeight;
+  // Follow new text only if the reader was already at the end. Explicit navigation scrolls after render.
+  manuscriptZone.scrollTop=follow?manuscriptZone.scrollHeight:previousScroll;
 }
 
 function renderReading() {

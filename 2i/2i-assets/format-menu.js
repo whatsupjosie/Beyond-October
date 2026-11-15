@@ -108,6 +108,46 @@
     for(const r of rows){const p=el("pre",r.text+"\n"+JSON.stringify(r.style,null,2),d);p.style.whiteSpace="pre-wrap";}
     button(d,"Close",()=>d.close());d.showModal();
   }
+  // Line offsets are UTF-16, as required by textarea.setSelectionRange.
+  function paragraphOffset(lines,index){
+    if(!Array.isArray(lines)||!Number.isInteger(index)||index<0||index>=lines.length)throw Error("Paragraph is outside the committed manuscript.");
+    let start=0;for(let i=0;i<index;i++)start+=lines[i].length+1;
+    return {start,end:start+lines[index].length};
+  }
+  function outlineEntries(lines,chapters,format,scenes){
+    const rows=[];
+    for(let i=0;i<chapters.length;i++){const c=chapters[i];rows.push({kind:"Chapter",title:c.title,index:c.startLine,reason:Number.isInteger(c.startLine)&&c.startLine>=0&&c.startLine<lines.length?"":"No committed text at this chapter yet.",key:"chapter:"+i});}
+    for(const r of format.rows||[]){if(!["heading1","heading2","heading3","scene","act","segment"].includes(r.style.role))continue;if(lines[r.index]!==r.text)continue;rows.push({kind:C.names[r.style.role],title:r.text||"(Untitled heading)",index:r.index,reason:"",key:"format:"+r.index});}
+    for(const s of scenes)rows.push({kind:"Scene dossier",title:s.title,index:s.start,reason:s.reason||"",key:"scene:"+s.id});
+    return rows.sort((a,b)=>a.index-b.index);
+  }
+  function goToParagraph(index){
+    ready();const range=paragraphOffset(committed,index);
+    if(coWriting){
+      selectedIdx=index;render();const target=manuscriptLines.querySelector('[data-paragraph-index="'+index+'"]');
+      if(!target)throw Error("The selected paragraph is not visible.");target.focus({preventScroll:true});target.scrollIntoView({block:"center",inline:"nearest"});
+    }else{
+      if(soloTextarea.value!==committed.join("\n"))throw Error("The writing surface is not synchronized.");
+      soloTextarea.focus({preventScroll:true});soloTextarea.setSelectionRange(range.start,range.end);
+      // Caret selection is exact; approximate viewport movement for wrapped text.
+      const max=Math.max(0,soloTextarea.scrollHeight-soloTextarea.clientHeight);
+      soloTextarea.scrollTop=committed.length>1?max*index/(committed.length-1):0;
+    }
+  }
+  function navigation(){
+    ready();const d=dialog("Manuscript navigator"),source=documentId;
+    const basis=committed.slice(),getRows=()=>outlineEntries(committed,chapters,syncManuscriptFormat(),typeof window.twoiSceneNavigation==="function"?window.twoiSceneNavigation():[]);
+    const entries=getRows(),stamp=JSON.stringify(entries);
+    el("p","Browse committed chapters, styled headings and scene dossiers. Opening a passage does not change the active AI scene or your manuscript.",d);
+    const q=el("input",null,d);q.type="search";q.placeholder="Find a chapter, heading or scene";q.setAttribute("aria-label","Search manuscript outline");
+    const list=el("div",null,d),status=textStatus(d);
+    function verify(){ready();if(source!==documentId||basis.length!==committed.length||basis.some((s,i)=>s!==committed[i])||stamp!==JSON.stringify(getRows()))throw Error("The manuscript outline changed. Reopen the navigator.");}
+    function jump(index){try{verify();paragraphOffset(committed,index);d.close();goToParagraph(index);}catch(e){status.textContent=e.message;}}
+    function refresh(){list.replaceChildren();const term=q.value.toLowerCase().trim();const matches=entries.filter(r=>!term||(r.kind+" "+r.title).toLowerCase().includes(term));status.textContent=matches.length+" outline entries";for(const r of matches){const b=button(list,r.kind+" · "+r.title+" · paragraph "+(r.index+1),()=>jump(r.index));b.style.display="block";b.style.whiteSpace="normal";b.style.minHeight="42px";b.disabled=!!r.reason;if(r.reason)el("p",r.reason,list);}}
+    q.addEventListener("input",refresh);
+    const number=el("input",null,d);number.type="number";number.min="1";number.max=String(committed.length);number.step="1";number.placeholder="Paragraph number";number.setAttribute("aria-label","Paragraph number");button(d,"Go to paragraph",()=>jump(Number(number.value)-1));
+    button(d,"Close",()=>d.close());refresh();d.showModal();q.focus();
+  }
   function committedText(){return committed.join("\n");}
   function exportCommitted(){downloadFile(safeName()+".txt",committedText(),"text/plain;charset=utf-8");}
   function referenceArchive(){
@@ -123,7 +163,7 @@
   commandMenu("Format",[["Document type / script presets",templates],["Paragraph style, alignment, indent…",paragraph],["Formatting recovery",unmapped]]);
   commandMenu("Layout",[["Page setup",page],["Formatted preview",preview]]);
   commandMenu("References",[["Browse or search references",referenceArchive,"research notes archive"],["Add reference",go("addRefBtn")]]);
-  commandMenu("Manuscript",[["Scene intelligence",go("narrativeOpen")],["New chapter",go("newChapterBtn")],["Generate draft",go("genBtn",()=>collabIdle()&&llmOk()&&!buffer.length)],["Commit presented draft",go("approveBtn",()=>collabIdle()&&buffer.length>0)],["Archive presented draft",go("narrativeArchiveDraft",collabIdle)]]);
+  commandMenu("Manuscript",[["Chapter and scene navigator",conditional(navigation,idle),"outline go to paragraph headings"],["Scene intelligence",go("narrativeOpen")],["New chapter",go("newChapterBtn")],["Generate draft",go("genBtn",()=>collabIdle()&&llmOk()&&!buffer.length)],["Commit presented draft",go("approveBtn",()=>collabIdle()&&buffer.length>0)],["Archive presented draft",go("narrativeArchiveDraft",collabIdle)]]);
   commandMenu("Review",[["Revision history",go("narrativeHistory",()=>idle()&&networked&&serverReady)],["Story versions",go("twoiVersionManage",()=>idle()&&networked&&serverReady)],["Creative contribution records",go("narrativeContribution",idle),"authorship provenance evidence disclosure"],["Lock scene",go("lockSceneBtn")],["Lock all",go("lockAllBtn")],["Unlock",go("unlockBtn")]]);
   const present=mode=>()=>window.twoiSetPresentation(mode);
   const presentations=typeof window.twoiSetPresentation==="function"?[["Standard document view",present("standard")],["Notebook view",present("notebook")],...(window.twoiCanPresent("typewriter")?[["Typewriter view",present("typewriter")]]:[])]:[];

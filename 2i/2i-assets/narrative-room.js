@@ -112,6 +112,15 @@
     }).join("\n\n────────\n\n");
   }
   function openPanel(){if(!ownerReady()){say("Wait for the account to open.");return;}if(!panel)makePanel();fill();panel.showModal();}
+  // Read-only navigation deliberately does not select or modify the active
+  // AI scene, nor does it invoke inference or change the creative archive.
+  window.twoiSceneNavigation=()=>state.scenes.map(s=>{
+    let reason="";
+    if(!Number.isInteger(s.start)||s.start<0||s.start>=committed.length||(s.end!==null&&(!Number.isInteger(s.end)||s.end<=s.start||s.end>committed.length)))reason="No valid committed scene range.";
+    else if(s.prefixAnchor===undefined||(s.end!==null&&s.suffixAnchor===undefined))reason="Scene anchors have not been confirmed; review the dossier.";
+    else try{checkAnchor(s);}catch(error){reason=error.message;}
+    return {id:s.id,title:s.title,start:s.start,end:s.end,reason};
+  });
   function formChanged(){
     if(!panel?.open)return false;const s=current();
     if(!s)return C.fields.some(f=>form[f].value.trim())||!!form.decisions.value.trim()||!!form.confirmedOutcomes.value.trim();
