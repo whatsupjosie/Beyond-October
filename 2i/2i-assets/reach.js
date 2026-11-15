@@ -487,7 +487,8 @@ async function showRevisionHistory() {
   if (initializing || generating || chatSending) {addChat('notice','Finish the active request before opening revision history.');return;}
   const sourceId=documentId;
   const entry=await saveDocument();
-  if(sourceId!==documentId)return;
+  if(sourceId!==documentId||initializing||generating||chatSending||editingIdx!==null)return;
+  const comparisonBasis={lines:committed.slice(),revision:entry===true&&!documentDirty?revision:null};
   const old=document.getElementById('reachRevisionHistory');if(old)old.remove();
   const d=document.createElement('dialog');d.id='reachRevisionHistory';
   d.setAttribute('aria-label','Manuscript revision history');
@@ -499,7 +500,39 @@ async function showRevisionHistory() {
   add('p','Older revisions are read-only here. Export a copy or recover one as a separate manuscript; the current manuscript is never replaced.');
   if(entry!==true)add('p','Current changes may not have reached the server. Only confirmed server revisions are listed.');
   const status=add('p','Loading…');status.setAttribute('role','status');
+  const comparison=add('section',undefined);comparison.hidden=true;
+  comparison.setAttribute('aria-label','Read-only revision comparison');
   const list=add('div',undefined);const nav=add('div',undefined);
+  function renderComparison(saved,number){
+    const result=TwoiFormatCore.compareLines(saved.committed||[],comparisonBasis.lines);
+    comparison.replaceChildren();comparison.hidden=false;
+    add('h3','Revision '+number+' → '+(comparisonBasis.revision===null?'local snapshot at opening':'saved revision '+comparisonBasis.revision),comparison);
+    add('p','Committed text only. Formatting, titles, notes, draft, and attribution records are not compared. No changes are applied.',comparison);
+    add('p',result.method==='coarse-region'?'Large changed region shown as a whole; counts include any unchanged paragraphs inside that region.':result.removedCount+' earlier paragraph(s) removed or replaced · '+result.addedCount+' later paragraph(s) added or replaced.',comparison);
+    if(!result.blocks.length)add('p','Committed text is identical.',comparison);
+    let displayed=0,chars=0,clipped=false;
+    outer:for(const b of result.blocks){
+      const section=add('div',undefined,comparison);section.style.borderTop='1px solid #ad9b83';section.style.padding='6px 0';
+      add('strong','Earlier position '+(b.oldStart+1)+' · later position '+(b.newStart+1),section);
+      for(const [label,lines,start] of [['− Earlier',b.removed,b.oldStart],['+ Later',b.added,b.newStart]]){
+        for(let i=0;i<lines.length;i++){
+          if(displayed>=200||chars>=50000){clipped=true;break outer;}
+          const remaining=Math.max(0,50000-chars),line=lines[i],part=line.slice(0,remaining);if(part.length<line.length)clipped=true;
+          const row=add('p',label+' '+(start+i+1)+': '+(part||'(blank paragraph)')+(part.length<line.length?' [truncated]':''),section);
+          Object.assign(row.style,{whiteSpace:'pre-wrap',overflowWrap:'anywhere',margin:'4px 0',padding:'4px',background:label.startsWith('−')?'#fce7e4':'#e4f1e7',color:'#28231d'});
+          displayed++;chars+=part.length;
+        }
+      }
+    }
+    if(clipped)add('p','Screen preview limited to 200 paragraphs / 50,000 characters. Export the full comparison only if you want a private copy.',comparison);
+    action('Export full private text comparison',comparison,()=>{
+      if(!d.open||documentId!==sourceId)return;
+      if(!confirm('Export a private file containing manuscript text from both compared revisions?'))return;
+      downloadFile('revision-'+number+'-comparison.json',JSON.stringify({format:'2i-committed-comparison',version:1,baseline:number,targetRevision:comparisonBasis.revision,targetDescription:'snapshot at history opening',...result},null,2),'application/json');
+    });
+    action('Close comparison',comparison,()=>{comparison.hidden=true;comparison.replaceChildren();});
+    comparison.scrollIntoView({block:'start'});
+  }
   action('Close',nav,()=>d.close());
   const more=action('Older revisions',nav,()=>load());more.disabled=true;
   let before=null,busy=false;
@@ -521,7 +554,9 @@ async function showRevisionHistory() {
             const snapshot=await api('/api/writers-room/documents/'+encodeURIComponent(sourceId)+'/revisions/'+row.revision);
             const copy={format:snapshot.format,version:snapshot.version,title:snapshot.title,state:snapshot.state};
             validateDocumentState(copy.state);
-            if(mode==='export'){
+            if(!d.open||documentId!==sourceId)return;
+            if(mode==='compare'){renderComparison(copy.state,row.revision);status.textContent='Comparison is read-only.';}
+            else if(mode==='export'){
               downloadFile('revision-'+row.revision+'.2i',JSON.stringify(copy,null,2),'application/json');
               status.textContent='Revision exported without changing the current manuscript.';
             }else{
@@ -534,6 +569,7 @@ async function showRevisionHistory() {
           }catch(error){status.textContent=error.message;}
           finally{busy=false;more.disabled=before===null;}
         }
+        action('Compare with opened snapshot',box,()=>retrieve('compare'));
         action('Export .2i',box,()=>retrieve('export'));
         action('Open as recovered copy',box,()=>retrieve('recover'));
       }

@@ -117,7 +117,36 @@ function makeFormatCore(){
     const defaultFont=script?"'Courier New',monospace":"Georgia,serif",defaultSpacing=script?1:1.5;
     return '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(title)+'</title><style>@page{size:'+width+" "+height+";margin:"+page.margin+'in}*{box-sizing:border-box}html{background:#e8e5df}body{max-width:'+width+';min-height:'+height+';margin:16px auto;padding:'+page.margin+'in;background:white;color:#191919;font:12pt/'+defaultSpacing+' '+defaultFont+'}.chapter{text-align:center;break-after:avoid;margin:22pt 0 8pt}.chapter-subtitle{text-align:center;font-style:italic;break-after:avoid}.paragraph{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:0;margin-bottom:6pt;orphans:2;widows:2}table{border-collapse:collapse;width:100%;table-layout:fixed}td,th{width:50%;border:1px solid #555;padding:8pt;vertical-align:top}tr{break-inside:avoid}@media print{html{background:white}body{margin:0;padding:0;max-width:none;min-height:0}}</style><body>'+body+'</body></html>';
   }
-  return {profiles,names,fresh,restore,reconcile,apply,clear,defaultStyle,styleCss,exportHtml,profileContext,clone};
+  // Read-only paragraph comparison. The common prefix and suffix are removed
+  // first. Large changed regions fall back to a lossless coarse replacement
+  // rather than allocating an unbounded quadratic matrix on modest hardware.
+  function compareLines(oldLines,newLines){
+    if(!Array.isArray(oldLines)||!Array.isArray(newLines)||oldLines.some(x=>typeof x!=="string")||newLines.some(x=>typeof x!=="string"))throw Error("Invalid revision text.");
+    let prefix=0,suffix=0;
+    while(prefix<oldLines.length&&prefix<newLines.length&&oldLines[prefix]===newLines[prefix])prefix++;
+    while(suffix<oldLines.length-prefix&&suffix<newLines.length-prefix&&oldLines[oldLines.length-1-suffix]===newLines[newLines.length-1-suffix])suffix++;
+    const oldEnd=oldLines.length-suffix,newEnd=newLines.length-suffix,n=oldEnd-prefix,m=newEnd-prefix;
+    const blocks=[];let method="line-lcs";
+    if(n||m){
+      if(!n||!m){blocks.push({oldStart:prefix,newStart:prefix,removed:oldLines.slice(prefix,oldEnd),added:newLines.slice(prefix,newEnd)});}
+      else if((n+1)*(m+1)>250000){method="coarse-region";blocks.push({oldStart:prefix,newStart:prefix,removed:oldLines.slice(prefix,oldEnd),added:newLines.slice(prefix,newEnd)});}
+      else{
+        const width=m+1,dp=new Uint32Array((n+1)*width);
+        for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)dp[i*width+j]=oldLines[prefix+i]===newLines[prefix+j]?1+dp[(i+1)*width+j+1]:Math.max(dp[(i+1)*width+j],dp[i*width+j+1]);
+        let i=0,j=0,block=null;
+        const push=()=>{if(block){blocks.push(block);block=null;}};
+        while(i<n||j<m){
+          if(i<n&&j<m&&oldLines[prefix+i]===newLines[prefix+j]){push();i++;j++;continue;}
+          if(!block)block={oldStart:prefix+i,newStart:prefix+j,removed:[],added:[]};
+          if(i<n&&(j===m||dp[(i+1)*width+j]>=dp[i*width+j+1]))block.removed.push(oldLines[prefix+i++]);
+          else block.added.push(newLines[prefix+j++]);
+        }
+        push();
+      }
+    }
+    return {method,oldCount:oldLines.length,newCount:newLines.length,blocks,removedCount:blocks.reduce((n,b)=>n+b.removed.length,0),addedCount:blocks.reduce((n,b)=>n+b.added.length,0)};
+  }
+  return {profiles,names,fresh,restore,reconcile,apply,clear,defaultStyle,styleCss,exportHtml,profileContext,clone,compareLines};
 }
 const TwoiFormatCore=makeFormatCore();
 if(typeof module!=="undefined"&&module.exports)module.exports=TwoiFormatCore;
