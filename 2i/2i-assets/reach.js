@@ -70,6 +70,21 @@ function validateDocumentState(state) {
   if((state.chapters||[]).some((c,i,all)=>c.startLine>(state.committed||[]).length+(state.buffer||[]).length || (i>0&&c.startLine<all[i-1].startLine)))throw Error('Invalid chapter order or position.');
   if (state.lockedLines !== undefined && (!Array.isArray(state.lockedLines) || state.lockedLines.some(i => !Number.isInteger(i) || i < 0 || i >= (state.committed || []).length))) throw Error('Invalid locked lines.');
   if (state.coWriting !== undefined && typeof state.coWriting !== 'boolean') throw Error('Invalid writing mode.');
+  if(state.pointer!==undefined&&(!Number.isInteger(state.pointer)||state.pointer<0||state.pointer>(state.pool||[]).length))throw Error('Invalid generation queue position.');
+  // Validate the added narrative record before changing document identity or
+  // rendering the recovered copy. Invalid data must not replace active work.
+  if(state.narrative!==undefined){
+    if(typeof NarrativeCore==='undefined')throw Error('Narrative intelligence runtime missing; keep the original document.');
+    const narrative=NarrativeCore.restore(state.narrative);
+    if(narrative.archive.some(x=>!x||typeof x.kind!=='string'||typeof x.text!=='string'))throw Error('Invalid creative archive.');
+    const ids=new Set(narrative.scenes.map(x=>x.id));
+    if(narrative.latentByScene!==undefined){
+      if(!Array.isArray(narrative.latentByScene)||narrative.latentByScene.some(x=>!x||!ids.has(x.id)||typeof x.text!=='string')||new Set(narrative.latentByScene.map(x=>x.id)).size!==narrative.latentByScene.length)throw Error('Invalid scene-specific latent archive.');
+    }
+    for(const key of ['review','proposal']){
+      const item=narrative[key];if(item!==null&&item!==undefined&&(!item||typeof item.text!=='string'||!ids.has(item.sceneId)))throw Error('Invalid narrative advisory.');
+    }
+  }
   if (state.partnerId !== undefined && (typeof state.partnerId !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(state.partnerId))) throw Error('Invalid partner identity.');
   for (const key of ['conversations','conversationIds']) if (state[key] !== undefined && (!state[key] || typeof state[key] !== 'object' || Array.isArray(state[key]))) throw Error('Invalid conversation state.');
   for (const messages of Object.values(state.conversations || {})) if (!Array.isArray(messages) || messages.some(m => !m || !['user','assistant'].includes(m.role) || typeof m.content !== 'string')) throw Error('Invalid conversation.');
@@ -441,6 +456,9 @@ async function showRevisionHistory() {
               if(sourceId!==documentId)throw Error('The active manuscript changed. Open revision history again.');
               if(!confirm('Open this revision as a separate recovered manuscript? Your current manuscript will be preserved.'))return;
               copy.title=(String(copy.title).slice(0,170)+' — recovered r'+row.revision);
+              // Keep the historical conversation text, but create independent
+              // live session IDs when the recovered branch next talks to a model.
+              copy.state={...copy.state,conversationIds:{}};
               await importDocument(new Blob([JSON.stringify(copy)],{type:'application/json'}));
               if(documentId!==sourceId)d.close();
               else status.textContent='Recovery was not applied. The current manuscript remains active.';
