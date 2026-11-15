@@ -106,6 +106,12 @@ if(typeof document!=="undefined")(function installVersionIdentity(){
           try{await api("/api/writers-room/documents/"+encodeURIComponent(v.id)+"/version-action",{method:"POST",body:JSON.stringify({action,expected_epoch:v.epoch,expected_revision:v.revision})});await populate();}
           catch(e){status.textContent=e.message;}
         }
+        if(v.id!==documentId){
+          button("Open in new tab",box,()=>{
+            const url=new URL(location.href);url.searchParams.delete("file");url.searchParams.delete("foresightSession");url.searchParams.set("document",v.id);
+            const link=el("a",undefined,document.body);link.href=url.href;link.target="_blank";link.rel="noopener";link.click();link.remove();
+          });
+        }
         if(v.id!==documentId)button("Open here",box,async()=>{
           try{
             if(!await preserveBeforeSwitch())return;

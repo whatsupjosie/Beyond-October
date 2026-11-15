@@ -2528,17 +2528,19 @@ async function ppLoadIntelligence() {
   }
   intelligenceRefreshDeferred=false;
   intelligenceLastLoaded=Date.now();
+  const originDocument=documentId;
   try {
     ppIdentity();
     const res = await ppFetch(
       '/api/pubpartner/manuscript/' + encodeURIComponent(PP.projectId) + '/intelligence'
     );
+    if(originDocument!==documentId)return;
     PP.intelligence = res;
     PP.online = true;
     ppRenderFlags();
     ppRenderCast();
   } catch (e) {
-    PP.online = false;
+    if(originDocument===documentId)PP.online = false;
     console.debug('[2i] intelligence unavailable:', e.message);
   }
 }
@@ -2653,10 +2655,13 @@ function ppSetStatus(text) {
 }
 
 async function ppHealthCheck() {
+  if(initializing)return;
+  const originDocument=documentId;
   try {
     ppIdentity();
     const res = await ppFetch('/api/pubpartner/manuscript/' +
       encodeURIComponent(PP.projectId) + '/health', {}, 5000);
+    if(originDocument!==documentId)return;
     PP.online = true;
     ppSetStatus(res.stats.entities + ' known');
     ppLoadIntelligence();

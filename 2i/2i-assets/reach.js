@@ -4,6 +4,31 @@ const reachFileMode = new URLSearchParams(location.search).get('file');
 let WORKSPACE_KEY = 'reach2i_workspace_v1';
 let RECOVERY_KEY = 'reach2i_recovery_v1';
 const uuid = () => crypto.randomUUID ? crypto.randomUUID() : 'doc_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+const requestedIdParam=new URLSearchParams(location.search).get('document');
+const requestedDocumentId=/^[A-Za-z0-9_-]{1,100}$/.test(requestedIdParam||'')?requestedIdParam:null;
+const priorEditorWriter=typeof history.state?.twoiWriter==='string'?history.state.twoiWriter:null;
+const editorWriter=uuid();
+/* Editor recovery selection — kept pure for regression tests. */
+function uniqueEditorRecoveries(records){
+  const copies=new Map();
+  for(const r of records){
+    if(!r?.id||!r.state)continue;
+    const key=r.dirty?"dirty:"+r.id+":"+(r.writer||"legacy")+":"+(r.writer?"":(r.ts||0)):"clean:"+r.id;
+    const old=copies.get(key);
+    if(!old||(r.revision||0)>(old.revision||0)||((r.revision||0)===(old.revision||0)&&(r.ts||0)>(old.ts||0)))copies.set(key,r);
+  }
+  return [...copies.values()].sort((a,b)=>(b.ts||0)-(a.ts||0));
+}
+function chooseEditorRecovery({documentId,previousWriter,explicit,records}){
+  const candidates=uniqueEditorRecoveries(records).filter(r=>r.id===documentId);
+  const own=previousWriter?candidates.find(r=>r.writer===previousWriter&&r.dirty):null;
+  if(own)return own;
+  const clean=candidates.find(r=>!r.dirty);
+  if(explicit)return clean||null;
+  const dirty=candidates.filter(r=>r.dirty);
+  return dirty.length===1?dirty[0]:clean||null;
+}
+/* End editor recovery selection. */
 function stored(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; } }
 let workspace = stored(WORKSPACE_KEY, { clientId:'writer_' + uuid(), documentId:uuid() });
 let documentId = workspace.documentId || uuid();
@@ -38,7 +63,19 @@ openDB=function() {
     request.onsuccess=()=>resolve(request.result);request.onerror=()=>resolve(null);
   });
 };
-function rememberWorkspace() { workspace.documentId = documentId; localStorage.setItem(WORKSPACE_KEY, JSON.stringify(workspace)); }
+function pinEditorDocument() {
+  if(!networked||reachFileMode)return;
+  try{
+    const url=new URL(location.href);url.searchParams.set('document',documentId);
+    history.replaceState({...history.state,twoiWriter:editorWriter},'',url);
+  }catch(error){console.warn('Could not pin the editor URL:',error.message);}
+}
+function rememberWorkspace() {
+  workspace.documentId=documentId;
+  try{localStorage.setItem(WORKSPACE_KEY,JSON.stringify(workspace));}catch{}
+  pinEditorDocument();
+}
+function recoveryWriterKey(id,writer=editorWriter){return RECOVERY_KEY+':writer:'+writer+':'+id;}
 // Manuscripts and account state always belong to the local Reach host.
 // A separately configured AI endpoint must never redirect document writes.
 function baseURL() { return (networked ? location.origin : 'http://localhost:8000').replace(/\/+$/, ''); }
@@ -92,14 +129,23 @@ function validateDocumentState(state) {
 }
 function setSaveStatus(text) { $('saveIndicator').textContent = text; }
 function writeRecovery() {
-  if(reachFileMode || (networked && !serverReady))return;
-  try {
-    conversations[partnerId] = chatHistory;
-    const copy=JSON.stringify({id:documentId, revision, mutation, title:documentTitle, state:getDocState(), dirty:documentDirty, ts:Date.now()});
-    localStorage.setItem(RECOVERY_KEY+':'+documentId,copy);
-    localStorage.setItem(RECOVERY_KEY,copy);
-    rememberWorkspace(); recoverySafe = true;
-  } catch { recoverySafe = false; setSaveStatus('Storage full · export a copy now'); }
+  if(reachFileMode || (networked&&!serverReady))return;
+  try{
+    conversations[partnerId]=chatHistory;
+    const copy={id:documentId,revision,mutation,title:documentTitle,state:getDocState(),dirty:documentDirty,ts:Date.now(),writer:editorWriter};
+    const content=JSON.stringify(copy), key=RECOVERY_KEY+':'+documentId, own=recoveryWriterKey(documentId);
+    if(documentDirty){
+      // Independent tabs must never overwrite one another's unsaved recovery.
+      localStorage.setItem(own,content);
+    }else{
+      const old=stored(key,null);
+      if(!old?.dirty&&(!old||(old.revision||0)<=revision))localStorage.setItem(key,content);
+      // Preserve legacy dirty copies. Remove only this runtime's buffer once
+      // the server or the clean canonical recovery actually retains the work.
+      if((networked&&revision>0)||(!old?.dirty&&stored(key,null)?.revision===revision))localStorage.removeItem(own);
+    }
+    rememberWorkspace();recoverySafe=true;
+  }catch{recoverySafe=false;pinEditorDocument();setSaveStatus('Browser recovery unavailable · export a copy if needed');}
 }
 function markDirty() {
   documentDirty = true; recoverySafe = false; mutation++;
@@ -118,7 +164,7 @@ async function writeAutosave() {
     const tx = db.transaction('snaps','readwrite');
     // Per-document snapshots prevent two manuscripts sharing one three-slot
     // rotation. Historical reach_0..2 snapshots are deliberately not deleted.
-    tx.objectStore('snaps').put({id:documentId,title:documentTitle,ts:Date.now(),state:getDocState()}, 'reach_' + documentId + '_' + (Math.floor(Date.now()/60000)%3));
+    tx.objectStore('snaps').put({id:documentId,title:documentTitle,ts:Date.now(),state:getDocState(),writer:editorWriter}, 'reach_' + documentId + '_' + editorWriter + '_' + (Math.floor(Date.now()/60000)%3));
     tx.oncomplete = () => { db.close(); resolve(); };
     tx.onerror = () => { db.close(); resolve(); };
   });
@@ -165,15 +211,16 @@ async function preserveBeforeSwitch() {
   return true;
 }
 function browserManuscripts() {
-  const copies=new Map();
-  for(let index=0;index<localStorage.length;index++) {
-    const key=localStorage.key(index);
-    if(key===RECOVERY_KEY || key.startsWith(RECOVERY_KEY+':')) {
-      const copy=stored(key,null);
-      if(copy?.id&&copy?.state&&(!copies.has(copy.id)||copy.ts>copies.get(copy.id).ts))copies.set(copy.id,copy);
+  const records=[];
+  try{
+    for(let index=0;index<localStorage.length;index++){
+      const key=localStorage.key(index);
+      if(key===RECOVERY_KEY||key?.startsWith(RECOVERY_KEY+':')){
+        const r=stored(key,null);if(r?.id&&r.state)records.push({...r,recoveryKey:key});
+      }
     }
-  }
-  return [...copies.values()];
+  }catch{}
+  return uniqueEditorRecoveries(records);
 }
 function downloadFile(name, text, type) {
   const url = URL.createObjectURL(new Blob([text], {type}));
@@ -397,7 +444,7 @@ async function connectReach() {
     WORKSPACE_KEY = 'reach2i_workspace_v1_' + ownerKey;
     RECOVERY_KEY = 'reach2i_recovery_v1_' + ownerKey;
     const next = stored(WORKSPACE_KEY, {clientId:workspace.clientId,documentId:uuid()});
-    workspace = next; documentId=reachFileMode ? 'file_'+reachFileMode : workspace.documentId; revision=0;
+    workspace = next; documentId=reachFileMode ? 'file_'+reachFileMode : (requestedDocumentId||workspace.documentId||uuid()); revision=0;
   }
   serverReady=true;
   if (!modelConfig) $('partnerNote').textContent='No local model configured · paid models will not be selected automatically.';
@@ -500,17 +547,27 @@ async function showShelf() {
   for(const doc of entries) {
     const button=document.createElement('button');button.className='mc-btn shelf-item';button.dataset.documentId=doc.id;button.dataset.source=doc.source;
     const title=document.createElement('strong');title.textContent=doc.title;
-    const stamp=document.createElement('small');stamp.textContent=doc.source==='browser'?'Browser recovery · '+new Date(doc.ts).toLocaleString():'Revision '+doc.revision+' · '+new Date(doc.updated*1000).toLocaleString();
+    const stamp=document.createElement('small');stamp.textContent=doc.source==='browser'?(doc.dirty?'Unsaved browser recovery':'Browser copy')+' · '+new Date(doc.ts).toLocaleString():'Revision '+doc.revision+' · '+new Date(doc.updated*1000).toLocaleString();
     button.append(title,stamp);
     if(typeof decorateVersionShelf==='function')decorateVersionShelf(button,doc);
     button.onclick=async()=>{
       try {
         if(!await preserveBeforeSwitch())return;
-        const result=doc.source==='browser'?(stored(RECOVERY_KEY+':'+doc.id,null)||doc):await api('/api/writers-room/documents/'+encodeURIComponent(doc.id));
-        validateDocumentState(result.state);cancelLLM();stopPlaying();documentId=doc.id;revision=result.revision||0;saveConflict=false;
-        documentTitle=String(result.title||'Untitled manuscript').slice(0,200);loadDocState(result.state);documentDirty=doc.source==='browser';savedMutation=mutation;
-        writeRecovery();setSaveStatus(documentDirty?'Recovered from this browser':'Saved to Reach · revision '+revision);closeModal('reachShelf');render();
-        if(documentDirty)await saveDocument();
+        if(doc.source==='browser'){
+          const candidate=stored(doc.recoveryKey,null)||doc;
+          validateDocumentState(candidate.state);
+          if(!confirm('Recover this browser copy as an independent manuscript? The original version and other editors will remain untouched.'))return;
+          if(await importDocument(new Blob([JSON.stringify({format:'2i-document',version:4,title:String(candidate.title||'Untitled').slice(0,175)+' — browser recovery',state:candidate.state})],{type:'application/json'})))closeModal('reachShelf');
+          return;
+        }
+        const previous=documentId,before=mutation;
+        const result=await api('/api/writers-room/documents/'+encodeURIComponent(doc.id));
+        validateDocumentState(result.state);
+        if(documentId!==previous||mutation!==before||generating||chatSending)throw Error('Editor changed while opening this manuscript. Try again.');
+        cancelLLM();stopPlaying();documentId=doc.id;revision=result.revision||0;saveConflict=false;
+        documentTitle=String(result.title||'Untitled manuscript').slice(0,200);loadDocState(result.state);documentDirty=false;savedMutation=mutation;
+        writeRecovery();setSaveStatus('Saved to Reach · revision '+revision);closeModal('reachShelf');render();
+        document.dispatchEvent(new Event('foresight:work-change'));
       } catch(error) {addChat('notice',error.message);}
     };
     shelf.append(button);
@@ -601,8 +658,10 @@ async function startReach() {
     }
   }
   if(reachFileMode){initializing=false;return;}
-  // The last workspace pointer is not a recovery record for every manuscript.
-  const recovery=stored(RECOVERY_KEY+':'+documentId,null)||stored(RECOVERY_KEY,null);
+  const candidates=browserManuscripts();
+  const recovery=chooseEditorRecovery({documentId,previousWriter:priorEditorWriter,explicit:!!requestedDocumentId,records:candidates});
+  if(candidates.some(r=>r.id===documentId&&r.dirty&&r!==recovery&&r.recoveryKey!==recovery?.recoveryKey))
+    addChat('notice','Other unsaved browser copies exist. They remain available separately in My manuscripts; no other editor\'s draft was silently adopted.');
   if(recovery?.id===documentId) {
     try {validateDocumentState(recovery.state);documentTitle=recovery.title;revision=recovery.revision||0;loadDocState(recovery.state);documentDirty=!!recovery.dirty;recoverySafe=true;} catch {addChat('notice','A recovery copy could not be loaded. Use Restore autosave or import your .2i file.');}
   }
@@ -612,10 +671,18 @@ async function startReach() {
       if(!documentDirty) {validateDocumentState(saved.state);documentTitle=saved.title;revision=saved.revision;loadDocState(saved.state);writeRecovery();setSaveStatus('Saved to Reach · revision '+revision);}
       else if(saved.revision!==revision) {saveConflict=true;setSaveStatus('Newer Reach copy exists · save a copy');}
     } catch(error) {
-      if(error.status!==404) setSaveStatus(recoverySafe?'Recovered in browser · Reach unavailable':'Writing locally · connect Reach to sync');
+      if(requestedDocumentId&&!recoverySafe){
+        setSaveStatus('Requested version unavailable · open My manuscripts');
+        addChat('notice','The requested manuscript was not loaded. This is a separate empty recovery workspace, not the requested version.');
+        // Never turn an unknown or inaccessible explicit version ID into
+        // a silent new manuscript using that same identity.
+        documentId=uuid();revision=0;saveConflict=false;documentTitle='Untitled recovery workspace';
+        loadDocState({committed:[],buffer:[],pool:[],pointer:0,chapters:[{title:'Chapter One',subtitle:'',startLine:0}],lockedLines:[],coWriting:false,references:[],partnerId});
+        documentDirty=false;
+      }else if(error.status!==404)setSaveStatus(recoverySafe?'Recovered in browser · Reach unavailable':'Writing locally · connect Reach to sync');
     }
   } else setSaveStatus(recoverySafe?'Recovered in this browser':'Writing locally · open through Reach to sync');
-  initializing=false;render();
+  initializing=false;if(documentDirty)writeRecovery();else pinEditorDocument();render();
   if(documentDirty&&!saveConflict) await saveDocument();
 }
 window.reachStarted=startReach();
