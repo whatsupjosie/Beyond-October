@@ -121,6 +121,7 @@ async function mount(c,host,file,options={}){
   function persist(){
     if(!value)return Promise.reject(Error('File has not finished opening'));
     clearTimeout(timer);
+    if(richMode&&!richEditor&&!changed&&!richMetadataDirty)return Promise.resolve(value);
     if(richMode&&richEditor){
       saving=saving.catch(()=>{}).then(async()=>{
         if(!changed&&!richMetadataDirty)return value;

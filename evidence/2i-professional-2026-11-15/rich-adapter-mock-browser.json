@@ -1,0 +1,29 @@
+{
+  "sourceBlob": "6c78360b2b54bfc52b5c1f5ad6e12676ba3d157d",
+  "verifiedExactGitBlob": true,
+  "environment": "local Chromium with Playwright; in-memory fixture; engine contract mock",
+  "initialFailure": "localhost navigation blocked by administrator; no network bypass attempted; switched to in-memory HTML",
+  "viewports": [
+    {
+      "width": 1200,
+      "height": 900,
+      "assertionsPassed": 14
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "assertionsPassed": 14
+    }
+  ],
+  "extraAtEachViewport": [
+    "disabled redo",
+    "real button click",
+    "save button",
+    "Ctrl+S shortcut",
+    "no unexpected requests",
+    "no page exceptions"
+  ],
+  "actualEngine": false,
+  "actualDocxParsing": false,
+  "productionBrowser": false
+}
