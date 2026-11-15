@@ -70,6 +70,7 @@ function validateDocumentState(state) {
   if((state.chapters||[]).some((c,i,all)=>c.startLine>(state.committed||[]).length+(state.buffer||[]).length || (i>0&&c.startLine<all[i-1].startLine)))throw Error('Invalid chapter order or position.');
   if (state.lockedLines !== undefined && (!Array.isArray(state.lockedLines) || state.lockedLines.some(i => !Number.isInteger(i) || i < 0 || i >= (state.committed || []).length))) throw Error('Invalid locked lines.');
   if (state.coWriting !== undefined && typeof state.coWriting !== 'boolean') throw Error('Invalid writing mode.');
+  if(state.generatedLineTexts!==undefined&&(!Array.isArray(state.generatedLineTexts)||state.generatedLineTexts.some(x=>typeof x!=='string')))throw Error('Invalid generated-line provenance.');
   if(state.pointer!==undefined&&(!Number.isInteger(state.pointer)||state.pointer<0||state.pointer>(state.pool||[]).length))throw Error('Invalid generation queue position.');
   // Validate the added narrative record before changing document identity or
   // rendering the recovered copy. Invalid data must not replace active work.
@@ -158,7 +159,8 @@ async function preserveBeforeSwitch() {
     addChat('notice', 'A message or generation is still active. Finish or cancel it before changing manuscripts.');
     return false;
   }
-  await saveDocument();
+  const sourceId=documentId;await saveDocument();
+  if(sourceId!==documentId||generating||chatSending){addChat('notice','The current manuscript or request changed. Retry the switch.');return false;}
   if(documentDirty&&!recoverySafe){addChat('notice','Your current manuscript could not be saved. Export a .2i copy before switching manuscripts.');return false;}
   return true;
 }
@@ -213,7 +215,8 @@ async function importDocument(file) {
   cancelLLM(); stopPlaying();
   documentId = uuid(); revision=0; saveConflict=false;
   documentTitle = String(doc.title || 'Untitled manuscript').slice(0,200); documentHandle=null;
-  loadDocState(doc.state); markDirty(); render(); await saveDocument();
+  loadDocState({...doc.state,conversationIds:{}}); markDirty(); render(); await saveDocument();
+  return true;
 }
 async function openDocument() {
   const input = document.createElement('input'); input.type='file'; input.accept='.2i,.json';
@@ -598,14 +601,15 @@ async function startReach() {
     }
   }
   if(reachFileMode){initializing=false;return;}
-  const recovery=stored(RECOVERY_KEY,null);
+  // The last workspace pointer is not a recovery record for every manuscript.
+  const recovery=stored(RECOVERY_KEY+':'+documentId,null)||stored(RECOVERY_KEY,null);
   if(recovery?.id===documentId) {
     try {validateDocumentState(recovery.state);documentTitle=recovery.title;revision=recovery.revision||0;loadDocState(recovery.state);documentDirty=!!recovery.dirty;recoverySafe=true;} catch {addChat('notice','A recovery copy could not be loaded. Use Restore autosave or import your .2i file.');}
   }
   if(networked) {
     try {
       const saved=await api('/api/writers-room/documents/'+encodeURIComponent(documentId));
-      if(!documentDirty) {documentTitle=saved.title;revision=saved.revision;loadDocState(saved.state);writeRecovery();setSaveStatus('Saved to Reach · revision '+revision);}
+      if(!documentDirty) {validateDocumentState(saved.state);documentTitle=saved.title;revision=saved.revision;loadDocState(saved.state);writeRecovery();setSaveStatus('Saved to Reach · revision '+revision);}
       else if(saved.revision!==revision) {saveConflict=true;setSaveStatus('Newer Reach copy exists · save a copy');}
     } catch(error) {
       if(error.status!==404) setSaveStatus(recoverySafe?'Recovered in browser · Reach unavailable':'Writing locally · connect Reach to sync');

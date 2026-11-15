@@ -92,7 +92,10 @@ def create_writers_room_router(data_dir: Path) -> APIRouter:
                          (owner,doc_id)).fetchone()
         if row is None:
             raise HTTPException(404,"version not found")
-        return next(r for r in version_rows(db,owner,row["family_id"]) if r["id"]==doc_id)
+        result=next((r for r in version_rows(db,owner,row["family_id"]) if r["id"]==doc_id),None)
+        if result is None:
+            raise HTTPException(409,"Version registry is inconsistent; preserve the document and repair its metadata.")
+        return result
 
     with connect() as db:
         db.execute("""CREATE TABLE IF NOT EXISTS documents (
@@ -193,6 +196,7 @@ def create_writers_room_router(data_dir: Path) -> APIRouter:
     async def versions(doc_id: str, identity=Depends(current_identity)):
         owner=identity["user_id"]
         with connect() as db:
+            db.execute("BEGIN")  # One consistent family snapshot across both reads.
             current=version_row(db,owner,document_id(doc_id))
             rows=version_rows(db,owner,current["family_id"])
         return {"ok":True,"current":current,"versions":rows}

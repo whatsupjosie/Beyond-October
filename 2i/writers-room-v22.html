@@ -1273,9 +1273,9 @@ function llmOk() { return LLM_ADAPTERS[llmCfg.provider]?.configured(llmCfg) || f
 async function callLLM(msgs) {
   const a = LLM_ADAPTERS[llmCfg.provider];
   if (!a || !a.configured(llmCfg)) throw new Error('LLM not configured');
-  abortController = new AbortController();
-  try { return await a.send(msgs, llmCfg, abortController.signal); }
-  finally { abortController = null; }
+  const request = new AbortController(); abortController = request;
+  try { return await a.send(msgs, llmCfg, request.signal); }
+  finally { if (abortController === request) abortController = null; }
 }
 function cancelLLM() { if (abortController) { abortController.abort(); abortController = null; } }
 
@@ -1411,8 +1411,8 @@ function loadDocState(state) {
   pointer = state.pointer || 0;
   chapters = state.chapters || [{ title: 'Chapter One', subtitle: '', startLine: 0 }];
   lockedLines = new Set(state.lockedLines || []);
-  if (state.coWriting !== undefined) { coWriting = state.coWriting; updateModeUI(); }
-  if (state.references) { references = state.references; refIdCounter = Math.max(1, ...references.map(r => r.id || 0)) + 1; }
+  coWriting = !!state.coWriting; updateModeUI();
+  references = state.references || []; refIdCounter = references.reduce((max,r)=>Math.max(max,Number(r.id)||0),1)+1;
   if (typeof partnerId !== 'undefined') {
     if (state.partnerId) partnerId = state.partnerId;
     conversations = state.conversations && typeof state.conversations === 'object' ? state.conversations : {};
@@ -2215,11 +2215,18 @@ $('hmRestoreAutosave').onclick = async () => {
       btn.className = 'mc-btn';
       btn.style.cssText = 'width:100%; text-align:left; margin:4px 0;';
       btn.textContent = (snap.title || 'Untitled') + ' — ' + new Date(snap.ts).toLocaleString();
-      btn.onclick = () => {
-        documentTitle = snap.title || 'Untitled';
-        loadDocState(snap.state);
-        closeModal('autosaveModalBackdrop');
-        render();
+      btn.onclick = async () => {
+        try {
+          if(typeof importDocument === "function" && typeof reachFileMode!=="undefined" && !reachFileMode){
+            if(!confirm("Recover this snapshot as a separate manuscript? The current manuscript will not be replaced."))return;
+            const payload={format:"2i-document",version:4,title:String(snap.title||"Untitled").slice(0,180)+" — recovered",state:{...snap.state,conversationIds:{}}};
+            await importDocument(new Blob([JSON.stringify(payload)],{type:"application/json"}));
+          }else{
+            if(documentDirty&&!confirm("Replace current unsaved text with this snapshot?"))return;
+            documentTitle=snap.title||"Untitled";loadDocState(snap.state);markDirty();
+          }
+          closeModal("autosaveModalBackdrop");render();
+        }catch(error){addChat("notice","Recovery failed: "+error.message);}
       };
       container.appendChild(btn);
     });
@@ -2449,7 +2456,7 @@ async function ppFetch(path, options = {}, timeoutMs = 15000) {
     const r = await fetch(ppBase() + path, {
       ...options,
       signal: ctrl.signal,
-      headers: { 'Content-Type': 'application/json', 'X-Client-Id': PP.userId || ppIdentity() && PP.userId, ...(options.headers || {}) },
+      headers: { ...(typeof reachHeaders==='function'?reachHeaders():{'Content-Type':'application/json','X-Client-Id':PP.userId||'local-writer'}), ...(options.headers || {}) },
     });
     if (!r.ok) throw new Error('PubPartner ' + r.status);
     return await r.json();
@@ -2461,6 +2468,7 @@ async function ppFetch(path, options = {}, timeoutMs = 15000) {
 /* ── commit ────────────────────────────────────────────────────────── */
 
 async function ppCommit({ force = false } = {}) {
+  if(typeof initializing!=="undefined"&&initializing)return;
   if (!committed.length) return;
 
   // Coalesce: one commit in flight at a time. A second request while one
@@ -2468,6 +2476,7 @@ async function ppCommit({ force = false } = {}) {
   // of indexing work behind a fast typist.
   if (PP.inflight) { PP.pending = true; return; }
   PP.inflight = true;
+  const indexDocument = typeof documentId==="undefined"?null:documentId;
 
   try {
     ppIdentity();
@@ -2483,6 +2492,7 @@ async function ppCommit({ force = false } = {}) {
       }),
     }, 30000);
 
+    if(indexDocument!==documentId)return;
     PP.online = true;
     PP.lastCommit = Date.now();
     ppSetStatus(
@@ -2496,7 +2506,7 @@ async function ppCommit({ force = false } = {}) {
     }
   } catch (e) {
     PP.online = false;
-    ppSetStatus('offline');
+    if(indexDocument===documentId)ppSetStatus('offline');
     console.debug('[2i] commit skipped:', e.message);
   } finally {
     PP.inflight = false;

@@ -11,6 +11,10 @@ function makeNarrativeCore(){
     const ids=new Set();
     for(const s of value.scenes){ validateScene(s); if(ids.has(s.id))throw Error("Duplicate scene identity.");ids.add(s.id);}
     if(value.activeSceneId!==null&&!ids.has(value.activeSceneId))throw Error("Active scene is missing.");
+    if(value.scenes.some(s=>{try{disclosure(s.information);return false}catch{return true}}))throw Error("Invalid scene disclosure.");
+    if(value.archive.some(x=>!x||typeof x.kind!=="string"||typeof x.text!=="string"))throw Error("Invalid creative archive.");
+    const latent=value.latentByScene||[];
+    if(!Array.isArray(latent)||latent.some(x=>!x||!ids.has(x.id)||typeof x.text!=="string")||new Set(latent.map(x=>x.id)).size!==latent.length)throw Error("Invalid scene-specific latent archive.");
     return clone(value);
   }
   function validateScene(s){
@@ -26,8 +30,8 @@ function makeNarrativeCore(){
   function disclosure(raw){
     return String(raw).split(/\n/u).map(s=>s.trim()).filter(Boolean).map((line,i)=>{
       const bits=line.split("|").map(s=>s.trim());
-      const states=["knows","suspects","unaware","false belief","uncertain","withhold","reveal","maintain","misdirect","resolve"];
-      if(bits.length!==4||bits.some(x=>!x)||!states.includes(bits[2].toLowerCase())||!states.includes(bits[3].toLowerCase()))throw Error(`Knowledge row ${i+1}: recipient | fact | current state | intended state`);
+      const currentStates=["knows","suspects","unaware","false belief","uncertain"]; const states=[...currentStates,"withhold","reveal","maintain","misdirect","resolve"];
+      if(bits.length!==4||bits.some(x=>!x)||!currentStates.includes(bits[2].toLowerCase())||!states.includes(bits[3].toLowerCase()))throw Error(`Knowledge row ${i+1}: recipient | fact | current state | intended state`);
       return {recipient:bits[0],fact:bits[1],current:bits[2].toLowerCase(),intended:bits[3].toLowerCase()};
     });
   }
@@ -53,6 +57,19 @@ function makeNarrativeCore(){
     if(!last||!text.slice(0,last).trim())throw Error("A draft segment exceeds the presentation budget; no text was published.");
     const cut=paragraph>=last*.65?paragraph:sentence>=last*.65?sentence:last;
     return {presented:text.slice(0,cut),latent:text.slice(cut)};
+  }
+  function selectScene(state,next){
+    const old=state.activeSceneId;if(old===next)return;
+    const map=state.latentByScene||[];
+    if(old){
+      state.latentByScene=map.filter(x=>x.id!==old);
+      if(state.latent)state.latentByScene.push({id:old,text:state.latent});
+      state.latent="";
+    }else if(state.latent){ // Legacy overflow without a scene has no reliable owner.
+      archive(state,"unassigned legacy latent",state.latent);state.latent="";
+    }
+    if(next){const rows=state.latentByScene||[];state.latent=rows.find(x=>x.id===next)?.text||"";state.latentByScene=rows.filter(x=>x.id!==next);}
+    state.activeSceneId=next;
   }
   function priorContext(lines,chapters,start){
     const candidates=[...new Set(chapters.map(c=>c.startLine).filter(n=>Number.isInteger(n)&&n>=0&&n<start))].sort((a,b)=>a-b);
@@ -87,7 +104,7 @@ function makeNarrativeCore(){
     if(typeof text!=="string"||!text)return;
     state.archive.push({kind,text,...clone(meta)});
   }
-  return {fields,clone,fresh,restore,scene,disclosure,footprint,fits,partition,priorContext,context,prompt,parseDraft,archive};
+  return {fields,clone,fresh,restore,scene,disclosure,footprint,fits,partition,priorContext,context,prompt,parseDraft,archive,selectScene};
 }
 const NarrativeCore=makeNarrativeCore();
 if(typeof module!=="undefined"&&module.exports)module.exports=NarrativeCore;

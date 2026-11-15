@@ -3,7 +3,7 @@ function versionCore(){
   const palette=["#3376bd","#8256bb","#bc7150","#24948c","#c94f86","#697a36","#a05a37","#5361c2","#9a6baf","#377e57","#a66315","#566879"];
   function color(ordinal){return palette[(Math.max(1,Number(ordinal)||1)-1)%palette.length];}
   function describe(v,{here=false,dirty=false,localRevision=null,stale=false}={}){
-    if(!v)return{color:"#777",label:"Unconfirmed version",marks:["Local / unconfirmed"]};
+    if(!v)return{color:"#777",label:"Unconfirmed version",marks:[...(here?["OPEN HERE"]:[]),"Local / unconfirmed"]};
     const marks=[];if(here)marks.push("OPEN HERE");if(v.id===v.main_id)marks.push("MAIN");if(v.id===v.working_id)marks.push("WORKING");
     if(v.departed)marks.push("DEPARTED");
     if(stale)marks.push("STATUS UNCONFIRMED");
@@ -32,8 +32,8 @@ if(typeof document!=="undefined")(function installVersionIdentity(){
   function paint(){
     const v=state.id===documentId?state.version:null;
     const d=C.describe(v,{here:true,dirty:documentDirty,localRevision:revision,stale:state.stale});
-    bar.style.borderLeftColor=d.color;info.textContent=d.label+" · "+documentTitle;markPills(marks,d.marks);
-    document.title=(v?d.label+" · ":"")+documentTitle+" — 2i";
+    bar.style.borderLeftColor=d.color;bar.style.borderLeftStyle=v?.departed?"dashed":"solid";info.textContent=d.label+" · "+documentTitle;markPills(marks,d.marks);
+    document.title=(v?d.label+" · "+d.marks.filter(m=>m==="MAIN"||m==="WORKING"||m==="DEPARTED"||m==="STATUS UNCONFIRMED").join(" / ")+" · ":"")+documentTitle+" — 2i";
   }
   let timer=null;
   async function refresh(){
@@ -63,8 +63,9 @@ if(typeof document!=="undefined")(function installVersionIdentity(){
   window.forkSavedVersion=async function(source,number,title){
     if(!await preserveBeforeSwitch())return false;
     if(source!==documentId)throw Error("Active manuscript changed; reopen the version manager.");
-    const result=await api("/api/writers-room/documents/"+encodeURIComponent(source)+"/fork",{method:"POST",body:JSON.stringify({source_revision:number,title})});
+    const before=mutation;const result=await api("/api/writers-room/documents/"+encodeURIComponent(source)+"/fork",{method:"POST",body:JSON.stringify({source_revision:number,title})});
     validateDocumentState(result.state);
+    if(source!==documentId||before!==mutation||generating||chatSending){throw Error("The fork was saved, but the active editor changed. Open it from My manuscripts; the current work was not replaced.");}
     cancelLLM();stopPlaying();documentId=result.id;revision=result.revision;saveConflict=false;documentTitle=result.title;documentHandle=null;
     loadDocState(result.state);documentDirty=false;savedMutation=mutation;writeRecovery();setSaveStatus("Saved to Reach · revision "+revision);render();
     await refresh();return true;
@@ -105,6 +106,16 @@ if(typeof document!=="undefined")(function installVersionIdentity(){
           try{await api("/api/writers-room/documents/"+encodeURIComponent(v.id)+"/version-action",{method:"POST",body:JSON.stringify({action,expected_epoch:v.epoch,expected_revision:v.revision})});await populate();}
           catch(e){status.textContent=e.message;}
         }
+        if(v.id!==documentId)button("Open here",box,async()=>{
+          try{
+            if(!await preserveBeforeSwitch())return;
+            const prior=documentId,before=mutation;
+            const result=await api("/api/writers-room/documents/"+encodeURIComponent(v.id));
+            validateDocumentState(result.state);
+            if(documentId!==prior||mutation!==before||generating||chatSending)throw Error("Editor changed; retry opening this version.");
+            cancelLLM();stopPlaying();documentId=v.id;revision=result.revision;saveConflict=false;documentTitle=result.title;documentHandle=null;loadDocState(result.state);documentDirty=false;savedMutation=mutation;writeRecovery();setSaveStatus("Saved to Reach · revision "+revision);render();await refresh();d.close();
+          }catch(e){status.textContent=e.message;}
+        });
         if(!v.departed){
           if(v.id!==v.main_id)button("Set main",box,()=>act("main"));
           if(v.id!==v.working_id)button("Set working",box,()=>act("working"));
