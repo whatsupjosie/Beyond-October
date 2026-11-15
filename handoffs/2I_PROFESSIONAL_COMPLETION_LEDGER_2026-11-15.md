@@ -86,3 +86,6 @@ Execution constraint: GitHub connector available; direct repository clone failed
 ### Checkpoint 10 — confirmed approval evidence
 - Existing narrative archive now links the accepted text with its actual presented candidate, retains both exact alternatives where changed, and records the historical committed line range only after the host append is checked. Unicode code-point matching edges are recomputed, not guessed within changed text; private export includes historical offsets, public summary counts observations only, no attribution verdict. Undo preserves archive. Blank accepted paragraphs remain records; no candidate means unknown, not human ownership.
 - V8: 14 checks including 7 simulated host scenarios; syntax checks passed. Added Node regression file. Still not independent Blackbox evidence, per-input provenance, current-text attribution map, correction/dispute workflow or cryptographic certification. Those remain pending.
+
+### CI recheck
+GitHub Actions runs 43775885432, 43775981890 and 43776097435 also reported failure. Latest job 133002626619 returned zero step summaries and its logs endpoint returned BlobNotFound (404). Cause still undetermined; no successful full Node checkout run established. Continue direct isolated checks while retaining this blocker. Main remained c82069b47b04eac56cca1fb4f6a4eb16c44d32ae.
