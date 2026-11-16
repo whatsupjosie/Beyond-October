@@ -1,6 +1,6 @@
 
 /* Presentation only; same manuscript engine and state. */
-@font-face{font-family:"2i Hand";src:url("/static/fonts/caveat-latin-700-normal.woff2") format("woff2");font-weight:700;font-display:swap}
+@font-face{font-family:"2i Hand";src:url("../../static/fonts/caveat-latin-700-normal.woff2") format("woff2");font-weight:700;font-display:swap}
 .app-shell:has(>#twoiVersionBar){grid-template-rows:76px auto minmax(0,1fr) 52px}
 body[data-twoi-desk="notebook"] .solo-textarea,body[data-twoi-desk="notebook"] .m-line,body[data-twoi-desk="notebook"] .draft-area,body[data-twoi-desk="notebook"] .m-line-edit textarea{font-family:"2i Hand","Kalam",cursive;font-weight:700;font-size:calc(23px * var(--zoom-manuscript,1));line-height:1.55}
 body[data-twoi-desk="notebook"] .line-numbers{line-height:calc(35.65px * var(--zoom-manuscript,1))}

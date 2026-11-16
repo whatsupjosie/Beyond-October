@@ -9,7 +9,8 @@ failure), and any dialog it opened with whether that dialog fits inside the wind
 Browser prompts (confirm, prompt, alert) are dismissed, so nothing is deleted or discarded. Commands that leave the
 page or need the operating system (see SKIP) are listed as skipped, not counted as working.
 
-Run:  python tools/twoi_checks/menu_smoke.py            (laptop and phone widths, prints a table)
+Run:  python tools/twoi_checks/menu_smoke.py            (on the real host; laptop and phone widths, prints a table)
+      python tools/twoi_checks/menu_smoke.py --disk     (2i opened straight from the file, no host running)
       python tools/twoi_checks/menu_smoke.py --json out.json
 Needs the project's requirements plus Playwright with Chromium. Exit code 1 if any command raised a script error.
 """
@@ -22,7 +23,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from host import open_writers_room, running_host  # noqa: E402
+from host import PAGE_ON_DISK, open_writers_room, running_host  # noqa: E402
 
 from playwright.sync_api import sync_playwright  # noqa: E402
 
@@ -73,7 +74,13 @@ CLOSE_ALL = """() => {
 
 def run(browser, login, width, height, touch):
     context = browser.new_context(viewport={"width": width, "height": height}, has_touch=touch, is_mobile=touch, accept_downloads=True)
-    page = open_writers_room(context, login)
+    if login:
+        page = open_writers_room(context, login)
+    else:  # opened on its own, straight from the file, with no host running anywhere
+        page = context.new_page()
+        page.goto(PAGE_ON_DISK)
+        page.wait_for_function("!!document.getElementById('twoiMenuBar') && typeof initializing !== 'undefined' && !initializing", timeout=30000)
+        page.wait_for_timeout(400)
     errors: list[str] = []
     prompts: list[str] = []
     page.on("pageerror", lambda e: errors.append(str(e)[:200]))
@@ -152,16 +159,24 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--json", type=Path, help="also write the full result to this file")
     parser.add_argument("--only", choices=["laptop", "phone"], help="run one width only")
+    parser.add_argument("--disk", action="store_true", help="open 2i straight from the file with no host running, instead of on the host")
     args = parser.parse_args()
     sizes = {"laptop": (1280, 800, False), "phone": (390, 844, True)}
     if args.only:
         sizes = {args.only: sizes[args.only]}
     results = {}
-    with running_host() as login, sync_playwright() as p:
-        browser = p.chromium.launch(args=["--no-sandbox"])
-        for name, (w, h, touch) in sizes.items():
-            results[name] = run(browser, login, w, h, touch)
-        browser.close()
+    if args.disk:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(args=["--no-sandbox"])
+            for name, (w, h, touch) in sizes.items():
+                results[name + ", from disk"] = run(browser, None, w, h, touch)
+            browser.close()
+    else:
+        with running_host() as login, sync_playwright() as p:
+            browser = p.chromium.launch(args=["--no-sandbox"])
+            for name, (w, h, touch) in sizes.items():
+                results[name] = run(browser, login, w, h, touch)
+            browser.close()
     failed = 0
     for name, rows in results.items():
         counts: dict[str, int] = {}

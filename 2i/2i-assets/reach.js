@@ -188,7 +188,13 @@ async function saveDocument() {
   if (savePromise) return savePromise;
   writeRecovery();
   if (saveConflict) { setSaveStatus('Changed elsewhere · My manuscripts → Save a copy'); return false; }
-  if (!networked) { setSaveStatus(recoverySafe ? 'Saved in this browser' : 'Export a copy now'); return false; }
+  // No host (opened from disk): automatic saves keep the browser recovery copy only and say where the file stands.
+  // Writing the manuscript file is an explicit act: see saveToFile().
+  if (!networked) {
+    setSaveStatus(!recoverySafe ? 'Export a copy now' : !documentDirty ? 'Saved' :
+      documentHandle ? 'Kept in this browser · Save to update ' + documentHandle.name : 'Kept in this browser · Save to write a file');
+    return false;
+  }
   if(revision>0&&!documentDirty)return true;
   const savingId=documentId;
   savePromise=(async()=>{
@@ -214,6 +220,34 @@ async function saveDocument() {
   })();
   return savePromise;
 }
+// Explicit Save with no host: write the manuscript file itself. The same file again when one was opened or chosen
+// before; otherwise a file the writer picks; otherwise, in a browser without a file picker, a downloaded copy.
+// The file-based code is the page's own (kept as twoiFileSave before this script replaced those names).
+async function saveToFile() {
+  if (initializing) return false;
+  writeRecovery();
+  const payload = JSON.stringify(docPayload(), null, 2);
+  let written = false, downloaded = false;
+  if (documentHandle) {
+    try { const w = await documentHandle.createWritable(); await w.write(payload); await w.close(); written = true; }
+    catch { /* permission withdrawn or file gone: fall through and ask where to save */ }
+  }
+  if (!written) {
+    const before = documentHandle, wasDirty = documentDirty;
+    documentDirty = true;            // the page's Save as clears this only when it really wrote or downloaded
+    await twoiFileSave.saveAs();
+    written = !documentDirty;
+    downloaded = written && documentHandle === before;
+    if (!written) documentDirty = wasDirty;
+  }
+  if (!written) { setSaveStatus(recoverySafe ? 'Not saved to a file · kept in this browser' : 'Not saved · export a copy now'); return false; }
+  documentDirty = false; writeRecovery();
+  setSaveStatus(downloaded ? 'Copy downloaded · ' + safeName() + '.2i' : 'Saved to ' + documentHandle.name);
+  document.dispatchEvent(new Event('foresight:work-change'));
+  return true;
+}
+// What the Save button, File › Save and Ctrl+S do: the host when there is one, the file when there is not.
+function saveNow() { return networked ? saveDocument() : saveToFile(); }
 async function preserveBeforeSwitch() {
   if (chatSending || generating || editingIdx!==null) {
     addChat('notice', 'An inline edit, message or generation is still active. Finish or cancel it before changing manuscripts.');
@@ -280,6 +314,14 @@ async function importDocument(file) {
   return true;
 }
 async function openDocument() {
+  // No host, and the browser has a file picker: keep the chosen file's handle so Save writes back to that file.
+  if (!networked && 'showOpenFilePicker' in window) {
+    try {
+      const [handle] = await window.showOpenFilePicker({types:[{description:'2i Document',accept:{'application/json':['.2i','.json']}}]});
+      if (await importDocument(await handle.getFile())) { documentHandle = handle; documentDirty = false; writeRecovery(); setSaveStatus('Opened ' + handle.name); }
+    } catch (error) { if (error.name !== 'AbortError') addChat('notice', error.message); }
+    return;
+  }
   const input = document.createElement('input'); input.type='file'; input.accept='.2i,.json';
   input.onchange = async () => { if (input.files[0]) try { await importDocument(input.files[0]); } catch(error) { addChat('notice',error.message); } };
   input.click();
@@ -636,7 +678,7 @@ async function showShelf() {
 $('mainArea').appendChild($('chatSection'));
 $('chatSendBtn').onclick=sendChat;
 $('partnerSelect').onchange=switchPartner;
-$('saveBtn').onclick=()=>saveDocument();
+$('saveBtn').onclick=()=>saveNow();
 $('llmPill').onclick=openLLMModal;
 $('shelfBtn').onclick=showShelf;
 const shelf=document.createElement('div'); shelf.className='modal-backdrop'; shelf.id='reachShelf';

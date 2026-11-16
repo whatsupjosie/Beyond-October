@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pubcast 2i — Writer's Room</title>
 <script src="/static/reach_auth.js"></script>
-<link rel="stylesheet" href="/2i-assets/reach.css">
-<link rel="stylesheet" href="/2i-assets/studio-desk.css">
-<link rel="stylesheet" href="/2i-assets/format-menu.css">
-<script src="/2i-assets/format-core.js"></script>
+<link rel="stylesheet" href="2i-assets/reach.css">
+<link rel="stylesheet" href="2i-assets/studio-desk.css">
+<link rel="stylesheet" href="2i-assets/format-menu.css">
+<script src="2i-assets/format-core.js"></script>
 <style>
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1648,7 +1648,10 @@ async function saveDocumentAs() {
       const w = await h.createWritable(); await w.write(JSON.stringify(payload, null, 2)); await w.close();
       documentHandle = h; documentDirty = false; $('saveIndicator').textContent = 'saved';
       return;
-    } catch {}
+    } catch (error) {
+      // Closing the picker is a decision not to save. Before, it fell through to the download below.
+      if (error.name === 'AbortError') return;
+    }
   }
   // Fallback: download
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -1690,6 +1693,9 @@ async function openDocument() {
   };
   inp.click();
 }
+// reach.js replaces saveDocument, saveDocumentAs and openDocument with versions that save to the host. Opened
+// from disk there is no host, so reach.js hands an explicit Save back to the file-based originals kept here.
+const twoiFileSave = { saveAs: saveDocumentAs };
 function exportManuscript() {
   let md = '# ' + documentTitle + '\n\n';
   let chIdx = 0;
@@ -2563,7 +2569,7 @@ document.addEventListener('keydown',e=>{
   e.preventDefault();
   if(action==='close-modal'){document.querySelectorAll('.modal-backdrop.open').forEach(m=>m.classList.remove('open'));closeMenu();return;}
   if(action==='escape-editor'){contextMenu.classList.remove('open');closeMenu();if(editingIdx!==null){editingIdx=null;render();}return;}
-  if(action==='save')saveDocument();
+  if(action==='save'){if(typeof saveNow==='function')saveNow();else saveDocument();} // saveNow (reach.js): the host when there is one, the file when not
   else if(action==='undo')undo();
   else if(action==='redo')redo();
   else if(action==='find'){$('frResult').textContent='';openModal('frModalBackdrop');setTimeout(()=>$('frFind').focus(),100);}
@@ -3065,14 +3071,14 @@ function ppWasGenerated(t) { return PP_GEN.has(ppKey(t)); }
 function ppForgetGenerated(t) { PP_GEN.delete(ppKey(t)); }
 
 </script>
-<script src="/2i-assets/narrative-core.js"></script>
-<script src="/2i-assets/narrative-room.js"></script>
-<script src="/2i-assets/reach.js"></script>
-<script src="/2i-assets/version-identity.js"></script>
-<script src="/static/2i_studio_bridge.js"></script>
-<script src="/2i-assets/studio-desk.js"></script>
-<script src="/2i-assets/format-menu.js"></script>
+<script src="2i-assets/narrative-core.js"></script>
+<script src="2i-assets/narrative-room.js"></script>
+<script src="2i-assets/reach.js"></script>
+<script src="2i-assets/version-identity.js"></script>
+<script src="../static/2i_studio_bridge.js"></script>
+<script src="2i-assets/studio-desk.js"></script>
+<script src="2i-assets/format-menu.js"></script>
 <script src="/static/foresight_files.js"></script>
-<script src="/2i-assets/file-workspace.js"></script>
+<script src="2i-assets/file-workspace.js"></script>
 </body>
 </html>

@@ -1,14 +1,15 @@
-"""2i opened on its own, from disk, must work without its separate script files.
+"""2i must keep working when its page file is all there is: no companion script files, no host, no network.
 
-The page loads /2i-assets/format-core.js and its other helpers by absolute path. Opened from disk those paths do
-not resolve, so none of them load. Commit 8ab7945 made the page's own script use the formatting core without
-checking for it, and from disk the whole script stopped at that line: no typing, no saving, no reading aloud.
+That is the case when the single HTML file is copied somewhere on its own. The page then runs on its own script
+and style only. Commit 8ab7945 made the page's script use the formatting core without checking for it, and with
+the core missing the whole script stopped at that line: no typing, no saving, no reading aloud.
 
-These tests drive the real page in Chromium, from disk, with every network request blocked. They check that the
-page starts without a script error, that writing reaches the document, that formatting commands report themselves
-as off, and that formatting already saved in a document survives a save in this mode unchanged (it is neither
-dropped nor rewritten, because the code that understands it is absent). They skip, like the other optional
-browser checks, when Playwright or its browser is unavailable.
+These tests drive the real page in Chromium with everything except the page file itself blocked. They check that
+the page starts without a script error, that writing reaches the document, that formatting commands report
+themselves as off, and that formatting already saved in a document survives a save in this mode unchanged (it is
+neither dropped nor rewritten, because the code that understands it is absent). 2i opened from disk WITH its
+companion files beside it is a different case, covered in test_2i_from_disk_with_menus.py. They skip, like the
+other optional browser checks, when Playwright or its browser is unavailable.
 """
 from __future__ import annotations
 
@@ -38,7 +39,8 @@ def opened():
         except Exception as exc:  # browser binary not installed
             pytest.skip(f"Chromium unavailable for Playwright: {exc}")
         context = browser.new_context()
-        context.route("**/*", lambda route: route.continue_() if route.request.url.startswith("file:") else route.abort())
+        # Only the page itself is served: its companion files (2i-assets, static) and the network are all blocked.
+        context.route("**/*", lambda route: route.continue_() if route.request.url.split("?")[0] == PAGE.as_uri() else route.abort())
         pg = context.new_page()
         errors: list[str] = []
         pg.on("pageerror", lambda e: errors.append(str(e)))

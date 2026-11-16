@@ -84,7 +84,7 @@ def reach(tmp_path_factory):
         log.close()
 
 
-def _open(p, reach, width, height, touch=False):
+def _open(p, reach, width, height, touch=False, path="/writers-room"):
     base, user, password = reach
     try:
         browser = p.chromium.launch(args=["--no-sandbox"])
@@ -94,11 +94,11 @@ def _open(p, reach, width, height, touch=False):
     page = context.new_page()
     errors: list[str] = []
     page.on("pageerror", lambda e: errors.append(str(e)))
-    page.goto(base + "/login?next=%2Fwriters-room")
+    page.goto(base + "/login?next=" + path.replace("/", "%2F"))
     page.fill("#loginUser", user)
     page.fill("#loginPass", password)
     page.keyboard.press("Enter")
-    page.wait_for_url("**/writers-room**", timeout=20000)
+    page.wait_for_url("**" + path + "**", timeout=20000)
     page.wait_for_function("!!document.getElementById('twoiMenuBar') && !!document.getElementById('narrativeBudget') && typeof initializing !== 'undefined' && !initializing", timeout=30000)
     page.wait_for_timeout(400)
     return browser, page, errors
@@ -175,6 +175,22 @@ def test_phone_width_gives_the_page_the_screen_with_two_drawers(reach):
             assert save["visible"] and save["h"] >= 40 and save["y"] + save["h"] <= main["y"]
             page.tap("#saveBtn")
             page.wait_for_function("document.getElementById('saveIndicator').textContent.includes('Saved to Reach')", timeout=15000)
+            assert errors == []
+        finally:
+            browser.close()
+
+
+@pytest.mark.parametrize("path", ["/writers-room", "/2i", "/2i-v22"])
+def test_every_host_address_for_2i_loads_its_companion_files(reach, path):
+    """The page addresses its companion files relative to itself so that they also resolve from disk. All three
+    host addresses that serve the page sit at the top level, so the same addresses must resolve on each of them."""
+    with sync_api.sync_playwright() as p:
+        browser, page, errors = _open(p, reach, 1280, 800, path=path)
+        try:
+            failed = page.evaluate("""() => performance.getEntriesByType('resource').filter(r => /2i-assets|static[/]/.test(r.name) && r.responseStatus >= 400).map(r => r.name)""")
+            assert failed == []
+            assert page.evaluate("[typeof TwoiFormatCore, typeof documentId, typeof PubcastSpeech, networked, document.querySelectorAll('#twoiMenuBar select').length]") == ["object", "string", "object", True, 13]
+            assert page.evaluate("getComputedStyle(document.querySelector('.app-shell')).marginTop") == "8px"   # reach.css applied
             assert errors == []
         finally:
             browser.close()

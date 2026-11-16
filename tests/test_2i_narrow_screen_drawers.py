@@ -41,7 +41,8 @@ def phone():
         except Exception as exc:  # browser binary not installed
             pytest.skip(f"Chromium unavailable for Playwright: {exc}")
         context = browser.new_context(viewport=PHONE, has_touch=True, is_mobile=True, device_scale_factor=2)
-        context.route("**/*", lambda route: route.continue_() if route.request.url.startswith("file:") else route.abort())
+        # Only the page itself is served: its companion files (2i-assets, static) and the network are all blocked.
+        context.route("**/*", lambda route: route.continue_() if route.request.url.split("?")[0] == PAGE.as_uri() else route.abort())
         page = context.new_page()
         errors: list[str] = []
         page.on("pageerror", lambda e: errors.append(str(e)))
