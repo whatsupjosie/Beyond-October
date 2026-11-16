@@ -13,6 +13,7 @@
   function safe(fn){try{const r=fn();if(r?.catch)r.catch(e=>addChat("notice",e.message));}catch(e){addChat("notice",e.message);}}
   function select(host,label,items,initial=""){
     const s=el("select",null,host);s.setAttribute("aria-label",label);s.title=label;
+    s.style.setProperty("--face-ch",String((items[0]&&items[0][1]||label).length)); // the menu is as wide as the name it shows (format-menu.css)
     for(const [value,name] of items){const o=el("option",name,s);o.value=value;}s.value=initial;return s;
   }
   const commands=[];
@@ -294,7 +295,7 @@
     if(e.isComposing||e.repeat||!(e.ctrlKey||e.metaKey)||!e.shiftKey||e.altKey||e.key.toLowerCase()!=="p"||document.querySelector("dialog[open], .modal-backdrop.open"))return;
     e.preventDefault();e.stopPropagation();openPalette();
   },true);
-  const quick=select(menu,"Quick paragraph element",[]);let lastProfile=null;
+  const quick=select(menu,"Quick paragraph element",[]);let lastProfile=null;quick.style.setProperty("--face-ch","8"); // it shows "Element…"
   function refreshQuick(){const profile=syncManuscriptFormat().profile;if(profile===lastProfile)return;lastProfile=profile;quick.replaceChildren();const first=el("option","Element…",quick);first.value="";for(const role of C.profiles[profile].roles){const o=el("option",C.names[role],quick);o.value=role;}quick.value="";quick.title=C.profiles[profile].label;}
   quick.onchange=()=>{const role=quick.value;quick.value="";if(!role)return;safe(()=>{ready();const indices=stableSelection(),next=C.clone(syncManuscriptFormat());for(const i of indices){const current=next.rows.find(r=>r.index===i)?.style||C.defaultStyle(role);C.apply(next,committed,[i],{...current,role},lockedLines);}snapshot();manuscriptFormat=next;update();});};
   document.addEventListener("foresight:work-change",refreshQuick);window.addEventListener("focus",refreshQuick);const renderPrevious=render;render=function(){renderPrevious();refreshQuick();};refreshQuick();

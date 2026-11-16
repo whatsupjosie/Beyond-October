@@ -124,3 +124,19 @@ def test_formatting_does_not_leak_into_the_next_document(opened):
     assert after_new["committed"] == []
     assert "formatting" not in after_new
     assert errors == []
+
+
+def test_partner_checks_report_offline_instead_of_failing_on_names_only_the_host_defines(opened):
+    """ppHealthCheck, ppCommit and ppLoadIntelligence read documentId and initializing, which reach.js creates.
+    From disk those names do not exist; the three calls used to stop with "initializing is not defined"."""
+    page, errors = opened
+    page.wait_for_timeout(2600)  # the page's own start-up health check has run by now
+    assert errors == []
+    page.evaluate("""async (lines) => {
+        loadDocState({committed: lines, coWriting: false});
+        await ppHealthCheck(); await ppCommit(); await ppCommit({force: true}); await ppLoadIntelligence();
+    }""", LINES)
+    page.wait_for_timeout(700)   # ppCommit re-fires once after 400 ms when a request was waiting
+    assert errors == []
+    assert page.evaluate("[typeof documentId, typeof initializing, ppDocumentId(), ppStartingUp()]") == ["undefined", "undefined", None, False]
+    assert page.inner_text("#ppStatus") == "PubPartner: offline"

@@ -27,6 +27,21 @@ BOX = """(id) => { const e = document.getElementById(id), r = e.getBoundingClien
           visible: getComputedStyle(e).visibility !== 'hidden' && getComputedStyle(e).display !== 'none'}; }"""
 
 
+FACES = """() => Array.from(document.querySelectorAll('#twoiMenuBar select')).filter(s => s.getAttribute('aria-label') !== 'File').map(s => {
+    const c = getComputedStyle(s), canvas = document.createElement('canvas').getContext('2d');
+    canvas.font = `${c.fontStyle} ${c.fontWeight} ${c.fontSize} ${c.fontFamily}`;
+    const face = s.options[s.selectedIndex].textContent;
+    return {face, text: Math.ceil(canvas.measureText(face).width), box: Math.round(s.getBoundingClientRect().width)}; })"""
+
+
+def _menu_names_fit_and_are_not_padded_out(page):
+    """Each menu is sized from the length of its name. The name must fit beside the arrow, without a long empty box."""
+    faces = page.evaluate(FACES)
+    assert len(faces) == 12
+    for f in faces:
+        assert f["text"] + 22 <= f["box"] <= f["text"] + 60, f
+
+
 def _free_port() -> int:
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
@@ -99,6 +114,7 @@ def test_laptop_width_shows_every_menu_and_nothing_overlaps(reach):
             assert [m["name"] for m in menus][1:13] == ["File", "Edit", "Insert", "Format", "Layout", "References", "Manuscript", "Review", "View", "Tools", "Studio", "Help"]
             assert all(m["inside"] for m in menus), [m["name"] for m in menus if not m["inside"]]
             assert page.evaluate("document.getElementById('twoiMenuBar').scrollWidth <= document.getElementById('twoiMenuBar').clientWidth")
+            _menu_names_fit_and_are_not_padded_out(page)
 
             # the scene line is small label text from the first moment, before any dialog has been opened
             assert page.evaluate("getComputedStyle(document.getElementById('narrativeBudget')).fontSize") == "10px"
@@ -142,6 +158,7 @@ def test_phone_width_gives_the_page_the_screen_with_two_drawers(reach):
             file_menu = page.evaluate("""() => { const s = document.querySelector('#twoiMenuBar select[aria-label="File"]'), r = s.getBoundingClientRect(), c = getComputedStyle(s);
                 return {w: Math.round(r.width), image: c.backgroundImage.startsWith('url('), title: s.title, firstCommand: s.options[1].textContent}; }""")
             assert file_menu == {"w": 40, "image": True, "title": "File", "firstCommand": "New"}
+            _menu_names_fit_and_are_not_padded_out(page)
 
             page.tap("#soloTextarea")
             page.keyboard.type("Typed on the phone.")

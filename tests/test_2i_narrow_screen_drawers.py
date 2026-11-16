@@ -280,3 +280,56 @@ def test_from_disk_the_writing_box_fills_the_page(phone):
     _settle(page)
     writing, sheets = page.evaluate(BOX, "soloTextarea"), page.evaluate(BOX, "pageSheets")
     assert writing["h"] >= sheets["h"] - 60  # before: about two lines tall inside a full-height page
+
+
+def test_the_stylesheet_and_the_script_agree_on_where_narrow_begins(phone):
+    """The 850 px boundary is written once in the stylesheet and once in the script; they must not drift apart."""
+    page, _ = phone
+    for width, narrow in ((850, True), (851, False)):
+        page.set_viewport_size({"width": width, "height": 800})
+        _settle(page)
+        assert page.evaluate("twoiDrawers.narrow") is narrow, width
+        assert (page.evaluate("getComputedStyle(document.getElementById('twoiDrawerTabTools')).display") != "none") is narrow, width
+        assert page.evaluate("twoiDrawers.open('tools')") is narrow, width
+        assert (page.evaluate("document.body.dataset.twoiDrawer") == "tools") is narrow, width
+        _settle(page)
+        sidebar = page.evaluate(BOX, "sidebar")
+        assert sidebar["visible"] and sidebar["x"] >= 0, width   # open drawer at 850, ordinary side panel at 851
+        page.evaluate("twoiDrawers.close(false)")
+        _settle(page)
+
+
+def test_a_new_line_in_the_conversation_marks_the_tab_until_that_drawer_is_opened(phone):
+    """Menu commands report failures as a line in the conversation; in a closed drawer that would be silent."""
+    page, _ = phone
+    unseen = "[document.getElementById('twoiDrawerTabTools').dataset.unseen || null, document.getElementById('twoiDrawerTabPartner').dataset.unseen || null]"
+    assert page.evaluate(unseen) == [None, None]
+    page.evaluate("addChat('notice', 'That command is unavailable in the current editor state.')")
+    _settle(page)
+    assert page.evaluate(unseen) == ["true", None]      # from disk the conversation is in the left drawer
+    page.tap("#twoiDrawerTabTools")
+    _settle(page)
+    assert page.evaluate(unseen) == [None, None]
+    page.evaluate("addChat('notice', 'Seen at once: the drawer is open.')")
+    _settle(page)
+    assert page.evaluate(unseen) == [None, None]
+    page.tap("#twoiDrawerTabTools")
+    _settle(page)
+    _like_the_host(page)                                   # now the conversation is the right-hand drawer
+    page.evaluate("addChat('notice', 'A second message.')")
+    _settle(page)
+    assert page.evaluate(unseen) == [None, "true"]
+    page.tap("#twoiDrawerTabTools")                        # opening the other drawer does not clear it
+    _settle(page)
+    page.tap("#twoiDrawerTabTools")
+    _settle(page)
+    assert page.evaluate(unseen) == [None, "true"]
+    page.tap("#twoiDrawerTabPartner")
+    _settle(page)
+    assert page.evaluate(unseen) == [None, None]
+    page.tap("#twoiDrawerTabPartner")
+    _settle(page)
+    page.evaluate("addChat('notice', 'Wide screens show the conversation, so nothing is marked.')")
+    page.set_viewport_size({"width": 1280, "height": 800})
+    _settle(page)
+    assert page.evaluate(unseen) == [None, None]

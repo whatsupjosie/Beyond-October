@@ -84,3 +84,68 @@ code could not be loaded as it is: it is written against the older `2i/index.htm
 ## Next step
 
 Phase A2 (modes and the menu) after Josie answers item 1 and says go.
+
+---
+
+# Update, later on 2026-11-16 (same branch)
+
+This section supersedes three lines above: "Decisions needed" item 1 (answered, see below), the note that the app
+shell is 16 px taller than the window (fixed), and the R4 line's `field-sizing:content` (replaced).
+
+## What Josie said
+
+- To the proposed homes for the bottom bar's items: "That's all great."
+- "why don't we just go through and look for everywhere that we may have been in a rush and cut corners or
+  accidentally overlooked. Check our work. Look for weak code and strengthen that up, and then do 2 full rounds of
+  troubleshooting and debugging"
+- About 2i opened from disk having no menu bar: "If it has no menus, we need to add those menus, because otherwise
+  they're just words at the top of the page taking up space. Yeah, the menus have to work."
+  (Clarified to her: inside the host the menus are wired; from disk the bar is not drawn at all.)
+
+## Changed
+
+| Item | Paths | What and why |
+| --- | --- | --- |
+| Bottom bar removed | `2i/writers-room-v22.html`, `2i/2i-assets/reach.css` | Title (tap to rename), word count and save state are one line in the top bar beside Save. The status word shows only while reading or generating. Read-aloud controls are at the top, in Collab only, as before. The model pill is in the conversation panel. Same elements and ids. The shell is a flex column ending at the bottom of the window (`--shell-margin`, `--top-bar-height` set by `reach.css`). |
+| Menu widths, one method | `2i/2i-assets/format-menu.css`, `format-menu.js` | Each menu's width comes from the length of its name (`--face-ch`). `field-sizing:content` was dropped because it could not be confirmed on iPhone Safari; there is now one path, and `tests/test_2i_hosted_layout.py` checks every name fits without a long empty box. |
+| File icon in forced colours | `2i/2i-assets/format-menu.css` | In Windows high-contrast mode the File menu shows its name again (background pictures are removed there). WROTE, NOT RUN: no forced-colours browser here. |
+| Unseen messages on a phone | `2i/writers-room-v22.html` | Menu commands report failures as a line in the conversation. In a closed drawer that was silent. The tab of the drawer holding the conversation shows a dot until that drawer is opened. |
+| Checks kept in the repository | `tools/twoi_checks/host.py`, `layout_probe.py`, `menu_smoke.py` | The layout probe and a new menu click-through, both against the real host on a throwaway data folder. |
+
+## Debugging round one — RAN
+
+- Python, fourteen 2i test files: 91 passed, 0 failed. Node: 59 passed, 0 failed.
+- `python tools/twoi_checks/menu_smoke.py` (real host, 1280×800 and 390×844 with touch): 65 commands in 13 menus.
+  0 script errors. No dialog larger than the window at either size. 54 ran with an effect seen by the check or
+  confirmed by hand (Save saves; Lock all locks; Write note and Place sticky note open their screens after a
+  short on-demand load). 2 skipped (system file chooser, system print dialog). 9 were unavailable in the state the
+  check sets up and were NOT exercised: Export screenplay FDX exchange, Undo, Redo, Dialogue and scene review,
+  Generate draft, Commit presented draft, Archive presented draft, Read / pause presented draft, Stop reading /
+  generation. They need a screenplay profile, an undo history, a presented AI draft or a live model.
+- `python tools/twoi_checks/layout_probe.py`: no script errors, nothing below the window, nothing overlapping, at
+  seven hosted sizes and two disk sizes.
+- Found and fixed in this round: the first drawer-closing hook lived inside `viewReferenceRecord` and broke GPT's
+  `tests/test_2i_reference_safety_node.js`, which runs that function alone; a short phone screen cut the message
+  box off below the chat drawer and focusing it dragged the page; the read-aloud controls belong to Collab, not to
+  "while reading" as first proposed to Josie.
+
+## Still open
+
+1. **Menus and modes from disk (Josie: "the menus have to work").** Analysis done, nothing built. `format-menu.js`
+   needs these names that only `reach.js` creates: `initializing`, `documentId` (26 uses, as a stale-document
+   guard), `serverReady`, `networked`, `revision`, `uuid`, `downloadFile`, `writeRecovery`. `studio-desk.js` needs
+   `initializing`, `serverReady`, `networked`, `reachFileMode`, `preserveBeforeSwitch`, `rememberStudioResume`,
+   `TwoiStudioBridge`. All three host routes that serve the page (`/writers-room`, `/2i`, `/2i-v22`) are at the
+   root, so a relative `2i-assets/…` address resolves both from disk and on the host. Two approaches to weigh
+   before writing anything: (a) a small standalone script, loaded only when `reach.js` is absent, that gives those
+   names honest offline values, with host-only commands left unavailable by GPT's own availability checks;
+   (b) loading `reach.js` itself from disk and relying on its `networked === false` path, as the older
+   `2i/index.html` did. (b) changes what Save does from disk and must be read line by line first. Do not load
+   `speech_client.js` from disk: thirteen tests protect the browser-speech fallback there.
+2. Debugging round two (repeat of round one after item 1, plus break-it checks on the new tests).
+3. The nine commands listed above, in the states that enable them.
+4. The word count refreshes only when the page re-renders, not on every keystroke in Write mode (as it did in the
+   bottom bar).
+5. Real devices: Windows, Josie's phones, an on-screen keyboard, iPhone Safari, forced colours.
+6. Decisions from Josie: the spiral on a phone (dropped, or a thin strip); the same arrow tabs on a laptop now or
+   in Phase A3; Section 4 of the inherited handoff.

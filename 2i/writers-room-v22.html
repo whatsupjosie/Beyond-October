@@ -966,6 +966,13 @@ html, body {
   .twoi-drawer-tab::before { content:""; position:absolute; inset:-5px -12px -5px -2px; }
   #twoiDrawerTabPartner::before { inset:-5px -2px -5px -12px; }
   .twoi-drawer-tab:focus-visible { outline:2px solid var(--gold-bright); outline-offset:2px; }
+  /* A new line is waiting in the conversation behind this tab (a reply, or a command's error message). */
+  .twoi-drawer-tab[data-unseen]::after {
+    content:""; position:absolute; top:-4px; width:10px; height:10px; border-radius:50%;
+    background:#f0b63c; border:2px solid #1d130c; box-shadow:0 0 6px rgba(240,182,60,0.8);
+  }
+  #twoiDrawerTabTools[data-unseen]::after { right:-4px; }
+  #twoiDrawerTabPartner[data-unseen]::after { left:-4px; }
   #twoiDrawerTabTools { left:0; border-left:0; border-radius:0 8px 8px 0; }
   #twoiDrawerTabPartner { right:0; border-right:0; border-radius:8px 0 0 8px; }
   /* An open drawer carries its tab on its outer edge, so the same tab closes it. The other tab steps aside. */
@@ -2421,12 +2428,25 @@ const twoiDrawers = (() => {
   // The conversation is its own drawer only when the host has moved it out of the left panel.
   const panel = name => name === 'tools' ? $('sidebar')
     : ($('chatSection').parentElement === $('mainArea') ? $('chatSection') : null);
-  let opened = null;
+  let opened = null, unseen = false;
+  // Menu commands report failures as a line in the conversation, and a partner's reply arrives there too. On a
+  // narrow screen the conversation is inside a closed drawer, so a new line would go unseen. The tab of the
+  // drawer that holds the conversation shows a dot until that drawer is opened.
+  const chatHome = () => panel('partner') ? 'partner' : 'tools';
+  function markUnseen(value) {
+    unseen = value;
+    for (const name in tabs) { if (value && name === chatHome()) tabs[name].dataset.unseen = 'true'; else delete tabs[name].dataset.unseen; }
+  }
+  new MutationObserver(records => {
+    if (!narrow.matches || opened === chatHome()) return;
+    if (records.some(r => r.addedNodes.length)) markUnseen(true);
+  }).observe($('chatLog'), { childList: true });
   function apply(focus) {
     const active = narrow.matches && opened && panel(opened) ? opened : null;
     opened = active;
     if (active) document.body.dataset.twoiDrawer = active; else delete document.body.dataset.twoiDrawer;
     for (const name in tabs) tabs[name].setAttribute('aria-expanded', String(active === name));
+    if (active === chatHome() || !narrow.matches) markUnseen(false); // the conversation is on screen: nothing is unseen
     $('notebookFrame').inert = !!active; // the page under an open drawer takes no taps or keys
     // Focus a button, never a text field: focusing a field would raise the phone keyboard over the drawer.
     if (focus && active) panel(active).querySelector('button:not(:disabled)')?.focus({ preventScroll: true });
