@@ -66,15 +66,34 @@ def test_the_page_fills_a_phone_screen_and_the_panels_start_closed(phone):
     assert not sidebar["visible"] and sidebar["x"] + sidebar["w"] <= 0
     assert page.evaluate("document.body.dataset.twoiDrawer") is None
     assert page.evaluate("[document.documentElement.scrollWidth, document.documentElement.scrollHeight]") == [PHONE["width"], PHONE["height"]]
-    save = page.evaluate(BOX, "saveBtn")
-    assert save["visible"] and save["y"] + save["h"] <= PHONE["height"] and save["h"] >= 40
 
 
-def test_the_edge_tab_never_covers_the_writing(phone):
+def test_the_tabs_are_small_sit_just_under_the_top_and_never_cover_the_page(phone):
     page, _ = phone
-    tab, writing = page.evaluate(BOX, "twoiDrawerTabTools"), page.evaluate(BOX, "soloTextarea")
-    assert tab["visible"] and tab["x"] == 0 and tab["h"] >= 96
-    assert tab["x"] + tab["w"] <= writing["x"]
+    _like_the_host(page)
+    _settle(page)
+    main, sheets = page.evaluate(BOX, "mainArea"), page.evaluate(BOX, "pageSheets")
+    left, right = page.evaluate(BOX, "twoiDrawerTabTools"), page.evaluate(BOX, "twoiDrawerTabPartner")
+    for tab in (left, right):
+        assert tab["visible"] and tab["w"] <= 32 and tab["h"] <= 32
+        assert 2 <= tab["y"] - main["y"] <= 8          # a small gap under whatever is above the main area
+        assert tab["y"] + tab["h"] <= sheets["y"]      # the page starts below the tabs
+    assert left["x"] == 0 and right["x"] + right["w"] == PHONE["width"]
+    # and the notebook (its spiral and its page) runs the full width; no side rails are kept for the tabs
+    notebook_width = page.evaluate("Math.round(document.querySelector('.notebook-inner').getBoundingClientRect().width)")
+    assert notebook_width >= PHONE["width"] - 20
+    # the touch area is larger than the visible tab: a finger 10 px to the side still lands on it
+    assert page.evaluate("([x, y]) => document.elementFromPoint(x, y).id", [left["x"] + left["w"] + 10, left["y"] + 15]) == "twoiDrawerTabTools"
+    assert page.evaluate("([x, y]) => document.elementFromPoint(x, y).id", [right["x"] - 10, right["y"] + 15]) == "twoiDrawerTabPartner"
+
+
+def test_save_is_at_the_top_with_its_state_and_is_not_in_the_bottom_bar(phone):
+    page, _ = phone
+    save, state, main = page.evaluate(BOX, "saveBtn"), page.evaluate(BOX, "saveIndicator"), page.evaluate(BOX, "mainArea")
+    assert save["visible"] and save["h"] >= 40 and save["y"] + save["h"] <= main["y"]
+    assert state["visible"] and state["y"] + state["h"] <= main["y"]
+    assert page.evaluate("!document.querySelector('.status-bar').contains(document.getElementById('saveBtn'))")
+    assert page.evaluate("document.querySelectorAll('#saveBtn').length") == 1
 
 
 def test_the_tab_opens_the_drawer_and_the_same_tab_closes_it(phone):

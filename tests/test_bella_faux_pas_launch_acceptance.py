@@ -102,7 +102,9 @@ def test_start_sign_in_and_open_2i_pubpartner_and_the_studio(reach):
                 page.wait_for_timeout(400)
                 assert page.evaluate("(t) => window.__counter.debug.clickVeil(t)", title), title
                 _frame(page, pattern).wait_for_load_state("load", timeout=30000)
-            assert "Writer" in _frame(page, r"/writers-room\?").title()
+            # 2i names its window after the open document: "<version marks> · <document title> — 2i"
+            # (2i/2i-assets/version-identity.js). It used to be the fixed page title "Pubcast 2i — Writer's Room".
+            assert _frame(page, r"/writers-room\?").title().endswith("— 2i")
             assert "PubPartner" in _frame(page, r"/pubpartner$").title()
 
             # the studio from its own blade, clicked where it is drawn

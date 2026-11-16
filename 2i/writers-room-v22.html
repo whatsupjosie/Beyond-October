@@ -846,6 +846,17 @@ html, body {
    "MY MANUSCRIPTS" BUTTON
    It carries words, not an icon. In the round icon shape its words spilled over the button beside it.
    ═══════════════════════════════════════════════════════════════ */
+/* Save sits up top with its state beside it. The disk icon is drawn here, not in the button's text, so code that
+   rewrites the button's words cannot remove it. */
+.top-right #saveIndicator {
+  font-family:'IBM Plex Mono',monospace; font-size:10px; line-height:1.3; color:var(--parchment-soft);
+  max-width:260px; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.top-right .save-btn { display:inline-flex; align-items:center; gap:7px; min-height:28px; }
+.top-right .save-btn::before {
+  content:""; width:14px; height:14px; flex:0 0 14px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23efdbac' stroke-width='1.8' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M5 3h11l3 3v15H5z'/%3E%3Cpath d='M8 3v5h7V3'/%3E%3Cpath d='M8 21v-7h8v7'/%3E%3C/svg%3E") center/contain no-repeat;
+}
 #shelfBtn {
   width:auto; padding:0 12px; border-radius:14px; white-space:nowrap;
   font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
@@ -871,19 +882,25 @@ html, body {
   .app-shell > * { flex:0 0 auto; }
   .app-shell > .main-area { flex:1 1 0; }
 
-  .top-bar { flex-wrap:wrap; gap:6px 8px; padding:6px 10px; min-height:0; }
+  .top-bar { flex-wrap:wrap; justify-content:flex-end; gap:6px 8px; padding:6px 10px; min-height:0; }
   .top-tabs { display:none; }
-  .top-logo { font-size:18px; }
+  .top-logo { font-size:18px; margin-right:auto; }
   .top-logo small { display:none; }
-  .top-right { gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  /* The right-hand group dissolves into the bar so the save state can share the first line with the name. */
+  .top-right { display:contents; }
+  .top-right #saveIndicator { flex:1 1 40%; min-width:40%; max-width:none; }
+  /* Five controls share one line at 390 px: the host's wider desktop sizes for Save are not kept here. */
+  .top-right .save-btn { min-width:0; padding:0 10px; }
+  #shelfBtn { padding:0 8px; letter-spacing:0.04em; }
   .top-icon-btn, #shelfBtn { height:40px; }
   .top-icon-btn:not(#shelfBtn) { width:40px; }
   .mode-badge { min-height:40px; padding:4px 12px; }
 
   /* clip, not hidden: a hidden box can still be scrolled by focus moving into a drawer, which shifted the page. */
   .main-area, .main-area.sidebar-hidden { display:block; position:relative; padding:0; overflow:hidden; overflow:clip; min-height:0; }
-  /* The 24 px rails left and right of the page hold the drawer tabs, so a tab never covers writing. */
-  #notebookFrame { position:absolute; inset:0; height:auto; min-height:0; margin:0; padding:4px 24px; border-radius:0; }
+  /* The first 40 px under the menus hold the two drawer tabs; the page starts below them and runs to the
+     bottom at full width, so a tab never covers writing. */
+  #notebookFrame { position:absolute; inset:0; height:auto; min-height:0; margin:0; padding:40px 4px 4px; border-radius:0; }
 
   #sidebar, #mainArea > #chatSection {
     position:absolute; top:0; bottom:0; z-index:32;
@@ -913,24 +930,29 @@ html, body {
   }
   body[data-twoi-drawer] #twoiDrawerBackdrop { opacity:1; visibility:visible; transition:opacity 0.22s ease, visibility 0s; }
 
+  /* Small tabs with an arrow, a few pixels under the menus so they read as separate from them. */
   .twoi-drawer-tab {
     display:flex; align-items:center; justify-content:center;
-    position:absolute; top:50%; z-index:33;
-    width:24px; height:96px; margin-top:-48px; padding:0;
+    position:absolute; top:5px; z-index:33;
+    width:30px; height:30px; padding:0;
     border:1px solid rgba(205,163,73,0.55);
     background:linear-gradient(180deg,#3a2716,#1d130c);
     color:var(--gold-bright);
-    font:600 11px/1 'IBM Plex Mono',ui-monospace,monospace; letter-spacing:0.14em; text-transform:uppercase;
-    box-shadow:0 2px 8px rgba(0,0,0,0.5);
+    box-shadow:0 2px 6px rgba(0,0,0,0.45);
     cursor:pointer; touch-action:manipulation;
     transition:left 0.22s ease, right 0.22s ease;
   }
-  /* A taller touch area than the visible tab, without reaching sideways into the page. */
-  .twoi-drawer-tab::before { content:""; position:absolute; inset:-12px 0; }
-  .twoi-drawer-tab span { writing-mode:vertical-rl; }
+  .twoi-drawer-tab svg {
+    width:12px; height:12px; fill:none; stroke:currentColor; stroke-width:2;
+    stroke-linecap:round; stroke-linejoin:round; transition:transform 0.22s ease;
+  }
+  /* The arrow points the way the drawer will move: out when closed, back when open. */
+  .twoi-drawer-tab[aria-expanded="true"] svg { transform:rotate(180deg); }
+  /* A 44 px touch area around the small visible tab; it reaches into the empty strip, never onto the page. */
+  .twoi-drawer-tab::before { content:""; position:absolute; inset:-5px -12px -5px -2px; }
+  #twoiDrawerTabPartner::before { inset:-5px -2px -5px -12px; }
   .twoi-drawer-tab:focus-visible { outline:2px solid var(--gold-bright); outline-offset:2px; }
   #twoiDrawerTabTools { left:0; border-left:0; border-radius:0 8px 8px 0; }
-  #twoiDrawerTabTools span { transform:rotate(180deg); }
   #twoiDrawerTabPartner { right:0; border-right:0; border-radius:8px 0 0 8px; }
   /* An open drawer carries its tab on its outer edge, so the same tab closes it. The other tab steps aside. */
   body[data-twoi-drawer="tools"] #twoiDrawerTabTools { left:min(86vw,360px); }
@@ -950,7 +972,7 @@ html, body {
   .status-sep { display:none; }
   .status-right { margin-left:auto; }
   #docTitleDisplay { max-width:42vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .save-btn { min-height:40px; min-width:84px; }
+  .top-right .save-btn { min-height:40px; }
 }
 @media (max-width:850px) and (prefers-reduced-motion:reduce) {
   #sidebar, #mainArea > #chatSection, #twoiDrawerBackdrop, .twoi-drawer-tab { transition:none; }
@@ -971,6 +993,8 @@ html, body {
       <span class="top-tab active" data-tab="manuscript" aria-current="page">Manuscript</span>
     </div>
     <div class="top-right">
+      <span id="saveIndicator">unsaved</span>
+      <button class="save-btn" id="saveBtn">Save</button>
       <button class="mode-badge write" id="modeBadge" title="Toggle between Write (solo) and Collab (co-writing) mode">Write</button>
       <button class="top-icon-btn" id="shelfBtn" title="My manuscripts">My manuscripts</button>
       <button class="top-icon-btn" id="sidebarToggle" title="Toggle sidebar">☰</button>
@@ -1108,8 +1132,8 @@ html, body {
 
     <!-- SIDE DRAWERS (narrow screens only). The panels above are the drawers; these are their edge tabs. -->
     <div id="twoiDrawerBackdrop"></div>
-    <button type="button" class="twoi-drawer-tab" id="twoiDrawerTabTools" aria-controls="sidebar" aria-expanded="false" title="Manuscript tools and references"><span>Tools</span></button>
-    <button type="button" class="twoi-drawer-tab" id="twoiDrawerTabPartner" aria-controls="chatSection" aria-expanded="false" title="Conversation partner"><span>Chat</span></button>
+    <button type="button" class="twoi-drawer-tab" id="twoiDrawerTabTools" aria-controls="sidebar" aria-expanded="false" aria-label="Manuscript tools and references" title="Manuscript tools and references"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg></button>
+    <button type="button" class="twoi-drawer-tab" id="twoiDrawerTabPartner" aria-controls="chatSection" aria-expanded="false" aria-label="Conversation partner" title="Conversation partner"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M8 2L4 6l4 4"/></svg></button>
   </div>
 
   <!-- STATUS BAR -->
@@ -1129,8 +1153,6 @@ html, body {
         <button class="pb-btn" id="skipBtn" title="Skip">⏭</button>
         <input type="range" class="speed-slider" id="speedSlider" min="0.7" max="1.5" step="0.1" value="1" title="Read speed" />
       </div>
-      <span id="saveIndicator" style="font-size:9px; opacity:0.6;">unsaved</span>
-      <button class="save-btn" id="saveBtn">Save</button>
     </div>
   </div>
 </div>
@@ -1979,7 +2001,6 @@ function createReferenceRow(r,icons) {
 }
 function viewReferenceRecord(r) {
   if(!references.includes(r))return false;
-  twoiDrawers?.close(false); // on a narrow screen the reference opens on the page, under the drawer it was picked from
   $('refViewerTitle').textContent=r.name;
   $('refViewerBody').textContent=r.content;
   $('refViewer').classList.add('open');
@@ -2385,9 +2406,8 @@ $('sidebarToggle').onclick = () => {
 // ── SIDE DRAWERS (narrow screens) ──────────────────────────────────
 // Below 850 px the side panels slide over the page instead of sitting beside it (see NARROW SCREENS in the
 // stylesheet). One owner for the state: body[data-twoi-drawer] is "tools", "partner" or absent, and the
-// stylesheet does the rest. On a wide screen this does nothing. `var` so that code which runs before this
-// line (a reference opened during start-up) sees "not ready yet" instead of failing.
-var twoiDrawers = (() => {
+// stylesheet does the rest. On a wide screen this does nothing.
+const twoiDrawers = (() => {
   const narrow = matchMedia('(max-width:850px)');
   const tabs = { tools: $('twoiDrawerTabTools'), partner: $('twoiDrawerTabPartner') };
   // The conversation is its own drawer only when the host has moved it out of the left panel.
@@ -2421,6 +2441,14 @@ var twoiDrawers = (() => {
     e.preventDefault(); close();
   });
   narrow.addEventListener('change', () => apply(false)); // rotating or resizing past 850 px puts the panels back
+  // A reference picked from an open drawer opens on the page, so the drawer steps aside to show it. Done here,
+  // around the function, so viewReferenceRecord itself stays free of any dependency on the drawers.
+  const showReferenceRecord = viewReferenceRecord;
+  viewReferenceRecord = function (record) {
+    const shown = showReferenceRecord(record);
+    if (shown) close(false);
+    return shown;
+  };
   apply(false);
   return { open, close, toggle, get narrow() { return narrow.matches; }, get opened() { return opened; } };
 })();

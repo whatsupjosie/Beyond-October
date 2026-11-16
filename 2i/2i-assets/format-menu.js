@@ -12,7 +12,7 @@
   const collabIdle=()=>coWriting&&idle();
   function safe(fn){try{const r=fn();if(r?.catch)r.catch(e=>addChat("notice",e.message));}catch(e){addChat("notice",e.message);}}
   function select(host,label,items,initial=""){
-    const s=el("select",null,host);s.setAttribute("aria-label",label);
+    const s=el("select",null,host);s.setAttribute("aria-label",label);s.title=label;
     for(const [value,name] of items){const o=el("option",name,s);o.value=value;}s.value=initial;return s;
   }
   const commands=[];
