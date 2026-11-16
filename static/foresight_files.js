@@ -113,12 +113,13 @@ async function mount(c,host,file,options={}){
   const bar=node('div',{style:'display:flex;flex-wrap:wrap;gap:6px'}),status=node('div',{role:'status',style:'font-size:12px;white-space:pre-wrap'}),area=node('div',{style:'flex:1;min-height:0;overflow:auto'});
   wrap.append(bar,status,area);body.append(wrap);
   let alive=true, value, editor, image, canvas, url, handle, timer, saving=Promise.resolve(), serial=0, diagnosticVersion=-1, changed=false, processing=Promise.resolve();
-  let richMode=false,richSource=null,richEditor=null,richOpening=false,richMetadataDirty=false;
+  let richMode=false,richSource=null,richEditor=null,richOpening=false,richMetadataDirty=false,opening=true;
+  let localSaveError=false,writing=0,imageWrites=0;
   function richMetadataChanged(){if(richMode){richMetadataDirty=true;serial++;}}
   const say=s=>{if(alive)status.textContent=s};
   function button(label,fn){const b=node('button',{type:'button',class:'fp-btn'},label);b.onclick=()=>Promise.resolve().then(fn).catch(e=>say(e.message));bar.append(b);return b}
   function snapshot(){if(richMode)return {...value,updated:Date.now()};return {...value,draft:editor?(options.getText?.()??editor.value):value.draft,title:options.getTitle?.()||value.title,twoiState:options.getState?{...value.twoiState,...structuredClone(options.getState())}:value.twoiState,updated:Date.now()}}
-  function persist(){
+  function persistRaw(){
     if(!value)return Promise.reject(Error('File has not finished opening'));
     clearTimeout(timer);
     if(richMode&&!richEditor&&!changed&&!richMetadataDirty)return Promise.resolve(value);
@@ -144,6 +145,11 @@ async function mount(c,host,file,options={}){
     const v=snapshot(),version=serial;
     saving=saving.catch(()=>{}).then(()=>record(v.id,v,value.revision||0)).then(saved=>{value.revision=saved.revision;if(serial===version){changed=false;richMetadataDirty=false;if(diagnosticVersion!==version)say(richMode?'Rich working copy saved in this browser · source archive unchanged':handle?'Saved to chosen file and PubCast · source snapshot retained':'Working copy saved in PubCast · source snapshot retained')}return v});
     return saving;
+  }
+  function persist(){
+    if(opening||richOpening)return Promise.reject(Error('Wait for this file to finish opening.'));
+    writing++;
+    return Promise.resolve().then(persistRaw).then(result=>{localSaveError=false;return result;},error=>{localSaveError=true;throw error;}).finally(()=>{writing--;});
   }
   function dirty(){serial++;changed=true;say('Unsaved changes');host.changed();clearTimeout(timer);timer=setTimeout(()=>persist().catch(e=>say('Save failed: '+e.message)),richMode?1500:350)}
   function checkedRichDraft(){
@@ -216,13 +222,23 @@ async function mount(c,host,file,options={}){
     value.workspace={path:saved.path,revision:saved.revision,format};handle=undefined;delete value.handle;richMetadataChanged();await persist();say('Saved local file: '+saved.path);return true;
   }
   async function save(){
+    if(opening||richOpening)throw Error('Wait for this file to finish opening.');
+    await processing;
     if(richMode)return persist(); // Explicit export writes files; ordinary Save retains the working copy locally.
     if(value.workspace){const saved=await workspace('file',{path:value.workspace.path,data:await base64(await output(value.workspace.format)),expected_revision:value.workspace.revision});value.workspace.revision=saved.revision;await persist();say('Saved local file: '+saved.path);return true;}
     if(handle){if(handle.queryPermission&&await handle.queryPermission({mode:'readwrite'})!=='granted'&&await handle.requestPermission({mode:'readwrite'})!=='granted')throw Error('File permission was not granted. Use Save As to choose a destination.');const blob=await output(value.savedFormat);const stream=await handle.createWritable();try{await stream.write(blob);await stream.close()}catch(e){await stream.abort().catch(()=>{});throw e}}
     return persist();
   }
-  const session={save,export:async()=>{const data=await output();return {name:outputName(),data,type:data.type}},
-    pending:()=>changed||richMetadataDirty,dispose:()=>{alive=false;clearTimeout(timer);if(value)persist().catch(console.error).finally(()=>richEditor?.destroy());else richEditor?.destroy();if(url)URL.revokeObjectURL(url);if(image)image.src='';const media=area.querySelector('video,audio');if(media){media.pause();media.removeAttribute('src');media.load()}},
+  function fileActivity(){const dirty=!!(changed||richMetadataDirty),busy=opening||richOpening||writing>0||imageWrites>0;return {dirty,busy,recovery:!!value&&!dirty&&!busy&&!localSaveError};}
+  async function prepareClose(){
+    if(!alive||opening||richOpening)return false;
+    const version=serial;
+    await save();
+    const status=fileActivity();
+    return alive&&serial===version&&!status.dirty&&!status.busy&&status.recovery;
+  }
+  const session={save,prepareClose,activity:fileActivity,export:async()=>{const data=await output();return {name:outputName(),data,type:data.type}},
+    pending:()=>{const s=fileActivity();return s.dirty||s.busy||!s.recovery;},dispose:()=>{alive=false;clearTimeout(timer);if(value)persist().catch(console.error).finally(()=>richEditor?.destroy());else richEditor?.destroy();if(url)URL.revokeObjectURL(url);if(image)image.src='';const media=area.querySelector('video,audio');if(media){media.pause();media.removeAttribute('src');media.load()}},
     flush:persist,saveAs:saveToWorkspace};
   sessions.set(c,session);
   try{
@@ -233,7 +249,7 @@ async function mount(c,host,file,options={}){
     if(!value){say('No saved file bytes found. Choose the file again using Import.');return session}
     handle=value.handle;
     options.onReady?.(value);
-    button('Local account…',async()=>{await persist();const top=window.top;top.location.assign('/login?next='+encodeURIComponent(top.location.pathname+top.location.search))});
+    button('Local account…',async()=>{if(!await prepareClose())throw Error('The file changed or has unfinished work. Save it before switching accounts.');const top=window.top;top.location.assign('/login?next='+encodeURIComponent(top.location.pathname+top.location.search))});
     const saveControl=button('Save',()=>session.save());button('Save As…',saveToWorkspace);button('Save to device…',saveAs);
     button('Download original',()=>download(value.original.name||value.name,value.original));
     button('Rename working copy',async()=>{const n=prompt('Working copy filename',value.name);if(n?.trim()){const name=n.trim().replace(/[\\/]/g,'_').slice(0,255);if(richMode&&ext(name)!=='2i')throw Error('A rich archive must keep its .2i extension.');value.name=name;c.data.name=value.name;host.setTitle(value.name);richMetadataChanged();await persist();host.changed()}});
@@ -296,7 +312,7 @@ async function mount(c,host,file,options={}){
         if(version!==serial)return;
         value.working=blob;await persist();
       }
-      function imageAction(fn){processing=processing.catch(()=>{}).then(async()=>{if(fn()!==false)await commit()});return processing}
+      function imageAction(fn){imageWrites++;processing=processing.catch(()=>{}).then(async()=>{if(fn()!==false)await commit()}).finally(()=>{imageWrites--;});return processing}
       function rotate(){return imageAction(()=>{const copy=node('canvas');copy.width=canvas.width;copy.height=canvas.height;copy.getContext('2d').drawImage(canvas,0,0);canvas.width=copy.height;canvas.height=copy.width;const ctx=canvas.getContext('2d');ctx.translate(canvas.width,0);ctx.rotate(Math.PI/2);ctx.drawImage(copy,0,0)})}
       button('Rotate 90°',rotate);
       button('Crop…',()=>imageAction(()=>{
@@ -338,6 +354,7 @@ async function mount(c,host,file,options={}){
       say(value.warning||'2i text editor ready · working copy auto-saves · text exports use UTF-8');
     }
   }catch(e){options.onError?.();if(value&&ext(value.name)==='pdf')button('View original PDF',()=>{if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(value.original);area.replaceChildren(node('iframe',{src:url,title:value.name,style:'width:100%;height:100%;border:0'}))});say('Could not open working copy: '+e.message+'\nThe original has not been altered.');if(value&&!bar.querySelector('button'))button('Download original',()=>download(value.original.name||value.name,value.original))}
+  finally{opening=false;}
   return session;
 }
 async function list(){const d=await db();return new Promise((resolve,reject)=>{const t=d.transaction(STORE,'readonly'),r=t.objectStore(STORE).getAll();t.oncomplete=()=>resolve(r.result.map(({id,name,updated,original})=>({id,name,updated,size:original?.size||0})));t.onerror=()=>reject(t.error)})}

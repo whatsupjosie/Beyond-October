@@ -21,7 +21,7 @@ if (!id && window.reachStarted) {
   const activityStatus = () => ({version:1,ready:true,mode:optionalActivity,
     capabilities:['status','save','export','activity','prepare-close'],
     dirty:!!documentDirty,conflict:!!saveConflict,
-    saving:!!savePromise, protected:!!chatSending || !!generating || !!PP?.inflight,
+    saving:!!savePromise, protected:!!chatSending || !!generating || !!PP?.inflight || (typeof editingIdx!=='undefined'&&editingIdx!==null),
     recovery:!!recoverySafe});
   async function handleHost(command,payload) {
     if(command==='status') return activityStatus();
@@ -35,7 +35,8 @@ if (!id && window.reachStarted) {
     }
     if(command==='save') return (await saveDocument())===true;
     if(command==='prepare-close') {
-      if(chatSending || generating || PP?.inflight) return {canClose:false,reason:'2i has an active conversation, generation, or manuscript-indexing operation.',status:activityStatus()};
+      if(activityStatus().protected) return {canClose:false,reason:'2i has an active edit, conversation, generation, or manuscript-indexing operation.',status:activityStatus()};
+      window.twoiCreativeSession?.stopForSwitch?.();
       const saved=await saveDocument();
       const status=activityStatus();
       const canClose=saved===true && !status.dirty && !status.saving && !status.protected && !status.conflict;
@@ -113,12 +114,19 @@ try{
   });
   window.foresightFileSession=session;
   saveDocument=()=>session.save();saveDocumentAs=()=>session.saveAs();
+  function activeWork(){return !!chatSending||!!generating||!!PP?.inflight||(typeof editingIdx!=='undefined'&&editingIdx!==null);}
+  let switching=false;
   async function openFile(file){
-    await session.save();
-    const next=crypto.randomUUID();
-    await ForesightFiles.record(next,{id:next,name:file.name,mime:file.type,original:file,updated:Date.now()});
-    parent.postMessage({type:'foresight:file-selected',previousFileId:id,fileId:next,name:file.name},location.origin);
-    location.assign(filePage(next));
+    if(switching||activeWork())throw Error('Finish the active work before opening another file.');
+    switching=true;
+    try{
+      if(!await session.prepareClose()||activeWork())throw Error('Current file is not safely saved. Retry after saving or export your edits.');
+      const next=crypto.randomUUID();
+      await ForesightFiles.record(next,{id:next,name:file.name,mime:file.type,original:file,updated:Date.now()});
+      if(session.pending()||activeWork())throw Error('Current file changed during selection. The new source is retained; current file stays open.');
+      parent.postMessage({type:'foresight:file-selected',previousFileId:id,fileId:next,name:file.name},location.origin);
+      location.assign(filePage(next));
+    }finally{switching=false;}
   }
   openDocument=async()=>{const input=document.createElement('input');input.type='file';input.onchange=()=>{if(input.files[0])openFile(input.files[0]).catch(e=>alert(e.message))};input.click()};
   newDocument=async()=>openFile(new File([''],'Untitled.txt',{type:'text/plain'}));
@@ -129,16 +137,16 @@ try{
   // Notify only our same-origin parent, never an arbitrary page.
   parent.postMessage({type:'foresight:file-ready',fileId:id},location.origin);
   let optionalActivity='full';
-  const activityStatus=()=>({version:1,ready:true,mode:optionalActivity,
+  const activityStatus=()=>{const s=session.activity();return {version:1,ready:true,mode:optionalActivity,
     capabilities:['status','save','export','activity','prepare-close'],
-    dirty:session.pending(),protected:!!chatSending || !!generating || !!PP?.inflight,recovery:true});
+    dirty:s.dirty,saving:s.busy,protected:activeWork()||switching,recovery:s.recovery};};
   addEventListener('message',async e=>{
     if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='foresight:file-command'||
        e.data.fileId!==id||e.data.sessionNonce!==sessionNonce||typeof e.data.requestId!=='string')return;
     const {requestId,command,payload}=e.data;
     try{
       let result;
-      if(command==='save'){await session.save();result=true;}
+      if(command==='save'){await session.save();result=!session.pending();}
       else if(command==='export')result=await session.export();
       else if(command==='status')result=activityStatus();
       else if(command==='activity'){
@@ -146,9 +154,9 @@ try{
         optionalActivity=payload.mode;document.documentElement.dataset.foresightActivity=optionalActivity;
         document.dispatchEvent(new Event('foresight:activity-change'));result=activityStatus();
       }else if(command==='prepare-close'){
-        if(chatSending || generating || PP?.inflight)result={canClose:false,reason:'2i has active work.',status:activityStatus()};
-        else {await session.save();const status=activityStatus();result={canClose:!status.dirty && !status.protected,
-          reason:status.dirty||status.protected?'Document changed or started work during saving.':'',status};}
+        if(activeWork()||switching)result={canClose:false,reason:'2i has active work.',status:activityStatus()};
+        else {const saved=await session.prepareClose();const status=activityStatus();const canClose=saved&&!status.dirty&&!status.saving&&!status.protected&&status.recovery;result={canClose,
+          reason:canClose?'':'Document changed, recovery is unavailable, or work is still active.',status};}
       }else throw Error('Unknown 2i host command');
       parent.postMessage({type:'foresight:file-result',requestId,result,sessionNonce},location.origin);
     }catch(error){parent.postMessage({type:'foresight:file-result',requestId,error:String(error?.message||error),sessionNonce},location.origin)}
