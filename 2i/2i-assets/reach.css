@@ -1,5 +1,5 @@
 /* Reach writing desk. Original v20 mechanics and notebook are preserved. */
-:root { --parchment-soft:#d2c4a4; --gold:#c6a360; --gold-bright:#efdbac; }
+:root { --parchment-soft:#d2c4a4; --gold:#c6a360; --gold-bright:#efdbac; --shell-margin:8px; --top-bar-height:76px; }
 html,body { background:#120f0b; }
 .app-shell { grid-template-rows:76px minmax(0,1fr) 52px; border:1px solid #88703c; margin:8px; height:calc(100dvh - 16px); border-radius:13px; overflow:hidden; box-shadow:0 0 0 4px #17120c,0 0 0 5px #4c3b21; }
 .top-bar { background:linear-gradient(180deg,#211b12,#100e0b); padding:0 25px; border-bottom:3px double #75603c; }

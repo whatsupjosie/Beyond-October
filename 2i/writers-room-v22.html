@@ -49,15 +49,22 @@ html, body {
 /* ═══════════════════════════════════════════════════════════════
    LAYOUT SHELL
    ═══════════════════════════════════════════════════════════════ */
+/* A column: the bars on top take the height they need, the main area takes the rest, down to the bottom of the
+   window. It is a flex column, not grid rows, so bars that the host adds or that are absent from disk (version
+   bar, menu bar) never leave an empty row behind. --shell-margin and --top-bar-height are set by reach.css
+   inside the host (8 px and 76 px); before, the host's 8 px margin was added on top of 100vh and the bottom
+   16 px of the shell was cut off. */
 .app-shell {
-  display:grid;
-  grid-template-rows: 42px 1fr 32px;
-  height:100vh;
+  display:flex; flex-direction:column;
+  height:100vh; height:calc(100dvh - 2 * var(--shell-margin, 0px));
 }
+.app-shell > * { flex:0 0 auto; }
+.app-shell > .main-area { flex:1 1 0; min-height:0; }
 
 /* --- TOP BAR --- */
 .top-bar {
   display:flex; align-items:center; gap:12px;
+  min-height:var(--top-bar-height, 42px);
   padding:0 16px;
   background:linear-gradient(180deg, rgba(44,22,8,0.95), rgba(27,15,9,0.98));
   border-bottom:1px solid rgba(205,163,73,0.25);
@@ -846,12 +853,22 @@ html, body {
    "MY MANUSCRIPTS" BUTTON
    It carries words, not an icon. In the round icon shape its words spilled over the button beside it.
    ═══════════════════════════════════════════════════════════════ */
-/* Save sits up top with its state beside it. The disk icon is drawn here, not in the button's text, so code that
-   rewrites the button's words cannot remove it. */
-.top-right #saveIndicator {
+/* The document line in the top bar: title, word count, save state, and the status word while busy. */
+.top-doc {
+  display:flex; align-items:center; justify-content:flex-end; gap:10px;
+  min-width:0; margin-left:auto;
   font-family:'IBM Plex Mono',monospace; font-size:10px; line-height:1.3; color:var(--parchment-soft);
-  max-width:260px; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
+.top-doc > * { white-space:nowrap; }
+.top-doc + .top-right { margin-left:0; }
+.status-live { display:inline-flex; align-items:center; gap:6px; color:var(--gold-bright); }
+.status-live[hidden] { display:none; }
+.top-doc #docTitleDisplay { flex:0 1 auto; min-width:0; max-width:24vw; overflow:hidden; text-overflow:ellipsis; color:var(--parchment); }
+.top-doc #saveIndicator { flex:0 1 auto; min-width:0; max-width:220px; overflow:hidden; text-overflow:ellipsis; font:inherit; color:inherit; }
+/* The model pill now lives with the conversation it belongs to. */
+#chatSection .llm-pill { align-self:flex-start; font-family:'IBM Plex Mono',monospace; font-size:10px; }
+/* Save sits up top. The disk icon is drawn here, not in the button's text, so code that rewrites the button's
+   words cannot remove it. */
 .top-right .save-btn { display:inline-flex; align-items:center; gap:7px; min-height:28px; }
 .top-right .save-btn::before {
   content:""; width:14px; height:14px; flex:0 0 14px;
@@ -874,21 +891,18 @@ html, body {
    ═══════════════════════════════════════════════════════════════ */
 .twoi-drawer-tab, #twoiDrawerBackdrop { display:none; }
 @media (max-width:850px) {
-  .app-shell {
-    display:flex; flex-direction:column;
-    height:100vh; height:100dvh; min-height:0;
-    margin:0; border-width:0; border-radius:0; box-shadow:none;
-  }
-  .app-shell > * { flex:0 0 auto; }
-  .app-shell > .main-area { flex:1 1 0; }
+  .app-shell { --shell-margin:0px; margin:0; border-width:0; border-radius:0; box-shadow:none; }
 
-  .top-bar { flex-wrap:wrap; justify-content:flex-end; gap:6px 8px; padding:6px 10px; min-height:0; }
+  /* Two lines: the name with the document line beside it, then the buttons. */
+  .top-bar { flex-wrap:wrap; gap:6px 8px; padding:6px 10px; min-height:0; }
   .top-tabs { display:none; }
-  .top-logo { font-size:18px; margin-right:auto; }
+  .top-logo { font-size:18px; }
   .top-logo small { display:none; }
-  /* The right-hand group dissolves into the bar so the save state can share the first line with the name. */
-  .top-right { display:contents; }
-  .top-right #saveIndicator { flex:1 1 40%; min-width:40%; max-width:none; }
+  .top-doc { flex:1 1 0; gap:8px; }
+  .top-doc #docTitleDisplay { max-width:none; }
+  .top-doc #saveIndicator { max-width:45%; }
+  .top-right { flex:1 1 100%; margin-left:0; justify-content:flex-end; flex-wrap:wrap; gap:6px; }
+  .pb-btn { width:40px; height:40px; font-size:14px; }
   /* Five controls share one line at 390 px: the host's wider desktop sizes for Save are not kept here. */
   .top-right .save-btn { min-width:0; padding:0 10px; }
   #shelfBtn { padding:0 8px; letter-spacing:0.04em; }
@@ -968,12 +982,10 @@ html, body {
   #sidebar .ref-tab { min-height:36px; padding:8px 10px; }
   #chatInput, #refSearchInput, #partnerSelect { font-size:16px; }
 
-  .status-bar { flex-wrap:wrap; gap:4px 8px; padding:6px 10px; min-height:0; }
-  .status-sep { display:none; }
-  .status-right { margin-left:auto; }
-  #docTitleDisplay { max-width:42vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .top-right .save-btn { min-height:40px; }
 }
+/* On the narrowest phones the word count gives its place to the title; it is also in Manuscript Control. */
+@media (max-width:359px) { #wordCount { display:none; } }
 @media (max-width:850px) and (prefers-reduced-motion:reduce) {
   #sidebar, #mainArea > #chatSection, #twoiDrawerBackdrop, .twoi-drawer-tab { transition:none; }
 }
@@ -992,8 +1004,21 @@ html, body {
     <div class="top-tabs">
       <span class="top-tab active" data-tab="manuscript" aria-current="page">Manuscript</span>
     </div>
-    <div class="top-right">
+    <!-- The document's own line: what it is called, how long it is, whether it is saved. The status word shows
+         only while something is happening (reading, generating); "idle" is not shown. -->
+    <div class="top-doc">
+      <span class="status-live" id="statusLive" role="status" hidden><span class="status-dot" id="statusDot"></span><span id="statusText">idle</span></span>
+      <span id="docTitleDisplay" style="cursor:pointer;" title="Click to rename"></span>
+      <span id="wordCount">0 words</span>
       <span id="saveIndicator">unsaved</span>
+    </div>
+    <div class="top-right">
+      <div class="playback-controls" id="playbackControls">
+        <button class="pb-btn" id="stopBtn" title="Stop">■</button>
+        <button class="pb-btn" id="playBtn" title="Play/Pause">▶</button>
+        <button class="pb-btn" id="skipBtn" title="Skip">⏭</button>
+        <input type="range" class="speed-slider" id="speedSlider" min="0.7" max="1.5" step="0.1" value="1" title="Read speed" />
+      </div>
       <button class="save-btn" id="saveBtn">Save</button>
       <button class="mode-badge write" id="modeBadge" title="Toggle between Write (solo) and Collab (co-writing) mode">Write</button>
       <button class="top-icon-btn" id="shelfBtn" title="My manuscripts">My manuscripts</button>
@@ -1063,6 +1088,7 @@ html, body {
           <label class="partner-label" for="partnerSelect">Conversation partner</label>
           <select id="partnerSelect" aria-label="Conversation partner"><option value="alex">Alex</option></select>
           <p id="partnerNote" class="partner-note">Your manuscript and conversation stay together.</p>
+          <span id="llmPill" class="llm-pill" title="Click to configure LLM">no LLM</span>
           <div id="ppStatus" class="pp-status off">PubPartner: offline</div>
           <div id="ppFlags"></div>
           <div id="ppCast"></div>
@@ -1136,25 +1162,6 @@ html, body {
     <button type="button" class="twoi-drawer-tab" id="twoiDrawerTabPartner" aria-controls="chatSection" aria-expanded="false" aria-label="Conversation partner" title="Conversation partner"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M8 2L4 6l4 4"/></svg></button>
   </div>
 
-  <!-- STATUS BAR -->
-  <div class="status-bar">
-    <span class="status-dot" id="statusDot"></span>
-    <span id="statusText">idle</span>
-    <span class="status-sep">|</span>
-    <span id="docTitleDisplay" style="cursor:pointer;" title="Click to rename"></span>
-    <span class="status-sep">|</span>
-    <span id="wordCount">0 words</span>
-    <span class="status-sep">|</span>
-    <span id="llmPill" class="llm-pill" title="Click to configure LLM">no LLM</span>
-    <div class="status-right">
-      <div class="playback-controls" id="playbackControls">
-        <button class="pb-btn" id="stopBtn" title="Stop">■</button>
-        <button class="pb-btn" id="playBtn" title="Play/Pause">▶</button>
-        <button class="pb-btn" id="skipBtn" title="Skip">⏭</button>
-        <input type="range" class="speed-slider" id="speedSlider" min="0.7" max="1.5" step="0.1" value="1" title="Read speed" />
-      </div>
-    </div>
-  </div>
 </div>
 
 <!-- HAMBURGER MENU -->
@@ -1792,7 +1799,7 @@ $('exportBtn').onclick = () => { exportManuscript(); closeMenu(); };
 async function generateMore() {
   if (generating || !llmOk()) return false;
   generating = true; $('genBtn').disabled = true;
-  $('statusText').textContent = 'generating…';
+  $('statusText').textContent = 'generating…'; $('statusLive').hidden = false;
   try {
     if (PP.online) {
       try {
@@ -2157,6 +2164,7 @@ function render() {
   // Status
   $('statusDot').className = 'status-dot ' + (playing ? 'playing' : 'paused');
   $('statusText').textContent = playing ? (speaking ? 'reading aloud…' : 'reading…') : (generating ? 'generating…' : 'idle');
+  $('statusLive').hidden = !playing && !generating;
   $('playBtn').textContent = playing ? '⏸' : '▶';
   $('playBtn').classList.toggle('active', playing);
   $('docTitleDisplay').textContent = documentTitle;

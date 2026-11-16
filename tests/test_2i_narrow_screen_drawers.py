@@ -92,8 +92,37 @@ def test_save_is_at_the_top_with_its_state_and_is_not_in_the_bottom_bar(phone):
     save, state, main = page.evaluate(BOX, "saveBtn"), page.evaluate(BOX, "saveIndicator"), page.evaluate(BOX, "mainArea")
     assert save["visible"] and save["h"] >= 40 and save["y"] + save["h"] <= main["y"]
     assert state["visible"] and state["y"] + state["h"] <= main["y"]
-    assert page.evaluate("!document.querySelector('.status-bar').contains(document.getElementById('saveBtn'))")
     assert page.evaluate("document.querySelectorAll('#saveBtn').length") == 1
+
+
+def test_nothing_sits_under_the_page_and_the_bottom_bar_items_have_new_homes(phone):
+    page, _ = phone
+    assert page.evaluate("document.querySelector('.status-bar')") is None
+    frame = page.evaluate(BOX, "notebookFrame")
+    assert frame["y"] + frame["h"] == PHONE["height"]          # the page runs to the bottom of the screen
+    top = page.evaluate("Math.round(document.querySelector('.top-bar').getBoundingClientRect().bottom)")
+    title = page.evaluate(BOX, "docTitleDisplay")
+    assert title["visible"] and title["w"] > 0 and title["y"] + title["h"] <= top
+    assert page.inner_text("#docTitleDisplay") == page.evaluate("documentTitle")
+    page.tap("#soloTextarea")
+    page.keyboard.type("four words right here")
+    page.evaluate("render()")  # the count is refreshed when the page re-renders, as it was in the bottom bar
+    assert page.inner_text("#wordCount") == "4 words"
+    assert page.evaluate("document.getElementById('chatSection').contains(document.getElementById('llmPill'))")
+    # the status word is hidden while idle and shown while something is happening
+    assert page.evaluate("document.getElementById('statusLive').hidden") is True
+    page.evaluate("() => { generating = true; render(); }")
+    assert page.evaluate("[document.getElementById('statusLive').hidden, document.getElementById('statusText').textContent]") == [False, "generating…"]
+    page.evaluate("() => { generating = false; render(); }")
+    assert page.evaluate("document.getElementById('statusLive').hidden") is True
+    # read-aloud controls belong to Collab, as before; they are at the top now
+    assert not page.evaluate(BOX, "playbackControls")["visible"]
+    page.evaluate("() => { coWriting = true; updateModeUI(); render(); }")
+    controls = page.evaluate(BOX, "playbackControls")
+    top = page.evaluate("Math.round(document.querySelector('.top-bar').getBoundingClientRect().bottom)")
+    assert controls["visible"], controls
+    assert controls["y"] + controls["h"] <= top + 1, (controls, top)   # +1: the two numbers are rounded separately
+    assert page.evaluate(BOX, "playBtn")["h"] >= 40
 
 
 def test_the_tab_opens_the_drawer_and_the_same_tab_closes_it(phone):
