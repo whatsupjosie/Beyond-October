@@ -145,7 +145,9 @@ def editor(page):
     return page.frame_locator("#host iframe").locator("#soloTextarea")
 
 
-def test_native_2i_edit_save_export_and_reopen(page):
+@pytest.mark.parametrize('width', [1100, 390], ids=['desktop-tray', 'narrow-tray'])
+def test_native_2i_edit_save_export_and_reopen(page, width):
+    page.locator('#host').evaluate('(host, width) => { host.style.width = `${width}px`; }', width)
     page.evaluate("openFile('script.py', 'print(\"original\")\\n')")
     text = editor(page)
     text.wait_for()
@@ -153,6 +155,12 @@ def test_native_2i_edit_save_export_and_reopen(page):
         "document.querySelector('#host iframe')?.contentWindow.document.querySelector('.ff-workspace [role=status]')?.textContent.includes('ready')"
     )
     assert text.input_value() == 'print("original")\n'
+    if width == 390:
+        tab = page.frame_locator('#host iframe').locator('#twoiDrawerTabTools')
+        tab.click()
+        assert tab.get_attribute('aria-expanded') == 'true'
+        tab.click()
+        assert tab.get_attribute('aria-expanded') == 'false'
     text.fill('print("edited")\n# retained\n')
     page.evaluate("p.save(c)")
     result = page.evaluate(
@@ -160,6 +168,7 @@ def test_native_2i_edit_save_export_and_reopen(page):
     )
     assert result == {"name": "script.py", "text": 'print("edited")\n# retained\n'}
     page.reload()
+    page.locator('#host').evaluate('(host, width) => { host.style.width = `${width}px`; }', width)
     page.evaluate("restore()")
     text = editor(page)
     text.wait_for()
