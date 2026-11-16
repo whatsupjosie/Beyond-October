@@ -42,6 +42,7 @@ function stored(key, fallback) { try { return JSON.parse(localStorage.getItem(ke
 let workspace = stored(WORKSPACE_KEY, { clientId:'writer_' + uuid(), documentId:uuid() });
 let documentId = workspace.documentId || uuid();
 let revision = 0, mutation = 0, savedMutation = 0, savePromise = null;
+let fileSavingId = null;
 let serverReady = false, initializing = true, saveConflict = false, recoverySafe = false;
 let partnerId = 'alex', conversations = {}, conversationIds = {};
 let partnerNames = {alex:'Alex', craig:'Craig', friend:'Friend'};
@@ -191,8 +192,7 @@ async function saveDocument() {
   // No host (opened from disk): automatic saves keep the browser recovery copy only and say where the file stands.
   // Writing the manuscript file is an explicit act: see saveToFile().
   if (!networked) {
-    setSaveStatus(!recoverySafe ? 'Export a copy now' : !documentDirty ? 'Saved' :
-      documentHandle ? 'Kept in this browser · Save to update ' + documentHandle.name : 'Kept in this browser · Save to write a file');
+    if (fileSavingId !== documentId && documentDirty) showUnsavedFileStatus();
     return false;
   }
   if(revision>0&&!documentDirty)return true;
@@ -220,31 +220,47 @@ async function saveDocument() {
   })();
   return savePromise;
 }
-// Explicit Save with no host: write the manuscript file itself. The same file again when one was opened or chosen
-// before; otherwise a file the writer picks; otherwise, in a browser without a file picker, a downloaded copy.
-// The file-based code is the page's own (kept as twoiFileSave before this script replaced those names).
+function showUnsavedFileStatus() {
+  setSaveStatus(!recoverySafe ? 'Export a copy now' : documentHandle
+    ? 'Kept in this browser · Save to update ' + documentHandle.name
+    : 'Kept in this browser · Save to write a file');
+}
+
 async function saveToFile() {
-  if (initializing) return false;
-  writeRecovery();
-  const payload = JSON.stringify(docPayload(), null, 2);
-  let written = false, downloaded = false;
-  if (documentHandle) {
-    try { const w = await documentHandle.createWritable(); await w.write(payload); await w.close(); written = true; }
-    catch { /* permission withdrawn or file gone: fall through and ask where to save */ }
+  if (initializing || fileSavingId !== null) return false;
+  const savingId = documentId;
+  const savingMutation = mutation;
+  fileSavingId = savingId;
+  try {
+    writeRecovery();
+    const result = await writeOfflineManuscript({
+      handle: documentHandle,
+      filename: safeName() + '.2i',
+      payload: JSON.stringify(docPayload(), null, 2),
+      isCurrent: () => documentId === savingId
+    });
+    if (documentId !== savingId) return false;
+    if (!result) {
+      setSaveStatus(recoverySafe ? 'Not saved to a file · kept in this browser' : 'Not saved · export a copy now');
+      return false;
+    }
+    documentHandle = result.handle;
+    documentDirty = mutation !== savingMutation;
+    writeRecovery();
+    if (documentDirty) showUnsavedFileStatus();
+    else setSaveStatus(result.handle ? 'Saved to ' + result.handle.name : 'Copy downloaded · ' + result.filename);
+    document.dispatchEvent(new Event('foresight:work-change'));
+    return !documentDirty;
+  } catch (error) {
+    if (documentId === savingId) {
+      writeRecovery();
+      setSaveStatus('File save failed · ' + (recoverySafe ? 'kept in this browser · ' : '') + 'Save a copy');
+      addChat('notice', error.message);
+    }
+    return false;
+  } finally {
+    fileSavingId = null;
   }
-  if (!written) {
-    const before = documentHandle, wasDirty = documentDirty;
-    documentDirty = true;            // the page's Save as clears this only when it really wrote or downloaded
-    await twoiFileSave.saveAs();
-    written = !documentDirty;
-    downloaded = written && documentHandle === before;
-    if (!written) documentDirty = wasDirty;
-  }
-  if (!written) { setSaveStatus(recoverySafe ? 'Not saved to a file · kept in this browser' : 'Not saved · export a copy now'); return false; }
-  documentDirty = false; writeRecovery();
-  setSaveStatus(downloaded ? 'Copy downloaded · ' + safeName() + '.2i' : 'Saved to ' + documentHandle.name);
-  document.dispatchEvent(new Event('foresight:work-change'));
-  return true;
 }
 // What the Save button, File › Save and Ctrl+S do: the host when there is one, the file when there is not.
 function saveNow() { return networked ? saveDocument() : saveToFile(); }
@@ -302,23 +318,31 @@ async function exportManuscript() {
   if (buffer.length) text += '\n---\n*Uncommitted draft*\n\n'+buffer.join('\n')+'\n';
   downloadFile(safeName()+'.md', text, 'text/markdown');
 }
-async function importDocument(file) {
+async function importDocument(file, fileHandle = null) {
   const doc = JSON.parse(await file.text());
   if (doc.format !== '2i-document' || doc.version > 4) throw Error('Unsupported 2i document format.');
   validateDocumentState(doc.state);
   if(!await preserveBeforeSwitch())return;
   cancelLLM(); stopPlaying();
   documentId = uuid(); revision=0; saveConflict=false;
-  documentTitle = String(doc.title || 'Untitled manuscript').slice(0,200); documentHandle=null;
-  loadDocState({...doc.state,conversationIds:{}}); markDirty(); render(); await saveDocument();
+  documentTitle = String(doc.title || 'Untitled manuscript').slice(0,200); documentHandle=fileHandle;
+  loadDocState({...doc.state,conversationIds:{}});
+  if (fileHandle) {
+    documentDirty = false;
+    writeRecovery();
+    setSaveStatus('Opened ' + fileHandle.name);
+    document.dispatchEvent(new Event('foresight:work-change'));
+  } else {
+    markDirty(); render(); await saveDocument();
+  }
   return true;
 }
 async function openDocument() {
   // No host, and the browser has a file picker: keep the chosen file's handle so Save writes back to that file.
-  if (!networked && 'showOpenFilePicker' in window) {
+  if (!networked && typeof window.showOpenFilePicker === 'function') {
     try {
       const [handle] = await window.showOpenFilePicker({types:[{description:'2i Document',accept:{'application/json':['.2i','.json']}}]});
-      if (await importDocument(await handle.getFile())) { documentHandle = handle; documentDirty = false; writeRecovery(); setSaveStatus('Opened ' + handle.name); }
+      await importDocument(await handle.getFile(), handle);
     } catch (error) { if (error.name !== 'AbortError') addChat('notice', error.message); }
     return;
   }
@@ -734,7 +758,7 @@ document.addEventListener('drop',async event=>{
 },true);
 window.addEventListener('pagehide',writeRecovery);
 window.addEventListener('beforeunload',event=>{
-  if (chatSending || generating || (documentDirty && !recoverySafe)) {
+  if (fileSavingId !== null || chatSending || generating || (documentDirty && !recoverySafe)) {
     event.preventDefault();
     event.returnValue = '';
   }

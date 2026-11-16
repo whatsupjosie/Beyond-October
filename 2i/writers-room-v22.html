@@ -1475,6 +1475,8 @@ let speechToken = 0;
 let documentTitle = 'Untitled Pubcast 2i Document';
 let documentDirty = false;
 let documentHandle = null;
+let standaloneDocumentId = 0;
+let standaloneSaveInProgress = false;
 let chapters = [{ title: 'Chapter One', subtitle: '', startLine: 0 }];
 let chatHistory = [];
 const MAX_CHAT = 20;
@@ -1625,40 +1627,75 @@ function loadDocState(state) {
 
 // ── SAVE / OPEN / EXPORT ───────────────────────────────────────────
 function safeName() { return documentTitle.replace(/[\\/:*?"<>|]/g, '-').trim() || 'Untitled'; }
-async function saveDocument() {
-  if (documentHandle) {
-    try {
-      const w = await documentHandle.createWritable();
-      await w.write(JSON.stringify(docPayload(), null, 2));
-      await w.close();
-      documentDirty = false; $('saveIndicator').textContent = 'saved';
-      return;
-    } catch {}
+async function writeManuscriptFile(handle, payload) {
+  const stream = await handle.createWritable();
+  try {
+    await stream.write(payload);
+    await stream.close();
+  } catch (error) {
+    try { await stream.abort(); } catch {} // The stream may already have errored.
+    throw error;
   }
-  await saveDocumentAs();
 }
-async function saveDocumentAs() {
-  const payload = docPayload();
-  if ('showSaveFilePicker' in window) {
+async function writeOfflineManuscript({handle, filename, payload, isCurrent}) {
+  if (handle) {
     try {
-      const h = await window.showSaveFilePicker({
-        suggestedName: safeName() + '.2i',
-        types: [{ description: '2i Document', accept: { 'application/json': ['.2i'] } }]
-      });
-      const w = await h.createWritable(); await w.write(JSON.stringify(payload, null, 2)); await w.close();
-      documentHandle = h; documentDirty = false; $('saveIndicator').textContent = 'saved';
-      return;
+      await writeManuscriptFile(handle, payload);
+      return {handle, filename: handle.name};
     } catch (error) {
-      // Closing the picker is a decision not to save. Before, it fell through to the download below.
-      if (error.name === 'AbortError') return;
+      if (!isCurrent()) return null;
+      // A lost or read-only file can be saved to a new location while the picker is available.
+      if (typeof window.showSaveFilePicker !== 'function') throw error;
     }
   }
-  // Fallback: download
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = safeName() + '.2i'; a.click(); URL.revokeObjectURL(a.href);
-  documentDirty = false; $('saveIndicator').textContent = 'saved';
+  if (typeof window.showSaveFilePicker === 'function') {
+    try {
+      handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: '2i Document', accept: { 'application/json': ['.2i'] } }]
+      });
+    } catch (error) {
+      if (error.name === 'AbortError') return null;
+      throw error;
+    }
+    if (!isCurrent()) return null;
+    await writeManuscriptFile(handle, payload);
+    return {handle, filename: handle.name};
+  }
+  const url = URL.createObjectURL(new Blob([payload], {type:'application/json'}));
+  try {
+    const link = document.createElement('a');
+    link.href = url; link.download = filename; link.click();
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  return {handle:null, filename};
 }
+async function saveStandaloneManuscript(handle) {
+  if (standaloneSaveInProgress) return false;
+  const savingId = standaloneDocumentId;
+  const isCurrent = () => standaloneDocumentId === savingId;
+  standaloneSaveInProgress = true;
+  try {
+    const payload = JSON.stringify(docPayload(), null, 2);
+    const result = await writeOfflineManuscript({handle, filename:safeName() + '.2i', payload, isCurrent});
+    if (!isCurrent() || !result) return false;
+    documentHandle = result.handle;
+    documentDirty = JSON.stringify(docPayload(), null, 2) !== payload;
+    $('saveIndicator').textContent = documentDirty ? 'unsaved' : 'saved';
+    return !documentDirty;
+  } catch (error) {
+    if (isCurrent()) {
+      $('saveIndicator').textContent = 'File save failed';
+      addChat('notice', error.message);
+    }
+    return false;
+  } finally {
+    standaloneSaveInProgress = false;
+  }
+}
+function saveDocument() { return saveStandaloneManuscript(documentHandle); }
+function saveDocumentAs() { return saveStandaloneManuscript(null); }
 async function openDocument() {
   if ('showOpenFilePicker' in window) {
     try {
@@ -1669,6 +1706,7 @@ async function openDocument() {
       const text = await file.text();
       const doc = JSON.parse(text);
       if (doc.format !== '2i-document') throw new Error('Not a 2i document');
+      standaloneDocumentId++;
       documentTitle = doc.title || 'Untitled';
       documentHandle = h;
       loadDocState(doc.state);
@@ -1684,6 +1722,7 @@ async function openDocument() {
     try {
       const text = await file.text();
       const doc = JSON.parse(text);
+      standaloneDocumentId++;
       documentTitle = doc.title || 'Untitled';
       documentHandle = null;
       loadDocState(doc.state);
@@ -1693,9 +1732,6 @@ async function openDocument() {
   };
   inp.click();
 }
-// reach.js replaces saveDocument, saveDocumentAs and openDocument with versions that save to the host. Opened
-// from disk there is no host, so reach.js hands an explicit Save back to the file-based originals kept here.
-const twoiFileSave = { saveAs: saveDocumentAs };
 function exportManuscript() {
   let md = '# ' + documentTitle + '\n\n';
   let chIdx = 0;
@@ -1711,6 +1747,7 @@ function exportManuscript() {
 }
 function newDocument() {
   if (documentDirty && !confirm('Discard unsaved changes?')) return;
+  standaloneDocumentId++;
   committed = []; buffer = []; pool = []; pointer = 0;
   lockedLines = new Set(); chapters = [{ title:'Chapter One', subtitle:'', startLine:0 }];
   selectedIdx = null; editingIdx = null; reading = null;
@@ -2665,6 +2702,7 @@ document.addEventListener('drop', async e => {
       const doc = JSON.parse(text);
       if (doc.format !== '2i-document') { addChat('pp', '⚠ Not a 2i document.'); return; }
       if (documentDirty && !confirm('Discard unsaved changes?')) return;
+      standaloneDocumentId++;
       documentTitle = doc.title || 'Untitled';
       documentHandle = null;
       loadDocState(doc.state);
