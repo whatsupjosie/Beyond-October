@@ -132,6 +132,11 @@ def test_laptop_width_shows_every_menu_and_nothing_overlaps(reach):
             save, main = page.evaluate(BOX, "saveBtn"), page.evaluate(BOX, "mainArea")
             assert save["visible"] and save["y"] + save["h"] <= main["y"]
             assert page.evaluate("document.querySelector('.top-bar').contains(document.getElementById('saveBtn')) && document.querySelector('.top-bar').contains(document.getElementById('saveIndicator'))")
+            # the whole frame of the program is inside the window: its bottom edge used to be 16 px below it
+            shell = page.evaluate("(() => { const r = document.querySelector('.app-shell').getBoundingClientRect(); return [Math.round(r.top), Math.round(r.bottom)]; })()")
+            assert shell == [8, 792]
+            frame = page.evaluate(BOX, "notebookFrame")
+            assert frame["y"] + frame["h"] <= 792 and page.evaluate("document.querySelector('.status-bar')") is None
             # Save still saves from its new place
             page.click("#soloTextarea")
             page.keyboard.type("Saved from the top bar.")

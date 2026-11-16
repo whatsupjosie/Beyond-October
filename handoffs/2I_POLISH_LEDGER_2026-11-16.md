@@ -149,3 +149,61 @@ shell is 16 px taller than the window (fixed), and the R4 line's `field-sizing:c
 5. Real devices: Windows, Josie's phones, an on-screen keyboard, iPhone Safari, forced colours.
 6. Decisions from Josie: the spiral on a phone (dropped, or a thin strip); the same arrow tabs on a laptop now or
    in Phase A3; Section 4 of the inherited handoff.
+
+---
+
+# Update 2, 2026-11-16 (same branch): menus from disk, debugging round two
+
+Supersedes "Still open" items 1 and 2 in the update above, and the earlier line "From disk, modes, the menu bar,
+versions and narrative tools do not load at all".
+
+## Changed
+
+| Item | Paths | What and why |
+| --- | --- | --- |
+| Companion files load from disk | `2i/writers-room-v22.html`, `2i/2i-assets/studio-desk.css` | The eleven `2i-assets/…` addresses and `../static/2i_studio_bridge.js` are relative to the page. From disk the menu bar, views, version bar and narrative tools now load. On the host the same addresses resolve because `/writers-room`, `/2i` and `/2i-v22` are all top-level routes (tested on all three). `reach_auth.js`, `speech_client.js`, `program_audio_runtime.js` and `foresight_files.js` keep host-only addresses and stay absent from disk. |
+| Which approach, and why | — | Three were weighed: a new standalone script defining the host's names (rejected: a second owner for document identity and save state); loading `reach.js` as it is; loading `reach.js` and giving Save a real file. `reach.js` already had a complete path for `networked === false` (the older `2i/index.html` loaded it from disk): browser recovery copy, `serverReady` false, so GPT's availability checks switch host-only commands off by themselves. That path was adapted, not rebuilt. |
+| Save from disk writes the file | `2i/2i-assets/reach.js`, `2i/writers-room-v22.html` | New `saveToFile()` and `saveNow()`. With no host, the Save button, File › Save and Ctrl+S write the manuscript file: the same file again when one was opened or chosen, else a picked file, else a downloaded copy where the browser has no file picker. Automatic saves keep only the browser recovery copy and the status line says so ("Kept in this browser · Save to update <file>"). `openDocument()` keeps the opened file's handle. Closing the picker no longer falls through to a download. On the host `saveNow()` is `saveDocument()`, unchanged. |
+
+## What changed for someone opening 2i from disk (tell Josie plainly)
+
+- It now looks and behaves like 2i inside the host: three panels on a laptop, drawers on a phone, all thirteen menus.
+- Unavailable there, and shown as unavailable: Revision history, Story versions, Studio Inbox, Write note, Place
+  sticky note, My manuscripts' host shelf.
+- The conversation partner needs the host. Before this change the bare page could talk to a model address typed
+  into its settings; with `reach.js` loaded, chat goes through the host. Not tested either way with a real model.
+- The page file copied somewhere completely on its own (no `2i-assets` folder beside it) still opens and writes,
+  without menus, as before (`tests/test_2i_standalone_without_format_core.py`, `test_2i_narrow_screen_drawers.py`).
+
+## Debugging round two — RAN
+
+- Python, fifteen 2i test files: 104 passed, 0 failed; run again after the check described below was added to an existing test: 104 passed, 0 failed. Node: 59 passed, 0 failed.
+- `menu_smoke.py` on the host and `menu_smoke.py --disk`, each at 1280×800 and 390×844: 65 commands, 0 script
+  errors, no dialog larger than the window. From disk 14 are unavailable: the same 9 that depend on editor state,
+  plus the 5 that need the host.
+- `layout_probe.py`: no problems at seven hosted and two disk sizes.
+- Break-it check: ten deliberate breaks, one at a time, each restored afterwards. Nine were caught by the tests on
+  the first pass. The tenth (the shell ignoring the host's margin, which cuts its bottom edge off) was not; a check
+  for it was added to `tests/test_2i_hosted_layout.py` and the same break is now caught. Breaks used: Save taking
+  the host path with no host; a cancelled picker downloading; `reach.js` addressed for the host only; the narrow
+  main-area rule removed; the drawer not closing for a reference; the unseen dot never set; the partner check
+  reading `initializing` directly; the scene-line style added only with the dialog; menu widths left to the
+  browser; the shell ignoring the host margin.
+
+## WROTE, NOT RUN
+
+- Real file pickers. The tests replace `showSaveFilePicker` / `showOpenFilePicker` with a recording stand-in; the
+  page and `reach.js` under test are real. A real picker on Windows Chrome or Edge has not been used.
+- Browsers that treat each `file://` page as its own private storage (Firefox does) and Safari from disk: the
+  browser recovery copy may not persist there. Chromium only was run.
+
+## Still open
+
+1. The nine state-dependent commands (Undo, Redo, FDX export, Dialogue and scene review, Generate, Commit, Archive,
+   Read/pause, Stop) in the states that enable them.
+2. Real devices: Windows, Josie's phones, an on-screen keyboard, iPhone Safari, forced colours, real file pickers.
+3. The word count refreshes only when the page re-renders.
+4. Decisions from Josie: whether chat from disk should be able to use a model address without the host; the spiral
+   on a phone; the same arrow tabs on a laptop now or in Phase A3; Section 4 of the inherited handoff.
+5. Next phase: A2 (the three looks selectable anywhere, and the single-page notebook as the default outside the
+   studio). Not started.
