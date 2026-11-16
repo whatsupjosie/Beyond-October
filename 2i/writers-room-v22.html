@@ -1627,11 +1627,28 @@ function loadDocState(state) {
 
 // ── SAVE / OPEN / EXPORT ───────────────────────────────────────────
 function safeName() { return documentTitle.replace(/[\\/:*?"<>|]/g, '-').trim() || 'Untitled'; }
-async function writeManuscriptFile(handle, payload) {
-  const stream = await handle.createWritable();
+const manuscriptFileSnapshots = new WeakMap();
+class ManuscriptFileConflict extends Error {}
+async function readManuscriptFile(handle) {
+  const bytes = new Uint8Array(await (await handle.getFile()).arrayBuffer());
+  manuscriptFileSnapshots.set(handle, bytes);
+  return new Blob([bytes], {type:'application/json'});
+}
+async function checkManuscriptFile(handle, expected) {
+  const current = new Uint8Array(await (await handle.getFile()).arrayBuffer());
+  if (current.length !== expected.length || current.some((byte, index) => byte !== expected[index])) {
+    throw new ManuscriptFileConflict('The manuscript file changed outside this editor. Save a copy to keep both versions.');
+  }
+}
+async function writeManuscriptFile(handle, payload, expected) {
+  const bytes = new TextEncoder().encode(payload);
+  const stream = await handle.createWritable({mode:'exclusive'});
   try {
-    await stream.write(payload);
+    if (expected) await checkManuscriptFile(handle, expected);
+    await stream.write(bytes);
+    if (expected) await checkManuscriptFile(handle, expected);
     await stream.close();
+    manuscriptFileSnapshots.set(handle, bytes);
   } catch (error) {
     try { await stream.abort(); } catch {} // The stream may already have errored.
     throw error;
@@ -1639,14 +1656,10 @@ async function writeManuscriptFile(handle, payload) {
 }
 async function writeOfflineManuscript({handle, filename, payload, isCurrent}) {
   if (handle) {
-    try {
-      await writeManuscriptFile(handle, payload);
-      return {handle, filename: handle.name};
-    } catch (error) {
-      if (!isCurrent()) return null;
-      // A lost or read-only file can be saved to a new location while the picker is available.
-      if (typeof window.showSaveFilePicker !== 'function') throw error;
-    }
+    const expected = manuscriptFileSnapshots.get(handle);
+    if (!expected) throw new ManuscriptFileConflict('No matching file snapshot. Save a copy to keep both versions.');
+    await writeManuscriptFile(handle, payload, expected);
+    return {handle, filename: handle.name};
   }
   if (typeof window.showSaveFilePicker === 'function') {
     try {
@@ -1686,7 +1699,7 @@ async function saveStandaloneManuscript(handle) {
     return !documentDirty;
   } catch (error) {
     if (isCurrent()) {
-      $('saveIndicator').textContent = 'File save failed';
+      $('saveIndicator').textContent = error instanceof ManuscriptFileConflict ? 'File changed · Save a copy' : 'File save failed · Save a copy';
       addChat('notice', error.message);
     }
     return false;
@@ -1702,7 +1715,7 @@ async function openDocument() {
       const [h] = await window.showOpenFilePicker({
         types: [{ description: '2i Document', accept: { 'application/json': ['.2i'] } }]
       });
-      const file = await h.getFile();
+      const file = await readManuscriptFile(h);
       const text = await file.text();
       const doc = JSON.parse(text);
       if (doc.format !== '2i-document') throw new Error('Not a 2i document');

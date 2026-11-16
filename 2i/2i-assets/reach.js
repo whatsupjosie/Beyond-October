@@ -7,6 +7,7 @@ const uuid = () => crypto.randomUUID ? crypto.randomUUID() : 'doc_' + Date.now()
 const requestedIdParam=new URLSearchParams(location.search).get('document');
 const requestedDocumentId=/^[A-Za-z0-9_-]{1,100}$/.test(requestedIdParam||'')?requestedIdParam:null;
 const priorEditorWriter=typeof history.state?.twoiWriter==='string'?history.state.twoiWriter:null;
+const priorOfflineDocumentId=location.protocol==='file:'?history.state?.twoiOfflineDocument:null;
 const editorWriter=uuid();
 const studioEntry=new URLSearchParams(location.search).has('studio_room');
 let studioResume=null;
@@ -40,7 +41,7 @@ function parseStudioResume(raw){
 /* End editor recovery selection. */
 function stored(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; } }
 let workspace = stored(WORKSPACE_KEY, { clientId:'writer_' + uuid(), documentId:uuid() });
-let documentId = workspace.documentId || uuid();
+let documentId = priorOfflineDocumentId || workspace.documentId || uuid();
 let revision = 0, mutation = 0, savedMutation = 0, savePromise = null;
 let fileSavingId = null;
 let serverReady = false, initializing = true, saveConflict = false, recoverySafe = false;
@@ -74,8 +75,12 @@ openDB=function() {
   });
 };
 function pinEditorDocument() {
-  if(!networked||reachFileMode)return;
+  if(reachFileMode)return;
   try{
+    if(!networked){
+      history.replaceState({...history.state,twoiWriter:editorWriter,twoiOfflineDocument:documentId},'');
+      return;
+    }
     const url=new URL(location.href);url.searchParams.set('document',documentId);
     history.replaceState({...history.state,twoiWriter:editorWriter},'',url);
   }catch(error){console.warn('Could not pin the editor URL:',error.message);}
@@ -254,7 +259,8 @@ async function saveToFile() {
   } catch (error) {
     if (documentId === savingId) {
       writeRecovery();
-      setSaveStatus('File save failed · ' + (recoverySafe ? 'kept in this browser · ' : '') + 'Save a copy');
+      const reason = error instanceof ManuscriptFileConflict ? 'File changed' : 'File save failed';
+      setSaveStatus(reason + ' · ' + (recoverySafe ? 'kept in this browser · ' : '') + 'Save a copy');
       addChat('notice', error.message);
     }
     return false;
@@ -342,7 +348,7 @@ async function openDocument() {
   if (!networked && typeof window.showOpenFilePicker === 'function') {
     try {
       const [handle] = await window.showOpenFilePicker({types:[{description:'2i Document',accept:{'application/json':['.2i','.json']}}]});
-      await importDocument(await handle.getFile(), handle);
+      await importDocument(await readManuscriptFile(handle), handle);
     } catch (error) { if (error.name !== 'AbortError') addChat('notice', error.message); }
     return;
   }
@@ -647,11 +653,14 @@ async function showRevisionHistory() {
 }
 
 async function showShelf() {
-  await saveDocument();
+  if (networked) await saveDocument();
+  else writeRecovery();
   const shelf=$('reachShelfList');shelf.replaceChildren();
   let remote=[], remoteError=null;
-  try {remote=(await api('/api/writers-room/documents')).documents || [];}
-  catch (error) { remoteError=error; }
+  if (networked) {
+    try {remote=(await api('/api/writers-room/documents')).documents || [];}
+    catch (error) { remoteError=error; }
+  }
   const local=browserManuscripts();
   const entries=remote.map(doc=>({...doc,source:'server'}));
   for(const doc of local) if(doc.dirty||!remote.some(r=>r.id===doc.id))entries.unshift({...doc,source:'browser'});
@@ -665,7 +674,7 @@ async function showShelf() {
   }
   if(!entries.length) {
     const empty=document.createElement('p');
-    empty.textContent=remoteError?'No browser recovery copies found. Reconnect Reach to view server manuscripts.':'Your saved manuscripts will appear here.';
+    empty.textContent=!networked?'No browser recovery copies found.':remoteError?'No browser recovery copies found. Reconnect Reach to view server manuscripts.':'Your saved manuscripts will appear here.';
     shelf.append(empty);
   }
   for(const doc of entries) {

@@ -31,11 +31,15 @@ PAGE = Path(__file__).resolve().parents[1] / "2i" / "writers-room-v22.html"
 
 # Stand-in for the browser's file pickers. Everything written to the "file" is recorded on window.__file.
 PICKERS = """
-window.__file = {writes: [], savePickers: 0, openPickers: 0, cancel: false, toOpen: null};
+window.__file = {writes: [], savePickers: 0, openPickers: 0, cancel: false, toOpen: null, contents: {}};
 function __handle(name) {
   return {name, kind: 'file',
-    async createWritable() { let data = ''; return {async write(d) { data += d; }, async close() { window.__file.writes.push({name, data}); }}; },
-    async getFile() { return new File([window.__file.toOpen], name, {type: 'application/json'}); }};
+    async createWritable() { let data = ''; return {
+      async write(bytes) { data = new TextDecoder().decode(bytes); },
+      async close() { window.__file.contents[name] = data; window.__file.writes.push({name, data}); },
+      async abort() {}
+    }; },
+    async getFile() { return new File([window.__file.contents[name] ?? window.__file.toOpen ?? ''], name, {type: 'application/json'}); }};
 }
 window.showSaveFilePicker = async () => { window.__file.savePickers++;
   if (window.__file.cancel) throw new DOMException('The user aborted a request.', 'AbortError');
@@ -217,6 +221,12 @@ def test_what_was_typed_comes_back_after_a_reload(disk):
     page.wait_for_function("typeof initializing !== 'undefined' && !initializing", timeout=20000)
     assert page.evaluate("soloTextarea.value") == "Typed before the page was reloaded."
     assert page.evaluate("getDocState().committed") == ["Typed before the page was reloaded."]
+
+    _type(page, " And a later edit.")
+    page.wait_for_function("localStorage.getItem(recoveryWriterKey(documentId))?.includes('And a later edit.')")
+    page.reload()
+    page.wait_for_function("typeof initializing !== 'undefined' && !initializing", timeout=20000)
+    assert page.evaluate("soloTextarea.value") == "Typed before the page was reloaded. And a later edit."
 
 
 def test_a_browser_without_a_file_picker_gets_a_downloaded_copy():
