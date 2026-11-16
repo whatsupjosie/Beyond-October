@@ -1285,8 +1285,13 @@ function cancelLLM() { if (abortController) { abortController.abort(); abortCont
 // ── CORE STATE ─────────────────────────────────────────────────────
 let coWriting = false;  // false = WRITE mode, true = COLLAB mode
 let committed = [];     // finalized manuscript lines
-const nativeFormatting=!new URLSearchParams(location.search).has('file');
-let manuscriptFormat=TwoiFormatCore.fresh(), formatPrevious=[];
+// The formatting core is a separate file (2i-assets/format-core.js). When 2i is opened on its own, from disk,
+// that file is not there: writing, saving and reading aloud must still work. Formatting commands then stay off,
+// and formatting already saved in a document is carried through untouched instead of being dropped on save.
+// Its anchors hold the paragraph text they belong to, so the core re-checks them the next time it loads.
+const formatCoreLoaded=typeof TwoiFormatCore!=='undefined';
+const nativeFormatting=formatCoreLoaded&&!new URLSearchParams(location.search).has('file');
+let manuscriptFormat=formatCoreLoaded?TwoiFormatCore.fresh():null, formatPrevious=[], carriedFormatting;
 function syncManuscriptFormat(){if(nativeFormatting){TwoiFormatCore.reconcile(manuscriptFormat,formatPrevious,committed);formatPrevious=committed.slice();}return manuscriptFormat;}
 function getFormatContext(){return nativeFormatting?TwoiFormatCore.profileContext(syncManuscriptFormat()):null;}
 let buffer = [];        // draft lines (collab mode)
@@ -1410,7 +1415,8 @@ function getDocState() {
     committed, buffer, pool, pointer, chapters,
     lockedLines: [...lockedLines],
     coWriting, references,
-    ...(nativeFormatting?{formatting:TwoiFormatCore.clone(syncManuscriptFormat())}:{}),
+    ...(nativeFormatting?{formatting:TwoiFormatCore.clone(syncManuscriptFormat())}:
+      !formatCoreLoaded&&carriedFormatting!==undefined?{formatting:carriedFormatting}:{}),
     ...(typeof partnerId !== 'undefined' ? {
       partnerId,
       conversations: {...conversations, [partnerId]: [...chatHistory]},
@@ -1424,6 +1430,7 @@ function docPayload() {
 function loadDocState(state) {
   committed = state.committed || [];
   if(nativeFormatting){manuscriptFormat=TwoiFormatCore.restore(state.formatting,committed);formatPrevious=committed.slice();}
+  else if(!formatCoreLoaded)carriedFormatting=state.formatting;
   buffer = state.buffer || [];
   pool = state.pool || [];
   pointer = state.pointer || 0;
@@ -1538,7 +1545,7 @@ function newDocument() {
   documentTitle = 'Untitled Pubcast 2i Document'; documentHandle = null;
   documentDirty = false; $('saveIndicator').textContent = 'unsaved';
   undoStack = []; redoStack = []; chatHistory = [];
-  chatLog.innerHTML = ''; references = [];
+  chatLog.innerHTML = ''; references = []; carriedFormatting = undefined;
   render();
 }
 
