@@ -126,7 +126,7 @@
   let panelBody;
   const names={purpose:"Dramatic purpose",cast:"Cast / character identities",motivation:"Character objectives and obstacles",information:"Information distribution (recipient | fact | current state | intended state)",subtext:"Subtext",ambiguity:"Ambiguity / planned reveal",choreography:"Blocking, objects and physical continuity",emotionalProgression:"Emotional progression",dramaticProgression:"Dramatic progression / change",audienceImpact:"Intended audience impact",dependencies:"Dependencies / preceding and later scenes",editorialAttention:"Particular attention / punch-up targets",executionAssessment:"Author's assessment"};
   function makePanel(){
-    const style=make("style",`#narrativeDialog{width:min(720px,94vw);max-height:90dvh;overflow:auto;background:#f7efe0;color:#29231b;border:1px solid #8b7250;border-radius:12px;padding:18px;font:14px/1.4 system-ui}#narrativeDialog::backdrop{background:#0008}#narrativeDialog label{display:block;margin:10px 0;color:inherit;font-weight:600}#narrativeDialog input,#narrativeDialog select,#narrativeDialog textarea{display:block;width:100%;box-sizing:border-box;margin:4px 0 0;padding:7px;background:#fffaf0;color:#29231b;border:1px solid #ad9b83;border-radius:5px;font:inherit}#narrativeDialog textarea{resize:vertical}#narrativeDialog .narrative-actions{display:flex;gap:7px;flex-wrap:wrap;margin:9px 0}#narrativeDialog pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:35vh;overflow:auto;font:inherit;background:#fffaf0;padding:10px;border:1px solid #ad9b83}#narrativeDialog .mc-btn{min-height:34px;flex:0 1 auto}#narrativeBudget,#narrativeStatus{font-size:11px;overflow-wrap:anywhere;margin-top:5px}`,document.head);
+    const style=make("style",`#narrativeDialog{width:min(720px,94vw);max-height:90dvh;overflow:auto;background:#f7efe0;color:#29231b;border:1px solid #8b7250;border-radius:12px;padding:18px;font:14px/1.4 system-ui}#narrativeDialog::backdrop{background:#0008}#narrativeDialog label{display:block;margin:10px 0;color:inherit;font-weight:600}#narrativeDialog input,#narrativeDialog select,#narrativeDialog textarea{display:block;width:100%;box-sizing:border-box;margin:4px 0 0;padding:7px;background:#fffaf0;color:#29231b;border:1px solid #ad9b83;border-radius:5px;font:inherit}#narrativeDialog textarea{resize:vertical}#narrativeDialog .narrative-actions{display:flex;gap:7px;flex-wrap:wrap;margin:9px 0}#narrativeDialog pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:35vh;overflow:auto;font:inherit;background:#fffaf0;padding:10px;border:1px solid #ad9b83}#narrativeDialog .mc-btn{min-height:34px;flex:0 1 auto}`,document.head);
     panel=make("dialog",undefined,document.body);panel.id="narrativeDialog";panel.setAttribute("aria-label","Narrative intelligence");
     make("h2","Scene intelligence",panel);
     make("p","Define the purpose and intended effect, not a compulsory formula. Dossiers and assessments are separate from the manuscript.",panel);
@@ -380,6 +380,10 @@
     d.addEventListener("close",()=>d.remove(),{once:true});d.showModal();
   }
   const controls=$("mcSection").querySelector(".section-body");
+  // These two lines sit in the Manuscript Control panel from the start, so their style must exist from the start.
+  // It used to be added only when the Scene intelligence dialog first opened; until then they showed as large
+  // unstyled body text and spilled over the panel below. They match the panel's other small labels (.mc-row).
+  make("style","#narrativeBudget,#narrativeStatus{margin:0;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;line-height:1.7;color:var(--parchment-soft);overflow-wrap:anywhere}",document.head).id="narrativeControlStyle";
   button("Scene intelligence",controls,openPanel).id="narrativeOpen";
   button("Contribution records",controls,openContributionReport).id="narrativeContribution";
   button("Creative session · off",controls,openSession).id="narrativeSession";

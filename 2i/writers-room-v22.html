@@ -149,13 +149,22 @@ html, body {
   display:flex; flex-direction:column;
   background:linear-gradient(180deg, rgba(44,22,8,0.92), rgba(20,11,6,0.96));
   border-right:1px solid rgba(205,163,73,0.18);
-  overflow:hidden; min-height:0;
+  /* The panel scrolls when its sections need more height than the window gives. Before, the sections were
+     squeezed instead and their contents were drawn on top of the section below. */
+  overflow-x:hidden; overflow-y:auto; min-height:0;
+  scrollbar-width:thin; scrollbar-color:rgba(205,163,73,0.45) transparent;
 }
 .sidebar-section {
   display:flex; flex-direction:column;
   border-bottom:1px solid rgba(205,163,73,0.12);
   min-height:0;
 }
+/* Manuscript Control keeps its full height; the Reference Archive and chat keep enough room to be used. */
+#mcSection { flex-shrink:0; }
+#refSection:not(.collapsed) { flex-shrink:0; min-height:230px; }
+.sidebar:not(:has(> .chat-section)) > #refSection:not(.collapsed) { flex-grow:1; }
+#addRefBtn { flex:0 0 auto; }
+.sidebar > .chat-section:not(.collapsed) { min-height:280px; }
 .sidebar-section.collapsed > :not(.section-header) { display:none; }
 .section-header {
   font-family:'IBM Plex Mono',monospace;
@@ -431,7 +440,10 @@ html, body {
 }
 
 /* Solo mode */
-.page-sheets.solo-mode .manuscript-zone { flex:1; max-height:none; }
+/* The zone is a column so the editor below can take the page's full height. Inside the host reach.css said
+   this; opened from disk reach.css is absent, and the writing box was left two lines tall. */
+.page-sheets.solo-mode .manuscript-zone { flex:1; max-height:none; display:flex; flex-direction:column; }
+.page-sheets.solo-mode .zone-label-row { flex-shrink:0; }
 .page-sheets.solo-mode .tortoise-seam { display:none; }
 .page-sheets.solo-mode .draft-zone { display:none; }
 .page-sheets.solo-mode .solo-editor { display:flex; }
@@ -830,6 +842,119 @@ html, body {
 }
 .zoom-ctrl.on-paper .zoom-btn:hover { border-color:var(--gold-deep); color:var(--ink); }
 .zoom-ctrl.on-paper .zoom-pct { color:var(--pencil-soft); }
+/* ═══════════════════════════════════════════════════════════════
+   "MY MANUSCRIPTS" BUTTON
+   It carries words, not an icon. In the round icon shape its words spilled over the button beside it.
+   ═══════════════════════════════════════════════════════════════ */
+#shelfBtn {
+  width:auto; padding:0 12px; border-radius:14px; white-space:nowrap;
+  font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NARROW SCREENS (phones, small tablets)
+   Three panels cannot sit side by side below about 850 px. The page takes the whole screen; the side panels
+   become drawers that slide over it from tabs on the edges, closed until asked for. The panels are the same
+   elements as on a wide screen, so nothing typed or selected in them is lost by opening, closing or rotating.
+
+   This block is last in the page's own stylesheet on purpose. The page's rules load after reach.css, so the
+   narrow-screen rules written there lost to the page's own .main-area and .app-shell rules, and at 390 px wide
+   the page was squeezed to a 10 px sliver.
+   ═══════════════════════════════════════════════════════════════ */
+.twoi-drawer-tab, #twoiDrawerBackdrop { display:none; }
+@media (max-width:850px) {
+  .app-shell {
+    display:flex; flex-direction:column;
+    height:100vh; height:100dvh; min-height:0;
+    margin:0; border-width:0; border-radius:0; box-shadow:none;
+  }
+  .app-shell > * { flex:0 0 auto; }
+  .app-shell > .main-area { flex:1 1 0; }
+
+  .top-bar { flex-wrap:wrap; gap:6px 8px; padding:6px 10px; min-height:0; }
+  .top-tabs { display:none; }
+  .top-logo { font-size:18px; }
+  .top-logo small { display:none; }
+  .top-right { gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  .top-icon-btn, #shelfBtn { height:40px; }
+  .top-icon-btn:not(#shelfBtn) { width:40px; }
+  .mode-badge { min-height:40px; padding:4px 12px; }
+
+  /* clip, not hidden: a hidden box can still be scrolled by focus moving into a drawer, which shifted the page. */
+  .main-area, .main-area.sidebar-hidden { display:block; position:relative; padding:0; overflow:hidden; overflow:clip; min-height:0; }
+  /* The 24 px rails left and right of the page hold the drawer tabs, so a tab never covers writing. */
+  #notebookFrame { position:absolute; inset:0; height:auto; min-height:0; margin:0; padding:4px 24px; border-radius:0; }
+
+  #sidebar, #mainArea > #chatSection {
+    position:absolute; top:0; bottom:0; z-index:32;
+    width:min(86vw,360px); margin:0; border-radius:0;
+    display:flex; flex-direction:column;
+    background-color:#1b120b;
+    box-shadow:0 0 28px rgba(0,0,0,0.6);
+    visibility:hidden;
+    transition:transform 0.22s ease, visibility 0s linear 0.22s;
+  }
+  #sidebar { left:0; transform:translateX(-104%); overflow-x:hidden; overflow-y:auto; }
+  /* On a short screen the conversation needs more height than the drawer has, so the drawer itself scrolls.
+     Without that the message box was cut off below the edge, and focusing it dragged the whole page upward. */
+  #mainArea > #chatSection { right:0; transform:translateX(104%); min-height:0; overflow-x:hidden; overflow-y:auto; }
+  #mainArea > #chatSection .chat-log { min-height:96px; }
+  body[data-twoi-drawer="tools"] #sidebar,
+  body[data-twoi-drawer="partner"] #mainArea > #chatSection {
+    transform:none; visibility:visible;
+    transition:transform 0.22s ease, visibility 0s;
+  }
+
+  #twoiDrawerBackdrop {
+    display:block; position:absolute; inset:0; z-index:31;
+    background:rgba(8,5,3,0.55);
+    opacity:0; visibility:hidden;
+    transition:opacity 0.22s ease, visibility 0s linear 0.22s;
+  }
+  body[data-twoi-drawer] #twoiDrawerBackdrop { opacity:1; visibility:visible; transition:opacity 0.22s ease, visibility 0s; }
+
+  .twoi-drawer-tab {
+    display:flex; align-items:center; justify-content:center;
+    position:absolute; top:50%; z-index:33;
+    width:24px; height:96px; margin-top:-48px; padding:0;
+    border:1px solid rgba(205,163,73,0.55);
+    background:linear-gradient(180deg,#3a2716,#1d130c);
+    color:var(--gold-bright);
+    font:600 11px/1 'IBM Plex Mono',ui-monospace,monospace; letter-spacing:0.14em; text-transform:uppercase;
+    box-shadow:0 2px 8px rgba(0,0,0,0.5);
+    cursor:pointer; touch-action:manipulation;
+    transition:left 0.22s ease, right 0.22s ease;
+  }
+  /* A taller touch area than the visible tab, without reaching sideways into the page. */
+  .twoi-drawer-tab::before { content:""; position:absolute; inset:-12px 0; }
+  .twoi-drawer-tab span { writing-mode:vertical-rl; }
+  .twoi-drawer-tab:focus-visible { outline:2px solid var(--gold-bright); outline-offset:2px; }
+  #twoiDrawerTabTools { left:0; border-left:0; border-radius:0 8px 8px 0; }
+  #twoiDrawerTabTools span { transform:rotate(180deg); }
+  #twoiDrawerTabPartner { right:0; border-right:0; border-radius:8px 0 0 8px; }
+  /* An open drawer carries its tab on its outer edge, so the same tab closes it. The other tab steps aside. */
+  body[data-twoi-drawer="tools"] #twoiDrawerTabTools { left:min(86vw,360px); }
+  body[data-twoi-drawer="partner"] #twoiDrawerTabPartner { right:min(86vw,360px); }
+  body[data-twoi-drawer="tools"] #twoiDrawerTabPartner,
+  body[data-twoi-drawer="partner"] #twoiDrawerTabTools { visibility:hidden; }
+  /* Opened on its own, from disk, the conversation stays inside the left panel: there is no right drawer. */
+  #mainArea:not(:has(> #chatSection)) #twoiDrawerTabPartner { display:none; }
+
+  /* Touch sizes inside the drawers, and 16 px text in fields so a phone does not zoom the page on focus. */
+  #sidebar .section-header, #chatSection .section-header { min-height:44px; }
+  #sidebar .mc-btn, #chatSection .mc-btn { min-height:40px; }
+  #sidebar .ref-tab { min-height:36px; padding:8px 10px; }
+  #chatInput, #refSearchInput, #partnerSelect { font-size:16px; }
+
+  .status-bar { flex-wrap:wrap; gap:4px 8px; padding:6px 10px; min-height:0; }
+  .status-sep { display:none; }
+  .status-right { margin-left:auto; }
+  #docTitleDisplay { max-width:42vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .save-btn { min-height:40px; min-width:84px; }
+}
+@media (max-width:850px) and (prefers-reduced-motion:reduce) {
+  #sidebar, #mainArea > #chatSection, #twoiDrawerBackdrop, .twoi-drawer-tab { transition:none; }
+}
 </style>
 <script src="/static/program_audio_runtime.js"></script>
 <script src="/static/speech_client.js"></script>
@@ -980,6 +1105,11 @@ html, body {
         </div>
       </div>
     </div>
+
+    <!-- SIDE DRAWERS (narrow screens only). The panels above are the drawers; these are their edge tabs. -->
+    <div id="twoiDrawerBackdrop"></div>
+    <button type="button" class="twoi-drawer-tab" id="twoiDrawerTabTools" aria-controls="sidebar" aria-expanded="false" title="Manuscript tools and references"><span>Tools</span></button>
+    <button type="button" class="twoi-drawer-tab" id="twoiDrawerTabPartner" aria-controls="chatSection" aria-expanded="false" title="Conversation partner"><span>Chat</span></button>
   </div>
 
   <!-- STATUS BAR -->
@@ -1849,6 +1979,7 @@ function createReferenceRow(r,icons) {
 }
 function viewReferenceRecord(r) {
   if(!references.includes(r))return false;
+  twoiDrawers?.close(false); // on a narrow screen the reference opens on the page, under the drawer it was picked from
   $('refViewerTitle').textContent=r.name;
   $('refViewerBody').textContent=r.content;
   $('refViewer').classList.add('open');
@@ -2247,8 +2378,52 @@ document.addEventListener('click', e => {
 });
 
 $('sidebarToggle').onclick = () => {
+  if (twoiDrawers.narrow) { twoiDrawers.toggle('tools'); return; }
   $('mainArea').classList.toggle('sidebar-hidden');
 };
+
+// ── SIDE DRAWERS (narrow screens) ──────────────────────────────────
+// Below 850 px the side panels slide over the page instead of sitting beside it (see NARROW SCREENS in the
+// stylesheet). One owner for the state: body[data-twoi-drawer] is "tools", "partner" or absent, and the
+// stylesheet does the rest. On a wide screen this does nothing. `var` so that code which runs before this
+// line (a reference opened during start-up) sees "not ready yet" instead of failing.
+var twoiDrawers = (() => {
+  const narrow = matchMedia('(max-width:850px)');
+  const tabs = { tools: $('twoiDrawerTabTools'), partner: $('twoiDrawerTabPartner') };
+  // The conversation is its own drawer only when the host has moved it out of the left panel.
+  const panel = name => name === 'tools' ? $('sidebar')
+    : ($('chatSection').parentElement === $('mainArea') ? $('chatSection') : null);
+  let opened = null;
+  function apply(focus) {
+    const active = narrow.matches && opened && panel(opened) ? opened : null;
+    opened = active;
+    if (active) document.body.dataset.twoiDrawer = active; else delete document.body.dataset.twoiDrawer;
+    for (const name in tabs) tabs[name].setAttribute('aria-expanded', String(active === name));
+    $('notebookFrame').inert = !!active; // the page under an open drawer takes no taps or keys
+    // Focus a button, never a text field: focusing a field would raise the phone keyboard over the drawer.
+    if (focus && active) panel(active).querySelector('button:not(:disabled)')?.focus({ preventScroll: true });
+  }
+  function open(name) {
+    if (!narrow.matches || !panel(name)) return false;
+    opened = name; apply(true); return true;
+  }
+  function close(restoreFocus = true) {
+    const was = opened;
+    opened = null; apply(false);
+    if (was && restoreFocus && narrow.matches) tabs[was].focus({ preventScroll: true });
+  }
+  function toggle(name) { if (opened === name) { close(); return false; } return open(name); }
+  for (const name in tabs) tabs[name].addEventListener('click', () => toggle(name));
+  $('twoiDrawerBackdrop').addEventListener('click', () => close());
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || !opened || e.defaultPrevented) return;
+    if (document.querySelector('dialog[open], .modal-backdrop.open')) return; // a dialog on top closes first
+    e.preventDefault(); close();
+  });
+  narrow.addEventListener('change', () => apply(false)); // rotating or resizing past 850 px puts the panels back
+  apply(false);
+  return { open, close, toggle, get narrow() { return narrow.matches; }, get opened() { return opened; } };
+})();
 
 $('hmNewDoc').onclick = () => { closeMenu(); newDocument(); };
 $('hmOpenDoc').onclick = () => { closeMenu(); openDocument(); };
@@ -2466,6 +2641,12 @@ const PP = {
 
 /* ── identity ──────────────────────────────────────────────────────── */
 
+// The Reach document identity (documentId) and the start-up flag (initializing) are created by reach.js, which
+// is only present inside the host. Opened on its own, from disk, neither name exists. The functions below read
+// them through these two helpers so they report "offline" there instead of stopping on a missing name.
+function ppDocumentId() { return typeof documentId === 'undefined' ? null : documentId; }
+function ppStartingUp() { return typeof initializing !== 'undefined' && initializing; }
+
 function ppIdentity() {
   // Reach's durable document identity is authoritative. The server scopes
   // all manuscript data to the authenticated account, not this client ID.
@@ -2554,7 +2735,7 @@ async function ppFetch(path, options = {}, timeoutMs = 15000) {
 /* ── commit ────────────────────────────────────────────────────────── */
 
 async function ppCommit({ force = false } = {}) {
-  if(typeof initializing!=="undefined"&&initializing)return;
+  if(ppStartingUp())return;
   if (!committed.length) return;
 
   // Coalesce: one commit in flight at a time. A second request while one
@@ -2562,7 +2743,7 @@ async function ppCommit({ force = false } = {}) {
   // of indexing work behind a fast typist.
   if (PP.inflight) { PP.pending = true; return; }
   PP.inflight = true;
-  const indexDocument = typeof documentId==="undefined"?null:documentId;
+  const indexDocument = ppDocumentId();
 
   try {
     ppIdentity();
@@ -2578,7 +2759,7 @@ async function ppCommit({ force = false } = {}) {
       }),
     }, 30000);
 
-    if(indexDocument!==documentId)return;
+    if(indexDocument!==ppDocumentId())return;
     PP.online = true;
     PP.lastCommit = Date.now();
     ppSetStatus(
@@ -2592,7 +2773,7 @@ async function ppCommit({ force = false } = {}) {
     }
   } catch (e) {
     PP.online = false;
-    if(indexDocument===documentId)ppSetStatus('offline');
+    if(indexDocument===ppDocumentId())ppSetStatus('offline');
     console.debug('[2i] commit skipped:', e.message);
   } finally {
     PP.inflight = false;
@@ -2614,19 +2795,19 @@ async function ppLoadIntelligence() {
   }
   intelligenceRefreshDeferred=false;
   intelligenceLastLoaded=Date.now();
-  const originDocument=documentId;
+  const originDocument=ppDocumentId();
   try {
     ppIdentity();
     const res = await ppFetch(
       '/api/pubpartner/manuscript/' + encodeURIComponent(PP.projectId) + '/intelligence'
     );
-    if(originDocument!==documentId)return;
+    if(originDocument!==ppDocumentId())return;
     PP.intelligence = res;
     PP.online = true;
     ppRenderFlags();
     ppRenderCast();
   } catch (e) {
-    if(originDocument===documentId)PP.online = false;
+    if(originDocument===ppDocumentId())PP.online = false;
     console.debug('[2i] intelligence unavailable:', e.message);
   }
 }
@@ -2741,13 +2922,13 @@ function ppSetStatus(text) {
 }
 
 async function ppHealthCheck() {
-  if(initializing)return;
-  const originDocument=documentId;
+  if(ppStartingUp())return;
+  const originDocument=ppDocumentId();
   try {
     ppIdentity();
     const res = await ppFetch('/api/pubpartner/manuscript/' +
       encodeURIComponent(PP.projectId) + '/health', {}, 5000);
-    if(originDocument!==documentId)return;
+    if(originDocument!==ppDocumentId())return;
     PP.online = true;
     ppSetStatus(res.stats.entities + ' known');
     ppLoadIntelligence();

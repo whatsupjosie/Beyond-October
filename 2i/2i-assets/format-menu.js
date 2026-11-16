@@ -298,4 +298,10 @@
   function refreshQuick(){const profile=syncManuscriptFormat().profile;if(profile===lastProfile)return;lastProfile=profile;quick.replaceChildren();const first=el("option","Element…",quick);first.value="";for(const role of C.profiles[profile].roles){const o=el("option",C.names[role],quick);o.value=role;}quick.value="";quick.title=C.profiles[profile].label;}
   quick.onchange=()=>{const role=quick.value;quick.value="";if(!role)return;safe(()=>{ready();const indices=stableSelection(),next=C.clone(syncManuscriptFormat());for(const i of indices){const current=next.rows.find(r=>r.index===i)?.style||C.defaultStyle(role);C.apply(next,committed,[i],{...current,role},lockedLines);}snapshot();manuscriptFormat=next;update();});};
   document.addEventListener("foresight:work-change",refreshQuick);window.addEventListener("focus",refreshQuick);const renderPrevious=render;render=function(){renderPrevious();refreshQuick();};refreshQuick();
+  // Narrow screens keep the menus on one swipeable row (format-menu.css). Mark which edge has more menus beyond it
+  // so the style sheet can fade that edge; a cut-off menu must never look like the end of the row.
+  const markEdges=()=>{const hidden=menu.scrollWidth-menu.clientWidth;menu.classList.toggle("more-before",menu.scrollLeft>2);menu.classList.toggle("more-after",hidden-menu.scrollLeft>2);};
+  menu.addEventListener("scroll",markEdges,{passive:true});window.addEventListener("resize",markEdges);
+  if(typeof ResizeObserver==="function")new ResizeObserver(markEdges).observe(menu);
+  markEdges();
 })();
