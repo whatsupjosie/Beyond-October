@@ -18,7 +18,10 @@
   --ivory:#f9f4e6; --ivory-deep:#efe4cc; --ivory-glow:#fffbf0;
   --gold:#cda349; --gold-bright:#eecf83; --gold-deep:#93701f;
   --gold-glow:rgba(238,207,131,0.45); --gold-dim:rgba(205,163,73,0.18);
-  --ink:#231f18; --pencil:#4a4032; --pencil-soft:#7c7160;
+  --ink:#231f18; --pencil:#4a4032; --pencil-soft:#685944;
+  --ui-font:system-ui,sans-serif;
+  --reading-font:Georgia,"Times New Roman",serif;
+  --chrome-focus:#f0cf85; --paper-focus:#73521d;
   --mahogany:#3a2013; --mahogany-deep:#1b0f09;
   --leather:#2c1608; --leather-seam:rgba(0,0,0,0.28);
   --velvet:#2e6b52; --velvet-glow:rgba(46,107,82,0.38);
@@ -73,7 +76,7 @@ html, body {
 }
 .top-logo {
   font-family:'Cinzel Decorative',serif;
-  font-size:14px; font-weight:700;
+  font-size:clamp(17px,1.7vw,23px); font-weight:700;
   color:var(--gold-bright);
   text-shadow:0 1px 3px rgba(0,0,0,0.6), 0 0 12px rgba(238,207,131,0.15);
   white-space:nowrap;
@@ -81,32 +84,10 @@ html, body {
 }
 .top-logo small {
   font-family:'IBM Plex Mono',monospace;
-  font-size:9px; font-weight:400;
+  font-size:11px; font-weight:400;
   color:var(--parchment-soft);
   display:block; margin-top:-2px;
   letter-spacing:0.08em;
-}
-.top-tabs {
-  display:flex; gap:2px;
-  margin:0 auto;
-  background:rgba(0,0,0,0.25);
-  border-radius:6px; padding:3px;
-}
-.top-tab {
-  font-family:'IBM Plex Mono',monospace;
-  font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
-  padding:5px 14px; border-radius:4px;
-  border:none; cursor:pointer;
-  color:var(--parchment-soft);
-  background:transparent;
-  transition:all 0.15s ease;
-  box-shadow:none;
-}
-.top-tab:hover { color:var(--parchment); background:rgba(205,163,73,0.12); }
-.top-tab.active {
-  color:var(--gold-bright);
-  background:rgba(205,163,73,0.22);
-  box-shadow:inset 0 0 0 1px rgba(205,163,73,0.3);
 }
 .top-right {
   display:flex; align-items:center; gap:10px;
@@ -175,7 +156,7 @@ html, body {
 .sidebar-section.collapsed > :not(.section-header) { display:none; }
 .section-header {
   font-family:'IBM Plex Mono',monospace;
-  font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase;
+  font-size:12px; line-height:1.4; letter-spacing:.065em; text-transform:uppercase;
   color:var(--gold);
   padding:10px 14px 8px;
   display:flex; align-items:center; gap:8px;
@@ -217,7 +198,7 @@ html, body {
 .mc-btn-row { display:flex; gap:6px; }
 .mc-btn {
   flex:1; font-family:'IBM Plex Mono',monospace;
-  font-size:9.5px; letter-spacing:0.04em;
+  font-size:12px; line-height:1.4; letter-spacing:.01em; min-height:32px;
   padding:7px 8px; border-radius:5px;
   cursor:pointer;
   border:1px solid rgba(205,163,73,0.25);
@@ -225,7 +206,6 @@ html, body {
   color:var(--parchment);
   box-shadow:0 2px 4px rgba(0,0,0,0.3);
   transition:all 0.12s ease;
-  text-transform:uppercase;
 }
 .mc-btn:hover:not(:disabled) {
   border-color:var(--gold);
@@ -305,7 +285,7 @@ html, body {
 }
 .ref-meta .ref-name {
   font-family:'Cormorant Garamond',serif;
-  font-size:13px; color:var(--parchment);
+  font-size:15px; color:var(--parchment);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .ref-meta .ref-type {
@@ -314,8 +294,7 @@ html, body {
 }
 .ref-meta .ref-date {
   font-family:'IBM Plex Mono',monospace;
-  font-size:8.5px; color:var(--parchment-soft);
-  opacity:0.7;
+  font-size:11px; color:var(--parchment-soft);
 }
 .ref-actions { display:flex; gap:4px; flex-shrink:0; margin-top:2px; }
 .ref-action-btn {
@@ -337,7 +316,9 @@ html, body {
   padding-right:4px;
 }
 .chat-msg {
-  font-size:calc(13px * var(--zoom-chat, 1)); line-height:1.45;
+  font-family:var(--reading-font);
+  font-size:calc(16px * var(--zoom-chat, 1)); line-height:1.55;
+  overflow-wrap:anywhere;
   padding:7px 10px; border-radius:8px;
   max-width:92%;
 }
@@ -351,7 +332,7 @@ html, body {
 }
 .chat-msg .who {
   font-family:'IBM Plex Mono',monospace;
-  font-size:0.65em; text-transform:uppercase; letter-spacing:0.06em;
+  font-size:.75em; text-transform:uppercase; letter-spacing:.05em;
   color:var(--parchment-soft); display:block; margin-bottom:2px;
 }
 .chat-msg.thinking { opacity:0.5; font-style:italic; }
@@ -359,8 +340,8 @@ html, body {
   display:flex; gap:4px; margin-top:6px; flex-shrink:0;
 }
 .chat-input-row input {
-  flex:1; font-family:'Cormorant Garamond',serif;
-  font-size:calc(13px * var(--zoom-chat, 1)); padding:7px 9px;
+  flex:1; min-width:0; font-family:var(--ui-font);
+  font-size:calc(15px * var(--zoom-chat, 1)); padding:7px 9px;
   color:var(--parchment);
   border:1px solid rgba(205,163,73,0.18);
   border-radius:6px; background:rgba(0,0,0,0.2);
@@ -442,8 +423,8 @@ html, body {
   background:linear-gradient(180deg, var(--paper), rgba(246,236,213,0.9));
 }
 .manuscript-zone .zone-label {
-  font-family:'IBM Plex Mono',monospace; font-size:8px;
-  letter-spacing:0.12em; color:var(--gold-deep); text-transform:uppercase;
+  font-family:var(--ui-font); font-size:11px; font-weight:600;
+  letter-spacing:.08em; color:var(--pencil-soft); text-transform:uppercase;
 }
 
 /* Solo mode */
@@ -475,7 +456,7 @@ html, body {
      never by another length (verified: dividing by 12px directly
      left the expression unresolved and the declaration invalid). */
   line-height:calc(2.00208 * var(--zoom-manuscript, 1));
-  color:rgba(147,112,31,0.4);
+  color:var(--pencil-soft);
   user-select:none;
   overflow-y:auto; overflow-x:hidden;
   scrollbar-width:none;
@@ -516,7 +497,7 @@ html, body {
 .m-line .line-num {
   position:absolute; left:8px;
   font-family:'IBM Plex Mono',monospace; font-size:11px;
-  color:rgba(147,112,31,0.35);
+  color:var(--pencil-soft);
   width:36px; text-align:right;
   user-select:none;
 }
@@ -825,7 +806,7 @@ html, body {
    of --zoom-manuscript / --zoom-chat / --zoom-ref, nothing else. */
 .zoom-ctrl { display:flex; align-items:center; gap:3px; flex-shrink:0; }
 .zoom-btn {
-  width:19px; height:19px; flex:0 0 19px; padding:0;
+  width:26px; height:26px; flex:0 0 26px; padding:0;
   font-family:'IBM Plex Mono',monospace; font-size:11px; line-height:1;
   display:flex; align-items:center; justify-content:center;
   border-radius:4px; cursor:pointer; user-select:none;
@@ -837,7 +818,7 @@ html, body {
 .zoom-btn:hover { border-color:var(--gold); color:var(--gold-bright); }
 .zoom-btn:active { transform:translateY(1px); }
 .zoom-pct {
-  font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.02em;
+  font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.02em;
   color:var(--parchment-soft); min-width:29px; text-align:center; user-select:none;
 }
 /* On the paper-colored notebook surfaces (zone label, reference viewer)
@@ -857,7 +838,7 @@ html, body {
 .top-doc {
   display:flex; align-items:center; justify-content:flex-end; gap:10px;
   min-width:0; margin-left:auto;
-  font-family:'IBM Plex Mono',monospace; font-size:10px; line-height:1.3; color:var(--parchment-soft);
+  font-family:var(--ui-font); font-size:12px; line-height:1.4; color:var(--parchment-soft);
 }
 .top-doc > * { white-space:nowrap; }
 .top-doc + .top-right { margin-left:0; }
@@ -869,14 +850,41 @@ html, body {
 #chatSection .llm-pill { align-self:flex-start; font-family:'IBM Plex Mono',monospace; font-size:10px; }
 /* Save sits up top. The disk icon is drawn here, not in the button's text, so code that rewrites the button's
    words cannot remove it. */
-.top-right .save-btn { display:inline-flex; align-items:center; gap:7px; min-height:28px; }
+.top-right .save-btn {
+  display:inline-flex; align-items:center; gap:7px; min-height:34px;
+  font:600 13px/1.25 var(--ui-font); letter-spacing:0; text-transform:none;
+  color:#fff2cf; background:linear-gradient(#394731,#273322); border-color:#9b905c;
+}
+.top-right .save-btn:hover { background:#45573a; border-color:var(--gold-bright); }
+.app-shell :is(button,select,input,textarea):focus-visible,
+.modal :is(button,select,input,textarea):focus-visible {
+  outline:2px solid var(--chrome-focus); outline-offset:2px;
+}
+.app-shell .page-sheets :is(button,textarea):focus-visible {
+  outline-color:var(--paper-focus); outline-offset:-2px;
+}
+/* Retain the paper and binding cues while typesetting committed collaboration text. */
+body[data-twoi-desk="notebook"] :is(.m-line,.m-line-edit textarea) {
+  font-family:var(--reading-font); font-weight:400;
+  font-size:calc(17px * var(--zoom-manuscript, 1)); line-height:1.65;
+}
+body[data-twoi-desk="standard"] .manuscript-zone .zone-label-row {
+  background:#fffefa; border-bottom:1px solid #e8e1d5;
+}
+body[data-twoi-desk="standard"] .solo-textarea { border-radius:0 0 3px 0; }
+body[data-twoi-desk="standard"] .line-numbers { padding-top:18px; }
+@media (forced-colors:active) {
+  .app-shell :is(button,select,input,textarea):focus-visible,
+  .app-shell .page-sheets :is(button,textarea):focus-visible,
+  .modal :is(button,select,input,textarea):focus-visible { outline-color:Highlight; }
+}
 .top-right .save-btn::before {
   content:""; width:14px; height:14px; flex:0 0 14px;
   background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23efdbac' stroke-width='1.8' stroke-linejoin='round' stroke-linecap='round'%3E%3Cpath d='M5 3h11l3 3v15H5z'/%3E%3Cpath d='M8 3v5h7V3'/%3E%3Cpath d='M8 21v-7h8v7'/%3E%3C/svg%3E") center/contain no-repeat;
 }
 #shelfBtn {
   width:auto; padding:0 12px; border-radius:14px; white-space:nowrap;
-  font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
+  font-family:var(--ui-font); font-size:12px; font-weight:600; letter-spacing:.01em;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -895,7 +903,6 @@ html, body {
 
   /* Two lines: the name with the document line beside it, then the buttons. */
   .top-bar { flex-wrap:wrap; gap:6px 8px; padding:6px 10px; min-height:0; }
-  .top-tabs { display:none; }
   .top-logo { font-size:18px; }
   .top-logo small { display:none; }
   .top-doc { flex:1 1 0; gap:8px; }
@@ -915,6 +922,12 @@ html, body {
   /* The first 40 px under the menus hold the two drawer tabs; the page starts below them and runs to the
      bottom at full width, so a tab never covers writing. */
   #notebookFrame { position:absolute; inset:0; height:auto; min-height:0; margin:0; padding:40px 4px 4px; border-radius:0; }
+  #notebookFrame .spiral-spine { flex-basis:24px; }
+  #notebookFrame .line-numbers { flex-basis:32px; padding-right:5px; }
+  #notebookFrame .m-line .line-num { left:2px; width:25px; }
+  #notebookFrame :is(.m-line,.draft-area,.reading-line) { padding-left:34px; padding-right:18px; }
+  #notebookFrame .solo-editor { min-height:0; }
+  #twoiDeskScene { width:min(100%, 300px, 28dvh); }
 
   #sidebar, #mainArea > #chatSection {
     position:absolute; top:0; bottom:0; z-index:32;
@@ -988,6 +1001,7 @@ html, body {
   #sidebar .mc-btn, #chatSection .mc-btn { min-height:40px; }
   #sidebar .ref-tab { min-height:36px; padding:8px 10px; }
   #chatInput, #refSearchInput, #partnerSelect { font-size:16px; }
+  #sidebar .ref-tabs { flex-wrap:wrap; }
 
   .top-right .save-btn { min-height:40px; }
 }
@@ -1008,9 +1022,6 @@ html, body {
   <!-- TOP BAR -->
   <div class="top-bar">
     <div class="top-logo">Writer's Room<small>Pubcast 2i</small></div>
-    <div class="top-tabs">
-      <span class="top-tab active" data-tab="manuscript" aria-current="page">Manuscript</span>
-    </div>
     <!-- The document's own line: what it is called, how long it is, whether it is saved. The status word shows
          only while something is happening (reading, generating); "idle" is not shown. -->
     <div class="top-doc">
