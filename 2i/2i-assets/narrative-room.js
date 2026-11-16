@@ -23,36 +23,38 @@
   function recordSession(event,details={},text=""){
     if(!sessionActive())return false;
     try{
-      const row=C.sessionEvent(capture,event,details,text),size=JSON.stringify(row).length*3;
+      const row={...meta(),...C.sessionEvent(capture,event,details,text)},size=JSON.stringify(row).length*3;
       const reserve=2048;
-      if(event!=="end"&&event!=="coverage-limit"&&(capture.events>=500||capture.bytes+size>capture.budget-reserve)){
+      if(event!=="end"&&event!=="coverage-limit"&&(capture.events>=498||capture.bytes+size>capture.budget-reserve)){
         const gap=C.sessionEvent(capture,"coverage-limit",{reason:"budget"});state.archive.push({...meta(),...gap});capture.sequence++;capture.events++;
         const ended=C.sessionEvent(capture,"end",{reason:"budget"});state.archive.push({...meta(),...ended});capture=null;
         sessionNotice="Session capture stopped at its storage limit; later actions are not recorded. Existing manuscript and evidence retained.";
-        say(sessionNotice);updateSessionControl();return true;
+        say(sessionNotice);updateSessionControl();return false;
       }
-      state.archive.push({...meta(),...row});capture.sequence++;capture.events++;capture.bytes+=size;
+      state.archive.push(row);capture.sequence++;capture.events++;capture.bytes+=size;
       return true;
     }catch(error){
       try{const gap=C.sessionEvent(capture,"coverage-limit",{reason:"error"});state.archive.push({...meta(),...gap});}catch{}
-      capture=null;sessionNotice="Session capture stopped after an error; coverage is incomplete. Manuscript editing remains available.";say(sessionNotice);updateSessionControl();return true;
+      capture=null;sessionNotice="Session capture stopped after an error; coverage is incomplete. Manuscript editing remains available.";say(sessionNotice);updateSessionControl();return false;
     }
   }
   function observeEdit(data){
     if(!sessionActive())return false;
     try{const details=C.observedEdit(capture,data);return details?recordSession("edit",details):false;}
-    catch{recordSession("coverage-limit",{reason:"error"});stopCapture("error");return true;}
+    catch{recordSession("coverage-limit",{reason:"error"});if(sessionActive())stopCapture("error");else save();return false;}
   }
   function stopCapture(reason="explicit"){
     if(!sessionActive())return false;
-    recordSession("end",{reason});capture=null;sessionNotice="Creative session ended. Recorded material remains in the private manuscript archive.";updateSessionControl();save();return true;
+    const recorded=recordSession("end",{reason});capture=null;
+    if(recorded)sessionNotice=reason==="error"?"Creative session ended after an error; coverage is incomplete. Recorded material remains in the private manuscript archive.":"Creative session ended. Recorded material remains in the private manuscript archive.";
+    say(sessionNotice);updateSessionControl();save();return recorded;
   }
   function startCapture(mode){
     if(!ownerReady()||generating||chatSending||editingIdx!==null||sessionActive()||!C.captureModes.includes(mode))throw Error("Finish active work or the current session before starting another.");
     const estimate=JSON.stringify(getDocState()).length*3,budget=Math.min(96000,Math.max(0,1600000-estimate));
     if(budget<8192)throw Error("This manuscript has insufficient estimated sync capacity for additional recording. Export a native copy or work in a smaller manuscript.");
     capture={id:id(),mode,document:scope(),sequence:0,events:0,bytes:0,budget};
-    if(!recordSession("start"))throw Error("Capture could not start.");
+    if(!recordSession("start")||!sessionActive()){save();throw Error("Capture could not start; "+sessionNotice);}
     sessionNotice="Creative capture active: "+mode+". It is limited to supported actions, not continuous surveillance.";updateSessionControl();save();
   }
   function updateSessionControl(){
@@ -73,8 +75,8 @@
     if(sessionActive()){
       make("p",capture.mode+" · "+capture.events+" events · approximately "+Math.ceil(capture.bytes/1024)+" KiB of "+Math.floor(capture.budget/1024)+" KiB budget",d);
       const note=make("textarea",undefined,d);note.rows=3;note.maxLength=8000;note.placeholder="Optional private milestone or creative decision";
-      button("Record milestone",d,()=>attempt(()=>{if(!note.value.trim())throw Error("Enter a milestone.");recordSession("milestone",{},note.value);save();}));
-      button("End session",d,()=>attempt(()=>stopCapture("explicit")));
+      button("Record milestone",d,()=>attempt(()=>{if(!note.value.trim())throw Error("Enter a milestone.");const recorded=recordSession("milestone",{},note.value);save();if(!recorded)throw Error(sessionNotice||"Milestone was not recorded.");}));
+      button("End session",d,()=>attempt(()=>{if(!stopCapture("explicit"))throw Error(sessionNotice||"Session end was not recorded.");}));
     }else{
       const select=make("select",undefined,make("label","Capture depth",d));for(const [mode,label] of [["essential","Essential — approvals, rejections, decisions"],["significant","Significant — plus presented candidates, advisories, large edits and paste/drop metadata"],["comprehensive","Comprehensive — plus exact deltas at supported writing inputs"]]){const o=make("option",label,select);o.value=mode;}
       select.value="essential";
