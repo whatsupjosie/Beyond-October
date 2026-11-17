@@ -3,14 +3,12 @@
 @font-face{font-family:"2i Hand";src:url("../../static/fonts/caveat-latin-700-normal.woff2") format("woff2");font-weight:700;font-display:swap}
 .app-shell:has(>#twoiVersionBar){grid-template-rows:76px auto minmax(0,1fr) 52px}
 body[data-twoi-desk="notebook"] .solo-textarea,body[data-twoi-desk="notebook"] .m-line,body[data-twoi-desk="notebook"] .draft-area,body[data-twoi-desk="notebook"] .m-line-edit textarea{font-family:"2i Hand","Kalam",cursive;font-weight:700;font-size:calc(23px * var(--zoom-manuscript,1));line-height:1.55}
-body[data-twoi-desk="notebook"] .line-numbers{line-height:calc(35.65px * var(--zoom-manuscript,1))}
 body[data-twoi-desk="typewriter"] .notebook-frame{background:#17304b;flex-direction:column;padding:8px;overflow:hidden}
 body[data-twoi-desk="typewriter"] .notebook-inner{margin:0;min-height:0;flex:1}
 body[data-twoi-desk="typewriter"] .spiral-spine,body[data-twoi-desk="typewriter"] #lanternCanvas{display:none}
 body[data-twoi-desk="typewriter"] .page-sheets{border-radius:3px;background:#faf4e4;box-shadow:0 2px 7px #0008}
 body[data-twoi-desk="typewriter"] .manuscript-zone,body[data-twoi-desk="typewriter"] .draft-zone{background:#faf4e4;color:#221e1a}
 body[data-twoi-desk="typewriter"] .solo-textarea,body[data-twoi-desk="typewriter"] .m-line,body[data-twoi-desk="typewriter"] .draft-area,body[data-twoi-desk="typewriter"] .m-line-edit textarea,body[data-twoi-desk="typewriter"] .reading-line{font-family:"Courier New",ui-monospace,monospace;font-weight:400;font-size:calc(16px * var(--zoom-manuscript,1));line-height:1.6}
-body[data-twoi-desk="typewriter"] .line-numbers{line-height:calc(25.6px * var(--zoom-manuscript,1))}
 #twoiDeskScene{position:relative;flex:0 0 auto;width:min(100%,390px,42dvh);aspect-ratio:3/2;align-self:center;overflow:hidden;margin:0;background:#17304b;border-radius:0 0 5px 5px;container-type:inline-size}
 #twoiDeskScene img{display:block;width:100%;height:100%;object-fit:contain}
 #twoiDeskScene figcaption{position:absolute;inset:auto 0 0;background:#15100cde;color:#f5e3b8;font:10px/1.3 system-ui;padding:3px 6px;text-align:center}
@@ -29,7 +27,6 @@ body[data-twoi-desk="standard"] .page-sheets{border-radius:3px;box-shadow:0 1px 
 body[data-twoi-desk="standard"] .manuscript-zone{--ink:#252b32;--paper:#fffefa;background:var(--paper);color:var(--ink);box-shadow:none}
 body[data-twoi-desk="standard"] .draft-zone{--ink:#343943}
 body[data-twoi-desk="standard"] .solo-textarea,body[data-twoi-desk="standard"] .m-line,body[data-twoi-desk="standard"] .draft-area,body[data-twoi-desk="standard"] .m-line-edit textarea,body[data-twoi-desk="standard"] .reading-line{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:calc(17px * var(--zoom-manuscript,1));line-height:1.65}
-body[data-twoi-desk="standard"] .line-numbers{line-height:calc(28.05px * var(--zoom-manuscript,1))}
 body[data-twoi-desk="standard"] .solo-textarea{padding-top:18px}
 body[data-twoi-desk="standard"] .m-line{padding-top:0;padding-bottom:0}
 body[data-twoi-desk="standard"] .m-line.selected{background:#dbe8f1;box-shadow:inset 3px 0 0 #38576d}

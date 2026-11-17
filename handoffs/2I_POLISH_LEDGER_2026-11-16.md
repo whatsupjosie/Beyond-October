@@ -207,3 +207,102 @@ versions and narrative tools do not load at all".
    on a phone; the same arrow tabs on a laptop now or in Phase A3; Section 4 of the inherited handoff.
 5. Next phase: A2 (the three looks selectable anywhere, and the single-page notebook as the default outside the
    studio). Not started.
+
+---
+
+# Update 3, 2026-11-16 afternoon: branch `fable/2i-beta-polish-2026-11-16` (Claude Fable 5.2)
+
+Started from GPT's `codex/2i-ui-readability-2026-11-16` at `f47b11b`, which itself sits on `fable/2i-polish-2026-11-16`
+(`51a34ca`) plus GPT's five commits of 2026-11-16 (offline save bound to the manuscript snapshot, file conflict
+protection, narrow-tray save test, menu label width, readability pass). One line of history; nothing diverged.
+`main`, GPT's branches and the earlier Fable branches are untouched.
+
+## What Josie said (2026-11-16, her words)
+
+- "I want you to go over it, and by the time we're done, I want it to be full-on polished and ready for a beta.
+  The official beta."
+- With the notebook picture (`2i/2i-assets/writers-room-art.webp`, the same image she sent): "this is closer to
+  what I wish it would look like."
+- With the Rearview Foresight monument and four Pub Partner screens: "what I hope will get Foresight to look like".
+- "Please make sure that this is good and complete and perfect. This is my entire weekly limit you're about to
+  spend."
+
+Reading used, told to her and not objected to: the picture is the direction for the notebook's LOOK; where the
+picture and her later instructions differ (bottom bar, top tabs, always-open side panels), her later instructions
+stand. NOT CONFIRMED in so many words.
+
+## Found by opening `f47b11b` and looking (all tests were green at the time)
+
+1. Collab: a blank line between paragraphs collapsed to 2 px and its number printed over the next number.
+2. Write: numbers counted paragraphs at a fixed row height, so each wrapped paragraph pushed later numbers off
+   their lines (five numbers beside six rows at 1280 px, beside seven at 390 px).
+3. Switching to Notebook view from the standard page left the spiral blank until the window was resized (the
+   canvas was sized only on window load/resize, while hidden: 0 × 0).
+4. The word count stayed at "0 words" while typing in Write (only `render()` refreshed it).
+5. Phone: the bars take about the top third of the screen before the page starts. NOT CHANGED, see below.
+6. A "404" in the browser console on the host. Identified: `GET /api/writers-room/documents/<new id>` and
+   `.../versions` for a brand-new document that has not been saved yet. The host is right to answer "not found";
+   nothing is missing and nothing breaks. NOT A BUG; no change.
+
+## Changed
+
+| Item | Paths | What and why |
+| --- | --- | --- |
+| Paragraph numbers | `2i/writers-room-v22.html` (`updateLineNumbers`, `.line-numbers`, `#lineMeasure`) | Each number is as tall as its own paragraph, measured in a hidden copy that has the writing box's font and width. Only changed paragraphs are re-measured. Numbers move with the text by transform (the old scrolled column stopped short at the end). Re-laid out on width change, look change, text-size change and when the page's lettering finishes loading. |
+| One owner for the row height | `2i/2i-assets/reach.css`, `2i/2i-assets/studio-desk.css`, page | Four hard-coded copies of the number row height (36.3 px, 35.65 px, 25.6 px, 28.05 px, and the page's own `2.00208`) are removed. The row height and top padding are read from the writing box (`--solo-row`, `--solo-pad-top`). |
+| Blank lines in Collab | page (`.m-line`) | A committed line is at least one row tall. The number is now the line's first flex item, on the baseline of its first row (it used to hang from the top), and an invisible first character gives blank lines that baseline too. Hover/selection set `background-color` only. |
+| Spiral | page (`drawSpine`, `.spiral-spine`) | Drawn as one brass coil through holes in the paper's edge; the canvas reaches `--ring-overhang` over the paper. Redrawn by a `ResizeObserver` whenever the binding changes size, including coming back on screen. |
+| Notebook page | page (new section "THE NOTEBOOK PAGE") | Ruled lines (`1lh` per row, scrolling with the text, running on under the numbers), the red margin line as the page's own part, a strip for the holes, the draft box filling the lower page in Collab, whole-pixel rows. Applies to every look except standard and typewriter. Inside `@supports`, so a browser without `lh` gets an unruled page, not a broken one. |
+| Focus on the page | page | In the notebook the full-sheet focus box from `f47b11b` is replaced by the margin line darkening (the caret is in the text). Forced-colours mode keeps the system outline. Every other control keeps GPT's outline. CHANGES A CHOICE GPT MADE; told to Josie. |
+| Word count | page (`updateWordCount`, `countWordsSoon`) | One function, used by `render()` and, once per painted frame, by typing in the writing box and in the draft. |
+| Tests | `tests/test_2i_notebook_page.py` (new, 14 cases at laptop and phone size), `tests/test_2i_narrow_screen_drawers.py` (the word-count check no longer calls `render()` first) | See RAN. |
+
+Three approaches were weighed for the numbers: (a) number every visual row, as the picture does; (b) keep one
+number per paragraph and measure each paragraph's height; (c) replace the textarea with a rich editor. (b) was
+chosen: a number keeps meaning the same paragraph in Write and Collab (lock, select and comments use that index),
+and nothing about how text is stored or typed changes. (a) differs from the picture's row-by-row numbering; Josie
+has been told.
+
+## RAN (real output, Linux sandbox, Python 3.13, Playwright 1.63.0 headless Chromium 153, Node 22)
+
+- Node: `node --test tests/test_2i_*_node.js tests/test_twoi_rich_browser_contract_node.js tests/test_foresight_file_close_node.js tests/test_foresight_file_navigation_node.js` → 70 passed, 0 failed (same on `f47b11b`).
+- Python, fourteen 2i files (the thirteen run on `f47b11b`, 97 passed there, plus the new one) → 111 passed, 0 failed.
+- `tests/test_2i_notebook_page.py` against the page as it was on `f47b11b` → 14 failed. Against this branch → 14 passed.
+- The existing phone tests caught one mistake of mine on the way (the draft box showing in Write on the bare page); fixed before commit.
+- `tools/twoi_checks/menu_smoke.py`, host and `--disk`: exit 0, 65 commands each, same available/unavailable counts as before.
+- `tools/twoi_checks/layout_probe.py`: exit 0, nine scenarios, no page errors, no failed requests.
+- Measured on the real host: the numbers' heights add up to the text's height (216 = 216 px notebook; 168.29 vs 168 px standard); Collab rows 28, 28, 56, 28, 28 px.
+
+## UNKNOWN / not tested
+
+- Windows, Josie's laptop and phones, a real on-screen keyboard, Safari and Firefox (`lh`, `round()`, `:has()` each
+  have a fallback or are progressive, but only Chromium was run), a real GPU browser, forced colours, a live model.
+- A very long manuscript's typing speed was not measured; the design re-measures only changed paragraphs.
+- The typewriter look was photographed after the change and looks as before; it has no new tests.
+- Opening 2i from the writers room (`/2i?studio_room=writers_room&studio_view=...`): the check was interrupted and
+  not rerun.
+
+## Not built: Josie's page design (read against her stated design; none of this was started here)
+
+- Standard page: tinted paper, faint blue lines, centred with adjustable margins, spiral image at the side, only
+  the top menu and the writing showing.
+- Typewriter selectable from any window (today only when opened at a studio typewriter); clicks and bell off
+  unless turned on (today on by default, `studio-desk.js`); the key-bar row; letter-by-letter AI text (not checked).
+- Collab as the open two-page notebook; panels as slide-out drawers on a laptop; several documents open at once;
+  the amber main-document tab; the file drawer and preview in the message box; sharing.
+- The picture's brass frames and ornaments on the panels, its Scene Ideas box and AI suggestion card.
+
+## Decisions needed from Josie
+
+1. Phone header: what gives way so the page starts higher (the version bar's second row, the name line, or the
+   menus behind one button).
+2. In Collab, committed text is set in a print face and the draft in handwriting (GPT, `f47b11b`). The picture
+   shows handwriting throughout. Keep, or handwriting for both.
+3. Numbers: one per paragraph (now) or one per row (the picture).
+4. The logo's sign reads "Rear View"; the company name in use is "Rearview".
+5. Still open from before: the spiral on a phone, arrow tabs on a laptop, Section 4 of the inherited handoff.
+
+## Next step
+
+Josie's answers to 1 to 3, then the standard page (her single-page notebook), which is the default wherever 2i
+opens outside the studio.

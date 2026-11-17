@@ -387,13 +387,17 @@ html, body {
 
 /* Spiral spine */
 .spiral-spine {
+  --ring-overhang:18px;   /* how far the coil reaches over the paper's edge, to its holes */
   flex:0 0 52px;
-  position:relative;
+  position:relative; z-index:12;   /* above the page and a reference opened over it: the binding holds both */
   background:linear-gradient(90deg, #090604, #21150d 12%, #0d0805 27%, #24170e 52%, #090604 76%, #1b1009);
   box-shadow:inset -8px 0 10px -8px rgba(0,0,0,.9), inset 6px 0 8px -8px rgba(238,207,131,.15);
-  overflow:hidden;
 }
-.spiral-spine canvas { width:100%; height:100%; display:block; }
+.spiral-spine canvas {
+  position:absolute; left:0; top:0; display:block;
+  width:calc(100% + var(--ring-overhang)); height:100%;
+  pointer-events:none;
+}
 
 /* Page sheets */
 .page-sheets {
@@ -439,31 +443,35 @@ html, body {
 
 .solo-editor {
   display:none; flex:1; flex-direction:row;
-  min-height:0;
+  min-height:0; position:relative;
 }
+/* Paragraph numbers beside the writing box. A number names a paragraph, and a paragraph that wraps takes several
+   rows, so updateLineNumbers() gives each number the height of its own paragraph. The row height and the top
+   padding are read from the writing box (--solo-row, --solo-pad-top): the box is their one owner, whichever look
+   and text size are in use. Before this, each stylesheet carried its own copy of the row height and the numbers
+   counted rows that did not exist. */
 .line-numbers {
   flex:0 0 44px;
-  padding:6px 0;
+  position:relative; overflow:hidden;
+  padding:var(--solo-pad-top, 6px) 8px 0 0;
   text-align:right;
   font-family:'IBM Plex Mono',monospace;
   font-size:12px;
-  /* Line pitch must match .solo-textarea's actual line-box height
-     (font-size × line-height), not this gutter's own smaller glyph
-     size, or the numbers drift off their lines — worse at every zoom
-     step away from 100%. Pre-existing at 1x (18.6px vs 24px); fixed
-     here rather than carried forward. 2.00208 = (15.5 * 1.55) / 12 —
-     precomputed because calc() division must be by a plain <number>,
-     never by another length (verified: dividing by 12px directly
-     left the expression unresolved and the declaration invalid). */
-  line-height:calc(2.00208 * var(--zoom-manuscript, 1));
+  line-height:var(--solo-row, 24px);
   color:var(--pencil-soft);
   user-select:none;
-  overflow-y:auto; overflow-x:hidden;
-  scrollbar-width:none;
   border-right:1px solid var(--margin-red);
-  padding-right:8px;
+  counter-reset:paragraph;
 }
-.line-numbers::-webkit-scrollbar { display:none; }
+.line-numbers-strip > div { counter-increment:paragraph; overflow:hidden; }
+/* The number is set smaller than the writing, so it is lowered to stand on the same baseline as its row. */
+.line-numbers-strip > div::before { content:counter(paragraph); position:relative; top:calc(var(--solo-row, 24px) * .21 - 4px); }
+/* The hidden copy the paragraphs are measured in. Its font and width are copied from the writing box. */
+#lineMeasure {
+  position:absolute; left:0; top:0; height:0; overflow:hidden;
+  visibility:hidden; pointer-events:none;
+  white-space:pre-wrap; overflow-wrap:break-word;
+}
 .solo-textarea {
   flex:1; resize:none; border:none; outline:none;
   font-family:'Cormorant Garamond',serif;
@@ -485,20 +493,30 @@ html, body {
   padding:1px 24px 1px 58px;
   cursor:pointer;
   position:relative;
-  transition:background 0.1s ease;
+  transition:background-color 0.1s ease;
   display:flex; align-items:baseline;
+  /* A blank line between paragraphs has no text to give it height. Without this it collapsed to its padding and
+     its number was printed over the next one. */
+  box-sizing:content-box; min-height:1.5em; min-height:1lh;
+  --num-w:36px; --num-gap:14px;
 }
-.m-line:hover { background:rgba(147,112,31,0.06); }
-.m-line.selected { background:rgba(205,163,73,0.18); box-shadow:inset 3px 0 0 var(--gold); }
+/* An invisible first character in the line's own lettering. It gives every line, blank ones included, the
+   baseline the number lines up with. */
+.m-line::before { content:"\200b"; flex:0 0 0; }
+.m-line:hover { background-color:rgba(147,112,31,0.06); }
+.m-line.selected { background-color:rgba(205,163,73,0.18); box-shadow:inset 3px 0 0 var(--gold); }
 .m-line.locked::after {
   content:'🔒'; position:absolute; right:8px; top:50%; transform:translateY(-50%);
   font-size:10px; opacity:0.4;
 }
+/* The number is the line's first item, pulled back into the left padding, so it shares the baseline of the
+   line's first row. Placed absolutely, as it was, it hung from the top of the line instead. */
 .m-line .line-num {
-  position:absolute; left:8px;
-  font-family:'IBM Plex Mono',monospace; font-size:11px;
+  flex:0 0 var(--num-w);
+  margin-left:calc(-1 * (var(--num-w) + var(--num-gap))); margin-right:var(--num-gap);
+  font-family:'IBM Plex Mono',monospace; font-size:11px; line-height:1;   /* no taller than its figures, so lining it up never stretches the row */
   color:var(--pencil-soft);
-  width:36px; text-align:right;
+  text-align:right; white-space:nowrap;
   user-select:none;
 }
 .m-line-edit textarea {
@@ -567,6 +585,60 @@ html, body {
   background:transparent;
   padding:4px 24px 30px 58px;
   text-shadow:0 .25px 0 rgba(0,0,0,.18);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   THE NOTEBOOK PAGE: ruled lines, margin line, holes
+   Every look except the standard page and the typewriter is the bound notebook. The parts are drawn, not a
+   photograph, so the writer's own words sit on the lines at any size, text size or length.
+   ═══════════════════════════════════════════════════════════════ */
+body:not([data-twoi-desk="standard"]):not([data-twoi-desk="typewriter"]) .page-sheets {
+  --ring-inset:14px;      /* the strip of paper the holes are punched in */
+  --margin-x:44px;        /* where the red margin line stands, measured from the end of that strip */
+  --rule:rgba(64,104,150,.28);
+  background-color:var(--paper);
+  padding-left:var(--ring-inset);
+}
+body:not([data-twoi-desk="standard"]):not([data-twoi-desk="typewriter"]) .page-sheets::before {
+  content:""; position:absolute; z-index:6; pointer-events:none;
+  top:0; bottom:0; left:calc(var(--ring-inset) + var(--margin-x) - 1px); width:1px;
+  background:rgba(186,52,42,.6);
+}
+/* The margin line is the page's own now; the number column no longer draws a second one beside it. */
+body:not([data-twoi-desk="standard"]):not([data-twoi-desk="typewriter"]) .line-numbers { border-right-color:transparent; }
+body:not([data-twoi-desk="standard"]):not([data-twoi-desk="typewriter"]) .m-line { --num-w:28px; --num-gap:22px; }
+/* Ruled lines. One row of the picture is exactly one row of text (1lh), so the rule follows the writing at every
+   text size, and it scrolls with the writing (background-attachment:local). The rule is drawn a little under the
+   baseline, where a pen would rest. Rows are a whole number of pixels so every rule is equally sharp. */
+@supports (height:1lh) {
+  body:not([data-twoi-desk="standard"]):not([data-twoi-desk="typewriter"]) :is(.solo-textarea, .draft-area, .m-line) {
+    background-image:linear-gradient(to bottom, transparent calc(.78lh - 1px), var(--rule) calc(.78lh - 1px), var(--rule) .78lh, transparent .78lh);
+    background-size:100% 1lh;
+  }
+  /* The rules run on under the paragraph numbers, as they do on a ruled sheet. Each number's box is a whole
+     number of rows tall, so the same picture at the writing box's row height lines up with the rules beside it. */
+  body:not([data-twoi-desk="standard"]):not([data-twoi-desk="typewriter"]) .line-numbers-strip > div {
+    background-image:linear-gradient(to bottom, transparent calc(var(--solo-row) * .78 - 1px), var(--rule) calc(var(--solo-row) * .78 - 1px), var(--rule) calc(var(--solo-row) * .78), transparent calc(var(--solo-row) * .78));
+    background-size:100% var(--solo-row);
+  }
+  body:not([data-twoi-desk="standard"]):not([data-twoi-desk="typewriter"]) .line-numbers { padding-right:0; }
+  body:not([data-twoi-desk="standard"]):not([data-twoi-desk="typewriter"]) .line-numbers-strip > div { padding-right:8px; }
+  /* In Collab the lower part of the page is ruled to the bottom: the draft box fills it. */
+  body:not([data-twoi-desk="standard"]):not([data-twoi-desk="typewriter"]) .page-sheets:not(.solo-mode) .draft-zone { display:flex; flex-direction:column; }
+  body:not([data-twoi-desk="standard"]):not([data-twoi-desk="typewriter"]) .draft-area { flex:1 0 auto; }
+  body:not([data-twoi-desk="standard"]):not([data-twoi-desk="typewriter"]) :is(.solo-textarea, .draft-area) {
+    padding-top:6px; background-position:0 6px; background-attachment:local;
+  }
+  body:not([data-twoi-desk="standard"]):not([data-twoi-desk="typewriter"]) .m-line { padding-top:0; padding-bottom:0; }
+}
+@supports (line-height:round(1em, 1px)) {
+  body[data-twoi-desk="notebook"] :is(.solo-textarea, .draft-area) { line-height:round(1.55em, 1px); }
+}
+/* Focus on the page. A box drawn round the whole sheet is not how a notebook shows where the pen is: the margin
+   line darkens instead, and the caret is in the text. Forced-colours mode keeps the system outline. */
+@media not (forced-colors:active) {
+  body:not([data-twoi-desk="standard"]):not([data-twoi-desk="typewriter"]) .app-shell .page-sheets :is(.solo-textarea, .draft-area):focus-visible { outline:none; }
+  body:not([data-twoi-desk="standard"]):not([data-twoi-desk="typewriter"]) .page-sheets:has(:is(.solo-textarea, .draft-area):focus-visible)::before { width:2px; background:rgba(168,44,36,.78); }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -868,11 +940,14 @@ body[data-twoi-desk="notebook"] :is(.m-line,.m-line-edit textarea) {
   font-family:var(--reading-font); font-weight:400;
   font-size:calc(17px * var(--zoom-manuscript, 1)); line-height:1.65;
 }
+/* Whole-pixel rows, so the ruled lines behind committed text are all equally sharp. */
+@supports (line-height:round(1em, 1px)) {
+  body[data-twoi-desk="notebook"] :is(.m-line,.m-line-edit textarea) { line-height:round(1.65em, 1px); }
+}
 body[data-twoi-desk="standard"] .manuscript-zone .zone-label-row {
   background:#fffefa; border-bottom:1px solid #e8e1d5;
 }
 body[data-twoi-desk="standard"] .solo-textarea { border-radius:0 0 3px 0; }
-body[data-twoi-desk="standard"] .line-numbers { padding-top:18px; }
 @media (forced-colors:active) {
   .app-shell :is(button,select,input,textarea):focus-visible,
   .app-shell .page-sheets :is(button,textarea):focus-visible,
@@ -922,9 +997,15 @@ body[data-twoi-desk="standard"] .line-numbers { padding-top:18px; }
   /* The first 40 px under the menus hold the two drawer tabs; the page starts below them and runs to the
      bottom at full width, so a tab never covers writing. */
   #notebookFrame { position:absolute; inset:0; height:auto; min-height:0; margin:0; padding:40px 4px 4px; border-radius:0; }
-  #notebookFrame .spiral-spine { flex-basis:24px; }
+  #notebookFrame .spiral-spine { flex-basis:24px; --ring-overhang:10px; }
   #notebookFrame .line-numbers { flex-basis:32px; padding-right:5px; }
-  #notebookFrame .m-line .line-num { left:2px; width:25px; }
+  #notebookFrame .m-line { --num-w:25px; --num-gap:7px; }
+  body:not([data-twoi-desk="standard"]):not([data-twoi-desk="typewriter"]) #notebookFrame .page-sheets { --ring-inset:8px; --margin-x:32px; }
+  body:not([data-twoi-desk="standard"]):not([data-twoi-desk="typewriter"]) #notebookFrame .m-line { --num-w:22px; --num-gap:16px; }
+  /* Writing starts the same 8 px past the margin line in Write and in Collab. */
+  body:not([data-twoi-desk="standard"]):not([data-twoi-desk="typewriter"]) #notebookFrame :is(.m-line,.draft-area,.reading-line) { padding-left:40px; }
+  body:not([data-twoi-desk="standard"]):not([data-twoi-desk="typewriter"]) #notebookFrame .solo-textarea { padding-left:8px; }
+  body:not([data-twoi-desk="standard"]):not([data-twoi-desk="typewriter"]) #notebookFrame .line-numbers-strip > div { padding-right:5px; }
   #notebookFrame :is(.m-line,.draft-area,.reading-line) { padding-left:34px; padding-right:18px; }
   #notebookFrame .solo-editor { min-height:0; }
   #twoiDeskScene { width:min(100%, 300px, 28dvh); }
@@ -2243,24 +2324,11 @@ function render() {
   $('playBtn').classList.toggle('active', playing);
   $('docTitleDisplay').textContent = documentTitle;
 
-  // Word count
-  let allText;
-  if (coWriting) {
-    allText = committed.join(' ') + ' ' + buffer.join(' ');
-  } else {
-    allText = soloTextarea.value;
-  }
-  const wc = allText.trim().split(/\s+/).filter(Boolean).length;
-  $('wordCount').textContent = wc.toLocaleString() + ' words';
-  $('mcWordProgress').textContent = wc.toLocaleString() + ' words';
+  updateWordCount();
 
   // Manuscript control status
   const allLocked = committed.length > 0 && committed.every((_, i) => lockedLines.has(i));
   $('mcDraftStatus').textContent = allLocked ? 'Locked' : 'Active';
-  const targetWc = 50000; // reasonable novel target
-  const pct = Math.min(100, Math.round((wc / targetWc) * 100));
-  $('mcPercent').textContent = pct + '%';
-  $('mcProgressFill').style.width = pct + '%';
 
   // LLM pill
   if (llmOk()) {
@@ -2280,6 +2348,24 @@ function render() {
   }
 
   renderRefs();
+}
+
+// The word count and the progress it drives. render() calls this; so does typing, through countWordsSoon(),
+// because typing in the writing box does not re-render the page and the count used to stand still until it did.
+function updateWordCount() {
+  const text = coWriting ? committed.join(' ') + ' ' + buffer.join(' ') : soloTextarea.value;
+  const wc = text.trim().split(/\s+/).filter(Boolean).length;
+  $('wordCount').textContent = wc.toLocaleString() + ' words';
+  $('mcWordProgress').textContent = wc.toLocaleString() + ' words';
+  const targetWc = 50000; // reasonable novel target
+  const pct = Math.min(100, Math.round((wc / targetWc) * 100));
+  $('mcPercent').textContent = pct + '%';
+  $('mcProgressFill').style.width = pct + '%';
+}
+let wordCountFrame = 0;
+function countWordsSoon() {
+  if (wordCountFrame) return;                     // one count per painted frame, however fast the typing
+  wordCountFrame = requestAnimationFrame(() => { wordCountFrame = 0; updateWordCount(); });
 }
 
 function renderManuscriptLines() {
@@ -2372,13 +2458,77 @@ function renderReading() {
   }
 }
 
-function updateLineNumbers() {
-  const lines = soloTextarea.value.split('\n');
-  lineNumbers.innerHTML = lines.map((_, i) => (i + 1)).join('<br>');
+// ── PARAGRAPH NUMBERS ──────────────────────────────────────────────
+// A number names a paragraph: the same numbering Collab shows beside committed lines. A paragraph that wraps
+// takes several rows, so each number is made exactly as tall as its paragraph. The heights are measured in
+// #lineMeasure, a hidden copy with the writing box's own font and width, which therefore wraps as the box does.
+// Only the paragraphs whose text changed are measured again, so a keystroke costs the same in a long manuscript
+// as in a short one. (Before: one number per paragraph at a fixed row height, so every wrapped paragraph pushed
+// the numbers below it off their lines.)
+const lineStrip = document.createElement('div');
+lineStrip.className = 'line-numbers-strip';
+lineNumbers.replaceChildren(lineStrip);
+lineNumbers.setAttribute('aria-hidden', 'true');   // a column of bare numbers says nothing to a screen reader
+const lineMeasure = document.createElement('div');
+lineMeasure.id = 'lineMeasure';
+lineMeasure.setAttribute('aria-hidden', 'true');
+soloTextarea.parentElement.append(lineMeasure);
+// Everything that decides where a line of text breaks.
+const WRAP_PROPERTIES = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'fontStretch', 'fontVariant',
+  'fontKerning', 'fontFeatureSettings', 'letterSpacing', 'wordSpacing', 'lineHeight', 'textIndent',
+  'textTransform', 'tabSize', 'wordBreak', 'lineBreak', 'hyphens', 'direction'];
+const numbered = { signature: null, texts: [] };    // what the numbers on screen were last laid out for
+function measuredRow(text) {
+  const row = document.createElement('div');
+  row.textContent = text || '\u200b';             // an empty paragraph still takes one row
+  return row;
 }
-
-// Sync solo textarea scroll with line numbers
-soloTextarea.addEventListener('scroll', () => { lineNumbers.scrollTop = soloTextarea.scrollTop; });
+function updateLineNumbers(measureAll = false) {
+  const box = getComputedStyle(soloTextarea);
+  const width = soloTextarea.clientWidth - parseFloat(box.paddingLeft) - parseFloat(box.paddingRight);
+  if (!(width > 0)) return;                        // the box is not on screen (Collab, a closed drawer): nothing to lay out
+  const signature = width + '|' + WRAP_PROPERTIES.map(name => box[name]).join('|');
+  const texts = soloTextarea.value.split('\n');
+  let head = 0, tail = 0;
+  if (!measureAll && signature === numbered.signature) {
+    const old = numbered.texts, shared = Math.min(old.length, texts.length);
+    while (head < shared && old[head] === texts[head]) head++;
+    while (tail < shared - head && old[old.length - 1 - tail] === texts[texts.length - 1 - tail]) tail++;
+    if (head === texts.length && texts.length === old.length) return;
+  } else {
+    for (const name of WRAP_PROPERTIES) lineMeasure.style[name] = box[name];
+    lineMeasure.style.width = width + 'px';
+    lineMeasure.replaceChildren(measuredRow(''));
+    lineNumbers.style.setProperty('--solo-row', lineMeasure.firstChild.getBoundingClientRect().height + 'px');
+    lineNumbers.style.setProperty('--solo-pad-top', box.paddingTop);
+    lineStrip.replaceChildren();
+    numbered.texts = [];
+  }
+  const rows = document.createDocumentFragment();
+  for (let i = head; i < texts.length - tail; i++) rows.append(measuredRow(texts[i]));
+  lineMeasure.replaceChildren(rows);
+  const marks = document.createDocumentFragment();
+  for (const row of lineMeasure.children) {
+    const mark = document.createElement('div');
+    mark.style.height = row.getBoundingClientRect().height + 'px';
+    marks.append(mark);
+  }
+  lineMeasure.replaceChildren();
+  let stale = lineStrip.children[head] || null;
+  for (let n = numbered.texts.length - head - tail; n > 0; n--) { const next = stale.nextElementSibling; stale.remove(); stale = next; }
+  lineStrip.insertBefore(marks, stale);
+  numbered.signature = signature; numbered.texts = texts;
+  followSoloScroll();
+}
+// The numbers travel with the writing. Moved, not scrolled: a scrolled column stops at its own shorter end and
+// the last numbers fell behind the last lines.
+function followSoloScroll() { lineStrip.style.transform = 'translateY(' + -soloTextarea.scrollTop + 'px)'; }
+soloTextarea.addEventListener('scroll', followSoloScroll);
+// The same text wraps differently when the box changes width, the look or text size changes, or the page's own
+// lettering finishes loading in place of a stand-in.
+if (typeof ResizeObserver === 'function') new ResizeObserver(() => updateLineNumbers()).observe(soloTextarea);
+document.addEventListener('twoi:presentation-change', () => updateLineNumbers());
+if (document.fonts && typeof document.fonts.addEventListener === 'function') document.fonts.addEventListener('loadingdone', () => updateLineNumbers(true));
 function creativeInputType(event){const t=String(event?.inputType||"");return t.includes("Paste")?"paste":t.includes("Drop")?"drop":/composition/i.test(t)||event?.isComposing?"composition":t.startsWith("history")?"history":/^(insertText|insertLineBreak|insertParagraph|deleteContent)/.test(t)?"typing":"other";}
 soloTextarea.addEventListener('input', (event) => {
   const next=soloTextarea.value.split('\n'),old=committed.join('\n');
@@ -2394,11 +2544,11 @@ soloTextarea.addEventListener('input', (event) => {
       addChat('notice',error.message);updateLineNumbers();return;
     }
   }
-  updateLineNumbers();committed=next;window.twoiCreativeSession?.observeEdit({surface:'committed',before:old,after:next.join('\n'),inputType:creativeInputType(event)});markDirty();
+  updateLineNumbers();committed=next;window.twoiCreativeSession?.observeEdit({surface:'committed',before:old,after:next.join('\n'),inputType:creativeInputType(event)});markDirty();countWordsSoon();
 });
 draftArea.addEventListener('input', (event) => {
   const before=buffer.join('\n');buffer = draftArea.value.split('\n');
-  window.twoiCreativeSession?.observeEdit({surface:'draft',before,after:buffer.join('\n'),inputType:creativeInputType(event)});markDirty();
+  window.twoiCreativeSession?.observeEdit({surface:'draft',before,after:buffer.join('\n'),inputType:creativeInputType(event)});markDirty();countWordsSoon();
 });
 
 // ── LLM MODAL ──────────────────────────────────────────────────────
@@ -2667,39 +2817,72 @@ document.addEventListener('keydown',e=>{
 })();
 
 // ── CANVAS: SPIRAL SPINE ───────────────────────────────────────────
+// One continuous brass coil down the binding, through a row of holes punched in the paper's edge. The canvas is
+// wider than the spine by --ring-overhang so the coil can reach its holes. Each turn has a far half, which goes
+// behind the paper and is drawn first and darker, and a near half, which comes out of a hole and crosses in front.
 function drawSpine() {
   const canvas = $('spineCanvas'); if (!canvas) return;
-  const rect = canvas.parentElement.getBoundingClientRect();
+  const spineWidth = canvas.parentElement.getBoundingClientRect().width;
+  const { width: W, height: H } = canvas.getBoundingClientRect();
+  if (!(W > 0 && H > 0)) return;                  // not on screen (another look is showing): drawn when it is
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
   const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
-  const W = rect.width, H = rect.height, cx = W * 0.55, rx = Math.min(18, W * 0.34);
-  const pitch = 22;
-
-  // Background shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.4)';
-  ctx.fillRect(cx - rx - 6, 0, rx * 2 + 12, H);
-
-  for (let i = 0; i < H / pitch + 1; i++) {
-    const y = i * pitch + 6;
-    // Coil shadow
-    ctx.beginPath(); ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 5;
-    ctx.moveTo(cx - rx, y + 2); ctx.lineTo(cx + rx, y + 7);
-    ctx.stroke();
-    // Coil body
+  const overhang = W - spineWidth;                 // the part of the canvas that lies over the paper
+  const holeX = spineWidth + overhang * 0.52;      // centre of each hole, on the paper
+  const radius = Math.min(22, holeX * 0.42);       // half the coil's width as seen from the front
+  const centre = holeX - radius;
+  const sag = Math.max(3.5, radius * 0.26);        // how far the near half dips and the far half lifts
+  const pitch = radius > 16 ? 25 : 21;             // distance from one hole to the next
+  const turns = Math.ceil(H / pitch) + 1;
+  const point = (turn, t) => [centre + radius * Math.cos(2 * Math.PI * t), (turn + t) * pitch - pitch * 0.4 + sag * Math.sin(2 * Math.PI * t)];
+  const half = (turn, from, to, dx = 0, dy = 0) => {
     ctx.beginPath();
-    ctx.strokeStyle = '#bca36f'; ctx.lineWidth = 3.5;
-    ctx.moveTo(cx - rx, y); ctx.lineTo(cx + rx, y + 5);
+    for (let step = 0; step <= 14; step++) {
+      const [x, y] = point(turn, from + (to - from) * step / 14);
+      if (step) ctx.lineTo(x + dx, y + dy); else ctx.moveTo(x + dx, y + dy);
+    }
     ctx.stroke();
-    // Highlight
-    ctx.beginPath();
-    ctx.strokeStyle = 'rgba(255,240,200,0.35)'; ctx.lineWidth = 1;
-    ctx.moveTo(cx - rx + 1, y - 1); ctx.lineTo(cx + rx - 1, y + 4);
-    ctx.stroke();
+  };
+  const wide = radius > 16;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+  // The channel the coil sits in.
+  ctx.fillStyle = 'rgba(0,0,0,0.34)';
+  ctx.fillRect(centre - radius - 4, 0, spineWidth - (centre - radius - 4), H);
+
+  // Far halves, only where the paper does not hide them.
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, 0, spineWidth, H); ctx.clip();
+  ctx.strokeStyle = '#4a3a1c'; ctx.lineWidth = wide ? 2.6 : 2;
+  for (let turn = -1; turn < turns; turn++) half(turn, 0.5, 1);
+  ctx.restore();
+
+  // Holes in the paper.
+  for (let turn = 0; turn < turns; turn++) {
+    const [, y] = point(turn, 0);
+    ctx.beginPath(); ctx.ellipse(holeX, y, wide ? 4.2 : 3.2, wide ? 5 : 3.8, 0, 0, 2 * Math.PI);
+    ctx.fillStyle = '#20140a'; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(holeX, y, wide ? 4.2 : 3.2, wide ? 5 : 3.8, 0, 0.15 * Math.PI, 0.85 * Math.PI);
+    ctx.strokeStyle = 'rgba(255,248,226,0.55)'; ctx.lineWidth = 1; ctx.stroke();   // the lit lower lip of the hole
+  }
+
+  // Near halves: shadow on what lies beneath, then the wire, then the light along its upper side.
+  const brass = ctx.createLinearGradient(centre - radius, 0, holeX, 0);
+  brass.addColorStop(0, '#6f5524'); brass.addColorStop(0.28, '#d9bd76'); brass.addColorStop(0.5, '#f3e2a8');
+  brass.addColorStop(0.74, '#b8974c'); brass.addColorStop(1, '#7c6029');
+  for (let turn = -1; turn < turns; turn++) {
+    ctx.strokeStyle = 'rgba(0,0,0,0.42)'; ctx.lineWidth = wide ? 4.6 : 3.4; half(turn, 0, 0.5, 1.2, 2.4);
+    ctx.strokeStyle = brass; ctx.lineWidth = wide ? 3.4 : 2.5; half(turn, 0, 0.5);
+    ctx.strokeStyle = 'rgba(255,250,228,0.6)'; ctx.lineWidth = 0.9; half(turn, 0.06, 0.44, 0, -0.9);
   }
 }
+// Drawn again whenever the binding changes size, which includes coming back on screen after another look was
+// showing. (It was drawn only when the window loaded or changed size, so switching to the notebook from the
+// standard page left the binding blank until the window was resized.)
+if (typeof ResizeObserver === 'function') new ResizeObserver(drawSpine).observe($('spineCanvas').parentElement);
+else window.addEventListener('resize', drawSpine);
 window.addEventListener('load', drawSpine);
-window.addEventListener('resize', drawSpine);
 
 // ── INIT ───────────────────────────────────────────────────────────
 function init() {
@@ -3078,6 +3261,7 @@ function applyZoom(which) {
   document.documentElement.style.setProperty(ZOOM_VAR[which], zoomState[which].toFixed(2));
   const label = $(ZOOM_LABEL_ID[which]);
   if (label) label.textContent = Math.round(zoomState[which] * 100) + '%';
+  if (which === 'manuscript') updateLineNumbers();   // larger or smaller writing wraps at different places
 }
 
 function adjustZoom(which, direction) {

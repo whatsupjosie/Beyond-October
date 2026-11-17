@@ -44,7 +44,7 @@ html,body { background:#120f0b; }
 .page-sheets.solo-mode .manuscript-zone { display:flex; flex-direction:column; }
 .paper-title,.zone-label { flex-shrink:0; }
 .solo-editor { flex:1; min-height:180px; }
-.line-numbers { color:#927a59; font-size:12px; line-height:36.3px; }
+.line-numbers { color:#927a59; font-size:12px; }
 .m-line,.draft-area { font-size:21px; line-height:1.65; }
 .status-bar { background:#15130e; border-top:3px double #6a5431; padding:0 20px; font-size:11px; gap:10px; }
 #saveIndicator { font:11px/1.4 ui-sans-serif,system-ui,sans-serif; color:#dfd0ad; max-width:260px; }

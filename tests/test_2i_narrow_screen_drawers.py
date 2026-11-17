@@ -107,8 +107,8 @@ def test_nothing_sits_under_the_page_and_the_bottom_bar_items_have_new_homes(pho
     assert page.inner_text("#docTitleDisplay") == page.evaluate("documentTitle")
     page.tap("#soloTextarea")
     page.keyboard.type("four words right here")
-    page.evaluate("render()")  # the count is refreshed when the page re-renders, as it was in the bottom bar
-    assert page.inner_text("#wordCount") == "4 words"
+    # the count follows the typing by itself (until 2026-11-16 it stood still until the page re-rendered)
+    page.wait_for_function("document.getElementById('wordCount').textContent === '4 words'", timeout=3000)
     assert page.evaluate("document.getElementById('chatSection').contains(document.getElementById('llmPill'))")
     # the status word is hidden while idle and shown while something is happening
     assert page.evaluate("document.getElementById('statusLive').hidden") is True
