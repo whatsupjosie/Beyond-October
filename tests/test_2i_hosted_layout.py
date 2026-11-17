@@ -142,7 +142,12 @@ def test_laptop_width_shows_every_menu_and_nothing_overlaps(reach):
             page.keyboard.type("Saved from the top bar.")
             page.click("#saveBtn")
             page.wait_for_function("document.getElementById('saveIndicator').textContent.includes('Saved to Reach')", timeout=15000)
+            # 2026-11-16: on the single page in Write the small side tabs are shown at laptop width too (Josie's
+            # design); in the bound notebook, where the panels sit beside the page, they are not.
+            assert page.evaluate("getComputedStyle(document.getElementById('twoiDrawerTabTools')).display") == "flex"
+            page.evaluate("twoiSetPresentation('notebook')")
             assert page.evaluate("getComputedStyle(document.getElementById('twoiDrawerTabTools')).display") == "none"
+            page.evaluate("twoiSetPresentation('standard')")
             assert errors == []
         finally:
             browser.close()

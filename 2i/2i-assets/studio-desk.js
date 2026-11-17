@@ -1,7 +1,9 @@
 /* Native 2i studio presentation and shared production notes. */
 (function installStudioDesk(){
   function presentationMode(config,fileMode){return fileMode?"standard":config.seated?"typewriter":config.room?"notebook":"standard";}
-  function canPresent(mode,seated){return mode==="standard"||mode==="notebook"||(mode==="typewriter"&&seated===true);}
+  /* Josie: "In any open 2i window she can switch between the notebook, the typewriter and the single-page notebook
+     from the menu." A studio seat decides which look 2i OPENS in; it no longer decides which looks may be chosen. */
+  function canPresent(mode){return mode==="standard"||mode==="notebook"||mode==="typewriter";}
   if(reachFileMode){document.body.dataset.twoiDesk="standard";return;}
   const q=new URLSearchParams(location.search),config=TwoiStudioBridge.presentation(q.get("studio_room"),q.get("studio_view"),q.get("desk"));
   document.body.dataset.twoiDesk=presentationMode(config,false);
@@ -65,7 +67,7 @@
   for(const input of [soloTextarea,draftArea])input.addEventListener("input",syncPaper);
   const oldRender=render;render=function(){oldRender();syncPaper();};syncPaper();
   const options=el("div",null,controls);options.id="twoiAudioOptions";
-  const key="twoi.typewriter.audio.v1";let preferences={click:true,bell:true};
+  const key="twoi.typewriter.audio.v1";/* Josie: "audio effects must be optional". Off until she turns them on; her choice is kept. */let preferences={click:false,bell:false};
   try{const old=JSON.parse(localStorage.getItem(key)||"null");if(old){if(typeof old.click==="boolean")preferences.click=old.click;if(typeof old.bell==="boolean")preferences.bell=old.bell;}}catch{}
   function toggle(name,label){
     const l=el("label",null,options),i=el("input",null,l);i.type="checkbox";i.checked=preferences[name];l.append(document.createTextNode(" "+label));i.onchange=()=>{preferences[name]=i.checked;try{localStorage.setItem(key,JSON.stringify(preferences));}catch{}};

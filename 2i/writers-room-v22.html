@@ -945,7 +945,7 @@ body[data-twoi-desk="notebook"] :is(.m-line,.m-line-edit textarea) {
   body[data-twoi-desk="notebook"] :is(.m-line,.m-line-edit textarea) { line-height:round(1.65em, 1px); }
 }
 body[data-twoi-desk="standard"] .manuscript-zone .zone-label-row {
-  background:#fffefa; border-bottom:1px solid #e8e1d5;
+  background:#fbf6e6; border-bottom:1px solid #e6dcc4;
 }
 body[data-twoi-desk="standard"] .solo-textarea { border-radius:0 0 3px 0; }
 @media (forced-colors:active) {
@@ -973,6 +973,39 @@ body[data-twoi-desk="standard"] .solo-textarea { border-radius:0 0 3px 0; }
    the page was squeezed to a 10 px sliver.
    ═══════════════════════════════════════════════════════════════ */
 .twoi-drawer-tab, #twoiDrawerBackdrop { display:none; }
+/* THE SINGLE PAGE ON A WIDE SCREEN. Josie: "only the top menu and the writing show (no AI window, no other
+   panels)", with small arrow tabs just under the menu. While she is in Write on the single page the side panels
+   are put away. The left tab brings the tools beside the page and puts them away again. The right tab opens the
+   AI side, which starts Collab; in Collab the panels are where they always were. */
+@media (min-width:851px) {
+  body[data-twoi-desk="standard"]:has(#pageSheets.solo-mode) #mainArea { position:relative; grid-template-columns:minmax(0,1fr); }
+  body[data-twoi-desk="standard"]:has(#pageSheets.solo-mode) #mainArea > #chatSection,
+  body[data-twoi-desk="standard"]:not([data-twoi-panel="tools"]):has(#pageSheets.solo-mode) #mainArea > #sidebar { display:none; }
+  body[data-twoi-desk="standard"]:has(#pageSheets.solo-mode) #mainArea > #notebookFrame { grid-column:1; grid-row:1; }
+  body[data-twoi-desk="standard"][data-twoi-panel="tools"]:has(#pageSheets.solo-mode) #mainArea { grid-template-columns:280px minmax(0,1fr); }
+  body[data-twoi-desk="standard"][data-twoi-panel="tools"]:has(#pageSheets.solo-mode) #mainArea > #sidebar { grid-column:1; grid-row:1; }
+  body[data-twoi-desk="standard"][data-twoi-panel="tools"]:has(#pageSheets.solo-mode) #mainArea > #notebookFrame { grid-column:2; }
+  body[data-twoi-desk="standard"]:has(#pageSheets.solo-mode) .twoi-drawer-tab {
+    display:flex; align-items:center; justify-content:center;
+    position:absolute; top:6px; z-index:33; width:26px; height:30px; padding:0;
+    border:1px solid rgba(205,163,73,0.55); background:linear-gradient(180deg,#3a2716,#1d130c);
+    color:var(--gold-bright); box-shadow:0 2px 6px rgba(0,0,0,0.35); cursor:pointer;
+  }
+  body[data-twoi-desk="standard"]:has(#pageSheets.solo-mode) .twoi-drawer-tab svg { width:12px; height:12px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  body[data-twoi-desk="standard"]:has(#pageSheets.solo-mode) .twoi-drawer-tab[aria-expanded="true"] svg { transform:rotate(180deg); }
+  body[data-twoi-desk="standard"]:has(#pageSheets.solo-mode) .twoi-drawer-tab:focus-visible { outline:2px solid var(--gold-bright); outline-offset:2px; }
+  /* A new line is waiting in the conversation behind this tab (a reply, or a command's error message). */
+  body[data-twoi-desk="standard"]:has(#pageSheets.solo-mode) .twoi-drawer-tab[data-unseen]::after {
+    content:""; position:absolute; top:-4px; width:10px; height:10px; border-radius:50%;
+    background:#f0b63c; border:2px solid #1d130c; box-shadow:0 0 6px rgba(240,182,60,0.8);
+  }
+  body[data-twoi-desk="standard"]:has(#pageSheets.solo-mode) #twoiDrawerTabTools[data-unseen]::after { right:-4px; }
+  body[data-twoi-desk="standard"]:has(#pageSheets.solo-mode) #twoiDrawerTabPartner[data-unseen]::after { left:-4px; }
+  body[data-twoi-desk="standard"]:has(#pageSheets.solo-mode) #twoiDrawerTabTools { left:0; border-left:0; border-radius:0 8px 8px 0; }
+  body[data-twoi-desk="standard"]:has(#pageSheets.solo-mode) #twoiDrawerTabPartner { right:0; border-right:0; border-radius:8px 0 0 8px; }
+  /* With the tools out, their tab rides on the tools' outer edge, arrow turned, ready to put them away. */
+  body[data-twoi-desk="standard"][data-twoi-panel="tools"]:has(#pageSheets.solo-mode) #twoiDrawerTabTools { left:280px; }
+}
 @media (max-width:850px) {
   .app-shell { --shell-margin:0px; margin:0; border-width:0; border-radius:0; box-shadow:none; }
 
@@ -1234,6 +1267,11 @@ body[data-twoi-desk="standard"] .solo-textarea { border-radius:0 0 3px 0; }
                 <span class="zoom-pct" id="zoomPctManuscript">100%</span>
                 <button class="zoom-btn" onclick="adjustZoom('manuscript',1)" title="Larger text">A+</button>
               </div>
+              <label id="twoiMargins">Margins
+                <select id="twoiMarginSelect" aria-label="Page margins">
+                  <option value="24">Narrow</option><option value="56" selected>Normal</option><option value="96">Wide</option><option value="144">Extra wide</option>
+                </select>
+              </label>
               <div class="zone-label" id="zoneLabel">Manuscript</div>
             </div>
             <div class="manuscript-lines" id="manuscriptLines"></div>
@@ -2632,8 +2670,18 @@ document.addEventListener('click', e => {
 
 $('sidebarToggle').onclick = () => {
   if (twoiDrawers.narrow) { twoiDrawers.toggle('tools'); return; }
+  if (twoiDrawers.singlePage) { $('twoiDrawerTabTools').click(); return; }   // the single page keeps its own tools state
   $('mainArea').classList.toggle('sidebar-hidden');
 };
+
+// Page margins for the single-page notebook. The choice is kept for next time.
+(() => {
+  const select = $('twoiMarginSelect'), sheets = $('pageSheets'), KEY = 'twoi.page.margin.v1';
+  const set = value => { sheets.style.setProperty('--page-margin-chosen', value + 'px'); updateLineNumbers(); };
+  try { const kept = localStorage.getItem(KEY); if (kept && [...select.options].some(o => o.value === kept)) select.value = kept; } catch {}
+  select.addEventListener('change', () => { set(select.value); try { localStorage.setItem(KEY, select.value); } catch {} });
+  if (select.value !== '56') set(select.value);
+})();
 
 // ── SIDE DRAWERS (narrow screens) ──────────────────────────────────
 // Below 850 px the side panels slide over the page instead of sitting beside it (see NARROW SCREENS in the
@@ -2654,10 +2702,13 @@ const twoiDrawers = (() => {
     unseen = value;
     for (const name in tabs) { if (value && name === chatHome()) tabs[name].dataset.unseen = 'true'; else delete tabs[name].dataset.unseen; }
   }
+  // The same holds on a wide screen for the single page in Write, where both sides are put away.
+  const conversationAway = () => narrow.matches ? opened !== chatHome() : !$('chatLog').getClientRects().length;
   new MutationObserver(records => {
-    if (!narrow.matches || opened === chatHome()) return;
+    if (!conversationAway()) return;
     if (records.some(r => r.addedNodes.length)) markUnseen(true);
   }).observe($('chatLog'), { childList: true });
+  $('modeBadge').addEventListener('click', () => { if (!narrow.matches) markUnseen(false); });
   function apply(focus) {
     const active = narrow.matches && opened && panel(opened) ? opened : null;
     opened = active;
@@ -2678,7 +2729,17 @@ const twoiDrawers = (() => {
     if (was && restoreFocus && narrow.matches) tabs[was].focus({ preventScroll: true });
   }
   function toggle(name) { if (opened === name) { close(); return false; } return open(name); }
-  for (const name in tabs) tabs[name].addEventListener('click', () => toggle(name));
+  // On a wide screen the tabs exist only beside the single page in Write (see THE SINGLE PAGE ON A WIDE SCREEN).
+  // The left one brings the tools beside the page and puts them away; the right one opens the AI side, and
+  // opening the AI side is starting Collab.
+  function widePanel(name) {
+    if (name === 'partner') { if (!coWriting) toggleMode(); markUnseen(false); return; }
+    const shown = document.body.dataset.twoiPanel !== 'tools';
+    if (shown && chatHome() === 'tools') markUnseen(false);
+    if (shown) document.body.dataset.twoiPanel = 'tools'; else delete document.body.dataset.twoiPanel;
+    tabs.tools.setAttribute('aria-expanded', String(shown));
+  }
+  for (const name in tabs) tabs[name].addEventListener('click', () => { if (narrow.matches) toggle(name); else widePanel(name); });
   $('twoiDrawerBackdrop').addEventListener('click', () => close());
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape' || !opened || e.defaultPrevented) return;
@@ -2695,7 +2756,8 @@ const twoiDrawers = (() => {
     return shown;
   };
   apply(false);
-  return { open, close, toggle, get narrow() { return narrow.matches; }, get opened() { return opened; } };
+  return { open, close, toggle, get narrow() { return narrow.matches; }, get opened() { return opened; },
+    get singlePage() { return !narrow.matches && document.body.dataset.twoiDesk === 'standard' && !coWriting; } };
 })();
 
 $('hmNewDoc').onclick = () => { closeMenu(); newDocument(); };

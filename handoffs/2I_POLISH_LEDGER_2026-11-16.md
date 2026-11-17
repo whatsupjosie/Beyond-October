@@ -306,3 +306,46 @@ has been told.
 
 Josie's answers to 1 to 3, then the standard page (her single-page notebook), which is the default wherever 2i
 opens outside the studio.
+
+---
+
+# Update 4, 2026-11-16 evening: the single-page notebook and the typewriter from any window (Claude Fable 5.2)
+
+Same branch, `fable/2i-beta-polish-2026-11-16`, on top of `53af0a3`. Josie, 9:16 pm: "we've made no progress.
+Please, take us over the finish line ... Functionally, practically, beautifully." She did not answer the three
+questions at the end of Update 3; they are still open and nothing here depends on them.
+
+## Built (each against her stated design, quoted in `tests/test_2i_single_page.py`)
+
+| Item | Paths | What |
+| --- | --- | --- |
+| Single-page notebook | `2i/2i-assets/studio-desk.css` | The standard look is now her single page: warm off-white paper (`#fbf6e6`, was `#fffefa`), faint blue rules the writing sits on, the brass binding at the left edge (hidden on a phone), the red margin line, centred. Focus is the margin line darkening, not a box round the sheet. |
+| Adjustable margins | `2i/writers-room-v22.html` (`#twoiMarginSelect`), `studio-desk.css` (`--page-margin`) | Narrow / Normal / Wide / Extra wide in the page's header row, single page only, remembered (`localStorage` key `twoi.page.margin.v1`). A phone never gets more than 14 px. |
+| Only the writing shows | page, new block "THE SINGLE PAGE ON A WIDE SCREEN" | At laptop width, on the single page in Write, both side panels are put away. Small arrow tabs sit just under the menus. Left tab: tools out beside the page, and away again. Right tab: opens the AI side, which starts Collab; in Collab the panels are where they were. The ☰ button does the same as the left tab there. |
+| Messages are not lost | page (`conversationAway`, `markUnseen`) | A line arriving in the conversation while it is put away (a reply, or an error such as "Speech stopped") puts the amber dot on its tab at laptop width too. Before this change the dot existed only on narrow screens. |
+| Typewriter from any window | `2i/2i-assets/studio-desk.js` (`canPresent`) | The View menu offers Typewriter view everywhere. A studio seat still decides which look 2i opens in. |
+| Typewriter sound off by default | `studio-desk.js` | `click` and `bell` start `false`; a stored choice is kept. |
+| Tests | `tests/test_2i_single_page.py` (new, 6), `tests/test_2i_hosted_layout.py`, `tests/test_2i_speech_wiring.py`, `tests/test_2i_professional_ui_node.js` | Three existing tests assumed the panels always show at laptop width, or that the typewriter is seat-only; they now state the new design. |
+
+## RAN (same sandbox as Update 3)
+
+- Node: 70 passed, 0 failed.
+- Python, fifteen 2i files: 117 passed, 0 failed.
+- `menu_smoke.py`: host and `--disk`, exit 0; 66 commands each (one more than before: Typewriter view).
+- Looked at on the real host at 1280 and 390 px: single page, tools out, Collab by the right tab, typewriter.
+
+## UNKNOWN / not done
+
+- Not run on Windows, Josie's devices, Safari or Firefox.
+- The typewriter chosen from an ordinary window has the typewriter paper and type, but the typewriter picture and
+  its sound switches are still built only at a studio seat (`studio-desk.js`, the `config.seated` branch). The
+  key-bar row and letter-by-letter AI text are not built or not checked.
+- The single page in Collab is the old one-page layout with panels beside it, not the open two-page notebook.
+- On the single page in Write there is no conversation on screen at all; a message shows as a dot on the tab, not
+  as words. If she reads aloud from Write and the voice fails, she sees the dot, then the words after opening the side.
+- Phone header height: unchanged. Several documents at once, the amber main tab, the file drawer, sharing, and the
+  brass frames from her picture: not started.
+
+## Next step
+
+The open two-page Collab notebook, then the phone header (needs her choice from Update 3, question 1).

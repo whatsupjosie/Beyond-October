@@ -22,14 +22,42 @@ body[data-twoi-desk] #pnLayer{position:fixed;z-index:10000}
 /* Ordinary document: editorial paper, neutral workspace; never alters text or file state. */
 body[data-twoi-desk="standard"] .notebook-frame{background:#e3e0da;border:0;border-image:none;box-shadow:none;padding:clamp(8px,2vw,24px);justify-content:center}
 body[data-twoi-desk="standard"] .notebook-inner{max-width:900px;margin:0;min-width:0}
-body[data-twoi-desk="standard"] .spiral-spine,body[data-twoi-desk="standard"] #lanternCanvas{display:none}
+body[data-twoi-desk="standard"] #lanternCanvas{display:none}
 body[data-twoi-desk="standard"] .page-sheets{border-radius:3px;box-shadow:0 1px 8px #27221c25;border:1px solid #c7c1b7}
-body[data-twoi-desk="standard"] .manuscript-zone{--ink:#252b32;--paper:#fffefa;background:var(--paper);color:var(--ink);box-shadow:none}
+body[data-twoi-desk="standard"] .manuscript-zone{--ink:#252b32;--paper:#fbf6e6;background:var(--paper);color:var(--ink);box-shadow:none}
 body[data-twoi-desk="standard"] .draft-zone{--ink:#343943}
 body[data-twoi-desk="standard"] .solo-textarea,body[data-twoi-desk="standard"] .m-line,body[data-twoi-desk="standard"] .draft-area,body[data-twoi-desk="standard"] .m-line-edit textarea,body[data-twoi-desk="standard"] .reading-line{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:calc(17px * var(--zoom-manuscript,1));line-height:1.65}
 body[data-twoi-desk="standard"] .solo-textarea{padding-top:18px}
+/* Josie's single-page notebook: "a single notebook page, centered, adjustable margins, faintly blue-lined, with the
+   spiral notebook image kept at the side", and not "pure computer white". The paper is a warm off-white, the
+   binding stands at its left edge, the rules are faint, and --page-margin (set by the Margins control) is the
+   space either side of the writing. */
+body[data-twoi-desk="standard"] .page-sheets{--ring-inset:14px;--rule:rgba(70,112,165,.17);--page-margin:var(--page-margin-chosen,56px);background-color:#fbf6e6;padding-left:var(--ring-inset)}
+body[data-twoi-desk="standard"] .notebook-inner{box-shadow:0 2px 14px #27221c30;border-radius:3px}
+body[data-twoi-desk="standard"] .solo-textarea{padding-left:var(--page-margin);padding-right:var(--page-margin)}
+body[data-twoi-desk="standard"] :is(.m-line,.draft-area,.reading-line){padding-right:var(--page-margin)}
+@supports (height:1lh){
+  body[data-twoi-desk="standard"] :is(.solo-textarea,.draft-area,.m-line){background-image:linear-gradient(to bottom,transparent calc(.80lh - 1px),var(--rule) calc(.80lh - 1px),var(--rule) .80lh,transparent .80lh);background-size:100% 1lh}
+  body[data-twoi-desk="standard"] .solo-textarea{background-position:0 18px;background-attachment:local}
+  body[data-twoi-desk="standard"] .draft-area{background-attachment:local}
+}
+@supports (line-height:round(1em,1px)){
+  body[data-twoi-desk="standard"] :is(.solo-textarea,.m-line,.draft-area,.m-line-edit textarea,.reading-line){line-height:round(1.65em,1px)}
+}
+body[data-twoi-desk="standard"] :is(.zone-label-row,.line-numbers){background-color:#fbf6e6}
+/* The margin line, and focus shown by it darkening instead of a box round the whole sheet (as on the bound notebook). */
+body[data-twoi-desk="standard"] .page-sheets::before{content:"";position:absolute;z-index:6;pointer-events:none;top:0;bottom:0;left:calc(var(--ring-inset) + 43px);width:1px;background:rgba(186,52,42,.45)}
+body[data-twoi-desk="standard"] .line-numbers{border-right-color:transparent}
+@media not (forced-colors:active){
+  body[data-twoi-desk="standard"] .app-shell .page-sheets :is(.solo-textarea,.draft-area):focus-visible{outline:none}
+  body[data-twoi-desk="standard"] .page-sheets:has(:is(.solo-textarea,.draft-area):focus-visible)::before{width:2px;background:rgba(168,44,36,.75)}
+}
+#twoiMargins{display:none}
+body[data-twoi-desk="standard"] #twoiMargins{display:inline-flex;align-items:center;gap:6px;font:12px system-ui,sans-serif;color:#4b5560}
+body[data-twoi-desk="standard"] #twoiMargins select{min-height:28px;border:1px solid #b9b2a4;border-radius:4px;background:#fffdf6;color:#252b32;font:inherit;padding:0 4px}
 body[data-twoi-desk="standard"] .m-line{padding-top:0;padding-bottom:0}
 body[data-twoi-desk="standard"] .m-line.selected{background:#dbe8f1;box-shadow:inset 3px 0 0 #38576d}
 body[data-twoi-desk="standard"] .solo-textarea:focus-visible,body[data-twoi-desk="standard"] .draft-area:focus-visible{outline:2px solid #526d7f;outline-offset:-2px}
 #twoiDeskScene[hidden]{display:none!important}
-@media(max-width:850px){body[data-twoi-desk="standard"] .notebook-frame{padding:5px}body[data-twoi-desk="standard"] .solo-textarea{padding-right:12px}}
+/* A phone has no room for the binding or wide margins: the page takes the whole width. */
+@media(max-width:850px){body[data-twoi-desk="standard"] .notebook-frame{padding:5px}body[data-twoi-desk="standard"] .spiral-spine{display:none}body[data-twoi-desk="standard"] .page-sheets{--ring-inset:0px;--page-margin:min(var(--page-margin-chosen,14px),14px)}}

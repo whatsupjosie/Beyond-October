@@ -138,6 +138,8 @@ def test_standalone_voice_input_keeps_the_browser_recognizer(browser):
     page, context = open_page(browser, stub)
     try:
         assert not page.locator("#chatMicBtn").is_disabled()
+        # The single page shows only the writing until a side is brought out; the conversation is behind one tab.
+        page.click(page.evaluate("document.getElementById('chatSection').parentElement.id === 'mainArea' ? '#twoiDrawerTabPartner' : '#twoiDrawerTabTools'"))
         page.fill("#chatInput", "hello")
         page.click("#chatMicBtn")
         assert page.evaluate("window.__recs") == ["start"]
@@ -220,7 +222,9 @@ def test_hosted_client_failure_stops_playback_and_tells_the_writer(browser):
         page.evaluate("playing = true; speechRead('A line.', () => {})")
         page.evaluate("window.__pending[0].reject(new Error('voice not installed'))")
         page.wait_for_function("playing === false")
-        assert "Speech stopped: voice not installed" in page.locator("body").inner_text()
+        # On the single page the conversation is put away, so the message waits there and its tab shows a dot.
+        assert "Speech stopped: voice not installed" in page.text_content("#chatLog")
+        assert page.evaluate("!!document.querySelector('.twoi-drawer-tab[data-unseen]')")
         assert page.problems == []
     finally:
         context.close()
