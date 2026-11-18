@@ -5,6 +5,13 @@ Foresight inside this Build. It is **not** a declaration that all of PubCast is
 finished. Never treat a file, route, recovered donor, or test fixture as proof
 of live functionality.
 
+## 2026-11-17: 2i polish pass (branch 2i-beta-polish)
+
+Ledger: `handoffs/2I_BETA_POLISH_2026-11-17.md`.
+
+- The served 2i (`writers-room-v22.html`) now applies the Reach desk layer as designed, so phones and tablets get a usable one-column layout and Save stays on screen; text zoom still works. Fixed: Ctrl+Z in a text box rolling back the manuscript, locks doing nothing in Write mode, Replace all double-counting and replacing in locked lines, interface notes shown as said by the partner.
+- Tested: 33 new browser checks (`tests/test_2i_polish_browser.py`) and 399 related tests. Not tested on a real phone or Safari. Open decision for Josie: bring the unserved painted-notebook edition and phone edition (`2i/index.html`) into v22.
+
 ## 2026-11-02: Production notes (sticky notes) and the PubCast profile
 
 Ledger: `handoffs/PRODUCTION_NOTES_2026-11-02.md`.
