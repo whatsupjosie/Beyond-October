@@ -11,6 +11,8 @@
 
 **67 individual checks in 27 existing `tests/test_2i_*_node.js` test files: 67 passed, 0 failed.**
 
+**7 newly added hosted Save Now checks in `tests/test_2i_hosted_save_races_node.js`: 7 passed, 0 failed in the same isolated compatibility harness. Combined total: 74 focused checks passed, 0 failed.**
+
 Source files and test bodies were fetched directly from the source branch through the GitHub connector. They were executed in a temporary V8 isolate with compatibility stand-ins for relevant Node test/assert/filesystem/VM APIs, plus fixture-specific browser APIs. This is **not** an actual Node.js `node --test` invocation and is **not** a browser, filesystem, or operating-system acceptance test. The result is limited to the behaviors exercised by those assertions in the harness.
 
 Coverage included:
@@ -23,10 +25,14 @@ A separate simulated narrative-room test passed, including its internally accumu
 
 All results are **focused behavioral evidence**, not a beta approval.
 
+## Added test coverage
+
+The new permanent test file `tests/test_2i_hosted_save_races_node.js` targets the real hosted saveDocument implementation, including a late edit during a request, two simultaneous Save clicks, HTTP 409, server failure, no-network browser recovery, and a manuscript switch during a late response. The source was checked in the isolated V8 harness and saved on the CI branch. **Its native Node CI execution is still blocked by runner allocation.**
+
 ## Remote GitHub Actions attempts
 
 - Chromium smoke run: `44239174124`, failed. A retry failed as well.
-- Expanded beta acceptance run: `44239586896`, failed.
+- Expanded beta acceptance runs: `44239586896` and `44241747253`, both failed before any step.
 - Jobs failed in approximately 2–3 seconds, before assignment to a runner and with zero executed steps. They are **infrastructure failures**, not application-test failures.
 - Precise GitHub account-level or runner allocation reason is not established from available logs. Do not describe these as passed tests.
 
