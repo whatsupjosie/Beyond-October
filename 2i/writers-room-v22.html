@@ -1638,12 +1638,40 @@ function captureUndoPoint() {
   if(nativeFormatting)point.formatting=TwoiFormatCore.clone(syncManuscriptFormat());
   return point;
 }
-function snapshot() {
-  undoStack.push(captureUndoPoint());
+function snapshot(metadataOnly = false) {
+  const point=captureUndoPoint();
+  // A lock/chapter action in Write mode changes metadata, not the text's own undo history.
+  // Its inverse must never roll back manuscript words typed after that action.
+  if(metadataOnly&&!coWriting)point.metadataOnly=true;
+  undoStack.push(point);
   if (undoStack.length > MAX_UNDO) undoStack.shift();
   redoStack = [];
 }
 function restoreUndoPoint(s,kind) {
+  if(s.metadataOnly&&!coWriting){
+    // Restore the lock/chapter action while keeping the live textarea, formatting,
+    // narrative history, and manuscript recovery intact. Never substitute stale text.
+    const live=soloTextarea.value.split('\n');
+    let locks;
+    try {
+      if(typeof NarrativeCore!=='undefined'&&typeof NarrativeCore.remapProtected==='function')
+        locks=NarrativeCore.remapProtected(s.committed,live,s.lockedLines);
+      else {
+        if(s.committed.length!==live.length&&s.lockedLines.size)throw Error('Protected line positions changed without a safe remapper.');
+        locks=[...s.lockedLines];
+      }
+    }catch(error){addChat('notice','Cannot safely restore that lock state: '+error.message);return false;}
+    const prior=s.committed.join('\n'),current=live.join('\n');
+    if(prior!==current&&typeof keepChapterPositions!=='function'&&s.chapters.some(c=>c.startLine>0)){
+      addChat('notice','Cannot safely restore chapter positions without the manuscript mapper.');return false;
+    }
+    lockedLines=new Set(locks);
+    chapters=JSON.parse(JSON.stringify(s.chapters));
+    if(prior!==current&&typeof keepChapterPositions==='function')keepChapterPositions(prior,current);
+    committed=live;selectedIdx=null;editingIdx=null;
+    window.twoiCreativeSession?.record(kind);
+    markDirty();render();return true;
+  }
   if(s.narrative&&window.twoiNarrativeHistory)window.twoiNarrativeHistory.restore(s.narrative,buffer.join('\n')===s.buffer.join('\n')?'':buffer.join('\n'),kind);
   committed=s.committed;buffer=s.buffer;lockedLines=s.lockedLines;chapters=s.chapters;
   if(nativeFormatting){manuscriptFormat=TwoiFormatCore.restore(s.formatting,committed);formatPrevious=committed.slice();}
@@ -1651,19 +1679,25 @@ function restoreUndoPoint(s,kind) {
   selectedIdx=null;editingIdx=null;
   if(!coWriting)soloTextarea.value=committed.join('\n');
   if(kind==='undo'||kind==='redo')window.twoiCreativeSession?.record(kind);
-  markDirty();render();
+  markDirty();render();return true;
 }
 function undo() {
   if (!undoStack.length) return;
   if(window.twoiNarrativeHistory&&(generating||chatSending||editingIdx!==null)){addChat('notice','Finish the active edit or request before undoing.');return;}
   if(window.twoiNarrativeHistory&&playing)stopPlaying();
-  redoStack.push(captureUndoPoint());restoreUndoPoint(undoStack.pop(),'undo');
+  const previous=undoStack.pop(),current=captureUndoPoint();
+  if(previous.metadataOnly&&!coWriting)current.metadataOnly=true;
+  if(restoreUndoPoint(previous,'undo')===false){undoStack.push(previous);return;}
+  redoStack.push(current);
 }
 function redo() {
   if (!redoStack.length) return;
   if(window.twoiNarrativeHistory&&(generating||chatSending||editingIdx!==null)){addChat('notice','Finish the active edit or request before redoing.');return;}
   if(window.twoiNarrativeHistory&&playing)stopPlaying();
-  undoStack.push(captureUndoPoint());restoreUndoPoint(redoStack.pop(),'redo');
+  const next=redoStack.pop(),current=captureUndoPoint();
+  if(next.metadataOnly&&!coWriting)current.metadataOnly=true;
+  if(restoreUndoPoint(next,'redo')===false){redoStack.push(next);return;}
+  undoStack.push(current);
 }
 
 // ── DIRTY / AUTOSAVE ───────────────────────────────────────────────
@@ -1949,7 +1983,7 @@ function approveBuffer() {
   ppCommit();
 }
 function lockScene() {
-  snapshot();
+  snapshot(true);
   // Lock lines from the last chapter start to end of committed
   const lastChapter = [...chapters].reverse().find(c => c.startLine <= committed.length - 1);
   const start = lastChapter ? lastChapter.startLine : 0;
@@ -1957,22 +1991,24 @@ function lockScene() {
   markDirty(); render();
 }
 function lockAll() {
-  snapshot();
+  snapshot(true);
   committed.forEach((_, i) => lockedLines.add(i));
   markDirty(); render();
 }
 function unlockSelected() {
-  if (selectedIdx === null) { addChat('pp', 'Select a line first, then unlock it.'); return; }
-  snapshot();
-  lockedLines.delete(selectedIdx);
+  const idx=coWriting?selectedIdx:soloTextarea.value.slice(0,soloTextarea.selectionStart).split('\n').length-1;
+  if (idx === null || idx < 0) { addChat('notice', 'Select a line first, then unlock it.'); return; }
+  if (!lockedLines.has(idx)) { addChat('notice', 'Line '+(idx+1)+' is not locked.');return; }
+  snapshot(true);
+  lockedLines.delete(idx);
   markDirty(); render();
 }
 function newChapter() {
-  snapshot();
   const num = chapters.length + 1;
   const title = prompt('Chapter title:', 'Chapter ' + numberToWord(num));
   if (!title) return;
   const sub = prompt('Subtitle (optional):', '') || '';
+  snapshot(true);
   chapters.push({ title, subtitle: sub, startLine: committed.length + buffer.length });
   markDirty(); render();
 }
