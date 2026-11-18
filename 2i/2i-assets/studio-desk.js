@@ -54,6 +54,59 @@
       location.assign(config.returnPath);
     }catch(error){addChat("notice",error.message);}
   });
+  // Reuse Claude's touchable-key console as an optional, isolated instrument.
+  // The typewriter can be opened from any 2i presentation, without a second
+  // manuscript buffer or changes to the existing notebook/solo editor.
+  let keysLayer=null,keysFrame=null,keysFailed=false;
+  const keysButton=button("Touchable typewriter",()=>openKeys());
+  keysButton.id="twoiTouchableTypewriter";
+  if(location.protocol==="file:"||typeof TwoiTypewriterKeys==='undefined'){
+    keysButton.disabled=true;
+    keysButton.title="Interactive keys require the hosted PubCast typewriter console";
+  }
+  function closeKeys(){
+    if(keysLayer)keysLayer.style.display="none";
+    keysButton.focus({preventScroll:true});
+  }
+  function openKeys(){
+    if(keysButton.disabled||document.body.dataset.twoiDesk!=="typewriter")return;
+    if(!keysLayer){
+      keysLayer=el("div",null,document.body);
+      keysLayer.id="twoiLiveKeys";keysLayer.setAttribute("role","dialog");
+      keysLayer.setAttribute("aria-label","Touchable typewriter keys");
+      keysLayer.setAttribute("aria-modal","false");
+      keysLayer.style.cssText="position:fixed;inset:2dvh 2vw;z-index:25000;background:#17110b;border:2px solid #c6a360;box-shadow:0 0 0 500vmax #0009;display:none;flex-direction:column;padding:8px;gap:8px";
+      const close=el("button","Close typewriter",keysLayer);close.type="button";close.className="mc-btn";close.onclick=closeKeys;
+      keysFrame=el("iframe",null,keysLayer);
+      keysFrame.id="twoiLiveKeysFrame";keysFrame.title="Interactive blue and gold typewriter";
+      keysFrame.style.cssText="flex:1;min-height:0;width:100%;border:0;background:#1b140f";
+      keysFrame.src="/typewriter-console?embed=2i";
+    }
+    keysLayer.style.display="flex";
+  }
+  window.addEventListener("message",event=>{
+    if(!keysFrame||event.source!==keysFrame.contentWindow||event.origin!==location.origin
+       ||keysLayer.style.display!=="flex"||document.body.dataset.twoiDesk!=="typewriter"
+       ||event.data?.type!=="pubcast:2i-key")return;
+    if(initializing||generating||chatSending||editingIdx!==null)return;
+    const target=coWriting?draftArea:soloTextarea;
+    let written=false;
+    try{written=TwoiTypewriterKeys.write(document,target,event.data.key);}catch(error){
+      if(!keysFailed)addChat("notice","Typewriter input failed: "+error.message);
+    }
+    if(!written&&!keysFailed){
+      addChat("notice","Touchable keys could not edit this manuscript. Use its text field instead.");
+      keysFailed=true;
+    }
+    if(written)keysFrame.contentWindow.postMessage({type:"pubcast:2i-paper",text:target.value.slice(-500)},event.origin);
+  });
+  function syncKeysButton(){
+    const active=document.body.dataset.twoiDesk==="typewriter";
+    keysButton.hidden=!active;
+    if(!active&&keysLayer)keysLayer.style.display="none";
+  }
+  document.addEventListener("twoi:presentation-change",syncKeysButton);
+  syncKeysButton();
   if(!config.seated)return;
   const figure=el("figure",null,$("notebookFrame"));figure.id="twoiDeskScene";
   const img=el("img",null,figure);img.src="/static/world/rooms/dressing_typewriter_sitting.png";img.alt="First-person view of the blue and gold typewriter at the desk";
