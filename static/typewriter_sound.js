@@ -32,8 +32,14 @@
   function readPreference() {
     try {
       const stored = localStorage.getItem(STORE_KEY);
-      // Claude's bench keeps its default; embedded 2i respects the owner's quiet-by-default choice.
-      return stored === "on" || (stored !== "off" && new URLSearchParams(location.search).get("embedded") !== "2i");
+      if (stored === "on" || stored === "off") return stored === "on";
+      const embedded = new URLSearchParams(location.search).get("embedded") === "2i";
+      if (embedded) {
+        // Respect the older 2i click/bell preference when upgrading to Claude's sound system.
+        const old = JSON.parse(localStorage.getItem("twoi.typewriter.audio.v1") || "null");
+        return Boolean(old && (old.click === true || old.bell === true));
+      }
+      return true; // Claude's standalone console retains its original default.
     } catch (_err) {
       return true;
     }
