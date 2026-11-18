@@ -78,7 +78,7 @@
   el("figcaption",config.seated?"Type on the machine or in the manuscript":"Typewriter view · keys edit this manuscript",figure);
 
   function currentText(){
-    return coWriting ? (buffer.join("\n")||committed.join("\n")) : soloTextarea.value;
+    return coWriting ? [committed.join("\n"),buffer.join("\n")].filter(Boolean).join("\n") : soloTextarea.value;
   }
   function syncPaper(){
     if(typewriter.dataset.ready!=="true" || !typewriter.contentWindow)return;
