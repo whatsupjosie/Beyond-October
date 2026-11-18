@@ -331,7 +331,18 @@ function keepChapterPositions(previous,next) {
     chapter.startLine=next.slice(0,Math.max(0,moved)).split('\n').length-1;
   });
 }
+// The Foresight file route must never run ordinary Reach manuscript
+// navigation while its separate file adapter is mounting or after it owns
+// the document. Its own new/open/save-as handlers replace these on readiness.
+function blockReachFileOperation(operation) {
+  if(!reachFileMode)return false;
+  addChat('notice',window.foresightFileSession
+    ? 'Use the Foresight file controls to '+operation+'.'
+    : 'Finish opening this Foresight file before '+operation+'.');
+  return true;
+}
 async function saveDocumentAs() {
+  if(blockReachFileOperation('save a copy'))return false;
   writeRecovery();
   downloadFile(safeName()+'.2i', JSON.stringify(docPayload(),null,2), 'application/json');
   setSaveStatus('Copy exported · ' + (revision ? 'Reach revision '+revision : 'browser recovery kept'));
@@ -365,6 +376,7 @@ async function importDocument(file, fileHandle = null) {
   return true;
 }
 async function openDocument() {
+  if(blockReachFileOperation('open another file'))return;
   // No host, and the browser has a file picker: keep the chosen file's handle so Save writes back to that file.
   if (!networked && typeof window.showOpenFilePicker === 'function') {
     try {
@@ -378,6 +390,7 @@ async function openDocument() {
   input.click();
 }
 async function newDocument() {
+  if(blockReachFileOperation('create a new file'))return;
   if(!await preserveBeforeSwitch())return;
   cancelLLM(); stopPlaying(); documentId=uuid(); revision=0; saveConflict=false;
   documentTitle='Untitled manuscript'; documentHandle=null;
@@ -674,6 +687,7 @@ async function showRevisionHistory() {
 }
 
 async function showShelf() {
+  if(blockReachFileOperation('open Reach manuscripts'))return;
   if (networked) await saveDocument();
   else writeRecovery();
   const shelf=$('reachShelfList');shelf.replaceChildren();
@@ -735,6 +749,7 @@ $('partnerSelect').onchange=switchPartner;
 $('saveBtn').onclick=()=>saveNow();
 $('llmPill').onclick=openLLMModal;
 $('shelfBtn').onclick=showShelf;
+if(reachFileMode)$('shelfBtn').style.display='none';
 const shelf=document.createElement('div'); shelf.className='modal-backdrop'; shelf.id='reachShelf';
 shelf.innerHTML='<div class="modal" role="dialog" aria-label="My manuscripts"><div class="modal-title">My manuscripts</div><div class="shelf-list" id="reachShelfList"></div><div class="modal-actions"><button class="mc-btn" id="shelfClose">Close</button><button class="mc-btn" id="shelfImport">Import .2i</button><button class="mc-btn" id="shelfCopy">Save a copy</button><button class="mc-btn primary" id="shelfNew">New manuscript</button></div></div>';
 document.body.append(shelf);
