@@ -125,7 +125,15 @@ def test_the_typewriter_can_be_chosen_from_any_window_and_its_sounds_start_off(l
     page.evaluate("twoiSetPresentation('typewriter')")
     assert page.evaluate("document.body.dataset.twoiDesk") == "typewriter"
     assert page.evaluate(SHOWN, "soloTextarea")
+    # The art and optional audio controls must exist outside studio seats too.
+    scene = page.locator("#twoiDeskScene")
+    assert scene.is_visible()
+    assert page.locator("#twoiAudioOptions").is_visible()
+    # Offline standalone 2i resolves companion artwork without a running host.
+    assert scene.locator("img").evaluate("(image) => image.complete && image.naturalWidth > 0")
+    assert page.locator("#twoiPaperPreview").get_attribute("aria-hidden") == "true"
     stored = page.evaluate("localStorage.getItem('twoi.typewriter.audio.v1')")
     assert stored is None or '"click":false' in stored
     page.evaluate("twoiSetPresentation('notebook')")
+    assert not scene.is_visible()
     assert page.evaluate("document.body.dataset.twoiDesk") == "notebook" and page.evaluate("spineCanvas.width > 0")
