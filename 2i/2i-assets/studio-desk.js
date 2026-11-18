@@ -75,7 +75,7 @@
       text:currentText().slice(-2000)
     },location.origin);
   }
-  typewriter.addEventListener("load",()=>{typewriter.dataset.ready="false";});
+  typewriter.addEventListener("load",syncPaper); // child also sends its own ready handshake
   window.addEventListener("message",event=>{
     // Do not accept commands from another frame, domain, or an inactive view.
     if(event.source!==typewriter.contentWindow || event.origin!==location.origin)return;
