@@ -37,7 +37,7 @@ function boot(fileMode) {
     addEventListener(type,handler){(this.listeners[type]??=[]).push(handler)},
     dispatchEvent(event){for(const handler of this.listeners[event.type]||[])handler(event)}
   };
-  const window={listeners:{},reachStarted:null,
+  const window={listeners:{},reachStarted:null,foresightFileSession:fileMode?{}:undefined,
     addEventListener(type,handler){(this.listeners[type]??=[]).push(handler)},
     TwoiTypewriterInput:{apply(target,key){applied.push({target:target===solo?'write':'draft',key});return {applied:true}}}
   };
@@ -94,4 +94,16 @@ test('normal hosted 2i retains studio-note controls and menu-driven presentation
   assert.equal(f.get('twoiFilePresentation'),undefined);
   f.window.twoiSetPresentation('typewriter');
   assert.equal(f.document.body.dataset.twoiDesk,'typewriter');
+});
+
+test('file-tray typewriter blocks edits until the real save session is mounted',()=>{
+  const f=boot(true);
+  f.window.twoiSetPresentation('typewriter');
+  f.window.foresightFileSession=undefined;
+  f.message({type:'pubcast:2i-key',key:{char:'X',text:'x'}});
+  assert.equal(f.applied.length,0);
+  assert.match(f.notices.at(-1).text,/Finish opening this Foresight file/);
+  f.window.foresightFileSession={save(){}};
+  f.message({type:'pubcast:2i-key',key:{char:'X',text:'x'}});
+  assert.equal(f.applied.length,1);
 });
