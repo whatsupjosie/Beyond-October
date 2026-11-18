@@ -89,10 +89,12 @@
        ||keysLayer.style.display!=="flex"||document.body.dataset.twoiDesk!=="typewriter"
        ||event.data?.type!=="pubcast:2i-key")return;
     if(initializing||generating||chatSending||editingIdx!==null)return;
+    // Shift/blank keys are controls, not failed typing attempts.
+    if(!TwoiTypewriterKeys.command(event.data.key))return;
     const target=coWriting?draftArea:soloTextarea;
     let written=false;
     try{written=TwoiTypewriterKeys.write(document,target,event.data.key);}catch(error){
-      if(!keysFailed)addChat("notice","Typewriter input failed: "+error.message);
+      if(!keysFailed){addChat("notice","Typewriter input failed: "+error.message);keysFailed=true;}
     }
     if(!written&&!keysFailed){
       addChat("notice","Touchable keys could not edit this manuscript. Use its text field instead.");
@@ -103,6 +105,7 @@
   function syncKeysButton(){
     const active=document.body.dataset.twoiDesk==="typewriter";
     keysButton.hidden=!active;
+    keysButton.style.display=active?"":"none";
     if(!active&&keysLayer)keysLayer.style.display="none";
   }
   document.addEventListener("twoi:presentation-change",syncKeysButton);
