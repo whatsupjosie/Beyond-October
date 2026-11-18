@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PubCast Typewriter</title>
   <link rel="stylesheet" href="/static/console_hotspot_renderer.css">
+  <style>
+    /* Only the embedded 2i surface loses the redundant console footer. */
+    body.pc-embedded-twoi .pc-console-shell{height:100dvh;min-height:0}
+    body.pc-embedded-twoi .pc-console-topbar{padding:3px 9px;min-height:30px}
+    body.pc-embedded-twoi .pc-console-title,body.pc-embedded-twoi .pc-console-meta,body.pc-embedded-twoi .pc-console-statusbar{display:none}
+    body.pc-embedded-twoi .pc-console-mount{padding:0;overflow:hidden}
+    body.pc-embedded-twoi .pc-sound-toggle{margin:0;height:26px}
+  </style>
 </head>
 <body class="pc-console-page">
   <main class="pc-console-shell">
