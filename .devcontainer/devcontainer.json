@@ -1,0 +1,19 @@
+{
+  "name": "2i Writer's Room browser preview",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.11-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    }
+  },
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": {
+      "label": "2i Writer's Room",
+      "onAutoForward": "notify",
+      "visibility": "private"
+    }
+  },
+  "postCreateCommand": "python -m pip install -r requirements.txt && npm --prefix 2i-backend ci --omit=dev --ignore-scripts --no-audit --no-fund",
+  "postStartCommand": "bash .devcontainer/start-2i-preview.sh"
+}
