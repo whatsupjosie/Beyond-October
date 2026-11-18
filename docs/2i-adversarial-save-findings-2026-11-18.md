@@ -173,3 +173,7 @@ On `d993d26` the six tests for these four defects fail and the other 26 pass; al
 - HEIC and AVIF photos (common from phones): no encoder here to make fixtures; not tested.
 - Rich (formatted) editing is offered for `.2i` rich archives. Opening a `.docx` gives a text copy, with a button to make a rich `.2i` from the original. Opening a DOCX straight into the formatted editor is the natural next step and is not built.
 - Legacy `.doc`, `.pages`, `.key`, `.numbers`, `.wpd` and other closed formats: not converted.
+
+**Corrections after a final self-review:**
+- My chat summaries said "27 formats"; the correct count is **30** (6 text, 9 documents, 6 images, 9 audio/video), plus 2 unsupported-file tests, 32 tests in all. The plan document is corrected.
+- RTF limitation not stated before: `\'hh` bytes are decoded one at a time in the document's code page. Correct for Western code pages; RTF using double-byte code pages (Japanese, Chinese, Korean) without `\uN` escapes would come out garbled. Modern producers (Word, LibreOffice, pandoc) write `\uN` for such text; not tested.

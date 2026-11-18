@@ -28,7 +28,7 @@ A count of passing tests is not the gate. 2i is beta-ready when every item below
 | 4, protected text | **Open** | Charter trap 4 not yet built |
 | 5, cold start, phone, presentations, Windows | **Open** | Partial old evidence only; Windows never run |
 | Write amplification | **Fixed on this branch** | 40 keystrokes: 41 writes before, 1 after |
-| Formats | **27 formats tested end to end; RTF, EPUB, ODS, ODP added; clear messages for the rest** | `tests/test_2i_format_matrix.py`, 32 real-producer fixtures; open DOCX directly in the formatted editor is not built |
+| Formats | **30 formats tested end to end (6 text, 9 documents, 6 images, 9 audio/video); RTF, EPUB, ODS, ODP added; clear messages for the rest** | `tests/test_2i_format_matrix.py`, 32 real-producer fixtures; open DOCX directly in the formatted editor is not built |
 
 ## The work, in order
 
