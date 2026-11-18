@@ -127,6 +127,9 @@ try{
   if(mountViewFailed || !session || typeof session.activity!=='function' || !session.activity().recovery)
     throw Error('The requested Foresight file did not open safely. Re-import it or restore the saved source.');
   window.foresightFileSession=session;
+  // The parent Reach layer locked both writing fields during file startup.
+  // Only a successfully mounted, recoverable Foresight session may unlock them.
+  soloTextarea.readOnly=false;draftArea.readOnly=false;
   saveDocument=()=>session.save();saveDocumentAs=()=>session.saveAs();
   function activeWork(){return !!chatSending||!!generating||!!PP?.inflight||(typeof editingIdx!=='undefined'&&editingIdx!==null);}
   let switching=false;
