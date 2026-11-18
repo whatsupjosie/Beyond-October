@@ -32,6 +32,22 @@ function scripts(html) {
   return [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi)]
     .map(m=>m[1]).filter(x=>x.trim());
 }
+test('combined PubCast server retains Fable's critical lifecycle and security wiring',()=>{
+  // Regression against an earlier integration which copied Claude's older
+  // main.py, dropping Fable's camera pool, Blackbox and upload protections.
+  for(const required of [
+    'create_studio25d_recording_router',
+    'create_camera_pool_router',
+    'GuestSessionGuardMiddleware',
+    'GuestAdmission',
+    'start_chat_replay',
+    'stop_chat_replay',
+    'blackbox_logger=internal_audit_logger',
+    'MAX_FILE_BYTES = 5 * 1024 * 1024',
+    'app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")'
+  ])assert.ok(main.includes(required),'Missing Fable server integration: '+required);
+  assert.match(main,/@app\.get\("\/typewriter-console"/);
+});
 test('PubCast hosts both real routes and both static asset directories',()=>{
   assert.match(main,/@app\.get\("\/writers-room"/);
   assert.match(main,/@app\.get\("\/typewriter-console"/);
