@@ -39,6 +39,38 @@ async function db(){
   });
   return database;
 }
+// Exit journal. A checked save reads the revision and writes only in the read's callback, which never runs
+// once a page is being torn down, so unsaved text at reload, close or tab kill was lost. On page hide/unload
+// the unsaved snapshot is written here synchronously instead, then applied on the next open through the
+// normal checked save. It is a separate database so the file shelf (list()) never shows it as a file, and
+// it never overwrites the real record, so a closing stale window cannot clobber a newer save.
+const EXIT_DB='pubcast-foresight-exit-v1', EXIT_STORE='exit';
+let exitDatabase, exitConnection=null;
+async function exitDb(){
+  const owner=await ownerScope();
+  if(!exitDatabase) exitDatabase=new Promise((resolve,reject)=>{
+    const r=indexedDB.open(EXIT_DB+':'+owner,1);
+    r.onupgradeneeded=()=>r.result.createObjectStore(EXIT_STORE,{keyPath:'id'});
+    r.onsuccess=()=>{r.result.onversionchange=()=>{r.result.close();exitDatabase=null;exitConnection=null};exitConnection=r.result;resolve(r.result)};
+    r.onerror=()=>{exitDatabase=null;reject(r.error)};
+    r.onblocked=()=>{exitDatabase=null;reject(Error('Close other PubCast tabs to upgrade file storage'))};
+  });
+  return exitDatabase;
+}
+async function exitEntry(id,remove){
+  const d=await exitDb();
+  return new Promise((resolve,reject)=>{
+    const tx=d.transaction(EXIT_STORE,remove?'readwrite':'readonly'),store=tx.objectStore(EXIT_STORE);let result;
+    if(remove)store.delete(id);else{const r=store.get(id);r.onsuccess=()=>{result=r.result}}
+    tx.oncomplete=()=>resolve(result);tx.onabort=tx.onerror=()=>reject(tx.error||Error('Exit journal failed'));
+  });
+}
+// No await anywhere: the put is queued in the same task as pagehide, before the page goes away.
+function writeExitEntryNow(entry){
+  if(!exitConnection)return false;
+  const tx=exitConnection.transaction(EXIT_STORE,'readwrite');tx.objectStore(EXIT_STORE).put(entry);tx.commit?.();
+  return true;
+}
 async function record(id,value,expected){
   const d=await db();
   return new Promise((resolve,reject)=>{
@@ -114,7 +146,7 @@ async function mount(c,host,file,options={}){
   wrap.append(bar,status,area);body.append(wrap);
   let alive=true, value, editor, image, canvas, url, handle, timer, saving=Promise.resolve(), serial=0, diagnosticVersion=-1, changed=false, processing=Promise.resolve();
   let richMode=false,richSource=null,richEditor=null,richOpening=false,richMetadataDirty=false,opening=true;
-  let localSaveError=false,writing=0,imageWrites=0,queuedPlain=null;
+  let localSaveError=false,writing=0,imageWrites=0,queuedPlain=null,exitWritten=false,exitListeners=null;
   function richMetadataChanged(){if(richMode){richMetadataDirty=true;serial++;}}
   const say=s=>{if(alive)status.textContent=s};
   function button(label,fn){const b=node('button',{type:'button',class:'fp-btn'},label);b.onclick=()=>Promise.resolve().then(fn).catch(e=>say(e.message));bar.append(b);return b}
@@ -149,7 +181,7 @@ async function mount(c,host,file,options={}){
     const run=saving.catch(()=>{}).then(()=>{
       queuedPlain=null;
       const v=snapshot(),version=serial;
-      return record(v.id,v,value.revision||0).then(saved=>{value.revision=saved.revision;if(serial===version){changed=false;richMetadataDirty=false;if(diagnosticVersion!==version)say(richMode?'Rich working copy saved in this browser · source archive unchanged':handle?'Saved to chosen file and PubCast · source snapshot retained':'Working copy saved in PubCast · source snapshot retained')}return v});
+      return record(v.id,v,value.revision||0).then(saved=>{value.revision=saved.revision;if(serial===version){changed=false;richMetadataDirty=false;if(exitWritten){exitWritten=false;exitEntry(v.id,true).catch(e=>console.error('Exit journal cleanup failed',e))}if(diagnosticVersion!==version)say(richMode?'Rich working copy saved in this browser · source archive unchanged':handle?'Saved to chosen file and PubCast · source snapshot retained':'Working copy saved in PubCast · source snapshot retained')}return v});
     });
     queuedPlain=run;saving=run;
     return run;
@@ -246,7 +278,7 @@ async function mount(c,host,file,options={}){
     return alive&&serial===version&&!status.dirty&&!status.busy&&status.recovery;
   }
   const session={save,prepareClose,activity:fileActivity,export:async()=>{const data=await output();return {name:outputName(),data,type:data.type}},
-    pending:()=>{const s=fileActivity();return s.dirty||s.busy||!s.recovery;},dispose:()=>{alive=false;clearTimeout(timer);if(value)persist().catch(console.error).finally(()=>richEditor?.destroy());else richEditor?.destroy();if(url)URL.revokeObjectURL(url);if(image)image.src='';const media=area.querySelector('video,audio');if(media){media.pause();media.removeAttribute('src');media.load()}},
+    pending:()=>{const s=fileActivity();return s.dirty||s.busy||!s.recovery;},dispose:()=>{alive=false;clearTimeout(timer);exitListeners?.();if(value)persist().catch(console.error).finally(()=>richEditor?.destroy());else richEditor?.destroy();if(url)URL.revokeObjectURL(url);if(image)image.src='';const media=area.querySelector('video,audio');if(media){media.pause();media.removeAttribute('src');media.load()}},
     flush:persist,saveAs:saveToWorkspace};
   sessions.set(c,session);
   try{
@@ -343,10 +375,39 @@ async function mount(c,host,file,options={}){
         value.draft=result.text;value.warning=result.warning;value.converted=true;await record(value.id,value);
       }
       if(value.draft===undefined)value.draft=await decodeText(value.original);
+      // Apply an exit journal left by a page that closed with unsaved text (see writeExitEntryNow).
+      let exitNote='',exitConflict=null;
+      try{
+        const pending=await exitEntry(value.id);
+        if(pending){
+          const same=pending.draft===value.draft&&JSON.stringify(pending.twoiState??null)===JSON.stringify(value.twoiState??null);
+          if(same)await exitEntry(value.id,true);
+          else if(pending.baseRevision===(value.revision||0)){
+            const next={...value,draft:pending.draft,title:pending.title||value.title,twoiState:pending.twoiState===undefined?value.twoiState:pending.twoiState,updated:Date.now()};
+            const saved=await record(value.id,next,value.revision||0);
+            value=saved;await exitEntry(value.id,true);
+            exitNote='Recovered unsaved edits from when this file was last closed · saved';
+          }else exitConflict=pending;
+        }
+      }catch(e){console.error('Exit journal unavailable',e);exitNote='Close protection unavailable in this browser: '+(e?.message||e);}
       if(value.warning)wrap.insertBefore(node('div',{role:'note',style:'font-size:12px;line-height:1.4'},value.warning),area);
       if(!alive)return session;
       editor=options.editor||node('textarea',{'aria-label':'File editor',spellcheck:'false',style:'box-sizing:border-box;width:100%;height:100%;min-height:180px;resize:none;background:#171511;color:#f3e5ca;border:1px solid #887455;padding:12px;font:14px/1.5 monospace;tab-size:4'});
       editor.value=value.draft;options.load?.(value);editor.addEventListener('input',dirty);editor.addEventListener('foresight-native-change',dirty);if(!options.editor)area.append(editor);else area.style.display='none';
+      const exitSave=()=>{
+        if(!alive||opening||richMode||!value||!(changed||writing>0))return;
+        try{const v=snapshot();if(writeExitEntryNow({id:value.id,baseRevision:value.revision||0,draft:v.draft,title:v.title,twoiState:v.twoiState,saved:Date.now()}))exitWritten=true;}
+        catch(e){console.error('Exit journal write failed',e)}
+      };
+      const onHidden=()=>{if(document.hidden)exitSave()};
+      addEventListener('pagehide',exitSave);document.addEventListener('visibilitychange',onHidden);
+      exitListeners=()=>{removeEventListener('pagehide',exitSave);document.removeEventListener('visibilitychange',onHidden)};
+      if(exitConflict){
+        const kept=exitConflict;
+        wrap.insertBefore(node('div',{role:'alert',style:'font-size:12px;line-height:1.4'},'Unsaved edits from a window that closed were kept separately, because this file was saved elsewhere after they were made. They have not been applied.'),area);
+        button('Download unsaved edits',()=>download('unsaved-edits-'+value.name.replace(/\.[^.]*$/,'')+'.txt',new Blob([kept.draft],{type:'text/plain;charset=utf-8'})));
+        button('Discard unsaved edits',async()=>{if(!confirm('Discard the unsaved edits from the closed window? Download them first if you need them.'))return;await exitEntry(value.id,true);say('Unsaved edits from the closed window discarded')});
+      }
       button('Export DOCX',async()=>{download(outputName('docx'),await output('docx'));say('DOCX text copy downloaded; original unchanged')});
       if(extension==='docx')button('Download rich 2i copy of original DOCX',async()=>{
         if(!confirm('Create a separate formatted .2i archive from the ORIGINAL DOCX? This does not include edits to this plain-text copy. Your text copy and original remain unchanged.'))return;
@@ -359,7 +420,7 @@ async function mount(c,host,file,options={}){
       if(/\.py$/i.test(value.name)){button('Check Python',async()=>{const version=serial,text=options.getText?.()??editor.value;const r=await workspace('check-python',{name:value.name,text});if(serial===version&&(options.getText?.()??editor.value)===text){diagnosticVersion=version;say(r.message)}});button('Run Python',async()=>{await persist();if(parent===window)window.open('/static/foresight_shell.html?script='+encodeURIComponent(value.id),'_blank','noopener');else parent.postMessage({type:'foresight:run-python',fileId:value.id,name:value.name},location.origin)})}
       if(options.getState)button('Export 2i manuscript',async()=>download(value.name.replace(/\.[^.]*$/,'')+'.2i',await output('2i')));
       if(extension==='pdf')button('View original PDF',()=>{options.onPreview?.(true);area.style.display='block';if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(value.original);const f=node('iframe',{src:url,title:value.name,style:'width:100%;height:100%;border:0'});area.replaceChildren(f);button('Return to editor',()=>{if(options.editor){area.replaceChildren();area.style.display='none';options.onPreview?.(false)}else area.replaceChildren(editor)})});
-      say(value.warning||'2i text editor ready · working copy auto-saves · text exports use UTF-8');
+      say(exitNote||value.warning||'2i text editor ready · working copy auto-saves · text exports use UTF-8');
     }
   }catch(e){options.onError?.();if(value&&ext(value.name)==='pdf')button('View original PDF',()=>{if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(value.original);area.replaceChildren(node('iframe',{src:url,title:value.name,style:'width:100%;height:100%;border:0'}))});say('Could not open working copy: '+e.message+'\nThe original has not been altered.');if(value&&!bar.querySelector('button'))button('Download original',()=>download(value.original.name||value.name,value.original))}
   finally{opening=false;}

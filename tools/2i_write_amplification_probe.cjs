@@ -24,7 +24,7 @@ const ctx = {
   richMode:false, richEditor:null,
   changed:false,richMetadataDirty:false,opening:false,richOpening:false,
   writing:0,saving:Promise.resolve(),serial:0,diagnosticVersion:0,
-  localSaveError:false,handle:null,timer:null,queuedPlain:null,
+  localSaveError:false,handle:null,timer:null,queuedPlain:null,exitWritten:false,
   clearTimeout(){},say(){},
   structuredClone,Date,
   options:{
