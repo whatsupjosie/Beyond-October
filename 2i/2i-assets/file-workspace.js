@@ -184,6 +184,11 @@ try{
   window.foresightFileSession=undefined;
   $('saveBtn').disabled=true;
   $('saveIndicator').textContent='Foresight file not opened · Save unavailable';
-  toolbar.textContent='Could not open file in 2i: '+error.message;
+  // Preserve the underlying file viewer and its "Download original" recovery
+  // controls. Replacing toolbar.textContent would erase those controls.
+  const alert=document.createElement('p');
+  alert.setAttribute('role','alert');
+  alert.textContent='Could not open file in 2i: '+error.message;
+  toolbar.prepend(alert);
 }
 })();
