@@ -276,7 +276,10 @@ function saveNow() {
   // write the wrong document or claim the actual file was saved.
   if(reachFileMode) {
     if(!window.foresightFileSession) {
-      setSaveStatus('Opening Foresight file · Save unavailable until ready');
+      // After an actual mount failure the adapter disables Save and displays
+      // a recovery instruction. Ctrl+S must not overwrite it with "Opening".
+      if(!$('saveBtn').disabled)
+        setSaveStatus('Opening Foresight file · Save unavailable until ready');
       return Promise.resolve(false);
     }
     // Menu and Ctrl+S have no Promise rejection handler of their own.
