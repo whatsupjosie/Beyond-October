@@ -46,13 +46,15 @@ async function launch({failReach=false,authPending=false,missingFile=false,mount
     }
   };
   const buttons={saveBtn:{},saveIndicator:{}};
+  const soloTextarea={readOnly:true,dispatchEvent(){}};
+  const draftArea={readOnly:true};
   const ctx={
     window,parent,document,ResizeObserver,URLSearchParams,
     location:{search:'?file=file123&foresightSession=nonce123',origin:'https://local.test'},
     $:id=>buttons[id]||{},
     addEventListener:(type,fn)=>(handlers[type]??=[]).push(fn),
     ForesightFiles:{mount:async(_c,_h,_file,options)=>{if(mountThrows)throw Error('Storage offline');if(decodeFailure){_h.body.children.push({id:'download-original',textContent:'Download original'});options.onError?.();}return session;},record:async()=>true},
-    soloTextarea:{dispatchEvent(){}},
+    soloTextarea,draftArea,
     markDirty(){},getDocState:()=>({}),loadDocState(){},render(){},
     coWriting:false,committed:['Text'],documentTitle:'Untitled',
     initializing:authPending,chatSending:false,generating:false,editingIdx:null,PP:{inflight:false},
@@ -63,7 +65,7 @@ async function launch({failReach=false,authPending=false,missingFile=false,mount
   await vm.runInNewContext(script,ctx,{filename:'file-workspace.js'});
   // Flush a host command's async response after its Save completes.
   await Promise.resolve();await Promise.resolve();
-  return {events,handlers,buttons,session,window,created};
+  return {events,handlers,buttons,session,window,created,soloTextarea,draftArea};
 }
 test('file-tray Ready fires once after host-command subscription',async()=>{
   const f=await launch();
@@ -76,6 +78,8 @@ test('file-tray Ready fires once after host-command subscription',async()=>{
   assert.equal(f.events.filter(x=>x.type==='foresight:file-result').length,1);
   assert.equal(f.window.foresightFileSession,f.session);
   assert.equal(f.buttons.saveBtn.disabled,false);
+  assert.equal(f.soloTextarea.readOnly,false);
+  assert.equal(f.draftArea.readOnly,false);
 });
 test('failed account startup announces no readiness and disables Save',async()=>{
   const f=await launch({failReach:true});
@@ -118,4 +122,12 @@ test('a decoded-file error blocks readiness even if its original record survives
   assert.match(f.created[0].textContent,/did not open safely/);
   assert.equal(f.created[0].children.some(node=>node.id==='download-original'),true,
     'Working-copy failure must not delete the original recovery download');
+});
+
+test('missing or damaged file never unlocks editor fields',async()=>{
+  for(const options of [{missingFile:true},{decodeFailure:true},{mountThrows:true}]){
+    const f=await launch(options);
+    assert.equal(f.soloTextarea.readOnly,true);
+    assert.equal(f.draftArea.readOnly,true);
+  }
 });
