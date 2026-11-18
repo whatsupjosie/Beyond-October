@@ -246,3 +246,31 @@ body.pc-console-page {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+/* Typewriter page: the sound switch sits beside the map name. */
+.pc-console-topbar-tools {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* A comfortable 30 px to touch, but it borrows the bar's own padding (the
+   negative margin) so the bar stays its usual height: a taller bar would
+   shrink the machine and its keys. */
+.pc-sound-toggle {
+  height: 30px;
+  margin: -9px 0;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 214, 120, 0.55);
+  border-radius: 999px;
+  background: rgba(255, 214, 120, 0.12);
+  color: #f4e6c4;
+  font: 600 12px/1 system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.pc-sound-toggle[aria-pressed="false"] {
+  border-color: rgba(200, 200, 200, 0.35);
+  background: transparent;
+  color: #9a9a9a;
+}

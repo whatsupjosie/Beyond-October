@@ -32,6 +32,28 @@
     sizeType();
     if (typeof ResizeObserver === "function") new ResizeObserver(sizeType).observe(frame);
 
+    // The margin bell rings eight characters before the end of a line, once
+    // per line, the way a typewriter warns that the carriage is nearly out.
+    const measure = document.createElement("span");
+    measure.textContent = "MMMMMMMMMM";
+    measure.style.cssText = "position:absolute;left:0;top:0;visibility:hidden;white-space:pre;pointer-events:none";
+    frame.appendChild(measure);
+    const lineLength = function () {
+      const style = getComputedStyle(paper);
+      measure.style.font = style.font;
+      const inner = paper.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      const charWidth = measure.getBoundingClientRect().width / 10;
+      return charWidth > 0 ? Math.floor(inner / charWidth) : 0;
+    };
+    const ringIfNearMargin = function (before, after) {
+      const sound = window.PubCastTypewriterSound;
+      const cols = lineLength();
+      if (!sound || cols < 16) return;
+      const column = (text) => text.length - text.lastIndexOf("\n") - 1;
+      const warn = cols - 8;
+      if (column(before) < warn && column(after) >= warn) sound.bell();
+    };
+
     let typed = "";
     const render = function () {
       paper.textContent = typed;
@@ -41,8 +63,10 @@
 
     frame.addEventListener("pubcast:key", function (event) {
       const key = event.detail;
+      const before = typed;
       if (key.char === "BACKSPACE") typed = typed.slice(0, -1);
       else if (key.text) typed += key.text;
+      ringIfNearMargin(before, typed);
       render();
     });
     render();

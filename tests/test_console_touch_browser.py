@@ -601,3 +601,85 @@ def test_the_return_lever_is_touched_on_its_arm_not_the_air_around_it(tablet):
     assert tablet.evaluate(hit, list(empty_air)) == ""
     tablet.touchscreen.tap(*middle)
     assert _paper(tablet) == "\n"
+
+
+# ---- Typewriter sound -------------------------------------------------------------
+
+def test_every_key_kind_makes_its_own_sound_and_none_clips(tablet):
+    _open(tablet, "typewriter_console.html")
+    stats = tablet.evaluate(
+        """async () => {
+            const out = {};
+            for (const kind of ['key', 'space', 'shift', 'backspace', 'return', 'bell']) {
+                const audio = new OfflineAudioContext(1, 44100 * 1.6, 44100);
+                PubCastTypewriterSound.voices[kind](audio, audio.destination, 0.01, 1);
+                const data = (await audio.startRendering()).getChannelData(0);
+                let peak = 0, sum = 0, last = 0;
+                for (let i = 0; i < data.length; i++) {
+                    const v = Math.abs(data[i]); peak = Math.max(peak, v); sum += v * v;
+                    if (v > 0.001) last = i;
+                }
+                out[kind] = {peak, rms: Math.sqrt(sum / data.length), seconds: last / 44100};
+            }
+            return out;
+        }"""
+    )
+    for kind, s in stats.items():
+        assert 0.02 < s["peak"] <= 1.0, (kind, s)          # audible, never clipping
+    assert stats["key"]["seconds"] < 0.15                    # a strike is short
+    assert stats["return"]["seconds"] > 0.3                  # ratchet then clunk
+    assert stats["bell"]["seconds"] > 0.8                    # a bell rings on
+    assert stats["space"]["rms"] != stats["key"]["rms"]
+
+
+def test_each_key_sounds_once_and_the_switch_silences_and_is_remembered(tablet):
+    _open(tablet, "typewriter_console.html")
+    status = "PubCastTypewriterSound.status()"
+    for char in "ABC":
+        _tap_char(tablet, char)
+    tablet.touchscreen.tap(*_center(tablet, '[data-key-char="RETURN"]'))
+    s = tablet.evaluate(status)
+    assert s["played"] == 4 and s["lastKind"] == "return", s
+    assert s["state"] == "running", s                        # started by the first lifted touch
+    toggle = "[data-typewriter-sound]"
+    assert tablet.get_attribute(toggle, "aria-pressed") == "true"
+    tablet.touchscreen.tap(*_center(tablet, toggle))
+    assert tablet.get_attribute(toggle, "aria-pressed") == "false"
+    assert tablet.inner_text(toggle) == "Sound off"
+    _tap_char(tablet, "D")
+    assert tablet.evaluate(status)["played"] == 4            # silent, but still types
+    assert _paper(tablet) == "abc\nd"
+    tablet.reload()
+    tablet.wait_for_selector(".pc-console-hotspot")
+    assert tablet.get_attribute(toggle, "aria-pressed") == "false"
+    _tap_char(tablet, "E")
+    assert tablet.evaluate(status)["played"] == 0
+
+
+def test_the_margin_bell_rings_once_near_the_end_of_a_line(tablet):
+    _open(tablet, "typewriter_console.html")
+    cols = tablet.evaluate(
+        """() => { const p = document.querySelector('[data-typewriter-paper]');
+                  const cs = getComputedStyle(p);
+                  const s = document.createElement('span'); s.style.font = cs.font; s.style.whiteSpace = 'pre';
+                  s.textContent = 'MMMMMMMMMM'; document.body.appendChild(s);
+                  const w = s.getBoundingClientRect().width / 10; s.remove();
+                  return Math.floor((p.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)) / w); }"""
+    )
+    assert cols >= 16, cols
+    # Wrapped so evaluate does not treat the new function as something to call.
+    tablet.evaluate("(() => { window.__bells = 0; const real = PubCastTypewriterSound.bell; "
+                    "PubCastTypewriterSound.bell = () => { window.__bells++; return real(); }; })()")
+    x, y = _center(tablet, '[data-key-char="M"]')
+    for i in range(cols - 9):
+        tablet.touchscreen.tap(x, y)
+    assert tablet.evaluate("window.__bells") == 0
+    tablet.touchscreen.tap(x, y)                             # reaches eight from the end
+    assert tablet.evaluate("window.__bells") == 1
+    for _ in range(4):
+        tablet.touchscreen.tap(x, y)
+    assert tablet.evaluate("window.__bells") == 1            # once per line
+    tablet.touchscreen.tap(*_center(tablet, '[data-key-char="RETURN"]'))
+    for i in range(cols - 8):
+        tablet.touchscreen.tap(x, y)
+    assert tablet.evaluate("window.__bells") == 2            # and again on the next line
