@@ -32,7 +32,7 @@ function scripts(html) {
   return [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi)]
     .map(m=>m[1]).filter(x=>x.trim());
 }
-test('combined PubCast server retains Fable's critical lifecycle and security wiring',()=>{
+test('combined PubCast server retains Fable server lifecycle and security wiring',()=>{
   // Regression against an earlier integration which copied Claude's older
   // main.py, dropping Fable's camera pool, Blackbox and upload protections.
   for(const required of [
