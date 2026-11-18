@@ -30,7 +30,12 @@
     Object.entries(attrs || {}).forEach(([key, value]) => {
       if (value === undefined || value === null) return;
       if (key === "className") node.className = value;
-      else if (key === "style") Object.assign(node.style, value);
+      else if (key === "style") {
+        Object.entries(value).forEach(([name, styleValue]) => {
+          if (name.startsWith("--")) node.style.setProperty(name, styleValue);
+          else node.style[name] = styleValue;
+        });
+      }
       else node.setAttribute(key, value);
     });
     if (text !== undefined) node.textContent = text;
@@ -113,13 +118,20 @@
     }
   }
 
+  // Painted parts lean: a fader slot with the perspective of the desk, the
+  // typewriter's return lever on the diagonal. The map's optional angle_deg
+  // turns the hotspot about its centre (degrees from upright, top to the right
+  // is positive) so it lies along the part. A fader turned this way rises when
+  // pushed up its slot.
   function hotspotStyle(hotspot) {
-    return {
+    const style = {
       left: (hotspot.x * 100) + "%",
       top: (hotspot.y * 100) + "%",
       width: (hotspot.w * 100) + "%",
       height: (hotspot.h * 100) + "%",
     };
+    if (Number.isFinite(hotspot.angle_deg) && hotspot.angle_deg !== 0) style["--pc-angle"] = hotspot.angle_deg + "deg";
+    return style;
   }
 
   function makeButton(hotspot) {
@@ -144,13 +156,6 @@
       title: hotspot.label,
       style: hotspotStyle(hotspot),
     });
-    // A painted fader slot leans with the perspective of the desk. The map
-    // gives that lean (degrees from upright, top to the right is positive) and
-    // the control is turned to lie along the slot, so a finger pushing the
-    // fader up its slot raises the level.
-    if (Number.isFinite(hotspot.track_angle_deg)) {
-      wrap.style.setProperty("--pc-track-angle", hotspot.track_angle_deg + "deg");
-    }
     const input = el("input", {
       type: "range",
       min: "0",
@@ -321,7 +326,9 @@
 
   function makeKey(hotspot, frame) {
     const node = el("button", {
-      className: "pc-console-hotspot pc-console-hotspot--key",
+      // A lever that types (the carriage return) behaves as a key and keeps
+      // its own look as a lever.
+      className: "pc-console-hotspot pc-console-hotspot--key" + (hotspot.kind && hotspot.kind !== "key" ? " pc-console-hotspot--" + hotspot.kind : ""),
       type: "button",
       title: hotspot.label,
       "aria-label": hotspot.label,
@@ -431,10 +438,10 @@
     }
     manifest.hotspots.forEach((hotspot) => {
       if (hotspot.kind === "key" && !hotspot.char) throw new Error("Key hotspot " + (hotspot.id || "unknown") + " has no char.");
-      if (hotspot.track_angle_deg !== undefined) {
-        const angle = Number(hotspot.track_angle_deg);
-        if (!Number.isFinite(angle) || Math.abs(angle) > 89) {
-          throw new Error("Slider " + (hotspot.id || "unknown") + " has an invalid track angle.");
+      if (hotspot.angle_deg !== undefined) {
+        const angle = hotspot.angle_deg;
+        if (typeof angle !== "number" || !Number.isFinite(angle) || Math.abs(angle) > 89) {
+          throw new Error("Hotspot " + (hotspot.id || "unknown") + " has an invalid angle.");
         }
       }
       ["x", "y", "w", "h"].forEach((key) => {

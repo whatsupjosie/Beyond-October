@@ -497,10 +497,11 @@
    "kind": "lever",
    "label": "Carriage return lever",
    "char": "RETURN",
-   "x": 0.185,
-   "y": 0.34,
-   "w": 0.115,
-   "h": 0.2
+   "x": 0.22324,
+   "y": 0.317,
+   "w": 0.03516,
+   "h": 0.22613,
+   "angle_deg": 47.1
   }
  ]
 }

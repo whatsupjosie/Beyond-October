@@ -54,7 +54,7 @@ def _corners(hotspot, width, height):
     x, y = hotspot["x"] * width, hotspot["y"] * height
     w, h = hotspot["w"] * width, hotspot["h"] * height
     cx, cy = x + w / 2, y + h / 2
-    a = math.radians(hotspot.get("track_angle_deg", 0))
+    a = math.radians(hotspot.get("angle_deg", 0))
     cos, sin = math.cos(a), math.sin(a)
     out = []
     for dx, dy in ((-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2)):
@@ -89,5 +89,5 @@ def test_audio_console_faders_carry_a_sane_track_angle():
     manifest = load_manifest("audio_console_hotspot_manifest.json")
     for hotspot in manifest["hotspots"]:
         if hotspot["kind"] == "slider":
-            assert -89 < hotspot["track_angle_deg"] < 89, hotspot["id"]
+            assert -89 < hotspot["angle_deg"] < 89, hotspot["id"]
             assert hotspot["h"] * 768 > hotspot["w"] * 1408, hotspot["id"]

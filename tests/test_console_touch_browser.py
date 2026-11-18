@@ -345,7 +345,7 @@ def _slot_points(page, selector, near_bottom, near_top):
             const wrap = document.querySelector(sel);
             const r = wrap.getBoundingClientRect();
             const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-            const deg = parseFloat(getComputedStyle(wrap).getPropertyValue('--pc-track-angle')) || 0;
+            const deg = parseFloat(getComputedStyle(wrap).getPropertyValue('--pc-angle')) || 0;
             const a = deg * Math.PI / 180, half = wrap.offsetHeight / 2;
             const at = f => [cx + Math.sin(a) * half * f, cy - Math.cos(a) * half * f];
             return [at(lo), at(hi)];
@@ -373,7 +373,7 @@ def test_every_fader_lies_along_its_slot_and_holds_an_upright_control(tablet):
     faders = tablet.evaluate(
         """() => [...document.querySelectorAll('.pc-console-slider')].map(w => {
             const i = w.querySelector('input');
-            return [w.title, getComputedStyle(w).getPropertyValue('--pc-track-angle').trim(),
+            return [w.title, getComputedStyle(w).getPropertyValue('--pc-angle').trim(),
                     i.offsetWidth, w.clientHeight, w.clientWidth];
         })"""
     )
@@ -587,3 +587,17 @@ def test_a_slow_earlier_answer_never_covers_the_newest_status(tablet):
     page.evaluate("document.querySelector('.pc-console-hotspot--fan').click()")
     page.wait_for_timeout(1400)
     assert page.inner_text("[data-console-status]") == "Dialogue cue fan ok."
+
+
+def test_the_return_lever_is_touched_on_its_arm_not_the_air_around_it(tablet):
+    _open(tablet, "typewriter_console.html")
+    lever = tablet.query_selector('[data-key-char="RETURN"]')
+    assert "pc-console-hotspot--lever" in lever.get_attribute("class")
+    box = lever.bounding_box()
+    middle = (box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+    empty_air = (box["x"] + box["width"] * 0.08, box["y"] + box["height"] * 0.08)
+    hit = "([x, y]) => (document.elementFromPoint(x, y) || {}).dataset?.keyChar || ''"
+    assert tablet.evaluate(hit, list(middle)) == "RETURN"
+    assert tablet.evaluate(hit, list(empty_air)) == ""
+    tablet.touchscreen.tap(*middle)
+    assert _paper(tablet) == "\n"

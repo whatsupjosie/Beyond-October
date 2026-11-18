@@ -75,6 +75,7 @@ body.pc-console-page {
 
 .pc-console-hotspot {
   position: absolute;
+  transform: rotate(var(--pc-angle, 0deg));
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
@@ -107,7 +108,6 @@ body.pc-console-page {
    the slot's length whatever the screen size. */
 .pc-console-slider {
   container-type: size;
-  transform: rotate(var(--pc-track-angle, 0deg));
 }
 
 .pc-console-slider input {
@@ -185,7 +185,7 @@ body.pc-console-page {
 }
 
 .pc-console-hotspot--key.is-pressed {
-  transform: translateY(2px) scale(0.94);
+  transform: rotate(var(--pc-angle, 0deg)) translateY(2px) scale(0.94);
   background: radial-gradient(ellipse at 50% 40%, rgba(0, 0, 0, 0.34), rgba(0, 0, 0, 0.14) 70%);
   box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.55);
 }

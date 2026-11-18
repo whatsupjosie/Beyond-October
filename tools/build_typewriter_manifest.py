@@ -11,6 +11,7 @@ Run from the repo root:  python tools/build_typewriter_manifest.py
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 MASTER_W, MASTER_H = 3840, 2145
@@ -30,8 +31,21 @@ WIDE = [  # (id, legend, centre x, centre y, w, h)
     ("tw.key.blank", "BLANK", 1196, 1600, 110, 90),
 ]
 SPACE = ("tw.key.space", "SPACE", 1922, 1822, 1032, 90)
-# Carriage return lever, left of the machine (fractions of the image).
-LEVER = {"x": 0.185, "y": 0.34, "w": 0.115, "h": 0.2}
+# Carriage return lever, left of the machine. Measured on typewriter_keys.webp
+# in its own pixels: the arm runs from the handle tip (498, 725) up to the
+# pivot (735, 505). The hotspot is a 90 px wide strip along that arm, turned to
+# lie on it, so it covers the lever and not the empty dark air around it.
+_LEVER_TIP, _LEVER_PIVOT, _LEVER_WIDTH = (498, 725), (735, 505), 90
+_DX, _DY = _LEVER_PIVOT[0] - _LEVER_TIP[0], _LEVER_TIP[1] - _LEVER_PIVOT[1]
+_LEN = math.hypot(_DX, _DY)
+_CX, _CY = (_LEVER_TIP[0] + _LEVER_PIVOT[0]) / 2, (_LEVER_TIP[1] + _LEVER_PIVOT[1]) / 2
+LEVER = {
+    "x": round((_CX - _LEVER_WIDTH / 2) / IMAGE["width_px"], 5),
+    "y": round((_CY - _LEN / 2) / IMAGE["height_px"], 5),
+    "w": round(_LEVER_WIDTH / IMAGE["width_px"], 5),
+    "h": round(_LEN / IMAGE["height_px"], 5),
+    "angle_deg": round(math.degrees(math.atan2(_DX, _DY)), 1),
+}
 PAPER = {"x": 0.347, "y": 0.0, "w": 0.308, "h": 0.372}
 # Show only the machine: the art has wide dark margins, and on a tablet the keys
 # are too small to touch unless the machine fills the screen width.
