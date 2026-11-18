@@ -38,6 +38,18 @@ The new permanent test file `tests/test_2i_hosted_save_races_node.js` targets th
 
 Workflow file in this branch: `.github/workflows/2i-beta-acceptance.yml`.
 
+## Parallel Claude work discovered (2026-11-17, Los Angeles time)
+
+**Do not mistake Fable's prior branch for the latest combined 2i implementation.** Claude published two separate branches from main, both still unmerged:
+
+- `console-touch-typewriter-keys`, latest commit `3ee394a7c`: a separate `/typewriter-console` bench page built around `static/typewriter_keys.webp` (2560 × 1430), 48 mapped controls (47 keys and the carriage-return lever), multi-touch/hardware keyboard handling, optional Web Audio strike/lever/bell sounds and touchable studio consoles. **Not yet integrated with 2i's manuscript editing**; the bench page changes only its own decorative paper. Claude's handoff reports full suite `2302 passed, 6 skipped, 0 failed` after its polish pass; this report has not been independently reproduced here. `handoffs/CONSOLE_TOUCH_AND_TYPEWRITER_2026-11-17.md`.
+- `2i-beta-polish`, latest commit `df737caae`: served v22 page and reach.css fixes, mobile layout, Write-mode line locks, safe keyboard undo, Replace All and correct attribution of UI notifications. Claude's handoff reports `2283 passed, 6 skipped, 0 failed` and 33 new browser checks; this report has not been independently reproduced here. `handoffs/2I_BETA_POLISH_2026-11-17.md`.
+- The branches are **not integrated into Fable's `fable/2i-beta-polish-2026-11-16` baseline** used for our focused V8 checks. Treat all three as distinct sources of verified and unverified contributions. Do not merge blindly or infer cumulative test counts.
+- Independently read Claude's typewriter manifest through GitHub: 48 unique non-overlapping mapped hotspots, within normalized image bounds. The lever is the RETURN control. This is structural manifest evidence, not a direct tap or sound test.
+- Owner supplied two lapis-blue, malachite-green and brass typewriter images on 2026-11-17, and said she had given them to Claude earlier. Do not substitute an unrelated new drawing or redesign away from those references.
+- Integration requirement: preserve the 2i real manuscript as source of truth while connecting the `pubcast:key` event from the touchable typewriter to the active 2i editor; restore cursor/selection, undo, save/recovery, accessibility, and optional audio. Reuse the original hotspots and audio implementation rather than rebuilding.
+- An experimental `codex/2i-typewriter-visual-2026-11-17` branch predates discovery of the two Claude branches. **Do not merge it without revisiting its approach**; it only exposes Fable's decorative scene more widely, not Claude's functioning key art.
+
 ## Required verification before a beta decision
 
 1. **Run the actual Node suite:** `node --test tests/test_2i_*_node.js`; record output, duration, failures and skips.
