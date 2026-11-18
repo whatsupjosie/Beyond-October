@@ -55,3 +55,13 @@ Do not mark beta-ready based solely on this ledger. An unexecuted browser check 
 - For actual defects, first write a regression that fails before the repair, then fix on a dedicated branch and rerun the relevant area and broader gates.
 - Preserve existing work and `main`; merge only after independent review and evidence-backed acceptance.
 - Once GitHub-hosted runners are available, use the existing CI workflow to generate persistent logs and JUnit output in GitHub Actions artifacts.
+
+## ChatGPT native-runtime follow-up
+
+A separate execution pass used ChatGPT's actual temporary execution container rather than the Code Mode V8 compatibility harness or GitHub-hosted Actions runners. This container has Node.js 22, Python Playwright, and Chromium installed, but cannot clone the full GitHub repository because direct outbound DNS/network access is blocked. The selected source files were therefore transferred from the GitHub connector.
+
+- **Native `node --test`: 9 passed, 0 failed** across the original studio-bridge tests (2) and hosted Save Now race/failure tests (7). Test files were run through the real Node test runner, with the production bridge files copied unchanged and a source-identical hosted-save function excerpt. Git blob SHA for the bridge is `c526c173d8fa7845fc107ae5a65b54f0a48a6acb`; the bridge's original Node test has SHA `e5918b98f8fa0c4b82fdb0853365a3b6adcfc8be`. The hosted save excerpt matches GitHub's source length and FNV-1a digest (`1981` JavaScript UTF-16 units; `acd415c6`).
+- **Real headless Chromium via Playwright:** 7 focused browser assertions passed, 0 failed, using the production studio-bridge script in a minimal HTML page at 390×844 viewport. Direct file URLs are administratively blocked in this runtime, so the page content and script were injected into Chromium. This does *not* validate the complete 2i interface.
+- **Not executed in the native container:** the full 27-file Node suite, the real 2i HTML page with all companion assets, server-backed Save Now persistence, genuine file reopen, visual fidelity, Windows packaging, 30-minute recording test.
+
+Do not merge or announce beta completion from these partial native-runtime results. They complement, not replace, the earlier 74 focused V8 compatibility checks.
