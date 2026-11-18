@@ -16,6 +16,21 @@
     document.dispatchEvent(new CustomEvent("twoi:presentation-change",{detail:{mode}}));
   };
   const el=(tag,text,parent)=>{const n=document.createElement(tag);if(text!==null)n.textContent=text;if(parent)parent.append(n);return n;};
+  if(filePresentation){
+    // The full format menu is intentionally absent for Foresight file trays.
+    // Give file documents a working view selector rather than a hidden API.
+    const target=document.querySelector(".top-bar");
+    const label=el("label","View ",target);
+    label.className="twoi-file-presentation-label";
+    const chooser=el("select",null,label);
+    chooser.id="twoiFilePresentation";
+    chooser.setAttribute("aria-label","Writing presentation");
+    for(const [mode,name] of [["standard","Document"],["notebook","Notebook"],["typewriter","Typewriter"]]){
+      const option=el("option",name,chooser);option.value=mode;
+    }
+    chooser.value=document.body.dataset.twoiDesk;
+    chooser.onchange=()=>window.twoiSetPresentation(chooser.value);
+  }
   // Production notes belong to a studio seat, not a Foresight file tray.
   if(!filePresentation){
   const controls=el("div",null,$("mcSection").querySelector(".section-body"));controls.id="twoiStudioControls";
