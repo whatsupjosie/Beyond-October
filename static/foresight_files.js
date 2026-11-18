@@ -114,7 +114,7 @@ async function mount(c,host,file,options={}){
   wrap.append(bar,status,area);body.append(wrap);
   let alive=true, value, editor, image, canvas, url, handle, timer, saving=Promise.resolve(), serial=0, diagnosticVersion=-1, changed=false, processing=Promise.resolve();
   let richMode=false,richSource=null,richEditor=null,richOpening=false,richMetadataDirty=false,opening=true;
-  let localSaveError=false,writing=0,imageWrites=0;
+  let localSaveError=false,writing=0,imageWrites=0,queuedPlain=null;
   function richMetadataChanged(){if(richMode){richMetadataDirty=true;serial++;}}
   const say=s=>{if(alive)status.textContent=s};
   function button(label,fn){const b=node('button',{type:'button',class:'fp-btn'},label);b.onclick=()=>Promise.resolve().then(fn).catch(e=>say(e.message));bar.append(b);return b}
@@ -142,16 +142,24 @@ async function mount(c,host,file,options={}){
       });
       return saving;
     }
-    const v=snapshot(),version=serial;
-    saving=saving.catch(()=>{}).then(()=>record(v.id,v,value.revision||0)).then(saved=>{value.revision=saved.revision;if(serial===version){changed=false;richMetadataDirty=false;if(diagnosticVersion!==version)say(richMode?'Rich working copy saved in this browser · source archive unchanged':handle?'Saved to chosen file and PubCast · source snapshot retained':'Working copy saved in PubCast · source snapshot retained')}return v});
-    return saving;
+    // Coalesce plain saves. A save that is queued but has not started yet takes its snapshot when it
+    // starts, so it already contains every edit made before this call; join it rather than queue another
+    // record write. Edits made after it starts are covered by a later run.
+    if(queuedPlain)return queuedPlain;
+    const run=saving.catch(()=>{}).then(()=>{
+      queuedPlain=null;
+      const v=snapshot(),version=serial;
+      return record(v.id,v,value.revision||0).then(saved=>{value.revision=saved.revision;if(serial===version){changed=false;richMetadataDirty=false;if(diagnosticVersion!==version)say(richMode?'Rich working copy saved in this browser · source archive unchanged':handle?'Saved to chosen file and PubCast · source snapshot retained':'Working copy saved in PubCast · source snapshot retained')}return v});
+    });
+    queuedPlain=run;saving=run;
+    return run;
   }
   function persist(){
     if(opening||richOpening)return Promise.reject(Error('Wait for this file to finish opening.'));
     writing++;
     return Promise.resolve().then(persistRaw).then(result=>{localSaveError=false;return result;},error=>{localSaveError=true;throw error;}).finally(()=>{writing--;});
   }
-  function dirty(){serial++;changed=true;say('Unsaved changes');host.changed();clearTimeout(timer);timer=setTimeout(()=>persist().catch(e=>say('Save failed: '+e.message)),richMode?1500:350)}
+  function dirty(){serial++;changed=true;say('Unsaved changes');host.changed();clearTimeout(timer);timer=setTimeout(()=>persist().catch(e=>{say('Save failed: '+e.message);options.onSaveError?.(e.message)}),richMode?1500:350)}
   function checkedRichDraft(){
     if(!value.richDraft)return null;
     if(!richSource||value.richDraftDocumentId!==richSource.document_id||!richSource.original_sha256||value.richDraftSourceHash!==richSource.original_sha256)throw Error("Recovered DOCX identity does not match the preserved source. Download original and recovery separately; no replacement was made.");

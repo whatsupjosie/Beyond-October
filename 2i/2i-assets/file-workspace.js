@@ -104,11 +104,14 @@ const host={body:toolbar,changed(){},setTitle(title){documentTitle=title;render(
 let session;
 let mountViewFailed=false;
 const originalMarkDirty=markDirty;
-markDirty=function(){originalMarkDirty();if(session){soloTextarea.dispatchEvent(new Event('foresight-native-change'));session.flush().catch(e=>{$('saveIndicator').textContent='Save failed: '+e.message})}};
+// Edits reach Foresight through its debounced dirty() path (350 ms). No immediate flush per edit:
+// that caused one record write per keystroke. Explicit Save, Close, pagehide and hidden-tab flushes still run.
+markDirty=function(){originalMarkDirty();if(session){soloTextarea.dispatchEvent(new Event('foresight-native-change'))}};
 try{
   session=await ForesightFiles.mount(c,host,null,{
     editor:soloTextarea,
     getState:()=>getDocState(),
+    onSaveError:message=>{$('saveIndicator').textContent='Save failed: '+message},
     getTitle:()=>documentTitle,
     getText:()=>coWriting?committed.join('\n'):soloTextarea.value,
     onReady(v){documentTitle=v.name;if(/\.(py|js|ts|jsx|tsx|xml|html|css|json|yaml|yml|toml|ini|sh|ps1|sql|c|cpp|h|rs)$/i.test(v.name)){soloTextarea.style.fontFamily='monospace';soloTextarea.spellcheck=false;}render()},
