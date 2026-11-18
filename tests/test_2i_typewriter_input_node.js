@@ -60,11 +60,20 @@ test('native browser insertText path avoids duplicate input events',()=>{
   };
   engine.apply(f.editor,{char:'Q',text:'q'});
   assert.equal(f.editor.value,'aqbc');
-  assert.deepEqual(f.events,['native']);
+  assert.deepEqual(f.events,['beforeinput','native']);
 });
 test('cancelled beforeinput prevents a fallback write',()=>{
   const f=fixture('abc');
   f.editor.dispatchEvent=event=>event.type!=='beforeinput';
   assert.equal(engine.apply(f.editor,{char:'X',text:'x'}).applied,false);
   assert.equal(f.editor.value,'abc');
+});
+test('cancelled beforeinput stops native insertion before execCommand runs',()=>{
+  const f=fixture('protected',3);
+  let writes=0;
+  f.doc.execCommand=()=>{writes++;return true;};
+  f.editor.dispatchEvent=event=>event.type!=='beforeinput';
+  assert.equal(engine.apply(f.editor,{char:'X',text:'x'}).applied,false);
+  assert.equal(writes,0);
+  assert.equal(f.editor.value,'protected');
 });
