@@ -403,8 +403,9 @@ async function mount(c,host,file,options={}){
         catch(e){console.error('Exit journal write failed',e)}
       };
       const onHidden=()=>{if(document.hidden)exitSave()};
-      addEventListener('pagehide',exitSave);document.addEventListener('visibilitychange',onHidden);
-      exitListeners=()=>{removeEventListener('pagehide',exitSave);document.removeEventListener('visibilitychange',onHidden)};
+      // Through root (window) and optional calls: a host without page events must not fail to open the file.
+      root.addEventListener?.('pagehide',exitSave);document.addEventListener?.('visibilitychange',onHidden);
+      exitListeners=()=>{root.removeEventListener?.('pagehide',exitSave);document.removeEventListener?.('visibilitychange',onHidden)};
       if(exitConflict){
         const kept=exitConflict;
         wrap.insertBefore(node('div',{role:'alert',style:'font-size:12px;line-height:1.4'},'Some edits from a window that closed were never saved, and this file has changed since then. Nothing was overwritten: the current version is open here, and those earlier edits are kept separately. Download them to compare, then discard them when you no longer need them.'),area);

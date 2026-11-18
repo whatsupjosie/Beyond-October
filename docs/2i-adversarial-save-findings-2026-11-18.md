@@ -134,3 +134,16 @@ While diagnosing the two failing checks I ran `tools/workbench_preflight.py` dir
 ### Regression after Update 2
 
 25 existing test files on the 2i path plus the 4 new ones: **143 passed, 0 failed, 1 skipped** (real speech models). Adversarial set 12 of 12, three runs in a row.
+
+## Update 3: rich DOCX engine bundled; Node tests brought into the regression
+
+**Decision (Josie):** ship the rich editor, DOCX, and as many formats as can actually be run.
+
+- **Engine bundled** at `2i/2i-assets/vendor/docx/`: `engine.js`, `harfbuzz.wasm`, 12 local fonts (Liberation Serif and Mono, Carlito; OFL-1.1), built from the pinned recipe in `2i/editor-engine` (`@docx-editor.dev/core` 2.32.0). Two consecutive builds were byte-identical. `PROVENANCE.json` records versions, upstream commit, the build command and a SHA-256 per file. The committed `THIRD_PARTY_NOTICES.md` is kept: the rebuild differs from it only in line endings and trailing spaces. With the engine present the rich tests run instead of skipping.
+- **Defect I introduced and missed (fixed):** my exit-journal code registered page listeners through the bare global `addEventListener`. `tests/test_twoi_rich_browser_contract_node.js` runs the file module in a Node harness without one, so mounting failed ("addEventListener is not defined"). Bisect: passes on `7e70e05` and `f39ca7a`, fails from `8501c78` (mine). I missed it because my regression runs were Python-only. Listeners now go through `root` with optional calls. From now on every regression run includes all Node tests.
+- **Five Node tests fail on PR #13 without any of this work** (same result on `7e70e05`). All five are stale source-extraction harnesses, not app defects. They belong to the integration line, so they are documented here for its owner rather than edited on this branch:
+  - `test_foresight_file_close_node.js` and `wiring_smoke_node.js`: their sandboxes lack `initializing`, which later Reach code reads.
+  - `test_2i_offline_save_node.js`: its sandbox lacks `reachFileMode`.
+  - `test_2i_typewriter_relay_node.js`: `deepStrictEqual` compares an object created inside a `vm` context; identical content fails on the cross-context prototype. Compare with `JSON` or a plain copy.
+  - `test_2i_professional_ui_node.js`: slices `canPresent` up to `"\n  if(reachFileMode)"`, which a later change replaced with `const filePresentation=!!reachFileMode;`.
+- **Regression after Update 3:** Python, 2i path plus rich tests: **160 passed, 0 failed, 1 skipped**. Node: **50 passed, 5 failed** (the five above, unchanged from PR #13).

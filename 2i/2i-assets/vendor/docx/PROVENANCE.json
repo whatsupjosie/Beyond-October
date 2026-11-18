@@ -1,0 +1,32 @@
+{
+  "what": "Offline rich DOCX editing engine for 2i (bundle of @docx-editor.dev/core with HarfBuzz and three local font families).",
+  "built_from": "2i/editor-engine (package.json, package-lock.json, engine-entry.js, build.mjs)",
+  "build_command": "cd 2i/editor-engine && npm ci && node build.mjs",
+  "packages": {
+    "@docx-editor.dev/core": "2.32.0",
+    "@docx-editor.dev/fonts": "2.32.0",
+    "esbuild": "0.25.12"
+  },
+  "upstream_source": "https://github.com/eigenpal/docx-editor at fc28dba928b073c2beddc5672cdc7b42ea3af0f9 (from 2i/editor-engine/ACQUISITION.json)",
+  "licenses": "Apache-2.0 (engine), OFL-1.1 (Liberation, Carlito fonts); full texts in THIRD_PARTY_NOTICES.md",
+  "reproducible": "Two consecutive builds on Linux (Node, npm ci from the lockfile) produced byte-identical outputs.",
+  "remote_requests_at_runtime": "none: fonts and WASM are local; browser tests run with every non-localhost request refused",
+  "sha256": {
+    "engine.js": "ad79fe0b50b4251221b4099a908dba7c2533930631f8185c9b0afd44b2c1280b",
+    "harfbuzz.wasm": "37777ced92a2ba10279c33e1dbacf08835ddcacc215b7fcb3131e558dd01ce71",
+    "editor.css": "cdef1dd074327eaa62a013161ae11dc7950b08dcf67a5b623e2d433ac6700a4f",
+    "fonts/Carlito-Bold.ttf": "bb5d20f79b82599ec72983597437373a80f2d2085fa91fc144fd74e876a594db",
+    "fonts/Carlito-BoldItalic.ttf": "b32928186c119599e03ca6a1ffc680fdcb7fac95772f4b95d989cf6cd3861517",
+    "fonts/Carlito-Italic.ttf": "0b019225e58d702bfedcbd35c21696769f8ee115cb6343f84c2f240312450d1c",
+    "fonts/Carlito-Regular.ttf": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595",
+    "fonts/LiberationMono-Bold.ttf": "bd62a0672d0b9b6710b01df434c80ad54fa5f0835207eb7b17b7a761463067bb",
+    "fonts/LiberationMono-BoldItalic.ttf": "79451f3c09fe25116098853b7a2ca6e2436220ccc11af022979adbcf195be130",
+    "fonts/LiberationMono-Italic.ttf": "605c01c711b44480a7508d349dfbf3264e81fa43d69e61cfa7d10b86e764c4d1",
+    "fonts/LiberationMono-Regular.ttf": "f2b83c763e8afd21709333370bed4774337fae82267937e2b5aea7e2fbd922c1",
+    "fonts/LiberationSerif-Bold.ttf": "d754ba427cfe0bca54ae052384baa8f842da5bd6550ad4da024ac441e7a7d5ce",
+    "fonts/LiberationSerif-BoldItalic.ttf": "f17db8af71e24d2066b587546021d4f0b296be389512b658dec3c09affeb11a7",
+    "fonts/LiberationSerif-Italic.ttf": "0e3dea9f8d613e006ccfa62201f33e265d19167bd0907725c3e145368b04fc2e",
+    "fonts/LiberationSerif-Regular.ttf": "058ea80864aef09a23f45cbec2bb5400bc3dfbdea01c3f10538a21fcb497fb74"
+  },
+  "bundled_on": "2026-11-18, at Josie's decision to ship rich DOCX editing in the beta"
+}
