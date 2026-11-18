@@ -44,8 +44,16 @@ Listen for "pubcast:key" on the frame: detail.text (what to insert), detail.char
 - A failed map or picture load now says so in the status bar.
 - Test that used Playwright press("Shift+1") (not what a real keyboard sends) now uses Shift+Digit1.
 
-## Found, not changed (existing data)
-- In audio_console_hotspot_manifest.json some hotspots overlap each other on the art: audio.knob.room_gain with audio.fan.music_cue (about 30 px at 1100 px wide), audio.knob.sfx_gain with audio.knob.ui_gain (about 11 px). Where they overlap, the later one in the file takes the tap. Needs a look against the painting.
+## Fourth pass (polish run, evening of 2026-11-17) - commits e457248, 57e349d, 93ed26a, 4e0685a, 9a5ece8
+- Audio console map (static/audio_console_hotspot_manifest.json): re-measured all 18 controls on audio_console.png (1408 x 768). The old map had six overlapping pairs (channel_1/mic_1, channel_1/dialogue_gain, mic/dialogue_cue, guest/dialogue_cue, room_gain/music_cue, sfx_gain/ui_gain), several boxes on bare desk, and audio.slider.background on the unlabelled centre-panel fader instead of the one over the painted word BACKGROUND. Each control now sits on the nearest painted control of its own kind; which control drives which bus is unchanged. Faders: channel_1 = first fader over "Channel 1-6", mic_1 = fader over "MIC 1", mic = first over "MIC", guest, ai_mix and background = the faders over those words, sfx = fader in the right arch, vtr = right-most curved fader. Painted controls with no function stay unmapped (second Channel fader, second MIC fader, both centre-panel faders, several knobs and keys). Monitors unchanged. New test: no two controls overlap (rotated shapes); it finds all six clashes in the old map.
+- Faders are upright range controls turned to lie along the painted slot (new optional manifest field angle_deg on any hotspot), so pushing a fader up its slot raises the level. Before, a horizontal slider sat across a vertical fader.
+- Signed-out visitors: the audio and director consoles ask the host (/api/auth/status) on load; if sign-in is required and there is no token, the status line says "Signed out. Sign in to use the console." with a link to /login?next=<this page>. An expired token shows the same on first touch. A host error page (e.g. 502 HTML) reports "Studio console request failed (502)" instead of a JSON parse error. Only the newest request writes the status line. Checked end to end against run_reach.py: signed out, sign in, return, fan and fader actions answered ok.
+- Typewriter return lever: the touch area is now a strip along the painted arm (handle tip (498,725) to pivot (735,505) in typewriter_keys.webp), not a large box of empty air. The lever keeps its lever class.
+- Typewriter sound (static/typewriter_sound.js, new): a strike per key from the "pubcast:key" event (letter, heavier space, softer shift, backspace), ratchet and clunk for the return lever, and a margin bell eight characters before the end of a line. Made in the browser with Web Audio; nothing downloaded. static/foley_manifest.json names /assets/audio/foley/typewriter_click_01.wav but that file is not in the repository or in Josie's Drive (searched 2026-11-17), so it could not be used. "Sound on/off" switch in the top bar, remembered in localStorage (pubcast.typewriter.sound). Browsers only start sound after a lifted touch, so the first key of a visit on a touch screen sounds a moment late; every key after is on time. Rendered offline in tests: every sound is audible and never clips.
+- Tests no longer sleep and then count: they wait for the expected calls plus a quiet spell. One run had failed and the next four passed before this; after it, three runs and a run under full CPU load all pass.
+
+## Found, not changed
+- The director console's controls are tiny in its art (bank sliders about 11 px wide on a 1024 px picture) and the bank sliders overlap each other. They cannot be made comfortable to touch without a closer picture of that desk.
 - control_room.html, studio_control_room.html and director_switcher.html load studio_console_hotspots.js, so they now send the login token too. Not tested on those pages.
 - Several *_SHA256 manifest files list older copies of these files; no test checks them against the live files.
 
@@ -58,11 +66,10 @@ Listen for "pubcast:key" on the frame: detail.text (what to insert), detail.char
 - control_room.html, studio_control_room.html and director_switcher.html each load in Chromium with no JavaScript errors, identical to loading them with the original adapter file. Their buttons were NOT clicked through, so the token header on those pages is still unconfirmed.
 
 ## Not verified / not done
-- Not tried on a real iPad or Safari; only emulated touch in Chromium.
-- In portrait the keys are about 35 px wide; the size test only enforces landscape. The return-lever hotspot is a 135 x 131 px circle around a thin diagonal lever (generous, but not shaped to it).
-- The console pages show no sign-in prompt: with no token the buttons fail with the server's "Authentication required".
+- Not tried on a real iPad or Safari; only emulated touch in Chromium. Sound was rendered and counted in tests, not listened to on a speaker.
+- In portrait the keys are about 35 px wide; the size test only enforces landscape.
 - Keys are about 41 x 34 px on an 11-inch iPad in landscape (the whole key pitch is the hit area). The art limits this while paper and keys stay on screen together.
-- Sound is not wired. The typewriter is not inside 2i: this is the bench page /typewriter-console.
+- The typewriter is not inside 2i: this is the bench page /typewriter-console. Josie's design for typewriter Collab (a row of key bars, a random one dipping with each key) is not built.
 - The control-room consoles' remaining items from the 2026-06-18 handoff (curved slider paths, lever meaning) are untouched. Studio actions themselves were mocked in tests, not run against a live studio.
 - The control_room.html and studio_control_room.html pages were not changed or tested for touch (they were only load-checked, see above).
-- Not committed or pushed: this session had read-only access to the repo.
+- Committed and pushed on branch console-touch-typewriter-keys. Not merged to main.

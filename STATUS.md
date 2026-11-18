@@ -10,7 +10,7 @@ of live functionality.
 Ledger: `handoffs/CONSOLE_TOUCH_AND_TYPEWRITER_2026-11-17.md`.
 
 - The audio and director consoles now send the login token, so their buttons no longer fail with "Authentication required"; knobs follow a finger, sliders send once. New typewriter page `/typewriter-console`: keys type on touch, mouse and keyboard.
-- Tested: 39 browser tests in real Chromium with emulated touch (`tests/test_console_touch_browser.py`, `tests/test_typewriter_console_manifest.py`) and the existing Node console test. Full suite on the branch: 2,289 passed, 0 failed. Not tested: a real iPad or Safari; clicking through `control_room.html`, `studio_control_room.html` and `director_switcher.html` (they load the changed adapter file; load-checked only, no errors). Not built: sound, typewriter inside 2i.
+- Tested: 39 browser tests in real Chromium with emulated touch (`tests/test_console_touch_browser.py`, `tests/test_typewriter_console_manifest.py`) and the existing Node console test. Full suite on the branch: 2,289 passed, 0 failed. Not tested: a real iPad or Safari; clicking through `control_room.html`, `studio_control_room.html` and `director_switcher.html` (they load the changed adapter file; load-checked only, no errors). Later the same day: the audio console map re-measured onto its painted controls (six overlapping pairs fixed) with faders that run up their slots, a sign-in line for signed-out visitors, the typewriter lever shaped to its arm, and typewriter sound with an on/off switch. Not built: typewriter inside 2i.
 
 ## 2026-11-02: Production notes (sticky notes) and the PubCast profile
 
