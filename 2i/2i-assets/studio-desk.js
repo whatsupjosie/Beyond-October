@@ -4,9 +4,11 @@
   /* Josie: "In any open 2i window she can switch between the notebook, the typewriter and the single-page notebook
      from the menu." A studio seat decides which look 2i OPENS in; it no longer decides which looks may be chosen. */
   function canPresent(mode){return mode==="standard"||mode==="notebook"||mode==="typewriter";}
-  if(reachFileMode){document.body.dataset.twoiDesk="standard";return;}
+  // Foresight file trays use the same 2i editor. Keep their native file
+  // adapter as storage authority, but do not disconnect the presentation UI.
+  const filePresentation=!!reachFileMode;
   const q=new URLSearchParams(location.search),config=TwoiStudioBridge.presentation(q.get("studio_room"),q.get("studio_view"),q.get("desk"));
-  document.body.dataset.twoiDesk=presentationMode(config,false);
+  document.body.dataset.twoiDesk=presentationMode(config,filePresentation);
   window.twoiCanPresent=mode=>canPresent(mode,config.seated);
   window.twoiSetPresentation=mode=>{
     if(!window.twoiCanPresent(mode))throw Error("This presentation requires a designated writing station.");
@@ -14,6 +16,23 @@
     document.dispatchEvent(new CustomEvent("twoi:presentation-change",{detail:{mode}}));
   };
   const el=(tag,text,parent)=>{const n=document.createElement(tag);if(text!==null)n.textContent=text;if(parent)parent.append(n);return n;};
+  if(filePresentation){
+    // The full format menu is intentionally absent for Foresight file trays.
+    // Give file documents a working view selector rather than a hidden API.
+    const target=document.querySelector(".top-bar");
+    const label=el("label","View ",target);
+    label.className="twoi-file-presentation-label";
+    const chooser=el("select",null,label);
+    chooser.id="twoiFilePresentation";
+    chooser.setAttribute("aria-label","Writing presentation");
+    for(const [mode,name] of [["standard","Document"],["notebook","Notebook"],["typewriter","Typewriter"]]){
+      const option=el("option",name,chooser);option.value=mode;
+    }
+    chooser.value=document.body.dataset.twoiDesk;
+    chooser.onchange=()=>window.twoiSetPresentation(chooser.value);
+  }
+  // Production notes belong to a studio seat, not a Foresight file tray.
+  if(!filePresentation){
   const controls=el("div",null,$("mcSection").querySelector(".section-body"));controls.id="twoiStudioControls";
   const button=(label,action)=>{const b=el("button",label,controls);b.type="button";b.className="mc-btn";b.onclick=action;return b;};
   let loading=null,opening=false;
@@ -54,6 +73,7 @@
       location.assign(config.returnPath);
     }catch(error){addChat("notice",error.message);}
   });
+  }
   // Claude's original /typewriter-console remains the source of the key mapping,
   // key animations, keyboard support and sound. The 2i editor owns the words.
   const figure=el("figure",null,$("notebookFrame"));figure.id="twoiDeskScene";
@@ -98,6 +118,12 @@
     }
     if(data?.type==="pubcast:2i-collapse"){setExpanded(false);return;}
     if(data?.type!=="pubcast:2i-key" || document.body.dataset.twoiDesk!=="typewriter")return;
+    // Foresight files are not writable until the real file session has mounted.
+    // The chooser may render earlier, but typing must never bypass its save path.
+    if(filePresentation&&!window.foresightFileSession){
+      addChat("notice","Finish opening this Foresight file before using the typewriter.");
+      return;
+    }
     if(initializing || generating || chatSending || editingIdx!==null){
       addChat("notice","Finish the active edit or request before using the typewriter keys.");
       return;
