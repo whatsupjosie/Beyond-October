@@ -31,7 +31,9 @@
 
   function readPreference() {
     try {
-      return localStorage.getItem(STORE_KEY) !== "off";
+      const stored = localStorage.getItem(STORE_KEY);
+      // Claude's bench keeps its default; embedded 2i respects the owner's quiet-by-default choice.
+      return stored === "on" || (stored !== "off" && new URLSearchParams(location.search).get("embedded") !== "2i");
     } catch (_err) {
       return true;
     }
