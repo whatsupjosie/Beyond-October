@@ -41,7 +41,8 @@
       }
       return true; // Claude's standalone console retains its original default.
     } catch (_err) {
-      return true;
+      // Blocked or corrupt storage must not switch embedded 2i audio on.
+      return new URLSearchParams(location.search).get("embedded") !== "2i";
     }
   }
 
