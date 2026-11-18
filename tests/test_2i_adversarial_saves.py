@@ -198,3 +198,41 @@ def test_closing_stale_window_never_overwrites_a_newer_save(page):
     with page.expect_download() as download:
         frame.get_by_role("button", name="Download unsaved edits").click()
     assert open(download.value.path(), encoding="utf-8").read() == "start\nstale window text"
+
+
+def test_reach_manuscript_edit_then_reload_with_host_unreachable_is_kept(page):
+    """Ordinary (non-file) manuscript: type, then reload while the host refuses saves (network lost at close).
+    Only the browser recovery copy can bring the text back.
+
+    Without the refusal this test passed even with writeRecovery() disabled: the hide-time PUT reached the
+    host through the test harness's request interception, which a real closing page may not achieve
+    (reach.js does not use fetch keepalive). So the host boundary is failed on purpose."""
+    page.goto("http://localhost/writers-room")
+    text = page.locator("#soloTextarea")
+    text.wait_for()
+    page.wait_for_function("document.querySelector('#saveBtn').disabled===false")
+    text.fill("Saved base")
+    page.locator("#saveBtn").click()
+    page.wait_for_function("document.querySelector('#saveIndicator').textContent.includes('Saved to Reach · revision 1')")
+    refused = []
+
+    def refuse_document_writes(route):
+        if route.request.method == "PUT":
+            refused.append(route.request.url)
+            route.abort()
+        else:
+            route.fallback()
+
+    page.route("**/api/writers-room/documents/**", refuse_document_writes)
+    text.click()
+    text.press("End")
+    text.press_sequentially(" plus TAIL-TYPED-JUST-BEFORE-RELOAD", delay=2)
+    page.reload()
+    page.locator("#soloTextarea").wait_for()
+    page.wait_for_function(
+        "document.querySelector('#soloTextarea').value.includes('TAIL-TYPED-JUST-BEFORE-RELOAD')", timeout=15000
+    )
+    assert page.locator("#soloTextarea").input_value() == "Saved base plus TAIL-TYPED-JUST-BEFORE-RELOAD"
+    assert refused, "the fault was not injected: no document save reached the refusal"
+    # It must not claim the host has this text.
+    assert "Saved to Reach · revision 2" not in page.locator("#saveIndicator").inner_text()

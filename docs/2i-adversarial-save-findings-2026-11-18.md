@@ -46,6 +46,12 @@
 
 Repeated 5 times on this commit: 6 passed each time. Regression: the 25 existing test files that touch the 2i file path, plus the 2 new files: **135 passed, 2 failed, 1 skipped** (before this work the same 25 files gave 129 passed, 2 failed, 1 skipped). The 2 failures (`test_writers_room_reach_runtime_is_actually_loaded`, `test_preflight_checks_real_reach_routes_and_assets`) fail identically on `7e70e05` without any of this work. The skip needs real speech models.
 
+### Ordinary Reach manuscripts at reload (checked, holds)
+
+`test_reach_manuscript_edit_then_reload_with_host_unreachable_is_kept`: type into a normal (non-file) manuscript, then reload while the host refuses saves. The text comes back from Reach's synchronous `localStorage` recovery (`writeRecovery`), 3 of 3 runs; the status does not claim the host has it. With `writeRecovery` disabled the test fails.
+
+**Test-harness defect found here:** without the injected refusal the test passed even with `writeRecovery` disabled. The hide-time `PUT` reached the host through the harness's Playwright request interception, which a real closing page may not achieve (`reach.js` does not use `fetch` `keepalive`). Any test that relies on a request completing during unload must fail the host on purpose.
+
 ## Mutation check (each mutation applied alone, then reverted; file contents verified restored)
 
 | Mutation | Caught by |
