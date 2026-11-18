@@ -462,6 +462,8 @@ html, body {
   padding-right:8px;
 }
 .line-numbers::-webkit-scrollbar { display:none; }
+.line-numbers .ln-locked { color:var(--gold-deep); font-weight:600; }
+.line-numbers .ln-locked::before { content:'\2022\00a0'; color:var(--gold); }
 .solo-textarea {
   flex:1; resize:none; border:none; outline:none;
   font-family:'Cormorant Garamond',serif;
@@ -1335,18 +1337,29 @@ function snapshot() {
   if (undoStack.length > MAX_UNDO) undoStack.shift();
   redoStack = [];
 }
+// In Write mode the words have the page's own undo (Ctrl+Z while typing), so
+// this undo only steps the manuscript actions back: locks and chapters. Putting
+// back the words of the snapshot as well would throw away everything typed
+// since, and leave the page showing different words from the ones saved.
+function restoreStep(s) {
+  if (coWriting) { committed = s.committed; buffer = s.buffer; }
+  else committed = soloTextarea.value.split('\n');
+  lockedLines = s.lockedLines; chapters = s.chapters;
+}
+function currentStep() {
+  if (!coWriting) committed = soloTextarea.value.split('\n');
+  return { committed: [...committed], buffer: [...buffer], lockedLines: new Set(lockedLines), chapters: JSON.parse(JSON.stringify(chapters)) };
+}
 function undo() {
   if (!undoStack.length) return;
-  redoStack.push({ committed: [...committed], buffer: [...buffer], lockedLines: new Set(lockedLines), chapters: JSON.parse(JSON.stringify(chapters)) });
-  const s = undoStack.pop();
-  committed = s.committed; buffer = s.buffer; lockedLines = s.lockedLines; chapters = s.chapters;
+  redoStack.push(currentStep());
+  restoreStep(undoStack.pop());
   markDirty(); render();
 }
 function redo() {
   if (!redoStack.length) return;
-  undoStack.push({ committed: [...committed], buffer: [...buffer], lockedLines: new Set(lockedLines), chapters: JSON.parse(JSON.stringify(chapters)) });
-  const s = redoStack.pop();
-  committed = s.committed; buffer = s.buffer; lockedLines = s.lockedLines; chapters = s.chapters;
+  undoStack.push(currentStep());
+  restoreStep(redoStack.pop());
   markDirty(); render();
 }
 
@@ -1484,7 +1497,7 @@ async function openDocument() {
       documentDirty = false; $('saveIndicator').textContent = 'saved';
       render();
       return;
-    } catch (e) { if (e.name !== 'AbortError') addChat('pp', '⚠ ' + e.message); return; }
+    } catch (e) { if (e.name !== 'AbortError') addChat('notice', '⚠ ' + e.message); return; }
   }
   // Fallback: file input
   const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.2i,.json';
@@ -1498,7 +1511,7 @@ async function openDocument() {
       loadDocState(doc.state);
       documentDirty = false; $('saveIndicator').textContent = 'saved';
       render();
-    } catch (e) { addChat('pp', '⚠ ' + e.message); }
+    } catch (e) { addChat('notice', '⚠ ' + e.message); }
   };
   inp.click();
 }
@@ -1588,16 +1601,19 @@ function lockAll() {
   markDirty(); render();
 }
 function unlockSelected() {
-  if (selectedIdx === null) { addChat('pp', 'Select a line first, then unlock it.'); return; }
+  // Write mode has no selected line: the line with the cursor is the one meant.
+  const idx = coWriting ? selectedIdx : soloTextarea.value.slice(0, soloTextarea.selectionStart).split('\n').length - 1;
+  if (idx === null) { addChat('notice', 'Select a line first, then unlock it.'); return; }
+  if (!lockedLines.has(idx)) { addChat('notice', 'Line ' + (idx + 1) + ' is not locked.'); return; }
   snapshot();
-  lockedLines.delete(selectedIdx);
+  lockedLines.delete(idx);
   markDirty(); render();
 }
 function newChapter() {
-  snapshot();
   const num = chapters.length + 1;
   const title = prompt('Chapter title:', 'Chapter ' + numberToWord(num));
   if (!title) return;
+  snapshot();
   const sub = prompt('Subtitle (optional):', '') || '';
   chapters.push({ title, subtitle: sub, startLine: committed.length + buffer.length });
   markDirty(); render();
@@ -1636,7 +1652,7 @@ async function generateMore() {
     const lines = reply.split(/\n+/).map(l => l.trim()).filter(Boolean);
     if (lines.length) { lines.forEach(l => ppMarkGenerated(l)); pool = pool.concat(lines); return true; }
   } catch (e) {
-    if (e.name !== 'AbortError') addChat('pp', '⚠ Generation failed: ' + e.message);
+    if (e.name !== 'AbortError') addChat('notice', '⚠ Generation failed: ' + e.message);
   } finally {
     generating = false; $('genBtn').disabled = false; render();
   }
@@ -1715,7 +1731,7 @@ function speechRead(text, done) {
     else if (result.canceled) stopPlaying();
   }).catch(error => {
     if (token !== speechToken) return;
-    stopPlaying(); addChat('pp', 'Speech stopped: ' + error.message);
+    stopPlaying(); addChat('notice', 'Speech stopped: ' + error.message);
   });
 }
 function cancelSpeech() {
@@ -1750,7 +1766,7 @@ async function sendChat() {
     chatHistory.push({ role: 'assistant', content: reply || '' });
   } catch (e) {
     thinkEl.remove();
-    if (e.name !== 'AbortError') addChat('pp', '⚠ ' + e.message);
+    if (e.name !== 'AbortError') addChat('notice', '⚠ ' + e.message);
   } finally { $('chatSendBtn').disabled = false; chatSending = false; }
 }
 $('chatSendBtn').onclick = sendChat;
@@ -1860,11 +1876,16 @@ $('frReplaceAllBtn').onclick = () => {
     return;
   }
   snapshot();
-  let count = 0;
-  // Replace in committed
-  committed = committed.map(l => {
-    if (l.includes(find)) { count += l.split(find).length - 1; return l.split(find).join(replace); }
-    return l;
+  let count = 0, kept = 0;
+  // In Write mode the page's text is the manuscript; make sure the lines are
+  // current before replacing, and replace each occurrence exactly once.
+  if (!coWriting) committed = soloTextarea.value.split('\n');
+  // Replace in committed, leaving locked lines exactly as they are
+  committed = committed.map((l, i) => {
+    if (!l.includes(find)) return l;
+    const n = l.split(find).length - 1;
+    if (lockedLines.has(i)) { kept += n; return l; }
+    count += n; return l.split(find).join(replace);
   });
   // Replace in buffer
   buffer = buffer.map(l => {
@@ -1876,16 +1897,10 @@ $('frReplaceAllBtn').onclick = () => {
     count += reading.text.split(find).length - 1;
     reading.text = reading.text.split(find).join(replace);
   }
-  // Replace in solo textarea
-  if (!coWriting) {
-    const val = soloTextarea.value;
-    if (val.includes(find)) {
-      count += val.split(find).length - 1;
-      soloTextarea.value = val.split(find).join(replace);
-      committed = soloTextarea.value.split('\n');
-    }
-  }
-  $('frResult').textContent = count + ' replacement' + (count !== 1 ? 's' : '') + ' made';
+  // Write mode shows the same lines in the page
+  if (!coWriting) soloTextarea.value = committed.join('\n');
+  $('frResult').textContent = count + ' replacement' + (count !== 1 ? 's' : '') + ' made'
+    + (kept ? '; ' + kept + ' in locked lines left as they are' : '');
   $('frResult').className = 'test-result ok';
   markDirty(); render();
 };
@@ -1910,7 +1925,7 @@ document.addEventListener('click', () => contextMenu.classList.remove('open'));
 
 $('ctxEdit').onclick = () => {
   if (selectedIdx === null) return;
-  if (lockedLines.has(selectedIdx)) { addChat('pp', 'Unlock the line first.'); return; }
+  if (lockedLines.has(selectedIdx)) { addChat('notice', 'Unlock the line first.'); return; }
   editingIdx = selectedIdx; render();
 };
 $('ctxInsertAbove').onclick = () => {
@@ -1946,7 +1961,7 @@ $('ctxUnlock').onclick = () => {
 };
 $('ctxDelete').onclick = () => {
   if (selectedIdx === null) return;
-  if (lockedLines.has(selectedIdx)) { addChat('pp', 'Unlock the line before deleting.'); return; }
+  if (lockedLines.has(selectedIdx)) { addChat('notice', 'Unlock the line before deleting.'); return; }
   snapshot(); committed.splice(selectedIdx, 1);
   const newLocked = new Set();
   lockedLines.forEach(i => { if (i < selectedIdx) newLocked.add(i); else if (i > selectedIdx) newLocked.add(i - 1); });
@@ -2050,7 +2065,7 @@ function renderManuscriptLines() {
       div.onclick = () => { selectedIdx = (selectedIdx === i) ? null : i; render(); };
       div.oncontextmenu = e => showContextMenu(e, i);
       div.ondblclick = () => {
-        if (lockedLines.has(i)) { addChat('pp', 'Unlock the line to edit it.'); return; }
+        if (lockedLines.has(i)) { addChat('notice', 'Unlock the line to edit it.'); return; }
         editingIdx = i; render();
       };
       manuscriptLines.appendChild(div);
@@ -2085,14 +2100,53 @@ function renderReading() {
 
 function updateLineNumbers() {
   const lines = soloTextarea.value.split('\n');
-  lineNumbers.innerHTML = lines.map((_, i) => (i + 1)).join('<br>');
+  lineNumbers.innerHTML = lines.map((_, i) => lockedLines.has(i)
+    ? '<span class="ln-locked" title="Locked line">' + (i + 1) + '</span>'
+    : (i + 1)).join('<br>');
 }
 
 // Sync solo textarea scroll with line numbers
 soloTextarea.addEventListener('scroll', () => { lineNumbers.scrollTop = soloTextarea.scrollTop; });
+// Locked lines stay locked in Write mode too. Every edit (typing, paste,
+// cut, drop, undo) is compared line by line with the text before it: an edit
+// that would change a locked line is put back, and lines that move because
+// lines were added or removed above them keep their lock.
+let soloBefore = null;
+soloTextarea.addEventListener('beforeinput', e => {
+  // Taken fresh before every edit, so it can never be left over from an edit
+  // that did not happen (the page may since have loaded other words). An
+  // input-method composition keeps the text from before it started.
+  if (e.isComposing && soloBefore !== null) return;
+  soloBefore = { text: soloTextarea.value, start: soloTextarea.selectionStart, end: soloTextarea.selectionEnd };
+});
 soloTextarea.addEventListener('input', () => {
+  const before = soloBefore ? soloBefore.text.split('\n') : committed.slice();
+  const caret = soloBefore;
+  soloBefore = null;
+  const after = soloTextarea.value.split('\n');
+  if (lockedLines.size) {
+    const shortest = Math.min(before.length, after.length);
+    let head = 0;
+    while (head < shortest && before[head] === after[head]) head++;
+    let tail = 0;
+    while (tail < shortest - head && before[before.length - 1 - tail] === after[after.length - 1 - tail]) tail++;
+    const changedEnd = before.length - tail;     // lines head .. changedEnd-1 were changed or removed
+    for (let i = head; i < changedEnd; i++) {
+      if (!lockedLines.has(i)) continue;
+      soloTextarea.value = before.join('\n');
+      if (caret) soloTextarea.setSelectionRange(caret.start, caret.end);
+      addChat('notice', 'Line ' + (i + 1) + ' is locked. Unlock it to change it.');
+      return;
+    }
+    const shift = after.length - before.length;
+    if (shift) {
+      const moved = new Set();
+      lockedLines.forEach(i => moved.add(i >= changedEnd ? i + shift : i));
+      lockedLines = moved;
+    }
+  }
+  committed = after;
   updateLineNumbers();
-  committed = soloTextarea.value.split('\n');
   markDirty();
 });
 draftArea.addEventListener('input', () => {
@@ -2341,7 +2395,7 @@ function init() {
   // Load any existing autosave notification
   listAutosaves().then(list => {
     if (list.length && !committed.length && !soloTextarea.value.trim()) {
-      addChat('pp', 'I found autosaved work. Use Menu → Restore autosave to recover it.');
+      addChat('notice', 'I found autosaved work. Use Menu → Restore autosave to recover it.');
     }
   });
 }
@@ -2355,22 +2409,22 @@ document.addEventListener('drop', async e => {
     try {
       const text = await file.text();
       const doc = JSON.parse(text);
-      if (doc.format !== '2i-document') { addChat('pp', '⚠ Not a 2i document.'); return; }
+      if (doc.format !== '2i-document') { addChat('notice', '⚠ Not a 2i document.'); return; }
       if (documentDirty && !confirm('Discard unsaved changes?')) return;
       documentTitle = doc.title || 'Untitled';
       documentHandle = null;
       loadDocState(doc.state);
       documentDirty = false; $('saveIndicator').textContent = 'saved';
       render();
-      addChat('pp', 'Loaded: ' + documentTitle);
-    } catch (err) { addChat('pp', '⚠ ' + err.message); }
+      addChat('notice', 'Loaded: ' + documentTitle);
+    } catch (err) { addChat('notice', '⚠ ' + err.message); }
   } else if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
     // Import as reference
     try {
       const text = await file.text();
       addReference(file.name, 'research', text);
-      addChat('pp', 'Added "' + file.name + '" to Reference Archive.');
-    } catch (err) { addChat('pp', '⚠ ' + err.message); }
+      addChat('notice', 'Added "' + file.name + '" to Reference Archive.');
+    } catch (err) { addChat('notice', '⚠ ' + err.message); }
   }
 });
 
@@ -2625,7 +2679,7 @@ async function ppResolveFlag(flagId) {
       ppRenderFlags();
     }
   } catch (e) {
-    addChat('pp', 'Could not dismiss that note: ' + e.message);
+    addChat('notice', 'Could not dismiss that note: ' + e.message);
   }
 }
 

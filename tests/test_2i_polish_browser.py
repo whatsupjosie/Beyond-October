@@ -222,8 +222,9 @@ def test_ctrl_z_in_any_text_box_never_rolls_back_the_manuscript(served, box):
     page = served(1366, 768)
     _write_then_lock(page, "Alpha.")
     page.click("#soloTextarea")
-    page.keyboard.press("End")
-    page.keyboard.type(" Beta gamma delta.")
+    page.keyboard.press("Control+End")
+    page.keyboard.press("Enter")                       # the locked line stays as it is; write below it
+    page.keyboard.type("Beta gamma delta.")
     if box == "#frFind":
         page.keyboard.press("Control+f")
     elif box == "#renameInput":
@@ -234,7 +235,7 @@ def test_ctrl_z_in_any_text_box_never_rolls_back_the_manuscript(served, box):
     # Checked after every key: a redo straight after a wrong undo would hide it.
     for shortcut in ("Control+z", "Control+Shift+Z", "Control+y"):
         page.keyboard.press(shortcut)
-        assert page.evaluate("committed.join('\\n')") == "Alpha. Beta gamma delta.", shortcut
+        assert page.evaluate("committed.join('\\n')") == "Alpha.\nBeta gamma delta.", shortcut
     page.context.close()
 
 
@@ -264,4 +265,144 @@ def test_the_lantern_light_canvas_follows_the_page_size(served):
     page.wait_for_timeout(200)
     canvas, frame = page.evaluate("[document.getElementById('lanternCanvas').width, document.getElementById('notebookFrame').clientWidth]")
     assert canvas == frame
+    page.context.close()
+
+
+# ---- Locks in Write mode, Replace all, who speaks ------------------------------
+
+def _write(page, lines):
+    page.click("#soloTextarea")
+    page.keyboard.press("Control+a")
+    page.keyboard.press("Delete")
+    page.keyboard.type("\n".join(lines))
+
+
+def _caret_to(page, line, column=0):
+    page.evaluate(
+        """([line, column]) => { const t = document.getElementById('soloTextarea');
+            const lines = t.value.split('\\n'); let at = 0;
+            for (let i = 0; i < line; i++) at += lines[i].length + 1;
+            t.focus(); t.setSelectionRange(at + column, at + column); }""",
+        [line, column],
+    )
+
+
+def _lock_line(page, index):
+    page.evaluate("i => { lockedLines.add(i); render(); }", index)
+
+
+def test_a_locked_line_cannot_be_typed_into_cut_or_pasted_over_in_write_mode(served):
+    page = served(1366, 768)
+    _write(page, ["One.", "Two is locked.", "Three."])
+    _lock_line(page, 1)
+    text = "One.\nTwo is locked.\nThree."
+    _caret_to(page, 1, 3)
+    page.keyboard.type("XX")
+    assert page.input_value("#soloTextarea") == text
+    assert page.evaluate("committed.join('\\n')") == text
+    page.evaluate("document.getElementById('soloTextarea').setSelectionRange(2, 12)")   # spans lines 1-2
+    page.keyboard.press("Backspace")
+    assert page.input_value("#soloTextarea") == text
+    page.evaluate("document.getElementById('soloTextarea').setSelectionRange(0, 30)")
+    page.keyboard.insert_text("pasted over everything")
+    assert page.input_value("#soloTextarea") == text
+    assert "Line 2 is locked" in page.inner_text("#chatLog")
+    _caret_to(page, 2, 6)
+    page.keyboard.type(" Free")                                       # an unlocked line still edits
+    assert page.input_value("#soloTextarea") == "One.\nTwo is locked.\nThree. Free"
+    page.context.close()
+
+
+def test_a_lock_moves_with_its_line_when_lines_are_added_or_removed_above(served):
+    page = served(1366, 768)
+    _write(page, ["A", "B locked", "C"])
+    _lock_line(page, 1)
+    _caret_to(page, 0, 0)
+    page.keyboard.press("Enter")                                      # new line above everything
+    assert page.evaluate("[...lockedLines]") == [2]
+    _caret_to(page, 2, len("B locked"))
+    page.keyboard.press("Enter")                                      # a new line after a locked line is fine
+    page.keyboard.type("D")
+    assert page.input_value("#soloTextarea") == "\nA\nB locked\nD\nC"
+    assert page.evaluate("[...lockedLines]") == [2]
+    _caret_to(page, 0, 0)
+    page.keyboard.press("Delete")                                     # remove the empty first line
+    assert page.evaluate("[...lockedLines]") == [1]
+    assert '<span class="ln-locked"' in page.inner_html("#lineNumbers")
+    page.context.close()
+
+
+def test_unlock_in_write_mode_unlocks_the_line_with_the_cursor(served):
+    page = served(1366, 768)
+    _write(page, ["A", "B", "C"])
+    page.click("#lockAllBtn")
+    _caret_to(page, 1, 1)
+    page.click("#unlockBtn")
+    assert sorted(page.evaluate("[...lockedLines]")) == [0, 2]
+    page.context.close()
+
+
+def test_replace_all_counts_each_occurrence_once_and_leaves_locked_lines_alone(served):
+    page = served(1366, 768)
+    _write(page, ["the cat sat", "the cat is locked", "a cat and a cat"])
+    _lock_line(page, 1)
+    page.keyboard.press("Control+f")
+    page.fill("#frFind", "cat")
+    page.fill("#frReplace", "fox")
+    page.click("#frReplaceAllBtn")
+    assert page.inner_text("#frResult") == "3 replacements made; 1 in locked lines left as they are"
+    assert page.input_value("#soloTextarea") == "the fox sat\nthe cat is locked\na fox and a fox"
+    assert page.evaluate("committed.join('\\n')") == page.input_value("#soloTextarea")
+    page.context.close()
+
+
+def test_undoing_a_lock_in_write_mode_keeps_the_words_typed_since(served):
+    page = served(1366, 768)
+    _write(page, ["First."])
+    page.click("#lockSceneBtn")
+    _caret_to(page, 0, len("First."))
+    page.keyboard.press("Enter")
+    page.keyboard.type("Second, typed after the lock.")
+    page.focus("#saveBtn")
+    page.keyboard.press("Control+z")
+    assert page.evaluate("[...lockedLines]") == []
+    assert page.input_value("#soloTextarea") == "First.\nSecond, typed after the lock."
+    assert page.evaluate("getDocState().committed.join('\\n')") == page.input_value("#soloTextarea")
+    page.context.close()
+
+
+def test_interface_messages_come_from_the_writers_room_not_the_partner(served):
+    page = served(1366, 768)
+    _write(page, ["A"])
+    page.evaluate("lockedLines.add(0); render()")
+    _caret_to(page, 0, 1)
+    page.keyboard.type("x")
+    last = page.locator("#chatLog .chat-msg").last
+    assert last.locator(".who").inner_text().lower() == "writer’s room"
+    assert "notice" in last.get_attribute("class")
+    page.context.close()
+
+
+def test_cancelling_new_chapter_leaves_nothing_to_undo(served):
+    page = served(1366, 768)
+    page.on("dialog", lambda dialog: dialog.dismiss())
+    before = page.evaluate("undoStack.length")
+    page.click("#newChapterBtn")
+    assert page.evaluate("undoStack.length") == before
+    assert page.evaluate("chapters.length") == 1
+    page.context.close()
+
+
+def test_an_edit_that_never_happened_cannot_bring_back_old_words(served):
+    page = served(1366, 768)
+    _write(page, ["Old document."])
+    _lock_line(page, 0)
+    # An undo with nothing to undo announces an edit (beforeinput) that never comes.
+    page.evaluate("""() => { const t = document.getElementById('soloTextarea');
+        t.dispatchEvent(new InputEvent('beforeinput', {inputType: 'historyUndo', bubbles: true, cancelable: true})); }""")
+    # Another document is opened: the page's words change without any typing.
+    page.evaluate("loadDocState({committed: ['New document.'], coWriting: false, lockedLines: [0]})")
+    _caret_to(page, 0, 0)
+    page.keyboard.press("Enter")
+    assert page.input_value("#soloTextarea") == "\nNew document."
     page.context.close()
