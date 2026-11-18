@@ -41,10 +41,19 @@ The earlier file-adapter error handler replaced the entire file-toolbar `textCon
 
 Now the adapter **prepends** an accessible error message to the toolbar instead of replacing its children. Original-file and recovery/download controls remain visible.
 
+### 6. Reach navigation could still mutate Foresight file documents
+
+Save was only one entry point. While a Foresight file was mounting, the served editor still exposed ordinary Reach handlers for New, Open, Save As and My manuscripts. Those functions can save or switch a Reach manuscript rather than the Foresight file being edited. Even after file mounting, the Reach-specific manuscript shelf could open a different Reach document inside the Foresight file session.
+
+The original Reach commands now refuse those operations in `reachFileMode`, with a clear Writer's Room notice. Foresight's own `newDocument`, `openDocument` and `saveDocumentAs` handlers replace those originals after its session mounts. The Reach manuscript shelf is hidden on the file route and guarded if called programmatically. The legacy HTML drop handler now blocks an early file import instead of changing manuscript state before Foresight's capturing drop handler is installed.
+
+This does **not** remove normal Reach manuscript navigation. Its original functions still operate when `reachFileMode` is false.
+
 ## Verification actually executed
 
 - `tests/test_2i_file_save_dispatch_node.js`: **9 focused checks passed** using actual GitHub `reach.js` saveNow source in an isolated V8 compatibility harness.
 - `tests/test_2i_file_host_ready_node.js`: **6 focused checks passed** using actual GitHub `file-workspace.js` in an isolated mock host. Covers normal immediate Save after readiness, account failure, pending login, missing file record, failed mount and decode failure with preserved original download.
+- `tests/test_2i_file_navigation_isolation_node.js`: **5 focused checks passed** against actual Reach functions and the HTML drop listener in a V8 compatibility harness. Before and after mounting, file-tray Reach commands are blocked; the normal Reach route is not blocked.
 - Red/green check of Save: on parent code, a pre-mount file-tray Save called the wrong Reach saver; on the repaired source, it returned false and did not call Reach.
 - Red/green check of file readiness: **3 of 6** new tests failed against the parent file adapter and **all 6** passed on the repair. The failures concerned missing file, mount error/Save availability and working-copy decode failure.
 - Production JavaScript parsed after editing.
