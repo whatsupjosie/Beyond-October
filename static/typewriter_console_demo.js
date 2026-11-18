@@ -9,6 +9,10 @@
 (function () {
   "use strict";
 
+  // In 2i the manuscript is owned by the parent editor, never by this demo buffer.
+  const embedded = new URLSearchParams(location.search).get("embedded") === "2i" && parent !== window;
+  if (embedded) document.body.classList.add("pc-embedded-twoi");
+
   document.addEventListener("pubcast:console-ready", function (ready) {
     const frame = ready.detail.frame;
     const paperBox = ready.detail.manifest.paper;
@@ -61,8 +65,25 @@
       paper.scrollTop = paper.scrollHeight;
     };
 
+    if (embedded) {
+      window.addEventListener("message", function (event) {
+        if (event.source !== parent || event.origin !== location.origin || event.data?.type !== "pubcast:2i-manuscript") return;
+        typed = String(event.data.text || "").slice(-2000);
+        render();
+      });
+      parent.postMessage({type:"pubcast:2i-ready"}, location.origin);
+      window.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") parent.postMessage({type:"pubcast:2i-collapse"}, location.origin);
+      });
+    }
     frame.addEventListener("pubcast:key", function (event) {
       const key = event.detail;
+      if (embedded) {
+        parent.postMessage({type:"pubcast:2i-key", key: {
+          id:key.id, char:key.char, text:key.text, source:key.source, shift:key.shift
+        }}, location.origin);
+        return;
+      }
       const before = typed;
       if (key.char === "BACKSPACE") typed = typed.slice(0, -1);
       else if (key.text) typed += key.text;

@@ -31,9 +31,18 @@
 
   function readPreference() {
     try {
-      return localStorage.getItem(STORE_KEY) !== "off";
+      const stored = localStorage.getItem(STORE_KEY);
+      if (stored === "on" || stored === "off") return stored === "on";
+      const embedded = new URLSearchParams(location.search).get("embedded") === "2i";
+      if (embedded) {
+        // Respect the older 2i click/bell preference when upgrading to Claude's sound system.
+        const old = JSON.parse(localStorage.getItem("twoi.typewriter.audio.v1") || "null");
+        return Boolean(old && (old.click === true || old.bell === true));
+      }
+      return true; // Claude's standalone console retains its original default.
     } catch (_err) {
-      return true;
+      // Blocked or corrupt storage must not switch embedded 2i audio on.
+      return new URLSearchParams(location.search).get("embedded") !== "2i";
     }
   }
 
