@@ -10,6 +10,9 @@
   "use strict";
 
   document.addEventListener("pubcast:console-ready", function (ready) {
+    // Only the explicit 2i embed sends keys to the real manuscript.
+    // The ordinary bench page remains independently functional.
+    const embedded = new URLSearchParams(location.search).get("embed") === "2i" && window.parent !== window;
     const frame = ready.detail.frame;
     const paperBox = ready.detail.manifest.paper;
     if (!paperBox) return;
@@ -61,8 +64,18 @@
       paper.scrollTop = paper.scrollHeight;
     };
 
+    if (embedded) window.addEventListener("message", function (event) {
+      if (event.source !== window.parent || event.origin !== location.origin || event.data?.type !== "pubcast:2i-paper") return;
+      typed = String(event.data.text || "").slice(-500);
+      render();
+    });
+
     frame.addEventListener("pubcast:key", function (event) {
       const key = event.detail;
+      if (embedded) {
+        window.parent.postMessage({type: "pubcast:2i-key", key: {char: key.char, text: key.text, source: key.source}}, location.origin);
+        return;
+      }
       const before = typed;
       if (key.char === "BACKSPACE") typed = typed.slice(0, -1);
       else if (key.text) typed += key.text;
