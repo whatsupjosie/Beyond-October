@@ -1,0 +1,83 @@
+'use strict';
+/* Run the real Foresight file adapter against a fake host that sends its
+ * first Save command immediately after hearing Ready. This catches a startup
+ * race that static asset checks and unit tests cannot. */
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const vm=require('node:vm');
+const script=fs.readFileSync(path.join(__dirname,'../2i/2i-assets/file-workspace.js'),'utf8');
+
+async function launch({failReach=false}={}) {
+  const events=[],handlers={},created=[];
+  class ResizeObserver{observe(){}disconnect(){}}
+  const shell={style:{}};
+  const document={
+    body:{insertBefore(node){created.push(node)}},
+    hidden:false,
+    createElement:tag=>({
+      tag,style:{},setAttribute(){},getBoundingClientRect:()=>({height:35})
+    }),
+    querySelector:()=>shell,
+    addEventListener(type,fn){(handlers['doc:'+type]??=[]).push(fn)}
+  };
+  const session={
+    save:async()=>{events.push({type:'session-save'});return true;},
+    saveAs:async()=>true,flush:async()=>true,
+    activity:()=>({dirty:false,busy:false,recovery:true}),
+    pending:()=>false,prepareClose:async()=>true,export:async()=>({})
+  };
+  const window={reachStarted:failReach?Promise.reject(Error('Account unavailable')):Promise.resolve()};
+  const parent={
+    postMessage(data,origin){
+      events.push({type:data.type,origin,data});
+      if(data.type!=='foresight:file-ready')return;
+      const listeners=handlers.message||[];
+      events.push({type:'handler-count-at-ready',value:listeners.length});
+      // This command happens synchronously, like a very fast parent frame.
+      for(const fn of listeners)void fn({
+        origin:'https://local.test',source:parent,
+        data:{type:'foresight:file-command',fileId:'file123',
+          sessionNonce:'nonce123',requestId:'first-save',command:'save'}
+      });
+    }
+  };
+  const buttons={saveBtn:{},saveIndicator:{}};
+  const ctx={
+    window,parent,document,ResizeObserver,URLSearchParams,
+    location:{search:'?file=file123&foresightSession=nonce123',origin:'https://local.test'},
+    $:id=>buttons[id]||{},
+    addEventListener:(type,fn)=>(handlers[type]??=[]).push(fn),
+    ForesightFiles:{mount:async()=>session,record:async()=>true},
+    soloTextarea:{dispatchEvent(){}},
+    markDirty(){},getDocState:()=>({}),loadDocState(){},render(){},
+    coWriting:false,committed:['Text'],documentTitle:'Untitled',
+    chatSending:false,generating:false,editingIdx:null,PP:{inflight:false},
+    saveDocument:()=>false,saveDocumentAs:()=>false,
+    openDocument:()=>false,newDocument:()=>false,
+    Event:class{constructor(type){this.type=type}}
+  };
+  await vm.runInNewContext(script,ctx,{filename:'file-workspace.js'});
+  // Flush a host command's async response after its Save completes.
+  await Promise.resolve();await Promise.resolve();
+  return {events,handlers,buttons,session,window,created};
+}
+test('file-tray Ready fires once after host-command subscription',async()=>{
+  const f=await launch();
+  const ready=f.events.filter(x=>x.type==='foresight:file-ready');
+  assert.equal(ready.length,1);
+  assert.equal(ready[0].data.fileId,'file123');
+  assert.equal(ready[0].data.sessionNonce,'nonce123');
+  assert.equal(f.events.find(x=>x.type==='handler-count-at-ready').value,1);
+  assert.equal(f.events.filter(x=>x.type==='session-save').length,1);
+  assert.equal(f.events.filter(x=>x.type==='foresight:file-result').length,1);
+  assert.equal(f.window.foresightFileSession,f.session);
+  assert.equal(f.buttons.saveBtn.disabled,false);
+});
+test('failed account startup announces no readiness and disables Save',async()=>{
+  const f=await launch({failReach:true});
+  assert.equal(f.events.filter(x=>x.type==='foresight:file-ready').length,0);
+  assert.equal(f.buttons.saveBtn.disabled,true);
+  assert.match(f.buttons.saveIndicator.textContent,/Account unavailable/);
+});
