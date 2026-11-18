@@ -102,6 +102,7 @@ const c={data:{fileId:id},state:{}};
 const host={body:toolbar,changed(){},setTitle(title){documentTitle=title;render();parent.postMessage({type:'foresight:file-renamed',fileId:id,name:title},location.origin)}};
 
 let session;
+let mountViewFailed=false;
 const originalMarkDirty=markDirty;
 markDirty=function(){originalMarkDirty();if(session){soloTextarea.dispatchEvent(new Event('foresight-native-change'));session.flush().catch(e=>{$('saveIndicator').textContent='Save failed: '+e.message})}};
 try{
@@ -113,7 +114,7 @@ try{
     onReady(v){documentTitle=v.name;if(/\.(py|js|ts|jsx|tsx|xml|html|css|json|yaml|yml|toml|ini|sh|ps1|sql|c|cpp|h|rs)$/i.test(v.name)){soloTextarea.style.fontFamily='monospace';soloTextarea.spellcheck=false;}render()},
     onImage(){shell.style.display='none';toolbar.style.height='100vh'},
     onPreview(active){shell.style.display=active?'none':'';toolbar.style.height=active?'100vh':'auto';},
-    onError(){shell.style.display='none';toolbar.style.height='100vh'},
+    onError(){mountViewFailed=true;shell.style.display='none';toolbar.style.height='100vh'},
     load(v){
       documentTitle=v.title||v.name;
       const state=v.twoiState||{committed:v.draft.split('\n'),buffer:[],pool:[],pointer:0,chapters:[{title:'Document',subtitle:'',startLine:0}],lockedLines:[],coWriting:false,references:[]};
@@ -123,7 +124,7 @@ try{
   // ForesightFiles.mount can return a session even when the requested record
   // is missing. That session has no recoverable file and must not be announced
   // to the host as a ready, writable document.
-  if(!session || typeof session.activity!=='function' || !session.activity().recovery)
+  if(mountViewFailed || !session || typeof session.activity!=='function' || !session.activity().recovery)
     throw Error('The requested Foresight file did not open safely. Re-import it or restore the saved source.');
   window.foresightFileSession=session;
   saveDocument=()=>session.save();saveDocumentAs=()=>session.saveAs();
