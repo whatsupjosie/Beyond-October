@@ -1,11 +1,12 @@
-"""2i (writers-room-v22.html) laid out on phones, tablets and desktops, in real Chromium.
+"""2i (writers-room-v22.html) on phones, tablets and desktops, in real Chromium.
 
 The page is served the way the host serves it, with the real writers-room and
 auth routes behind it (as in test_foresight_file_workspace.py). These checks
 are about what a person sees and can reach: nothing runs off the side of the
 screen, Save is always on screen, the editor is there, the per-pane text zoom
 works with the Reach desk layer on top, the line numbers stay on their lines,
-and the spiral coils are redrawn when the page changes size.
+the spiral coils are redrawn when the page changes size, and keyboard
+shortcuts never reach past the text box being typed in.
 """
 from __future__ import annotations
 
@@ -203,4 +204,64 @@ def test_collab_on_a_phone_shows_the_draft_and_its_controls(served):
     page.fill("#draftArea", "A line written on a phone.")
     assert page.input_value("#draftArea") == "A line written on a phone."
     assert page.evaluate(LAYOUT)["spill"] == []
+    page.context.close()
+
+
+# ---- Keyboard: undo belongs to the box you are typing in ---------------------
+
+def _write_then_lock(page, text):
+    page.click("#soloTextarea")
+    page.keyboard.press("Control+a")
+    page.keyboard.press("Delete")
+    page.keyboard.type(text)
+    page.click("#lockSceneBtn")          # a manuscript action: records a manuscript undo step
+
+
+@pytest.mark.parametrize("box", ["#frFind", "#renameInput", "#refSearchInput", "#chatInput"])
+def test_ctrl_z_in_any_text_box_never_rolls_back_the_manuscript(served, box):
+    page = served(1366, 768)
+    _write_then_lock(page, "Alpha.")
+    page.click("#soloTextarea")
+    page.keyboard.press("End")
+    page.keyboard.type(" Beta gamma delta.")
+    if box == "#frFind":
+        page.keyboard.press("Control+f")
+    elif box == "#renameInput":
+        page.evaluate("openModal('renameModalBackdrop')")
+    page.wait_for_selector(box, state="visible")
+    page.click(box)
+    page.keyboard.type("xyz")
+    # Checked after every key: a redo straight after a wrong undo would hide it.
+    for shortcut in ("Control+z", "Control+Shift+Z", "Control+y"):
+        page.keyboard.press(shortcut)
+        assert page.evaluate("committed.join('\\n')") == "Alpha. Beta gamma delta.", shortcut
+    page.context.close()
+
+
+def test_ctrl_z_outside_a_text_box_still_undoes_a_manuscript_action(served):
+    page = served(1366, 768)
+    _write_then_lock(page, "Alpha.")
+    assert page.evaluate("[...lockedLines]") == [0]
+    page.focus("#saveBtn")
+    page.keyboard.press("Control+z")
+    assert page.evaluate("[...lockedLines]") == []
+    page.keyboard.press("Control+Shift+Z")             # the usual redo on a Mac and in most editors
+    assert page.evaluate("[...lockedLines]") == [0]
+    page.context.close()
+
+
+def test_shortcuts_work_with_caps_lock_on(served):
+    page = served(1366, 768)
+    page.focus("#saveBtn")
+    page.evaluate("document.dispatchEvent(new KeyboardEvent('keydown', {key: 'F', ctrlKey: true, bubbles: true, cancelable: true}))")
+    page.wait_for_selector("#frModalBackdrop.open")
+    page.context.close()
+
+
+def test_the_lantern_light_canvas_follows_the_page_size(served):
+    page = served(1366, 768)
+    page.click("#sidebarToggle")
+    page.wait_for_timeout(200)
+    canvas, frame = page.evaluate("[document.getElementById('lanternCanvas').width, document.getElementById('notebookFrame').clientWidth]")
+    assert canvas == frame
     page.context.close()

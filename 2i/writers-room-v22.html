@@ -2241,13 +2241,21 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (e.ctrlKey || e.metaKey) {
-    if (e.key === 's') { e.preventDefault(); saveDocument(); }
-    if (e.key === 'z') { e.preventDefault(); undo(); }
-    if (e.key === 'y') { e.preventDefault(); redo(); }
-    if (e.key === 'f') { e.preventDefault(); $('frResult').textContent = ''; openModal('frModalBackdrop'); setTimeout(() => $('frFind').focus(), 100); }
-    if (e.key === 'e') { e.preventDefault(); exportManuscript(); }
+    // Caps Lock and Shift change e.key's case; the shortcut is the same key.
+    const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    // Undo and redo inside any text box belong to that box. Only a collab line
+    // being edited in place uses the manuscript's own undo, as it always has.
+    // (Ctrl+Z in the Find box used to roll back the manuscript.)
+    const field = document.activeElement;
+    const typing = field && (field.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(field.tagName)) && !field.closest('.m-line-edit');
+    if ((key === 'z' || key === 'y') && typing) return;
+    if (key === 's') { e.preventDefault(); saveDocument(); }
+    if (key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+    if (key === 'y' || (key === 'z' && e.shiftKey)) { e.preventDefault(); redo(); }
+    if (key === 'f') { e.preventDefault(); $('frResult').textContent = ''; openModal('frModalBackdrop'); setTimeout(() => $('frFind').focus(), 100); }
+    if (key === 'e') { e.preventDefault(); exportManuscript(); }
     if (e.key === 'Enter' && coWriting) { e.preventDefault(); approveBuffer(); }
-    if (e.key === 'g' && coWriting) { e.preventDefault(); if (!generating) tick(); }
+    if (key === 'g' && coWriting) { e.preventDefault(); if (!generating) tick(); }
   }
 });
 
@@ -2275,7 +2283,11 @@ document.addEventListener('keydown', e => {
     mx = e.clientX - r.left; my = e.clientY - r.top;
     if (!raf) raf = requestAnimationFrame(() => { draw(); raf = 0; });
   });
-  window.addEventListener('resize', resize); resize();
+  window.addEventListener('resize', resize);
+  // The frame also changes size when the sidebar, the phone layout or Collab
+  // changes the page; keep the light's canvas matched so it never stretches.
+  if (typeof ResizeObserver === 'function') new ResizeObserver(resize).observe(frame);
+  resize();
 })();
 
 // ── CANVAS: SPIRAL SPINE ───────────────────────────────────────────

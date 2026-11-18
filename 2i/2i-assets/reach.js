@@ -470,10 +470,11 @@ $('shelfClose').onclick=()=>closeModal('reachShelf');
 $('shelfImport').onclick=()=>{closeModal('reachShelf');openDocument();};
 $('shelfNew').onclick=()=>{closeModal('reachShelf');newDocument();};
 $('shelfCopy').onclick=async()=>{if(!await preserveBeforeSwitch())return;documentId=uuid();revision=0;saveConflict=false;documentTitle=documentTitle.slice(0,193)+' — copy';markDirty();render();await saveDocument();closeModal('reachShelf');};
-// Native textarea undo must stay native while typing. Collab line edits use v20's stack.
+// Native undo must stay native in every text box while typing. Collab line edits use v20's stack.
 document.addEventListener('keydown',event=>{
   if(event.key==='Escape' && $('reachAccount').classList.contains('open')){event.preventDefault();event.stopImmediatePropagation();return;}
-  if((event.ctrlKey||event.metaKey)&&['z','y'].includes(event.key.toLowerCase())&&[soloTextarea,draftArea,chatInput].includes(document.activeElement)) event.stopImmediatePropagation();
+  const field=document.activeElement, typing=field&&(field.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(field.tagName))&&!field.closest('.m-line-edit');
+  if((event.ctrlKey||event.metaKey)&&['z','y'].includes(event.key.toLowerCase())&&typing) event.stopImmediatePropagation();
 },true);
 // Drop is handled once; invalid input cannot partially replace the active document.
 document.addEventListener('drop',async event=>{
