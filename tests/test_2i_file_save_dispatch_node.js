@@ -13,11 +13,12 @@ const end=source.indexOf('async function preserveBeforeSwitch()',start);
 assert.ok(start>=0&&end>start,'Actual Reach saveNow function must exist');
 const code=source.slice(start,end);
 
-function harness({file=false,networked=true,mounted=false,fail=false}={}){
+function harness({file=false,networked=true,mounted=false,fail=false,disabled=false}={}){
   const calls=[];
   const state={
     reachFileMode:file?'file-id':null,
     networked,
+    $:id=>id==='saveBtn'?{disabled}:null,
     window:{foresightFileSession:mounted?{save(){calls.push('file-session');return fail?Promise.reject(Error('Disk full')):Promise.resolve(true);}}:undefined},
     setSaveStatus:message=>calls.push({status:message}),
     saveToFile:()=>{calls.push('native-file-picker');return Promise.resolve(true);},
@@ -57,4 +58,16 @@ test('failed file-session Save announces failure instead of producing unhandled 
   assert.equal(x.calls[0],'file-session');
   assert.match(x.calls[1].status,/Foresight file not saved/);
   assert.match(x.calls[1].status,/Disk full/);
+});
+
+test('Ctrl+S cannot overwrite a failed-mount recovery notice with a false opening status',async()=>{
+  const x=harness({file:true,networked:true,mounted:false,disabled:true});
+  assert.equal(await x.save(),false);
+  assert.deepEqual(x.calls,[]);
+});
+test('button, File menu and Ctrl+S are wired to the guarded dispatcher',()=>{
+  const html=fs.readFileSync(path.join(__dirname,'../2i/writers-room-v22.html'),'utf8');
+  assert.match(source, /\$\('saveBtn'\)\.onclick=\(\)=>saveNow\(\)/);
+  assert.match(html, /if\(action==='save'\)\{if\(typeof saveNow==='function'\)saveNow\(\)/);
+  assert.match(html, /if\(key==='s'\)return 'save'/);
 });
