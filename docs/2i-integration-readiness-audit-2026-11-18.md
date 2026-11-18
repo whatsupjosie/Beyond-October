@@ -37,16 +37,22 @@ Before: Reach's `startReach()` can resolve after displaying the account modal wh
 
 After: the adapter additionally checks `initializing`; it disables Save and returns with an explicit sign-in notice until the authenticated reload finishes. It does not notify the host or mount a file session prematurely.
 
+### 4. Typewriter editing could precede Foresight file-session mounting
+
+Before: `studio-desk.js` installed the file-tray View selector before the asynchronous `ForesightFiles.mount` operation completed. A quick user could select Typewriter and begin writing while the real file's save session was not yet available.
+
+After: the typewriter message handler refuses file-tray edits until `window.foresightFileSession` is installed by the actual file adapter. Normal hosted writer typing is unaffected.
+
 ## Focused tests and evidence
 
 - **7 source-executed structural checks passed:** PubCast routes, asset references, module order, distinct DOM IDs, typewriter asset/manifest, Foresight view selector and save-authority presence, and Reach-before-file mount ordering.
 - **20 JavaScript syntax checks passed:** 14 2i external scripts, four typewriter scripts and two HTML inline scripts.
-- **4 source-executed DOM harness checks passed** with the actual `studio-desk.js`: hosted mode still has notes controls; Foresight file mode gets a working chooser and the iframe; keys route to the active Write editor; wrong-origin messages and active generation are rejected.
+- **5 source-executed DOM harness checks passed** with the actual `studio-desk.js`: hosted mode still has notes controls; Foresight file mode gets a working chooser and the iframe; keys route to the active Write editor; wrong-origin messages and active generation are rejected.
 - **3 source-executed file-adapter host harness checks passed** using actual `file-workspace.js`: exactly one ready signal after listener subscription, immediate Save command routes to the mounted file session and receives a response, failures to initialize an account and unresolved sign-in prompt both block readiness.
 
 Permanent test files committed:
 - `tests/test_2i_wiring_contract_node.js` (8 checks; its JS-parse check was executed independently in this audit, not through native Node runner)
-- `tests/test_2i_file_presentation_wiring_node.js` (4 checks)
+- `tests/test_2i_file_presentation_wiring_node.js` (5 checks)
 - `tests/test_2i_file_host_ready_node.js` (3 checks)
 
 Source-level test execution used the GitHub connector and isolated V8 compatibility stand-ins. **This does not substitute for `node --test` in a complete checkout, real FastAPI startup, true Foresight file persistence or Chromium through the full host.** Earlier typewriter input tests against native Node and isolated Chromium are documented in the predecessor branch and are not being recounted as new host tests.
