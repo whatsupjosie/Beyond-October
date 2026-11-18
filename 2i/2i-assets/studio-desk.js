@@ -96,6 +96,7 @@
     if(data?.type==="pubcast:2i-ready"){
       typewriter.dataset.ready="true";syncPaper();return;
     }
+    if(data?.type==="pubcast:2i-collapse"){setExpanded(false);return;}
     if(data?.type!=="pubcast:2i-key" || document.body.dataset.twoiDesk!=="typewriter")return;
     if(initializing || generating || chatSending || editingIdx!==null){
       addChat("notice","Finish the active edit or request before using the typewriter keys.");
