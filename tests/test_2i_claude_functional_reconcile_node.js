@@ -58,7 +58,7 @@ test('Cancel New Chapter does not create an undo entry',()=>{
 
 function replacing({narrative=false}={}) {
   let snapshots=0,dirty=0,renders=0;
-  const fields={frFind:{value:'cat'},frReplace:{value:'dog'},frResult:{textContent:'',className:''}};
+  const fields={frFind:{value:'cat'},frReplace:{value:'dog'},frResult:{textContent:'',className:''},frReplaceAllBtn:{}};
   const state={
     $:id=>fields[id],window:{twoiNarrativeHistory:narrative?{}:null},
     committed:['cat cat','locked cat','cat'],buffer:[],lockedLines:new Set([1]),
@@ -72,7 +72,6 @@ function replacing({narrative=false}={}) {
 }
 test('Fallback Replace All counts once and never changes locked lines',()=>{
   const x=replacing();
-  x.fields.frReplaceAllBtn; // Existing page binding is represented by the real handler assignment.
   x.state.$('frReplaceAllBtn').onclick();
   assert.equal(x.state.soloTextarea.value,'dog dog\nlocked cat\ndog');
   assert.equal(x.state.committed.join('\n'),x.state.soloTextarea.value);
