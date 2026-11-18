@@ -65,6 +65,12 @@ function hostLocalProvider(config) {
 
 let recoveryTimer, serverTimer;
 const networked = location.protocol === 'http:' || location.protocol === 'https:';
+// File-tray text fields must stay locked until their own source and save
+// session have loaded. Ordinary Reach startup is never file-tray readiness.
+if(reachFileMode){
+  soloTextarea.readOnly=true;draftArea.readOnly=true;
+  $('saveBtn').disabled=true;
+}
 // Autosave history belongs to the authenticated account, like server documents.
 openDB=function() {
   if(reachFileMode || !window.indexedDB || (networked && !serverReady))return Promise.resolve(null);
@@ -172,7 +178,7 @@ function markDirty() {
   setSaveStatus(saveConflict ? 'Changed elsewhere · save a copy' : 'Saving…');
   clearTimeout(recoveryTimer); recoveryTimer = setTimeout(writeRecovery, 120);
   clearTimeout(serverTimer);
-  if (!initializing) serverTimer = setTimeout(() => saveDocument(), 1000);
+  if (!initializing && !reachFileMode) serverTimer = setTimeout(() => saveDocument(), 1000);
   document.dispatchEvent(new Event('foresight:work-change'));
 }
 async function writeAutosave() {
@@ -190,7 +196,9 @@ async function writeAutosave() {
   });
 }
 async function saveDocument() {
-  if (initializing) return false;
+  // This is Reach's default document saver. Its Foresight replacement is
+  // installed only after a real file session is mounted.
+  if (reachFileMode || initializing) return false;
   if (savePromise) return savePromise;
   writeRecovery();
   if (saveConflict) { setSaveStatus('Changed elsewhere · My manuscripts → Save a copy'); return false; }
@@ -269,7 +277,28 @@ async function saveToFile() {
   }
 }
 // What the Save button, File › Save and Ctrl+S do: the host when there is one, the file when there is not.
-function saveNow() { return networked ? saveDocument() : saveToFile(); }
+function saveNow() {
+  // File-tray documents are owned by ForesightFiles, not the Reach manuscript
+  // collection. File-menu and Ctrl+S can fire before the asynchronous mount,
+  // while Reach's ordinary saveDocument is still installed. Never let them
+  // write the wrong document or claim the actual file was saved.
+  if(reachFileMode) {
+    if(!window.foresightFileSession) {
+      // After an actual mount failure the adapter disables Save and displays
+      // a recovery instruction. Ctrl+S must not overwrite it with "Opening".
+      if(!$('saveBtn').disabled)
+        setSaveStatus('Opening Foresight file · Save unavailable until ready');
+      return Promise.resolve(false);
+    }
+    // Menu and Ctrl+S have no Promise rejection handler of their own.
+    // A failed file write must be shown, not become an unhandled rejection.
+    return Promise.resolve().then(()=>saveDocument()).catch(error=>{
+      setSaveStatus('Foresight file not saved · ' + String(error?.message||error));
+      return false;
+    }); // rebound by file-workspace.js to session.save()
+  }
+  return networked ? saveDocument() : saveToFile();
+}
 async function preserveBeforeSwitch() {
   if (chatSending || generating || editingIdx!==null) {
     addChat('notice', 'An inline edit, message or generation is still active. Finish or cancel it before changing manuscripts.');
@@ -310,7 +339,18 @@ function keepChapterPositions(previous,next) {
     chapter.startLine=next.slice(0,Math.max(0,moved)).split('\n').length-1;
   });
 }
+// The Foresight file route must never run ordinary Reach manuscript
+// navigation while its separate file adapter is mounting or after it owns
+// the document. Its own new/open/save-as handlers replace these on readiness.
+function blockReachFileOperation(operation) {
+  if(!reachFileMode)return false;
+  addChat('notice',window.foresightFileSession
+    ? 'Use the Foresight file controls to '+operation+'.'
+    : 'Finish opening this Foresight file before '+operation+'.');
+  return true;
+}
 async function saveDocumentAs() {
+  if(blockReachFileOperation('save a copy'))return false;
   writeRecovery();
   downloadFile(safeName()+'.2i', JSON.stringify(docPayload(),null,2), 'application/json');
   setSaveStatus('Copy exported · ' + (revision ? 'Reach revision '+revision : 'browser recovery kept'));
@@ -344,6 +384,7 @@ async function importDocument(file, fileHandle = null) {
   return true;
 }
 async function openDocument() {
+  if(blockReachFileOperation('open another file'))return;
   // No host, and the browser has a file picker: keep the chosen file's handle so Save writes back to that file.
   if (!networked && typeof window.showOpenFilePicker === 'function') {
     try {
@@ -357,6 +398,7 @@ async function openDocument() {
   input.click();
 }
 async function newDocument() {
+  if(blockReachFileOperation('create a new file'))return;
   if(!await preserveBeforeSwitch())return;
   cancelLLM(); stopPlaying(); documentId=uuid(); revision=0; saveConflict=false;
   documentTitle='Untitled manuscript'; documentHandle=null;
@@ -653,6 +695,7 @@ async function showRevisionHistory() {
 }
 
 async function showShelf() {
+  if(blockReachFileOperation('open Reach manuscripts'))return;
   if (networked) await saveDocument();
   else writeRecovery();
   const shelf=$('reachShelfList');shelf.replaceChildren();
@@ -714,6 +757,7 @@ $('partnerSelect').onchange=switchPartner;
 $('saveBtn').onclick=()=>saveNow();
 $('llmPill').onclick=openLLMModal;
 $('shelfBtn').onclick=showShelf;
+if(reachFileMode)$('shelfBtn').style.display='none';
 const shelf=document.createElement('div'); shelf.className='modal-backdrop'; shelf.id='reachShelf';
 shelf.innerHTML='<div class="modal" role="dialog" aria-label="My manuscripts"><div class="modal-title">My manuscripts</div><div class="shelf-list" id="reachShelfList"></div><div class="modal-actions"><button class="mc-btn" id="shelfClose">Close</button><button class="mc-btn" id="shelfImport">Import .2i</button><button class="mc-btn" id="shelfCopy">Save a copy</button><button class="mc-btn primary" id="shelfNew">New manuscript</button></div></div>';
 document.body.append(shelf);
@@ -776,7 +820,10 @@ window.addEventListener('beforeunload',event=>{
     event.returnValue = '';
   }
 });
-document.addEventListener('visibilitychange',()=>{if(document.hidden){writeRecovery();saveDocument();}});
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden || reachFileMode)return; // Foresight has its own flush listener.
+  writeRecovery();saveDocument();
+});
 // Associate the donor's visual labels with their controls for keyboard/screen-reader use.
 document.querySelectorAll('.modal label').forEach(label=>{const next=label.nextElementSibling;if(next?.id&&!label.htmlFor)label.htmlFor=next.id;});
 async function startReach() {

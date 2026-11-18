@@ -3006,6 +3006,12 @@ function init() {
 document.addEventListener('dragover', e => e.preventDefault());
 document.addEventListener('drop', async e => {
   e.preventDefault();
+  // Foresight file drops belong to file-workspace.js after its own session
+  // mounts. Before that, never import into Reach's unrelated manuscript state.
+  if(typeof reachFileMode!=='undefined' && reachFileMode){
+    addChat('notice','Finish opening this Foresight file before dropping another.');
+    return;
+  }
   const file = e.dataTransfer?.files?.[0];
   if (!file) return;
   if (file.name.endsWith('.2i') || file.name.endsWith('.json')) {
