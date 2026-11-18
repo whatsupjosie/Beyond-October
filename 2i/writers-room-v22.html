@@ -1638,15 +1638,24 @@ function captureUndoPoint() {
   if(nativeFormatting)point.formatting=TwoiFormatCore.clone(syncManuscriptFormat());
   return point;
 }
-function snapshot() {
-  undoStack.push(captureUndoPoint());
+function snapshot(metadataOnly=false) {
+  const point=captureUndoPoint();
+  // Claude's undo rule: a lock or chapter operation must not roll back words
+  // typed afterwards. Fable's full narrative and text snapshots stay intact.
+  point.metadataOnly=!!metadataOnly;
+  undoStack.push(point);
   if (undoStack.length > MAX_UNDO) undoStack.shift();
   redoStack = [];
 }
 function restoreUndoPoint(s,kind) {
-  if(s.narrative&&window.twoiNarrativeHistory)window.twoiNarrativeHistory.restore(s.narrative,buffer.join('\n')===s.buffer.join('\n')?'':buffer.join('\n'),kind);
-  committed=s.committed;buffer=s.buffer;lockedLines=s.lockedLines;chapters=s.chapters;
-  if(nativeFormatting){manuscriptFormat=TwoiFormatCore.restore(s.formatting,committed);formatPrevious=committed.slice();}
+  const keepWriteText=!!s.metadataOnly&&!coWriting&&s.coWriting!==true;
+  const liveText=keepWriteText?soloTextarea.value:null;
+  if(s.narrative&&window.twoiNarrativeHistory&&!keepWriteText)
+    window.twoiNarrativeHistory.restore(s.narrative,buffer.join('\n')===s.buffer.join('\n')?'':buffer.join('\n'),kind);
+  committed=keepWriteText?liveText.split('\n'):s.committed;
+  buffer=s.buffer;lockedLines=s.lockedLines;chapters=s.chapters;
+  // Metadata-only undo must not roll back formatting on subsequent edits.
+  if(nativeFormatting&&!keepWriteText){manuscriptFormat=TwoiFormatCore.restore(s.formatting,committed);formatPrevious=committed.slice();}
   if(typeof s.coWriting==='boolean'){coWriting=s.coWriting;updateModeUI();}
   selectedIdx=null;editingIdx=null;
   if(!coWriting)soloTextarea.value=committed.join('\n');
@@ -1657,13 +1666,17 @@ function undo() {
   if (!undoStack.length) return;
   if(window.twoiNarrativeHistory&&(generating||chatSending||editingIdx!==null)){addChat('notice','Finish the active edit or request before undoing.');return;}
   if(window.twoiNarrativeHistory&&playing)stopPlaying();
-  redoStack.push(captureUndoPoint());restoreUndoPoint(undoStack.pop(),'undo');
+  const point=undoStack.pop(),redoPoint=captureUndoPoint();
+  redoPoint.metadataOnly=!!point.metadataOnly;
+  redoStack.push(redoPoint);restoreUndoPoint(point,'undo');
 }
 function redo() {
   if (!redoStack.length) return;
   if(window.twoiNarrativeHistory&&(generating||chatSending||editingIdx!==null)){addChat('notice','Finish the active edit or request before redoing.');return;}
   if(window.twoiNarrativeHistory&&playing)stopPlaying();
-  undoStack.push(captureUndoPoint());restoreUndoPoint(redoStack.pop(),'redo');
+  const point=redoStack.pop(),undoPoint=captureUndoPoint();
+  undoPoint.metadataOnly=!!point.metadataOnly;
+  undoStack.push(undoPoint);restoreUndoPoint(point,'redo');
 }
 
 // ── DIRTY / AUTOSAVE ───────────────────────────────────────────────
@@ -1856,7 +1869,7 @@ async function openDocument() {
       documentDirty = false; $('saveIndicator').textContent = 'saved';
       render();
       return;
-    } catch (e) { if (e.name !== 'AbortError') addChat('pp', '⚠ ' + e.message); return; }
+    } catch (e) { if (e.name !== 'AbortError') addChat('notice', '⚠ ' + e.message); return; }
   }
   // Fallback: file input
   const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.2i,.json';
@@ -1871,7 +1884,7 @@ async function openDocument() {
       loadDocState(doc.state);
       documentDirty = false; $('saveIndicator').textContent = 'saved';
       render();
-    } catch (e) { addChat('pp', '⚠ ' + e.message); }
+    } catch (e) { addChat('notice', '⚠ ' + e.message); }
   };
   inp.click();
 }
@@ -1949,7 +1962,7 @@ function approveBuffer() {
   ppCommit();
 }
 function lockScene() {
-  snapshot();
+  snapshot(true);
   // Lock lines from the last chapter start to end of committed
   const lastChapter = [...chapters].reverse().find(c => c.startLine <= committed.length - 1);
   const start = lastChapter ? lastChapter.startLine : 0;
@@ -1957,22 +1970,25 @@ function lockScene() {
   markDirty(); render();
 }
 function lockAll() {
-  snapshot();
+  snapshot(true);
   committed.forEach((_, i) => lockedLines.add(i));
   markDirty(); render();
 }
 function unlockSelected() {
-  if (selectedIdx === null) { addChat('pp', 'Select a line first, then unlock it.'); return; }
-  snapshot();
-  lockedLines.delete(selectedIdx);
-  markDirty(); render();
+  // Write mode has no selected paragraph: use the cursor's paragraph instead.
+  const idx=coWriting?selectedIdx:soloTextarea.value.slice(0,soloTextarea.selectionStart).split('\n').length-1;
+  if(idx===null){addChat('notice','Select a line first, then unlock it.');return;}
+  if(!lockedLines.has(idx)){addChat('notice','Line '+(idx+1)+' is not locked.');return;}
+  snapshot(true);
+  lockedLines.delete(idx);
+  markDirty();render();
 }
 function newChapter() {
-  snapshot();
   const num = chapters.length + 1;
   const title = prompt('Chapter title:', 'Chapter ' + numberToWord(num));
-  if (!title) return;
+  if (!title) return; // Cancel must not create a phantom undo step.
   const sub = prompt('Subtitle (optional):', '') || '';
+  snapshot(true);
   chapters.push({ title, subtitle: sub, startLine: committed.length + buffer.length });
   markDirty(); render();
 }
@@ -2010,7 +2026,7 @@ async function generateMore() {
     const lines = reply.split(/\n+/).map(l => l.trim()).filter(Boolean);
     if (lines.length) { lines.forEach(l => ppMarkGenerated(l)); pool = pool.concat(lines); return true; }
   } catch (e) {
-    if (e.name !== 'AbortError') addChat('pp', '⚠ Generation failed: ' + e.message);
+    if (e.name !== 'AbortError') addChat('notice', '⚠ Generation failed: ' + e.message);
   } finally {
     generating = false; $('genBtn').disabled = false; render();
   }
@@ -2089,7 +2105,7 @@ function speechRead(text, done) {
     else if (result.canceled) stopPlaying();
   }).catch(error => {
     if (token !== speechToken) return;
-    stopPlaying(); addChat('pp', 'Speech stopped: ' + error.message);
+    stopPlaying(); addChat('notice', 'Speech stopped: ' + error.message);
   });
 }
 function cancelSpeech() {
@@ -2124,7 +2140,7 @@ async function sendChat() {
     chatHistory.push({ role: 'assistant', content: reply || '' });
   } catch (e) {
     thinkEl.remove();
-    if (e.name !== 'AbortError') addChat('pp', '⚠ ' + e.message);
+    if (e.name !== 'AbortError') addChat('notice', '⚠ ' + e.message);
   } finally { $('chatSendBtn').disabled = false; chatSending = false; }
 }
 $('chatSendBtn').onclick = sendChat;
@@ -2255,35 +2271,27 @@ $('frReplaceAllBtn').onclick = () => {
     $('frResult').textContent=hits+' replacement(s) made · '+skipped+' protected occurrence(s) skipped';
     $('frResult').className='test-result ok';return;
   }
-  snapshot();
-  let count = 0;
-  // Replace in committed
-  committed = committed.map(l => {
-    if (l.includes(find)) { count += l.split(find).length - 1; return l.split(find).join(replace); }
-    return l;
-  });
-  // Replace in buffer
-  buffer = buffer.map(l => {
-    if (l.includes(find)) { count += l.split(find).length - 1; return l.split(find).join(replace); }
-    return l;
-  });
-  // Replace in reading
-  if (reading?.text?.includes(find)) {
-    count += reading.text.split(find).length - 1;
-    reading.text = reading.text.split(find).join(replace);
+  // Fallback when NarrativeCore is unavailable: keep Claude's exact-count,
+  // locked-line-safe Replace All behavior without rebuilding Fable's primary path.
+  // The text area is authoritative in Write mode, and must be synchronized once.
+  if (!coWriting) committed = soloTextarea.value.split('\n');
+  const tally = value => value.split(find).length - 1;
+  const skipped = committed.reduce((n,line,i)=>n+(lockedLines.has(i)?tally(line):0),0);
+  const updated = committed.map((line,i)=>lockedLines.has(i)?line:line.split(find).join(replace));
+  const nextBuffer = buffer.map(line=>line.split(find).join(replace));
+  const count = committed.reduce((n,line,i)=>n+(lockedLines.has(i)?0:tally(line)),0)
+    +buffer.reduce((n,line)=>n+tally(line),0);
+  if(count) {
+    snapshot();
+    committed=updated;
+    buffer=nextBuffer;
+    if(!coWriting)soloTextarea.value=committed.join('\n');
+    if(reading?.text?.includes(find))reading.text=reading.text.split(find).join(replace);
+    markDirty();render();
   }
-  // Replace in solo textarea
-  if (!coWriting) {
-    const val = soloTextarea.value;
-    if (val.includes(find)) {
-      count += val.split(find).length - 1;
-      soloTextarea.value = val.split(find).join(replace);
-      committed = soloTextarea.value.split('\n');
-    }
-  }
-  $('frResult').textContent = count + ' replacement' + (count !== 1 ? 's' : '') + ' made';
-  $('frResult').className = 'test-result ok';
-  markDirty(); render();
+  $('frResult').textContent=count+' replacement'+(count!==1?'s':'')+' made'
+    +(skipped?'; '+skipped+' in locked lines left unchanged':'');
+  $('frResult').className='test-result ok';
 };
 
 // ── CONTEXT MENU ───────────────────────────────────────────────────
@@ -2307,7 +2315,7 @@ document.addEventListener('click', () => contextMenu.classList.remove('open'));
 $('ctxEdit').onclick = () => {
   if(window.twoiNarrativeHistory&&(generating||chatSending||playing)){addChat('notice','Finish the active request or playback before inline editing.');return;}
   if (selectedIdx === null) return;
-  if (lockedLines.has(selectedIdx)) { addChat('pp', 'Unlock the line first.'); return; }
+  if (lockedLines.has(selectedIdx)) { addChat('notice', 'Unlock the line first.'); return; }
   editingIdx = selectedIdx; render();
 };
 $('ctxInsertAbove').onclick = () => {
@@ -2343,7 +2351,7 @@ $('ctxUnlock').onclick = () => {
 };
 $('ctxDelete').onclick = () => {
   if (selectedIdx === null) return;
-  if (lockedLines.has(selectedIdx)) { addChat('pp', 'Unlock the line before deleting.'); return; }
+  if (lockedLines.has(selectedIdx)) { addChat('notice', 'Unlock the line before deleting.'); return; }
   snapshot(); committed.splice(selectedIdx, 1);
   const newLocked = new Set();
   lockedLines.forEach(i => { if (i < selectedIdx) newLocked.add(i); else if (i > selectedIdx) newLocked.add(i - 1); });
@@ -2463,7 +2471,7 @@ function renderManuscriptLines() {
       div.oncontextmenu = e => showContextMenu(e, i);
       div.ondblclick = () => {
         if(window.twoiNarrativeHistory&&(generating||chatSending||playing)){addChat('notice','Finish the active request or playback before inline editing.');return;}
-        if (lockedLines.has(i)) { addChat('pp', 'Unlock the line to edit it.'); return; }
+        if (lockedLines.has(i)) { addChat('notice', 'Unlock the line to edit it.'); return; }
         editingIdx = i; render();
       };
       manuscriptLines.appendChild(div);
@@ -2955,7 +2963,7 @@ function init() {
   // Load any existing autosave notification
   listAutosaves().then(list => {
     if (list.length && !committed.length && !soloTextarea.value.trim()) {
-      addChat('pp', 'I found autosaved work. Use Menu → Restore autosave to recover it.');
+      addChat('notice', 'I found autosaved work. Use Menu → Restore autosave to recover it.');
     }
   });
 }
@@ -2969,7 +2977,7 @@ document.addEventListener('drop', async e => {
     try {
       const text = await file.text();
       const doc = JSON.parse(text);
-      if (doc.format !== '2i-document') { addChat('pp', '⚠ Not a 2i document.'); return; }
+      if (doc.format !== '2i-document') { addChat('notice', '⚠ Not a 2i document.'); return; }
       if (documentDirty && !confirm('Discard unsaved changes?')) return;
       standaloneDocumentId++;
       documentTitle = doc.title || 'Untitled';
@@ -2977,15 +2985,15 @@ document.addEventListener('drop', async e => {
       loadDocState(doc.state);
       documentDirty = false; $('saveIndicator').textContent = 'saved';
       render();
-      addChat('pp', 'Loaded: ' + documentTitle);
-    } catch (err) { addChat('pp', '⚠ ' + err.message); }
+      addChat('notice', 'Loaded: ' + documentTitle);
+    } catch (err) { addChat('notice', '⚠ ' + err.message); }
   } else if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
     // Import as reference
     try {
       const text = await file.text();
       addReference(file.name, 'research', text);
       addChat('pp', 'Added "' + file.name + '" to Reference Archive.');
-    } catch (err) { addChat('pp', '⚠ ' + err.message); }
+    } catch (err) { addChat('notice', '⚠ ' + err.message); }
   }
 });
 
@@ -3238,7 +3246,7 @@ async function ppResolveFlag(flagId) {
       ppRenderFlags();
     }
   } catch (e) {
-    addChat('pp', 'Could not dismiss that note: ' + e.message);
+    addChat('notice', 'Could not dismiss that note: ' + e.message);
   }
 }
 
