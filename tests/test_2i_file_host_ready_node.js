@@ -9,7 +9,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 const script=fs.readFileSync(path.join(__dirname,'../2i/2i-assets/file-workspace.js'),'utf8');
 
-async function launch({failReach=false,authPending=false}={}) {
+async function launch({failReach=false,authPending=false,missingFile=false,mountThrows=false}={}) {
   const events=[],handlers={},created=[];
   class ResizeObserver{observe(){}disconnect(){}}
   const shell={style:{}};
@@ -25,7 +25,7 @@ async function launch({failReach=false,authPending=false}={}) {
   const session={
     save:async()=>{events.push({type:'session-save'});return true;},
     saveAs:async()=>true,flush:async()=>true,
-    activity:()=>({dirty:false,busy:false,recovery:true}),
+    activity:()=>({dirty:false,busy:false,recovery:!missingFile}),
     pending:()=>false,prepareClose:async()=>true,export:async()=>({})
   };
   const window={reachStarted:failReach?Promise.reject(Error('Account unavailable')):Promise.resolve()};
@@ -49,7 +49,7 @@ async function launch({failReach=false,authPending=false}={}) {
     location:{search:'?file=file123&foresightSession=nonce123',origin:'https://local.test'},
     $:id=>buttons[id]||{},
     addEventListener:(type,fn)=>(handlers[type]??=[]).push(fn),
-    ForesightFiles:{mount:async()=>session,record:async()=>true},
+    ForesightFiles:{mount:async()=>{if(mountThrows)throw Error('Storage offline');return session;},record:async()=>true},
     soloTextarea:{dispatchEvent(){}},
     markDirty(){},getDocState:()=>({}),loadDocState(){},render(){},
     coWriting:false,committed:['Text'],documentTitle:'Untitled',
@@ -89,4 +89,20 @@ test('a visible login prompt is not falsely announced as a ready document',async
   assert.equal(f.window.foresightFileSession,undefined);
   assert.equal(f.buttons.saveBtn.disabled,true);
   assert.match(f.buttons.saveIndicator.textContent,/Sign in to Reach/);
+});
+
+test('missing Foresight file is not misreported as loaded or save-ready',async()=>{
+  const f=await launch({missingFile:true});
+  assert.equal(f.events.filter(x=>x.type==='foresight:file-ready').length,0);
+  assert.equal(f.events.filter(x=>x.type==='session-save').length,0);
+  assert.equal(f.window.foresightFileSession,undefined);
+  assert.equal(f.buttons.saveBtn.disabled,true);
+  assert.match(f.buttons.saveIndicator.textContent,/not opened/);
+  assert.match(f.created[0].textContent,/did not open safely/);
+});
+test('file mount failure blocks Save and never tells host it is ready',async()=>{
+  const f=await launch({mountThrows:true});
+  assert.equal(f.events.filter(x=>x.type==='foresight:file-ready').length,0);
+  assert.equal(f.buttons.saveBtn.disabled,true);
+  assert.match(f.created[0].textContent,/Storage offline/);
 });
