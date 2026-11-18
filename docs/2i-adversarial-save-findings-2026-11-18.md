@@ -147,3 +147,29 @@ While diagnosing the two failing checks I ran `tools/workbench_preflight.py` dir
   - `test_2i_typewriter_relay_node.js`: `deepStrictEqual` compares an object created inside a `vm` context; identical content fails on the cross-context prototype. Compare with `JSON` or a plain copy.
   - `test_2i_professional_ui_node.js`: slices `canPresent` up to `"\n  if(reachFileMode)"`, which a later change replaced with `const filePresentation=!!reachFileMode;`.
 - **Regression after Update 3:** Python, 2i path plus rich tests: **160 passed, 0 failed, 1 skipped**. Node: **50 passed, 5 failed** (the five above, unchanged from PR #13).
+
+## Update 4: formats ("as many formats as we can run")
+
+**Method.** 32 fixtures made by real producers (LibreOffice 24, pandoc, ffmpeg, Pillow; `tools/make_format_fixtures.py`, `tests/fixtures/formats/MANIFEST.json`, 293 KB) were opened through the real app path in Chromium before any change, and the result recorded per format. `tests/test_2i_format_matrix.py` (32 browser tests) now holds every result. Oracles: original bytes read raw from IndexedDB, exported DOCX parsed with python-docx, downloads compared byte for byte.
+
+**Worked already (now tested):**
+- Text, edited directly with exact round trip (edit, save, reopen, export, original unchanged): TXT, MD, CSV, JSON, HTML, Fountain.
+- Converted to an editable text copy, with Export DOCX: DOCX, ODT, PDF, PPTX, XLSX.
+- Images, displayed with rotate and crop, the edit kept as a PNG working copy and the original unchanged: PNG, JPEG, GIF, WebP, BMP, SVG.
+- Audio and video, decoded with the right length: WAV, MP3, OGG, Opus, FLAC, M4A, MP4, WebM, MOV (in the test Chromium; see "Not verified").
+
+**Defects found and fixed:**
+1. **RTF opened as raw markup** (`{\rtf1\ansi…`) under "2i text editor ready", inviting edits that could corrupt the file. Now converted to text by a standard-library parser (groups; skipped destinations including font and colour tables, pictures, headers, footers and footnotes; `\'hh` in the document's code page; `\uN` with surrogate pairs; escapes). Checked on LibreOffice and pandoc RTF, an emoji surrogate pair, escapes and an unknown `\*` destination; non-RTF input is refused.
+2. **EPUB, ODS and ODP could not be opened** ("Failed to execute 'decode' on 'TextDecoder'"). New converters: EPUB follows the book's own reading order (container, package, spine; paths outside the book refused); ODS gives tab-separated rows like XLSX, without expanding LibreOffice's runs of thousands of repeated empty cells; ODP gives slide text like PPTX, without speaker notes. All use the existing archive and XML limits.
+3. **Unknown binaries showed a raw browser error.** Now: "This file is not text that 2i can edit, and there is no converter for its format here. Use Download original to get it back." followed by "The original has not been altered."
+4. **Legacy Word `.doc` showed the same raw error.** It is a closed binary format that cannot be read reliably without Word or LibreOffice, so it is not converted; the message says to open it in Word or LibreOffice, save it as `.docx`, and open that copy, and to use Download original meanwhile.
+
+On `d993d26` the six tests for these four defects fail and the other 26 pass; all 32 pass now.
+
+**Harness gap found:** the shared browser fixture routes only `/api/foresight/files/convert` to the real code, so Export DOCX could never complete in tests. The format matrix serves the real export and rich routes itself.
+
+**Not verified / not supported:**
+- Media decoding was checked in Playwright's Chromium, which includes proprietary codecs. Firefox does not play MOV/H.264 everywhere, and some Chromium builds lack AAC/H.264; not tested.
+- HEIC and AVIF photos (common from phones): no encoder here to make fixtures; not tested.
+- Rich (formatted) editing is offered for `.2i` rich archives. Opening a `.docx` gives a text copy, with a button to make a rich `.2i` from the original. Opening a DOCX straight into the formatted editor is the natural next step and is not built.
+- Legacy `.doc`, `.pages`, `.key`, `.numbers`, `.wpd` and other closed formats: not converted.

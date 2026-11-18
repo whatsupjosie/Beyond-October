@@ -1,0 +1,141 @@
+{
+  "text": [
+    "Beyond October fixture — first line",
+    "Second line with café, naïve and résumé"
+  ],
+  "producers": {
+    "soffice": "LibreOffice 24.2.7.2 420(Build:2)",
+    "pandoc": "pandoc 3.1.3",
+    "ffmpeg": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers"
+  },
+  "files": {
+    "sample.bin": {
+      "bytes": 1024,
+      "sha256": "785b0751fc2c53dc14a4ce3d800e69ef9ce1009eb327ccf458afe09c242c26c9"
+    },
+    "sample.bmp": {
+      "bytes": 2454,
+      "sha256": "d871e0cf13ab4eac821748c1637fb81764d2f0b89cf50d15862fd639baae02e4"
+    },
+    "sample.csv": {
+      "bytes": 38,
+      "sha256": "579de6498549a1d95258fb4387ae6de80449a4dcb91648b6787a837917ef22f0"
+    },
+    "sample.doc": {
+      "bytes": 12800,
+      "sha256": "6f9adab3cddb3f9341823aa2e7f458d5e5f656af9212328cc21e94a903c20832"
+    },
+    "sample.docx": {
+      "bytes": 7458,
+      "sha256": "4a1505fe886c769cd0fd3ac4c52e1f55d4a63a42f531b60bc25588da9c083282"
+    },
+    "sample.epub": {
+      "bytes": 4972,
+      "sha256": "69ec3cffad330d69dea8f01d9f7e53b4336a5e63d320fcac0997525965d36a7a"
+    },
+    "sample.flac": {
+      "bytes": 20335,
+      "sha256": "1c01d1cd287111d87ea67daa342902636a9245cdbc9b6e0dca79a252532b444d"
+    },
+    "sample.fountain": {
+      "bytes": 71,
+      "sha256": "c98114d6254a50681f54d39ef328dd9655c458a169c3dfd7c17d5a1dbc01d5e4"
+    },
+    "sample.gif": {
+      "bytes": 114,
+      "sha256": "cca6ad4a7dde366254052e6dbe602ca3160d700e7a2def5a85f869ef16eb4c78"
+    },
+    "sample.html": {
+      "bytes": 82,
+      "sha256": "e1808219d4a813fd2142468a978587aca204fdb30d8a45d43f2d7bf3bd719df7"
+    },
+    "sample.jpg": {
+      "bytes": 726,
+      "sha256": "a8ffc0f71d9384d60063617052177a8e96528fa59b8b19fd35d80111a9b11975"
+    },
+    "sample.json": {
+      "bytes": 106,
+      "sha256": "7fbe1217512440aff6c3e74f8d125fa13e4b42c98ac30f6392b035d831e55437"
+    },
+    "sample.m4a": {
+      "bytes": 5138,
+      "sha256": "4b3b9c342f7659eef09554e495a6bf17d6a6dc6f74ca0a8518865faf4185d2b5"
+    },
+    "sample.md": {
+      "bytes": 85,
+      "sha256": "be2c43a0a1aa5aca7759d9d0393ddfac2171cceeea3186374b693bd1db05f7ba"
+    },
+    "sample.mov": {
+      "bytes": 7959,
+      "sha256": "64567b427bf2f02ae6f4854314cbb9a7a41b07c0ab19d2e93f325350211b987b"
+    },
+    "sample.mp3": {
+      "bytes": 4407,
+      "sha256": "04f1e8eb0b6c15d4a47decd59aa7ff6ad2e9204de586bd5ac42ef3720ccfb0ac"
+    },
+    "sample.mp4": {
+      "bytes": 7908,
+      "sha256": "dc8d2291aa3a12120da5ae50e876c4128a00a2b4247e642332a86a15efa72209"
+    },
+    "sample.odp": {
+      "bytes": 22809,
+      "sha256": "809b97d53ded97b319f3632aa1464c164ec9ec0796b295dc5ebe66a649211ca8"
+    },
+    "sample.ods": {
+      "bytes": 9240,
+      "sha256": "8eccb8e94ef874773f206982a9d75d03bc62afbb135ccacacd287074e109a3bb"
+    },
+    "sample.odt": {
+      "bytes": 6887,
+      "sha256": "918de45ab90b64819cbcc56793b32520089223287305ceb12ed3bf191c900be1"
+    },
+    "sample.ogg": {
+      "bytes": 5265,
+      "sha256": "042ab4e9a1a4e2d9e4bb62b8ab36eb29a6eab742a6459e7d32d00e2cc29510f6"
+    },
+    "sample.opus": {
+      "bytes": 3854,
+      "sha256": "d85c26449539a2aa77f9b200c40ca86d3949f85750786ab6ed84bf40d83a0d05"
+    },
+    "sample.pdf": {
+      "bytes": 12116,
+      "sha256": "55afd1a98c2bf498c9859076ae4fe4ee26b40074f82302168cc17b60cd79e47c"
+    },
+    "sample.png": {
+      "bytes": 111,
+      "sha256": "aa7924d407508a70ab1c934c3dfc60c4c83a70ff013f963615ce1ce4499af49f"
+    },
+    "sample.pptx": {
+      "bytes": 48886,
+      "sha256": "df62bbbb5c115a223816cdaad9a453ea0b7ba9573ea3ccd8e61ccedfd94dc3dc"
+    },
+    "sample.rtf": {
+      "bytes": 6630,
+      "sha256": "b154bc940e223fd9b8aafb6094f9b92eb5e895d5c78206ef6463a7a45780748d"
+    },
+    "sample.svg": {
+      "bytes": 112,
+      "sha256": "335a2f3350040f90542b851d291c03baa09bf220c7bef47b11e862f926ec0586"
+    },
+    "sample.txt": {
+      "bytes": 97,
+      "sha256": "b896c5e46d9de48cbcf59ca3f5e5067ab01ffb2c9927fb7987d480a9aefb0ea1"
+    },
+    "sample.wav": {
+      "bytes": 88278,
+      "sha256": "3a22af6115b00e3e8c01efb8cd045c081b22d1dde9600bcb6d5cbf818a39fb3a"
+    },
+    "sample.webm": {
+      "bytes": 7774,
+      "sha256": "6c3f35c07efee54a99eeda7fbef7ace0cdb6cd58442e19bb987d723df307331e"
+    },
+    "sample.webp": {
+      "bytes": 150,
+      "sha256": "f53e5b03b52469facc925d82c6f16bec7f651428fd9f91a982556d8d84844797"
+    },
+    "sample.xlsx": {
+      "bytes": 5564,
+      "sha256": "90b8e8c4ec406109f07830b2c6a16fba21b6844b56e5d132016f18b817906601"
+    }
+  }
+}

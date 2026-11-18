@@ -77,6 +77,232 @@ def xml_member(z: zipfile.ZipFile, name: str):
     return ET.fromstring(data)
 
 
+ODF_TEXT = "{urn:oasis:names:tc:opendocument:xmlns:text:1.0}"
+ODF_TABLE = "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}"
+ODF_DRAW = "{urn:oasis:names:tc:opendocument:xmlns:drawing:1.0}"
+ODF_PRESENTATION = "{urn:oasis:names:tc:opendocument:xmlns:presentation:1.0}"
+MAX_CELLS = 200000
+
+
+def odf_text(node) -> str:
+    """Text of one ODF paragraph, honouring its space, tab and line-break elements."""
+    parts = [node.text or ""]
+    for child in node:
+        if child.tag == ODF_TEXT + "s":
+            parts.append(" " * int(child.get(ODF_TEXT + "c", "1") or 1))
+        elif child.tag == ODF_TEXT + "tab":
+            parts.append("\t")
+        elif child.tag == ODF_TEXT + "line-break":
+            parts.append("\n")
+        else:
+            parts.append(odf_text(child))
+        parts.append(child.tail or "")
+    return "".join(parts)
+
+
+def ods_lines(root) -> list[str]:
+    """Each sheet as tab-separated rows. Repeated empty cells and rows (LibreOffice writes runs of thousands)
+    are dropped at the ends of rows and sheets instead of being expanded."""
+    lines: list[str] = []
+    cells = 0
+    for sheet in root.iter(ODF_TABLE + "table"):
+        lines.append("--- " + (sheet.get(ODF_TABLE + "name") or "Sheet") + " ---")
+        pending_empty_rows = 0
+        for row in sheet.iter(ODF_TABLE + "table-row"):
+            runs = []
+            for cell in row:
+                if cell.tag not in {ODF_TABLE + "table-cell", ODF_TABLE + "covered-table-cell"}:
+                    continue
+                value = " ".join(odf_text(p) for p in cell.iter(ODF_TEXT + "p"))
+                runs.append((value, int(cell.get(ODF_TABLE + "number-columns-repeated", "1") or 1)))
+            while runs and runs[-1][0] == "":
+                runs.pop()
+            repeat = int(row.get(ODF_TABLE + "number-rows-repeated", "1") or 1)
+            if not runs:
+                pending_empty_rows += repeat
+                continue
+            width = sum(count for _, count in runs)
+            cells += width * (repeat + pending_empty_rows)
+            if cells > MAX_CELLS:
+                raise ValueError("Spreadsheet exceeds 200,000-cell conversion limit")
+            lines.extend([""] * pending_empty_rows)
+            pending_empty_rows = 0
+            line = "\t".join(value for value, count in runs for _ in range(count))
+            lines.extend([line] * repeat)
+    return lines
+
+
+def odp_lines(root) -> list[str]:
+    """Slide text in order. Speaker notes are left out, as for PPTX."""
+    lines: list[str] = []
+
+    def walk(node):
+        if node.tag == ODF_PRESENTATION + "notes":
+            return
+        if node.tag in {ODF_TEXT + "p", ODF_TEXT + "h"}:
+            lines.append(odf_text(node))
+            return
+        for child in node:
+            walk(child)
+
+    for number, slide in enumerate(root.iter(ODF_DRAW + "page"), 1):
+        lines.append(f"--- Slide {number} ---")
+        walk(slide)
+    return lines
+
+
+class _HTMLText:
+    """Readable text from (X)HTML using the standard parser: block elements become line breaks."""
+
+    BLOCKS = {"p", "div", "section", "article", "blockquote", "li", "tr", "h1", "h2", "h3", "h4", "h5", "h6",
+              "pre", "hr", "dt", "dd", "figcaption", "header", "footer", "aside", "nav"}
+
+    @classmethod
+    def extract(cls, markup: str) -> list[str]:
+        from html.parser import HTMLParser
+
+        class Parser(HTMLParser):
+            def __init__(self):
+                super().__init__(convert_charrefs=True)
+                self.lines, self.current, self.skip, self.pre = [], [], 0, 0
+
+            def flush(self):
+                text = "".join(self.current)
+                if not self.pre:
+                    text = " ".join(text.split())
+                if text.strip():
+                    self.lines.append(text)
+                self.current = []
+
+            def handle_starttag(self, tag, attrs):
+                if tag in {"script", "style", "head"}:
+                    self.skip += 1
+                elif tag == "br":
+                    self.flush()
+                elif tag in cls.BLOCKS:
+                    self.flush()
+                    self.pre += tag == "pre"
+
+            def handle_endtag(self, tag):
+                if tag in {"script", "style", "head"}:
+                    self.skip = max(0, self.skip - 1)
+                elif tag in cls.BLOCKS:
+                    self.flush()
+                    self.pre -= tag == "pre" and self.pre > 0
+
+            def handle_data(self, data):
+                if not self.skip:
+                    self.current.append(data)
+
+        parser = Parser()
+        parser.feed(markup)
+        parser.close()
+        parser.flush()
+        return parser.lines
+
+
+def epub_lines(z: zipfile.ZipFile) -> list[str]:
+    """Book text in the publication's own reading order (container -> package -> spine)."""
+    import posixpath
+    from urllib.parse import unquote
+
+    container = xml_member(z, "META-INF/container.xml")
+    rootfile = next(container.iter("{urn:oasis:names:tc:opendocument:xmlns:container}rootfile"), None)
+    if rootfile is None or not rootfile.get("full-path"):
+        raise ValueError("EPUB has no package document")
+    package_path = rootfile.get("full-path")
+    package = xml_member(z, package_path)
+    opf = "{http://www.idpf.org/2007/opf}"
+    manifest = {item.get("id"): item.get("href") for item in package.iter(opf + "item")}
+    base = posixpath.dirname(package_path)
+    lines: list[str] = []
+    for itemref in package.iter(opf + "itemref"):
+        if itemref.get("linear") == "no":
+            continue
+        href = manifest.get(itemref.get("idref"))
+        if not href:
+            continue
+        path = posixpath.normpath(posixpath.join(base, unquote(href.split("#", 1)[0])))
+        if path.startswith("../") or path.startswith("/"):
+            raise ValueError("EPUB reading order points outside the book")
+        lines.extend(_HTMLText.extract(z.read(path).decode("utf-8", errors="replace")))
+    return lines
+
+
+RTF_SKIP = {"fonttbl", "colortbl", "stylesheet", "info", "pict", "object", "header", "headerl", "headerr", "headerf",
+            "footer", "footerl", "footerr", "footerf", "footnote", "listtable", "listoverridetable", "rsidtbl",
+            "generator", "xmlnstbl", "themedata", "colorschememapping", "latentstyles", "datastore", "fldinst",
+            "pgdsctbl", "revtbl", "filetbl", "nonshppict", "shp", "bkmkstart", "bkmkend"}
+RTF_CHARACTERS = {"par": "\n", "line": "\n", "sect": "\n\n", "page": "\n\n", "tab": "\t", "cell": "\t", "row": "\n",
+                  "emdash": "\u2014", "endash": "\u2013", "emspace": "\u2003", "enspace": "\u2002", "qmspace": "\u2005",
+                  "bullet": "\u2022", "lquote": "\u2018", "rquote": "\u2019", "ldblquote": "\u201c", "rdblquote": "\u201d"}
+
+
+def rtf_text(raw: bytes) -> str:
+    """Plain text of an RTF document. Formatting groups, pictures, headers, footers and footnotes are skipped;
+    \\'hh bytes use the document's code page and \\uN characters are decoded (including surrogate pairs)."""
+    import codecs
+    import re
+
+    source = raw.decode("latin-1")
+    if not source.lstrip().startswith("{\\rtf"):
+        raise ValueError("This file is not an RTF document")
+    token = re.compile(r"\\([a-z]{1,32})(-?\d{1,10})?[ ]?|\\'([0-9a-f]{2})|\\([^a-z])|([{}])|[\r\n]+|(.)", re.I | re.S)
+    codepage, stack, ignorable, uc_skip, skip, out = "cp1252", [], False, 1, 0, []
+    for word, argument, hex_byte, symbol, brace, char in token.findall(source):
+        if brace:
+            skip = 0
+            if brace == "{":
+                stack.append((uc_skip, ignorable))
+            elif stack:
+                uc_skip, ignorable = stack.pop()
+        elif symbol:
+            skip = 0
+            if symbol == "*":
+                ignorable = True
+            elif not ignorable and symbol in "{}\\":
+                out.append(symbol)
+            elif not ignorable and symbol == "~":
+                out.append("\u00a0")
+            elif not ignorable and symbol in "_-":
+                out.append("-" if symbol == "_" else "")
+        elif word:
+            skip = 0
+            if word in RTF_SKIP:
+                ignorable = True
+            elif word == "bin":
+                raise ValueError("RTF with embedded binary data is not supported")
+            elif ignorable:
+                pass
+            elif word == "ansicpg" and argument:
+                name = "cp" + argument
+                try:
+                    codecs.lookup(name)
+                    codepage = name
+                except LookupError:
+                    pass
+            elif word == "uc" and argument:
+                uc_skip = int(argument)
+            elif word == "u" and argument:
+                value = int(argument)
+                out.append(chr(value + 0x10000 if value < 0 else value))
+                skip = uc_skip
+            elif word in RTF_CHARACTERS:
+                out.append(RTF_CHARACTERS[word])
+        elif hex_byte:
+            if skip > 0:
+                skip -= 1
+            elif not ignorable:
+                out.append(bytes([int(hex_byte, 16)]).decode(codepage, errors="replace"))
+        elif char:
+            if skip > 0:
+                skip -= 1
+            elif not ignorable:
+                out.append(char)
+    text = "".join(out).encode("utf-16", "surrogatepass").decode("utf-16", errors="replace")
+    return "\n".join(line.rstrip() for line in text.strip("\n").split("\n"))
+
+
 def convert(name: str, raw: bytes) -> dict:
     if len(raw) > MAX_BYTES:
         raise ValueError("Document exceeds 24 MB conversion limit")
@@ -160,6 +386,21 @@ def convert(name: str, raw: bytes) -> dict:
             raise ValueError("PDF exceeds 500-page conversion limit")
         text = "\n\n".join(p.extract_text() or "" for p in reader.pages)
         warning = "Extracted PDF text; layout is not retained. Scanned pages require OCR, which is not provided here. Original unchanged."
+    elif ext in {".ods", ".odp", ".epub"}:
+        with archive(raw) as z:
+            if ext == ".ods":
+                lines = ods_lines(xml_member(z, "content.xml"))
+                warning += " Cells are tab-separated; formulas are shown as their results and are not recalculated."
+            elif ext == ".odp":
+                lines = odp_lines(xml_member(z, "content.xml"))
+                warning += " Slide positioning and speaker notes are not included."
+            else:
+                lines = epub_lines(z)
+                warning = "Editable text copy of the book in reading order: images, styling and the table of contents are not preserved. The original is unchanged."
+        text = "\n".join(lines)
+    elif ext == ".rtf":
+        text = rtf_text(raw)
+        warning += " Headers, footers and footnotes are not included."
     else:
         raise ValueError(
             "No local converter for this format. Keep the original or use an installed format-specific application."

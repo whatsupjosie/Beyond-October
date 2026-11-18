@@ -134,8 +134,10 @@ async function decodeText(blob){
   const bytes=new Uint8Array(await blob.arrayBuffer());let encoding='utf-8';
   if(bytes[0]===255&&bytes[1]===254)encoding='utf-16le';
   if(bytes[0]===254&&bytes[1]===255)encoding='utf-16be';
-  const text=new TextDecoder(encoding,{fatal:true}).decode(bytes);
-  if(text.includes('\0'))throw Error('This appears to be a binary file; no text conversion was applied.');
+  // The caller adds "The original has not been altered."; this says what happened and what to do next.
+  const notText='This file is not text that 2i can edit, and there is no converter for its format here. Use Download original to get it back.';
+  let text;try{text=new TextDecoder(encoding,{fatal:true}).decode(bytes);}catch{throw Error(notText);}
+  if(text.includes('\0'))throw Error(notText);
   return text;
 }
 const sessions=new WeakMap();
@@ -369,7 +371,8 @@ async function mount(c,host,file,options={}){
       url=URL.createObjectURL(value.original);media.src=url;media.onerror=()=>say('Your browser cannot decode this media format. Original retained.');area.append(media);say('Media ready · original saved for reopening');
     }else{
       if(value.draft===undefined&&extension==='2i'){if(value.original.size>5*1024*1024)throw Error('2i document exceeds the 5 MB editor limit');const d=JSON.parse(await value.original.text());if(d.format!=='2i-document'||d.version>4||!d.state||!Array.isArray(d.state.committed)||!d.state.committed.every(line=>typeof line==='string'))throw Error('Invalid 2i document');value.title=typeof d.title==='string'?d.title:value.name;value.twoiState=d.state;value.draft=d.state.committed.join('\n');}
-      if(value.draft===undefined&&/^(docx|odt|pptx|xlsx|pdf)$/.test(extension)){
+      if(value.draft===undefined&&extension==='doc')throw Error('Older Word .doc files cannot be opened here. To edit this one, open it in Word or LibreOffice, save it as .docx, and open that copy. Use Download original to get it back.');
+      if(value.draft===undefined&&/^(docx|odt|pptx|xlsx|pdf|ods|odp|epub|rtf)$/.test(extension)){
         say('Converting a working copy…');
         const result=await (await api('convert',{name:value.name,data:await base64(value.original)})).json();
         value.draft=result.text;value.warning=result.warning;value.converted=true;await record(value.id,value);
