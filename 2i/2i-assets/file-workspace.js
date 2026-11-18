@@ -120,6 +120,11 @@ try{
       loadDocState(state);soloTextarea.value=committed.join('\n');documentDirty=false;render();
     }
   });
+  // ForesightFiles.mount can return a session even when the requested record
+  // is missing. That session has no recoverable file and must not be announced
+  // to the host as a ready, writable document.
+  if(!session || typeof session.activity!=='function' || !session.activity().recovery)
+    throw Error('The requested Foresight file did not open safely. Re-import it or restore the saved source.');
   window.foresightFileSession=session;
   saveDocument=()=>session.save();saveDocumentAs=()=>session.saveAs();
   function activeWork(){return !!chatSending||!!generating||!!PP?.inflight||(typeof editingIdx!=='undefined'&&editingIdx!==null);}
@@ -174,5 +179,10 @@ try{
   addEventListener('pagehide',()=>session.flush().catch(console.error));
   document.addEventListener('visibilitychange',()=>{if(document.hidden)session.flush().catch(console.error)});
   addEventListener('beforeunload',event=>{if(session.pending()){event.preventDefault();event.returnValue=''}});
-}catch(error){toolbar.textContent='Could not open file in 2i: '+error.message}
+}catch(error){
+  window.foresightFileSession=undefined;
+  $('saveBtn').disabled=true;
+  $('saveIndicator').textContent='Foresight file not opened · Save unavailable';
+  toolbar.textContent='Could not open file in 2i: '+error.message;
+}
 })();
