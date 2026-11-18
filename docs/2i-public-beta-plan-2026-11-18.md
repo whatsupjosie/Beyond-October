@@ -19,8 +19,9 @@ A count of passing tests is not the gate. 2i is beta-ready when every item below
 | --- | --- | --- |
 | 1, file mode, reload and hide | **Fixed on this branch** (exit journal) | 5 browser tests, red on PR #13 and on `f39ca7a`, green now; mutation-checked |
 | 1, ordinary Reach manuscript, reload with the host unreachable | **Holds** (existing `writeRecovery` to `localStorage`) | New test, 3 of 3; fails with `writeRecovery` disabled |
-| 1, rich DOCX, image and media sessions at exit | **Open, unverified** | Exit journal covers text sessions only |
-| 1, Reach recovery when `localStorage` is full | **Open, designed but untested** | Code shows "Browser recovery unavailable" and a leave warning; never exercised |
+| 1, rich DOCX at exit | **Guarded, residual risk** | Leave warning and hide flush hold (tests); a writer who chooses Leave, or a tab killed unhidden, loses the last 1.5 s. Engine not committed. |
+| 1, image and media at exit | **Open, low risk** | Media is view-only; image edits save immediately per action; not yet tested at exit |
+| 1, Reach recovery when `localStorage` is full | **Fixed** | Writer is now told no copy exists and to export; leave warning holds; test red before, green after |
 | 1, real tab close, phone background kill | **Open, needs real hardware** | Only reload and a simulated hide were run |
 | 2, false "Saved" and close races | **Open** | Charter trap 2 not yet built |
 | 3, document identity | **Open** | Charter trap 3 not yet built |
@@ -68,7 +69,7 @@ Claude will write each as a short, copy-paste checklist with the exact expected 
 
 ### Housekeeping that blocks a clean signal
 
-- Two tests fail on PR #13 regardless of this work (`test_writers_room_reach_runtime_is_actually_loaded`, `test_preflight_checks_real_reach_routes_and_assets`). Diagnose whether they are environment-only or real; either fix them or document why, so the suite can go fully green.
+- Done: the two long-standing failures were stale string checks; fixed so they resolve real references and still fail when a reference breaks. The 2i path suite is fully green (143 passed, 1 skipped).
 - The test harness answers host requests through Playwright interception, which can complete requests a real closing page would lose. Tests that depend on a request finishing during unload must fail the host on purpose, as the Reach reload test now does.
 
 ## Who does what
@@ -77,9 +78,16 @@ Claude will write each as a short, copy-paste checklist with the exact expected 
 - **GPT and Josie:** review each step's findings, reconcile into the integration branch, and challenge the tests.
 - **Josie:** the decisions below and Step 7.
 
-## Decisions needed from Josie now
+## Decisions (Josie, 2026-11-18)
 
-1. Approve or reject the file-mode exit journal (new recovery state, separate database, never overwrites the real record).
-2. Approve the wording of the recovery and conflict messages, or give new wording.
-3. Keep GPT's probe in the test suite (it is the only guard on coalescing).
-4. Which branch should carry this work into PR #13: merge `claude/2i-coalesce-saves-2026-11-18` into the integration branch after review, or keep it separate until Steps 1 and 2 are done.
+1. File-mode exit journal: conditionally approved. The original record is preserved in every case; not released until its recovery and failure tests pass.
+2. Messages explain what happened, what was preserved and the next action, and never claim an unverified save.
+3. GPT's coalescing probe is a permanent regression test.
+4. This branch stays separate from PR #13 until complete, independently reviewed and tested; then the existing integration process. No premature merge.
+5. Claude makes routine implementation decisions, documents the reasoning, and escalates only consequential tradeoffs or irreversible actions.
+
+## Open engineering decisions taken under that authority (reasoning in the findings document)
+
+- Rich DOCX close protection stays "warn and flush on hide", not a new copy mechanism: a synchronous copy of rich bytes is not possible, and inventing an engine-specific snapshot would add risk without evidence it is needed.
+- The DOCX engine build output is not committed (4.4 MB). Whether rich editing ships in the beta, and therefore whether the engine is bundled, is a product decision for Josie and is the one item escalated from this round.
+- No `fetch` `keepalive` on the hide-time Reach save: its 64 KB body cap is below many manuscripts; the local recovery copy is the tested safeguard.

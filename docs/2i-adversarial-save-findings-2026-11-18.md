@@ -86,8 +86,51 @@ Repeated 5 times on this commit: 6 passed each time. Regression: the 25 existing
 - **Mission 4**, protected text (IME, emoji, multiline paste, Replace All, typewriter, undo/redo against locked lines): not started.
 - **Mission 5** beyond saving: Claude, Fable, GPT branch comparison, phone, the three writing presentations: not started.
 
-## Decisions for Josie
+## Decisions (Josie, 2026-11-18)
 
-1. **The exit journal is new state** (a separate database, owned by `foresight_files.js`, deleted once applied). The project rule is one owner per piece of state; the real record stays the only source of truth, and the journal is a recovery buffer. Confirm or reject the design.
-2. **Wording** of the recovery status, the conflict alert and its two buttons is mine and can be changed.
-3. **The probe now runs in the suite.** Its header still says it is outside the ordinary suite; I left GPT's text unchanged.
+1. The exit journal is conditionally approved: the original record is preserved in every case, and it is not released until its recovery and failure tests pass.
+2. Recovery and failure messages explain what happened, what was preserved and the next action, and never claim an unverified save.
+3. GPT's coalescing probe stays as a permanent regression test.
+4. This branch stays separate from PR #13 until the recovery and message work is complete, independently reviewed and tested; then it goes through the existing integration process. No premature merge.
+
+## Update 2 (later 2026-11-18): remaining loss paths, messages, and a protected-data incident
+
+### Rich DOCX at close (checked; protected by warning, not by a copy)
+
+The rich engine is not committed (only its stylesheet and notices are). It was built locally for testing from the pinned recipe (`2i/editor-engine`, `npm ci`, `node build.mjs`, `@docx-editor.dev/core` 2.32.0) and **not committed**; without it "Open local rich editor" reports that rich editing is unavailable. With it:
+- An edit typed just before a reload is **lost from storage** (stored working DOCX parsed with python-docx: earlier marker present, last marker absent). Rich bytes come from the engine's asynchronous `saveBytes()`, so a synchronous exit copy is not possible.
+- But the reload is guarded: the browser's leave warning fires (2 of 2), and staying keeps the text. Hiding the tab stores the edit (2 of 2), which covers phone backgrounding while the page is alive.
+- `tests/test_2i_adversarial_rich_saves.py` (3 tests) holds the autosave, the leave warning and the hide flush in place; removing the hide flush or the leave warning each fails its test. The tests skip, with the build command in the reason, when the engine is not built.
+- **Residual risk:** a writer who chooses "Leave" on the warning, or a tab killed without being hidden first, loses the last 1.5 s of rich edits.
+
+### Ordinary manuscripts with browser storage full and the host down (defect fixed)
+
+Filled `localStorage` until even one character was refused (an earlier fill attempt left room; that run was discarded), refused host saves, typed. The leave warning fired and the text stayed, but the status read "Save failed · Reach unavailable": nothing told the writer that no copy existed anywhere or what to do. The status indicator is also cut at 220 px, so a long message would hide its own instruction. Fix in `2i/2i-assets/reach.js`: the status becomes "Not saved · export a copy now", and a one-time notice says what happened, what is unchanged, and to use Export (Ctrl+E) and keep the page open. The test fails on `062eb49` and passes now.
+
+### Recovery write failing on reopen (defect in my own journal code, fixed)
+
+If the checked write that applies a journal failed, a single `catch` reported "Close protection unavailable", which was false, and no download or discard controls appeared. The journal itself survived (it is deleted only after a confirmed write). Now a failed recovery write takes the kept-edits path. New test injects an IndexedDB `put` failure at reopen: the stored record is unchanged, the journal is kept, the alert and download work, and nothing claims recovery. It fails on `062eb49`.
+
+### Messages rewritten to Josie's standard
+
+- Recovered: "Recovered your last edits. This file closed before they were saved; they are now saved in its working copy. The original file is unchanged."
+- Kept edits: "Some edits from a window that closed were never saved, and this file has changed since then. Nothing was overwritten: the current version is open here, and those earlier edits are kept separately. Download them to compare, then discard them when you no longer need them."
+- Discard confirmation and result say it cannot be undone and that the open version is unchanged.
+- Journal unavailable: says the browser cannot keep a recovery copy, that edits still save while the page is open, and to press Save before closing.
+- "Recovered" is shown only after `record()` has completed its transaction.
+
+### Protected-data incident: the "read-only" preflight modified the canonical Alex vessel
+
+While diagnosing the two failing checks I ran `tools/workbench_preflight.py` directly, as `CHECK_FORESIGHT_WINDOWS.ps1` does. Its docstring says "read-only", but it starts the app against the checkout's own `data/`: `data/pubpartner/vessels/alex.pubpartner` grew from 147,456 to 192,512 bytes (blob `b487735b…` instead of the canonical `96fa66a728d07d5ff43b0d3d7fc17a466765cec1`), and 43 runtime files appeared, including `data/byok/secure/master.key`. `tests/test_saves_survive_restart.py` caught the vessel change. Nothing was committed.
+- Repair: confirmed every new file was dated 17:54 to 17:55 (that run), dry-ran then removed them, and restored the vessel to its committed blob; verified `96fa66a7…` and a clean `data/`.
+- Fix: unless `PUBCAST_DATA_DIR` is set, the preflight now runs against a disposable copy of `data/` and removes it at exit (the pattern `conftest.py` already uses). Run directly afterwards: PASS, vessel blob unchanged, `data/` unchanged. pytest and the sandbox runner were already isolated.
+- Not added: an automated test that runs the tool against the real `data/`, because a regression would then damage the vessel; the restart test already guards the vessel blob.
+- **Risk on Josie's machine:** any earlier run of `CHECK_FORESIGHT_WINDOWS.ps1` or `run_reach.py` from a checkout changes the tracked vessel file in that checkout. Do not commit `data/pubpartner/vessels/alex.pubpartner` from a working checkout without checking its blob ID.
+
+### The two long-standing failures were stale tests (fixed)
+
+`test_writers_room_reach_runtime_is_actually_loaded` and the preflight's two "2i loads Reach…" checks matched the exact string `<script src="/2i-assets/reach.js">`. Commit `bae4696` deliberately made those references relative so 2i opens from disk; served at `/writers-room` they resolve to the same files. The checks now resolve each `src` and `href` against the page URL as a browser does. They pass, and still fail when the reference is broken (missing file name, wrong folder).
+
+### Regression after Update 2
+
+25 existing test files on the 2i path plus the 4 new ones: **143 passed, 0 failed, 1 skipped** (real speech models). Adversarial set 12 of 12, three runs in a row.

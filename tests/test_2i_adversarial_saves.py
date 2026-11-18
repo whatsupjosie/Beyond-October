@@ -64,7 +64,7 @@ def wait_status(page, fragment, timeout=15000):
 def wait_settled(page, timeout=15000):
     """The file pane finished opening: either the normal ready message or the exit-journal recovery message."""
     page.wait_for_function(
-        "() => { const t = document.querySelector('#host iframe')?.contentWindow.document.querySelector('.ff-workspace [role=status]')?.textContent || ''; return t.includes('ready') || t.includes('Recovered unsaved edits'); }",
+        "() => { const t = document.querySelector('#host iframe')?.contentWindow.document.querySelector('.ff-workspace [role=status]')?.textContent || ''; return t.includes('ready') || t.includes('Recovered your last edits'); }",
         timeout=timeout,
     )
 
@@ -194,7 +194,7 @@ def test_closing_stale_window_never_overwrites_a_newer_save(page):
     kept = journal(page, fid)
     assert kept is not None and kept["draft"] == "start\nstale window text", f"unsaved edits not kept: {kept!r}"
     frame = page.frame_locator("#host iframe")
-    assert "saved elsewhere" in frame.get_by_role("alert").inner_text()
+    assert "Nothing was overwritten" in frame.get_by_role("alert").inner_text()
     with page.expect_download() as download:
         frame.get_by_role("button", name="Download unsaved edits").click()
     assert open(download.value.path(), encoding="utf-8").read() == "start\nstale window text"
@@ -236,3 +236,77 @@ def test_reach_manuscript_edit_then_reload_with_host_unreachable_is_kept(page):
     assert refused, "the fault was not injected: no document save reached the refusal"
     # It must not claim the host has this text.
     assert "Saved to Reach · revision 2" not in page.locator("#saveIndicator").inner_text()
+
+
+FILL_LOCAL_STORAGE = """() => { let n = 0;
+  for (const size of [262144, 16384, 1024, 64, 8, 1]) { const v = 'x'.repeat(size); try { for (;;) localStorage.setItem('__fill' + (n++), v); } catch (e) {} }
+  try { localStorage.setItem('__probe', 'y'); localStorage.removeItem('__probe'); return 'room left'; } catch (e) { return 'full'; } }"""
+
+
+def test_reach_manuscript_with_host_down_and_browser_storage_full_is_never_silently_lost(page):
+    """Host refuses saves and browser storage is full, so no copy exists anywhere. The writer must be told to
+    export, and leaving must be guarded; staying keeps the text."""
+    page.goto("http://localhost/writers-room")
+    text = page.locator("#soloTextarea")
+    text.wait_for()
+    page.wait_for_function("document.querySelector('#saveBtn').disabled===false")
+    text.fill("Saved base")
+    page.locator("#saveBtn").click()
+    page.wait_for_function("document.querySelector('#saveIndicator').textContent.includes('Saved to Reach · revision 1')")
+    page.route("**/api/writers-room/documents/**", lambda r: r.abort() if r.request.method == "PUT" else r.fallback())
+    assert page.evaluate(FILL_LOCAL_STORAGE) == "full", "fault not injected: browser storage still has room"
+    text.click()
+    text.press("End")
+    text.press_sequentially(" plus QUOTA-TAIL", delay=2)
+    page.wait_for_function(
+        "document.querySelector('#saveIndicator').textContent.includes('Not saved')", timeout=10000
+    )
+    status = page.locator("#saveIndicator").inner_text()
+    assert "Saved" not in status, f"claims a save: {status!r}"
+    assert "export a copy" in status, f"writer is not told that no copy exists: {status!r}"
+    assert page.evaluate("document.body.textContent.includes('the only copy of these changes')"), "no full explanation shown"
+    dialogs = []
+    page.on("dialog", lambda d: (dialogs.append(d.type), d.dismiss()))
+    try:
+        page.reload(timeout=4000)
+    except Exception:  # a dismissed leave warning cancels the reload
+        pass
+    assert dialogs == ["beforeunload"], f"leaving was not guarded: {dialogs}"
+    assert "QUOTA-TAIL" in text.input_value()
+
+
+FAIL_FILES_PUT = """
+(() => {
+  const put = IDBObjectStore.prototype.put;
+  IDBObjectStore.prototype.put = function (...args) {
+    if (this.name === 'files' && localStorage.getItem('__failFilesPut')) throw new DOMException('Injected storage failure', 'QuotaExceededError');
+    return put.apply(this, args);
+  };
+})();
+"""
+
+
+def test_recovery_write_failure_on_reopen_keeps_journal_and_record_and_says_so(page):
+    """Reopen after a close with unsaved text, but the recovery write itself fails. The stored record must be
+    unchanged, the journal kept, and the writer shown the kept-edits alert with a working download; it must not
+    claim recovery or say close protection is unavailable."""
+    page.context.add_init_script(FAIL_FILES_PUT)
+    ed = open_2i_file(page)
+    fid = file_id(page)
+    before = stored(page, fid)
+    ed.click()
+    ed.press_sequentially("TEXT-WHOSE-RECOVERY-WRITE-FAILS", delay=2)
+    page.reload()
+    page.evaluate("localStorage.setItem('__failFilesPut', '1')")
+    page.evaluate("restore()")
+    frame = page.frame_locator("#host iframe")
+    frame.get_by_role("alert").wait_for(timeout=15000)
+    assert stored(page, fid) == before, "the stored record changed although the recovery write failed"
+    kept = journal(page, fid)
+    assert kept is not None and kept["draft"] == "start\nTEXT-WHOSE-RECOVERY-WRITE-FAILS"
+    assert "Nothing was overwritten" in frame.get_by_role("alert").inner_text()
+    assert "Recovered" not in status(page) and "cannot keep a recovery copy" not in status(page)
+    with page.expect_download() as download:
+        frame.get_by_role("button", name="Download unsaved edits").click()
+    assert open(download.value.path(), encoding="utf-8").read() == "start\nTEXT-WHOSE-RECOVERY-WRITE-FAILS"
+    page.evaluate("localStorage.removeItem('__failFilesPut')")

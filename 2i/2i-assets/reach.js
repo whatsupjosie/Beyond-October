@@ -44,7 +44,7 @@ let workspace = stored(WORKSPACE_KEY, { clientId:'writer_' + uuid(), documentId:
 let documentId = priorOfflineDocumentId || workspace.documentId || uuid();
 let revision = 0, mutation = 0, savedMutation = 0, savePromise = null;
 let fileSavingId = null;
-let serverReady = false, initializing = true, saveConflict = false, recoverySafe = false;
+let serverReady = false, initializing = true, saveConflict = false, recoverySafe = false, unsavedNoticeShown = false;
 let partnerId = 'alex', conversations = {}, conversationIds = {};
 let partnerNames = {alex:'Alex', craig:'Craig', friend:'Friend'};
 // The host selects the installed FREE local model. Never hardcode a model tag
@@ -170,7 +170,7 @@ function writeRecovery() {
       // the server or the clean canonical recovery actually retains the work.
       if((networked&&revision>0)||(!old?.dirty&&stored(key,null)?.revision===revision))localStorage.removeItem(own);
     }
-    rememberWorkspace();recoverySafe=true;
+    rememberWorkspace();recoverySafe=true;unsavedNoticeShown=false;
   }catch{recoverySafe=false;pinEditorDocument();setSaveStatus('Browser recovery unavailable · export a copy if needed');}
 }
 function markDirty() {
@@ -227,7 +227,13 @@ async function saveDocument() {
       return true;
     } catch(error) {
       if(error.status===409){saveConflict=true;setSaveStatus('Changed elsewhere · save a copy');}
-      else setSaveStatus((recoverySafe?'Saved in browser · ':'Save failed · ')+(error.status?error.message:'Reach unavailable'));
+      // No browser copy either (e.g. storage full): only the screen holds this text. The top-bar indicator is cut
+      // at 220 px, so its text stays short and the full explanation goes once to the notice area.
+      else if(!recoverySafe){
+        setSaveStatus('Not saved · export a copy now');
+        if(!unsavedNoticeShown){unsavedNoticeShown=true;addChat('notice','Your latest changes are not saved yet. '+(error.status?'Reach refused the save ('+error.message+')':'Reach could not be reached')+', and this browser could not keep a recovery copy, so the text on your screen is the only copy of these changes. Everything you saved before is unchanged. Use Export (Ctrl+E) now to save a .2i copy to your device, and keep this page open until it is done.');}
+      }
+      else setSaveStatus('Saved in browser · '+(error.status?error.message:'Reach unavailable'));
       return false;
     } finally {savePromise=null;document.dispatchEvent(new Event('foresight:work-change'))}
   })();

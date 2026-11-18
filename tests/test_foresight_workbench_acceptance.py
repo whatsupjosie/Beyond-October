@@ -49,8 +49,13 @@ def test_writers_room_reach_runtime_is_actually_loaded(client):
     page = client.get('/writers-room')
     assert page.status_code == 200
     html = page.text
-    assert '<script src="/2i-assets/reach.js"></script>' in html
-    assert '<link rel="stylesheet" href="/2i-assets/reach.css">' in html
+    # The page references these relatively (2i also opens from disk); resolve as a browser does from /writers-room.
+    from urllib.parse import urljoin, urlparse
+    scripts = {urlparse(urljoin('http://reach/writers-room', s)).path for s in re.findall(r'<script[^>]+src="([^"]+)"', html)}
+    styles = {urlparse(urljoin('http://reach/writers-room', s)).path
+              for s in re.findall(r'<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"', html)}
+    assert '/2i-assets/reach.js' in scripts, sorted(scripts)
+    assert '/2i-assets/reach.css' in styles, sorted(styles)
     for element in ('shelfBtn', 'partnerSelect', 'partnerNote', 'reachProvider', 'reachModel', 'reachCredential', 'reachBaseURL'):
         assert 'id="' + element + '"' in html, element
     for asset in ('/2i-assets/reach.js', '/2i-assets/reach.css'):

@@ -376,20 +376,23 @@ async function mount(c,host,file,options={}){
       }
       if(value.draft===undefined)value.draft=await decodeText(value.original);
       // Apply an exit journal left by a page that closed with unsaved text (see writeExitEntryNow).
-      let exitNote='',exitConflict=null;
-      try{
-        const pending=await exitEntry(value.id);
-        if(pending){
-          const same=pending.draft===value.draft&&JSON.stringify(pending.twoiState??null)===JSON.stringify(value.twoiState??null);
-          if(same)await exitEntry(value.id,true);
-          else if(pending.baseRevision===(value.revision||0)){
+      // The stored record is only ever changed through the checked record() write, and only when nothing changed
+      // since the journal was taken. The journal is deleted only after that write is confirmed; any failure keeps it.
+      let exitNote='',exitConflict=null,pending=null;
+      try{pending=await exitEntry(value.id);}
+      catch(e){console.error('Exit journal unavailable',e);exitNote='This browser cannot keep a recovery copy if the page closes unexpectedly ('+(e?.message||e)+'). Your edits still save automatically while the page is open; press Save before closing.';}
+      if(pending){
+        const same=pending.draft===value.draft&&JSON.stringify(pending.twoiState??null)===JSON.stringify(value.twoiState??null);
+        if(same)await exitEntry(value.id,true).catch(e=>console.error('Exit journal cleanup failed',e));
+        else if(pending.baseRevision===(value.revision||0)){
+          try{
             const next={...value,draft:pending.draft,title:pending.title||value.title,twoiState:pending.twoiState===undefined?value.twoiState:pending.twoiState,updated:Date.now()};
-            const saved=await record(value.id,next,value.revision||0);
-            value=saved;await exitEntry(value.id,true);
-            exitNote='Recovered unsaved edits from when this file was last closed · saved';
-          }else exitConflict=pending;
-        }
-      }catch(e){console.error('Exit journal unavailable',e);exitNote='Close protection unavailable in this browser: '+(e?.message||e);}
+            value=await record(value.id,next,value.revision||0);
+            exitNote='Recovered your last edits. This file closed before they were saved; they are now saved in its working copy. The original file is unchanged.';
+            await exitEntry(value.id,true).catch(e=>console.error('Exit journal cleanup failed',e)); // a leftover now matches the record and is removed on the next open
+          }catch(e){console.error('Recovered edits could not be saved',e);exitConflict=pending;}
+        }else exitConflict=pending;
+      }
       if(value.warning)wrap.insertBefore(node('div',{role:'note',style:'font-size:12px;line-height:1.4'},value.warning),area);
       if(!alive)return session;
       editor=options.editor||node('textarea',{'aria-label':'File editor',spellcheck:'false',style:'box-sizing:border-box;width:100%;height:100%;min-height:180px;resize:none;background:#171511;color:#f3e5ca;border:1px solid #887455;padding:12px;font:14px/1.5 monospace;tab-size:4'});
@@ -404,9 +407,9 @@ async function mount(c,host,file,options={}){
       exitListeners=()=>{removeEventListener('pagehide',exitSave);document.removeEventListener('visibilitychange',onHidden)};
       if(exitConflict){
         const kept=exitConflict;
-        wrap.insertBefore(node('div',{role:'alert',style:'font-size:12px;line-height:1.4'},'Unsaved edits from a window that closed were kept separately, because this file was saved elsewhere after they were made. They have not been applied.'),area);
+        wrap.insertBefore(node('div',{role:'alert',style:'font-size:12px;line-height:1.4'},'Some edits from a window that closed were never saved, and this file has changed since then. Nothing was overwritten: the current version is open here, and those earlier edits are kept separately. Download them to compare, then discard them when you no longer need them.'),area);
         button('Download unsaved edits',()=>download('unsaved-edits-'+value.name.replace(/\.[^.]*$/,'')+'.txt',new Blob([kept.draft],{type:'text/plain;charset=utf-8'})));
-        button('Discard unsaved edits',async()=>{if(!confirm('Discard the unsaved edits from the closed window? Download them first if you need them.'))return;await exitEntry(value.id,true);say('Unsaved edits from the closed window discarded')});
+        button('Discard unsaved edits',async()=>{if(!confirm('Discard the edits kept from the closed window? This cannot be undone. Download them first if you might need them.'))return;await exitEntry(value.id,true);say('The kept edits from the closed window were discarded. The open version is unchanged.')});
       }
       button('Export DOCX',async()=>{download(outputName('docx'),await output('docx'));say('DOCX text copy downloaded; original unchanged')});
       if(extension==='docx')button('Download rich 2i copy of original DOCX',async()=>{

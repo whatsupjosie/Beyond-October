@@ -6,9 +6,14 @@ Returns nonzero on missing critical assets/routes and prints a usable diagnosis.
 """
 from __future__ import annotations
 
+import atexit
+import os
 import re
+import shutil
 import sys
+import tempfile
 from pathlib import Path
+from urllib.parse import urljoin, urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -32,6 +37,16 @@ def main() -> int:
         print('\nPRE-FLIGHT FAILED: missing packaged files; no server was started.')
         return 1
 
+    # Read-only means read-only. Starting the app writes runtime state into its data directory (the canonical
+    # PubPartner vessel data/pubpartner/vessels/alex.pubpartner, a master key, SQLite stores). Run directly, as
+    # CHECK_FORESIGHT_WINDOWS.ps1 does, this used to modify the checkout's own data/. Unless the caller chose a
+    # data directory, use a disposable copy, as conftest.py does for pytest.
+    if not os.environ.get('PUBCAST_DATA_DIR'):
+        disposable = Path(tempfile.mkdtemp(prefix='pubcast-preflight-data-'))
+        shutil.copytree(ROOT / 'data', disposable, dirs_exist_ok=True)
+        os.environ['PUBCAST_DATA_DIR'] = str(disposable)
+        atexit.register(shutil.rmtree, disposable, True)
+
     from fastapi.testclient import TestClient
     from main import app
     try:
@@ -49,10 +64,14 @@ def main() -> int:
                 check('Counter asset ' + asset, r.status_code == 200, 'HTTP ' + str(r.status_code))
             # A served editor page is not usable if its Reach runtime is absent.
             writer = client.get('/writers-room').text
+            # The page references its assets relatively (so 2i also works opened from disk); resolve each
+            # reference against the served page URL, as a browser does, instead of matching one spelling.
+            def resolved(pattern: str) -> set[str]:
+                return {urlparse(urljoin('http://reach/writers-room', ref)).path for ref in re.findall(pattern, writer)}
             check('2i loads Reach persistence and conversation runtime',
-                  '<script src="/2i-assets/reach.js"></script>' in writer)
+                  '/2i-assets/reach.js' in resolved(r'<script[^>]+src="([^"]+)"'))
             check('2i loads Reach writing-desk styles',
-                  '/2i-assets/reach.css' in writer)
+                  '/2i-assets/reach.css' in resolved(r'<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"'))
             for element in ('shelfBtn', 'partnerSelect', 'partnerNote', 'reachProvider',
                             'reachModel', 'reachCredential', 'reachBaseURL'):
                 check('2i runtime control ' + element, 'id="' + element + '"' in writer)
