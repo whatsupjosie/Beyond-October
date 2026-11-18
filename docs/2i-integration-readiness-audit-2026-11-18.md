@@ -66,3 +66,31 @@ Source-level test execution used the GitHub connector and isolated V8 compatibil
 5. Real recording, 30-minute capture, crash/restart, packaging and independent release review.
 
 **Decision:** improvements are committed on a protected integration-audit branch; **full-app integration remains unverified**, and beta release approval is blocked. Keep `main`, the original Claude/Fable branches and their exact-head backups unchanged.
+
+## Cross-branch preservation review after message-delivery timeout
+
+The owner requested verification across GPT, Claude, Fable and the current integration rather than reliance on the preceding reply. Re-read the actual GitHub branch heads, PR metadata, change lists, relevant source and agent handoffs.
+
+### Additional **high-severity integration omission**, found and repaired
+
+The `main.py` carried by this branch was identical to Claude's older console branch (`760b0611a911532f61b8e25ff7bd550c9fd08ca4`) and **not** to the Fable baseline (`b93523e2d9a41f65ecb857f67d9d34f68883dd31`). The later GPT consolidation branch `codex/2i-claude-console-consolidation-2026-11-17` had already corrected this but our integration had forked before that correction.
+
+Replaced `main.py` with the **exact** already-reviewed consolidated blob `bcf92ab2d24dd34c41964c4df9677112d9b21fdb`, commit `d0b23d4a2ec976c5c86931da142859c20523e414`. Verified in source that it is Fable's original `main.py` plus precisely the three-line `/typewriter-console` route, with no other alteration to Fable's code. The older file lacked substantial Fable functionality including camera-pool setup, guest admission and guard, Blackbox chat replay lifecycle, studio 2.5D recording ingest, and hardened upload validation/atomic publishing. These are now **present in source**, but have not undergone full runtime tests on this combined branch.
+
+Added a permanent regression in `tests/test_2i_wiring_contract_node.js` that checks critical restored server wiring and the Claude typewriter route. This structural test is a preservation guard, not proof all services initialize and function.
+
+### Branches inspected and still distinct
+
+- Claude console `console-touch-typewriter-keys` at `3ee394a7c`, handoff reporting 2302 passed and six skipped; Claude's `2i-beta-polish` at `df737caae`, handoff reporting 2283 passed and six skipped. These are results from **their individual source branches**, not this combined branch.
+- Fable `fable/2i-beta-polish-2026-11-16` at `cbc529583`, `fable/2i-polish-2026-11-16` at `51a34cafa`, and `fable/integration-2026-11-13` at `764874a74`. Originals and earlier exact-head backup branches were not modified.
+- GPT's separate `codex/2i-claude-functional-integration-2026-11-17` at `e0cc000c2` contains an **alternative** typewriter bridge and targeted Playwright tests. It is not automatically additive to our distinct `typewriter-input.js` implementation and must be reconciled through tests, not copied wholesale.
+- GPT's `preview/2i-live-2026-11-17` at `95cfde06f` contains a self-contained offline preview HTML and explicit limits: it is not the complete hosted app or safe sole manuscript backup.
+- GPT's `codex/2i-beta-test-gates-2026-11-17` at `f52125a82` documents focused tests and outstanding full-host verification.
+
+### Still unintegrated / unproved
+
+1. Claude's `2i-beta-polish` has different v22 HTML and Reach CSS, including phone/desktop layout, and 33 browser checks. Parts of its functional fixes were manually reconciled into our branch; its full CSS/layout and tests have **not** been verified together with Fable's evolving editor.
+2. The repository still has two editions of 2i: served `2i/writers-room-v22.html`, plus the painted `2i/index.html` with `artwork.js`, `phone.js` and companion controls. Claude's editor handoff explicitly says the full visual/phone version is **not automatically ported into v22**. This is a genuine integration item, not proof of completion.
+3. Real full-host startup, authenticated Save Now/reopen, Foresight file-session persistence and Chromium phone acceptance on **this precise head** remain unverified.
+
+**Preservation status:** corrected source is committed on the integration branch; `main`, original Claude and Fable branches, and their backup branches are unchanged. PR #12 remains draft and unmerged. Do not call 2i beta-ready based on these source checks.
