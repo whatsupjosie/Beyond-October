@@ -2291,35 +2291,29 @@ $('frReplaceAllBtn').onclick = () => {
     $('frResult').textContent=hits+' replacement(s) made · '+skipped+' protected occurrence(s) skipped';
     $('frResult').className='test-result ok';return;
   }
-  snapshot();
-  let count = 0;
-  // Replace in committed
-  committed = committed.map(l => {
-    if (l.includes(find)) { count += l.split(find).length - 1; return l.split(find).join(replace); }
-    return l;
+  // Standalone fallback without the narrative module: use the current Write-mode
+  // textarea as the single manuscript source. A locked line is never replaced.
+  const live=coWriting?committed:soloTextarea.value.split('\n');
+  let count=0,kept=0;
+  const updated=live.map((line,index)=>{
+    const hits=line.split(find).length-1;
+    if(!hits)return line;
+    if(lockedLines.has(index)){kept+=hits;return line;}
+    count+=hits;return line.split(find).join(replace);
   });
-  // Replace in buffer
-  buffer = buffer.map(l => {
-    if (l.includes(find)) { count += l.split(find).length - 1; return l.split(find).join(replace); }
-    return l;
+  const nextBuffer=buffer.map(line=>{
+    const hits=line.split(find).length-1;
+    count+=hits;return hits?line.split(find).join(replace):line;
   });
-  // Replace in reading
-  if (reading?.text?.includes(find)) {
-    count += reading.text.split(find).length - 1;
-    reading.text = reading.text.split(find).join(replace);
+  if(count){
+    snapshot();committed=updated;buffer=nextBuffer;
+    if(!coWriting)soloTextarea.value=committed.join('\n');
+    if(reading?.text?.includes(find))reading.text=reading.text.split(find).join(replace);
+    markDirty();render();
   }
-  // Replace in solo textarea
-  if (!coWriting) {
-    const val = soloTextarea.value;
-    if (val.includes(find)) {
-      count += val.split(find).length - 1;
-      soloTextarea.value = val.split(find).join(replace);
-      committed = soloTextarea.value.split('\n');
-    }
-  }
-  $('frResult').textContent = count + ' replacement' + (count !== 1 ? 's' : '') + ' made';
-  $('frResult').className = 'test-result ok';
-  markDirty(); render();
+  $('frResult').textContent=count+' replacement'+(count===1?'':'s')+' made'
+    +(kept?'; '+kept+' in locked lines left as they are':'');
+  $('frResult').className='test-result ok';
 };
 
 // ── CONTEXT MENU ───────────────────────────────────────────────────
