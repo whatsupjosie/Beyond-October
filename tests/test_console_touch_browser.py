@@ -512,3 +512,78 @@ def test_a_missing_map_says_so_instead_of_failing_silently(tablet):
     tablet.goto(f"{tablet.base_url}/static/typewriter_console.html")
     tablet.wait_for_function("document.querySelector('[data-console-status]').dataset.level === 'error'")
     assert "Could not load the console map (404)" in tablet.inner_text("[data-console-status]")
+
+
+# ---- Signed out, host errors, overlapping requests ------------------------------
+
+def _fresh_page(tablet, token=None, auth_enforced=True, studio=None):
+    context = tablet.context.browser.new_context(viewport={"width": 1180, "height": 820}, has_touch=True, is_mobile=True)
+    if token:
+        context.add_init_script(f"sessionStorage.setItem('pubcast_token', '{token}');")
+    context.route("**/api/auth/status", lambda route: route.fulfill(
+        status=200, content_type="application/json", body=json.dumps({"auth_enforced": auth_enforced, "setup_required": False})))
+    if studio:
+        context.route("**/api/studio/**", studio)
+    page = context.new_page()
+    page.base_url = tablet.base_url
+    return page
+
+
+def test_signed_out_visitor_is_told_to_sign_in_and_brought_back(tablet):
+    page = _fresh_page(tablet)
+    _open(page, "audio_console.html")
+    page.wait_for_selector("[data-console-signin]")
+    assert page.inner_text("[data-console-status]") == "Signed out. Sign in to use the console."
+    assert page.get_attribute("[data-console-signin]", "href") == "/login?next=%2Fstatic%2Faudio_console.html"
+
+
+def test_no_sign_in_line_when_the_host_does_not_require_it(tablet):
+    page = _fresh_page(tablet, auth_enforced=False)
+    _open(page, "audio_console.html")
+    page.wait_for_timeout(300)
+    assert page.query_selector("[data-console-signin]") is None
+
+
+def test_the_typewriter_never_asks_for_sign_in(tablet):
+    page = _fresh_page(tablet)
+    _open(page, "typewriter_console.html")
+    page.wait_for_timeout(300)
+    assert page.query_selector("[data-console-signin]") is None
+
+
+def test_an_expired_token_shows_the_sign_in_line_on_first_touch(tablet):
+    refuse = lambda route: route.fulfill(status=401, content_type="application/json", body=json.dumps({"detail": "Invalid or expired token"}))
+    page = _fresh_page(tablet, token="stale", studio=refuse)
+    _open(page, "audio_console.html")
+    page.touchscreen.tap(*_center(page, ".pc-console-hotspot--button"))
+    page.wait_for_selector("[data-console-signin]")
+
+
+def test_a_host_error_page_is_reported_plainly(tablet):
+    crash = lambda route: route.fulfill(status=502, content_type="text/html", body="<html>Bad gateway</html>")
+    page = _fresh_page(tablet, token="t", studio=crash)
+    _open(page, "audio_console.html")
+    page.touchscreen.tap(*_center(page, ".pc-console-hotspot--button"))
+    page.wait_for_function("document.querySelector('[data-console-status]').dataset.level === 'error'")
+    assert page.inner_text("[data-console-status]") == "Studio console request failed (502)"
+
+
+def test_a_slow_earlier_answer_never_covers_the_newest_status(tablet):
+    page = _fresh_page(tablet, token="t", studio=lambda route: route.fulfill(
+        status=200, content_type="application/json", body=json.dumps({"ok": True, "actions": []})))
+    # Hold back the answer to the first studio action by 900 ms, in the page.
+    page.add_init_script("""(() => {
+        const real = window.fetch.bind(window);
+        let first = true;
+        window.fetch = (url, opts) => {
+            const slow = first && opts && opts.method === 'POST' && String(url).includes('/api/studio/actions/');
+            if (slow) first = false;
+            return slow ? new Promise(r => setTimeout(() => r(real(url, opts)), 900)) : real(url, opts);
+        };
+    })();""")
+    _open(page, "audio_console.html")
+    page.evaluate("document.querySelector('.pc-console-hotspot--button').click()")
+    page.wait_for_timeout(100)
+    page.evaluate("document.querySelector('.pc-console-hotspot--fan').click()")
+    page.wait_for_timeout(1400)
+    assert page.inner_text("[data-console-status]") == "Dialogue cue fan ok."

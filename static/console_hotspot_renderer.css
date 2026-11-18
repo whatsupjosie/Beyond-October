@@ -238,3 +238,11 @@ body.pc-console-page {
   background: rgba(255, 214, 120, 0.34);
   box-shadow: 0 0 14px rgba(255, 214, 120, 0.7), inset 0 0 6px rgba(255, 240, 200, 0.6);
 }
+
+/* The way back in after being signed out. */
+[data-console-signin] {
+  color: #ffd27a;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

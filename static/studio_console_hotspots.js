@@ -233,12 +233,27 @@
     async _fetch(path, options) {
       if (!this.fetchImpl) throw new Error("fetch is not available for studio console hotspots");
       const response = await this.fetchImpl(this.baseUrl + path, withAuth(options));
-      const data = response && typeof response.json === "function" ? await response.json() : {};
-      if (!response || !response.ok) {
-        const message = data && data.detail ? data.detail : "Studio console request failed";
-        throw new Error(message);
+      if (!response) throw new Error("Studio console request failed");
+      // A proxy or crashed host can answer with HTML; that must surface as a
+      // clear failure, not as a JSON parse error.
+      let data = {};
+      if (typeof response.json === "function") {
+        try {
+          data = await response.json();
+        } catch (_err) {
+          data = {};
+        }
       }
-      return data;
+      if (!response.ok) {
+        if (response.status === 401) {
+          const signedOut = new Error("Sign in to use the console.");
+          signedOut.code = "auth_required";
+          throw signedOut;
+        }
+        const detail = data && typeof data.detail === "string" ? data.detail : "";
+        throw new Error(detail || ("Studio console request failed" + (response.status ? " (" + response.status + ")" : "")));
+      }
+      return data || {};
     }
   }
 
@@ -248,5 +263,6 @@
     readElementPayload: readElementPayload,
     requiresConfirmation: requiresConfirmation,
     withAuth: withAuth,
+    storedToken: storedToken,
   };
 });

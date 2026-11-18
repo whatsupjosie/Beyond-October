@@ -45,20 +45,33 @@
     return payload;
   }
 
+  // Several controls can be in flight at once (two faders, a knob and a
+  // button). Only the newest request may write the status line, so a slow
+  // earlier answer never covers up what just happened.
+  let statusTicket = 0;
+
   async function executeHotspot(hotspot, extra) {
     if (!hotspot || !hotspot.action_id || !state.adapter) return;
-    setStatus("Sending " + hotspot.label + "...");
+    const ticket = ++statusTicket;
+    const report = (message, isError) => { if (ticket === statusTicket) setStatus(message, isError); };
+    report("Sending " + hotspot.label + "...");
     try {
       const result = await state.adapter.executeConfirmed(hotspot.action_id, actionPayload(hotspot, extra), {
         spec: hotspot.safety ? { safety: hotspot.safety, label: hotspot.label } : null,
       });
       if (result && result.canceled) {
-        setStatus(hotspot.label + " canceled.");
+        report(hotspot.label + " canceled.");
         return;
       }
-      setStatus(hotspot.label + " ok.");
+      report(hotspot.label + " ok.");
     } catch (err) {
-      setStatus((err && err.message) || String(err), true);
+      // Signing out is not this control's fault and must be seen whatever is
+      // in flight.
+      if (err && err.code === "auth_required") {
+        showSignIn();
+        return;
+      }
+      report((err && err.message) || String(err), true);
     }
   }
 
@@ -67,6 +80,37 @@
     if (!node) return;
     node.textContent = message;
     node.dataset.level = isError ? "error" : "ok";
+  }
+
+  // The console needs a signed-in user to drive the studio. Say so plainly and
+  // give the way back here after signing in.
+  function showSignIn() {
+    const node = document.querySelector("[data-console-status]");
+    if (!node) return;
+    const here = location.pathname + location.search;
+    const link = el("a", { href: "/login?next=" + encodeURIComponent(here), "data-console-signin": "" }, "Sign in");
+    node.textContent = "Signed out. ";
+    node.appendChild(link);
+    node.appendChild(document.createTextNode(" to use the console."));
+    node.dataset.level = "error";
+  }
+
+  // Ask the host up front, so a signed-out visitor knows before touching
+  // anything. A host without the status route (or offline) changes nothing:
+  // the first refused action will still show the sign-in line.
+  async function checkSignedIn(manifest) {
+    const drivesStudio = manifest.hotspots.some((hotspot) => hotspot.action_id);
+    if (!drivesStudio) return;
+    const api = window.PubCastStudioConsoleHotspots;
+    if (api && typeof api.storedToken === "function" && api.storedToken()) return;
+    try {
+      const response = await fetch("/api/auth/status");
+      if (!response.ok) return;
+      const status = await response.json();
+      if (status && status.auth_enforced) showSignIn();
+    } catch (_err) {
+      /* no host status: rely on the first refused action */
+    }
   }
 
   function hotspotStyle(hotspot) {
@@ -496,6 +540,7 @@
       meta.textContent = state.manifest.console_id + " map " + state.manifest.image.width_px + " x " + state.manifest.image.height_px;
     }
     setStatus("Console ready.");
+    await checkSignedIn(state.manifest);
   }
 
   window.PubCastConsoleHotspotRenderer = { init: init, validateManifest: validateManifest, textForKey: textForKey };
