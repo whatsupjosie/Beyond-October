@@ -17,7 +17,9 @@ async function launch({failReach=false,authPending=false,missingFile=false,mount
     body:{insertBefore(node){created.push(node)}},
     hidden:false,
     createElement:tag=>({
-      tag,style:{},setAttribute(){},getBoundingClientRect:()=>({height:35})
+      tag,style:{},children:[],setAttribute(){},
+      prepend(node){this.children.unshift(node);this.textContent=this.children.map(c=>c.textContent||'').join('');},
+      getBoundingClientRect:()=>({height:35})
     }),
     querySelector:()=>shell,
     addEventListener(type,fn){(handlers['doc:'+type]??=[]).push(fn)}
@@ -49,7 +51,7 @@ async function launch({failReach=false,authPending=false,missingFile=false,mount
     location:{search:'?file=file123&foresightSession=nonce123',origin:'https://local.test'},
     $:id=>buttons[id]||{},
     addEventListener:(type,fn)=>(handlers[type]??=[]).push(fn),
-    ForesightFiles:{mount:async(_c,_h,_file,options)=>{if(mountThrows)throw Error('Storage offline');if(decodeFailure)options.onError?.();return session;},record:async()=>true},
+    ForesightFiles:{mount:async(_c,_h,_file,options)=>{if(mountThrows)throw Error('Storage offline');if(decodeFailure){_h.body.children.push({id:'download-original',textContent:'Download original'});options.onError?.();}return session;},record:async()=>true},
     soloTextarea:{dispatchEvent(){}},
     markDirty(){},getDocState:()=>({}),loadDocState(){},render(){},
     coWriting:false,committed:['Text'],documentTitle:'Untitled',
@@ -114,4 +116,6 @@ test('a decoded-file error blocks readiness even if its original record survives
   assert.equal(f.window.foresightFileSession,undefined);
   assert.equal(f.buttons.saveBtn.disabled,true);
   assert.match(f.created[0].textContent,/did not open safely/);
+  assert.equal(f.created[0].children.some(node=>node.id==='download-original'),true,
+    'Working-copy failure must not delete the original recovery download');
 });
