@@ -338,13 +338,50 @@ def test_dragging_a_knob_up_the_screen_also_raises_it(tablet):
     assert json.loads(tablet.calls[-1]["body"])["level"] > 0.5
 
 
-def test_slider_drag_under_a_finger_sends_once(tablet):
+def _slot_points(page, selector, near_bottom, near_top):
+    """Screen points along a fader's painted slot, from its tilt and length."""
+    return page.evaluate(
+        """([sel, lo, hi]) => {
+            const wrap = document.querySelector(sel);
+            const r = wrap.getBoundingClientRect();
+            const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+            const deg = parseFloat(getComputedStyle(wrap).getPropertyValue('--pc-track-angle')) || 0;
+            const a = deg * Math.PI / 180, half = wrap.offsetHeight / 2;
+            const at = f => [cx + Math.sin(a) * half * f, cy - Math.cos(a) * half * f];
+            return [at(lo), at(hi)];
+        }""",
+        [selector, near_bottom, near_top],
+    )
+
+
+def test_pushing_a_fader_up_its_slot_raises_the_level_and_sends_once(tablet):
     _open(tablet, "audio_console.html")
-    x, y = _center(tablet, ".pc-console-slider input")
-    box = tablet.query_selector(".pc-console-slider input").bounding_box()
-    _drag(tablet, tablet.context.new_cdp_session(tablet), box["x"] + box["width"] * 0.2, y, box["width"] * 0.5)
+    slider = '.pc-console-slider[title="Channel 1 level"]'
+    cdp = tablet.context.new_cdp_session(tablet)
+    (bx, by), (tx, ty) = _slot_points(tablet, slider, -0.85, 0.85)
+    _drag(tablet, cdp, bx, by, tx - bx, ty - by, steps=12)
     assert len(tablet.calls) == 1, tablet.calls
-    assert 0 <= json.loads(tablet.calls[0]["body"])["level"] <= 1
+    assert json.loads(tablet.calls[0]["body"])["level"] > 0.9
+    (hx, hy), (lx, ly) = _slot_points(tablet, slider, 0.85, -0.85)
+    _drag(tablet, cdp, hx, hy, lx - hx, ly - hy, steps=12)
+    assert len(tablet.calls) == 2, tablet.calls
+    assert json.loads(tablet.calls[1]["body"])["level"] < 0.1
+
+
+def test_every_fader_lies_along_its_slot_and_holds_an_upright_control(tablet):
+    _open(tablet, "audio_console.html")
+    faders = tablet.evaluate(
+        """() => [...document.querySelectorAll('.pc-console-slider')].map(w => {
+            const i = w.querySelector('input');
+            return [w.title, getComputedStyle(w).getPropertyValue('--pc-track-angle').trim(),
+                    i.offsetWidth, w.clientHeight, w.clientWidth];
+        })"""
+    )
+    assert len(faders) == 8
+    for title, angle, input_length, slot_length, slot_width in faders:
+        assert angle.endswith("deg"), title
+        assert abs(input_length - slot_length) <= 1, (title, input_length, slot_length)
+        assert slot_length > slot_width, title
 
 
 def test_active_highlight_survives_the_sticky_touch_hover(tablet):

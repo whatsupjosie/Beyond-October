@@ -100,6 +100,13 @@
       title: hotspot.label,
       style: hotspotStyle(hotspot),
     });
+    // A painted fader slot leans with the perspective of the desk. The map
+    // gives that lean (degrees from upright, top to the right is positive) and
+    // the control is turned to lie along the slot, so a finger pushing the
+    // fader up its slot raises the level.
+    if (Number.isFinite(hotspot.track_angle_deg)) {
+      wrap.style.setProperty("--pc-track-angle", hotspot.track_angle_deg + "deg");
+    }
     const input = el("input", {
       type: "range",
       min: "0",
@@ -380,6 +387,12 @@
     }
     manifest.hotspots.forEach((hotspot) => {
       if (hotspot.kind === "key" && !hotspot.char) throw new Error("Key hotspot " + (hotspot.id || "unknown") + " has no char.");
+      if (hotspot.track_angle_deg !== undefined) {
+        const angle = Number(hotspot.track_angle_deg);
+        if (!Number.isFinite(angle) || Math.abs(angle) > 89) {
+          throw new Error("Slider " + (hotspot.id || "unknown") + " has an invalid track angle.");
+        }
+      }
       ["x", "y", "w", "h"].forEach((key) => {
         const value = Number(hotspot[key]);
         if (!Number.isFinite(value) || value < 0 || value > 1) {

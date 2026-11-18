@@ -101,14 +101,23 @@ body.pc-console-page {
   background: rgba(255, 78, 220, 0.08);
 }
 
+/* Faders run up and down their painted slot: the range input is turned
+   upright (low at the bottom, high at the top) and the whole control is then
+   tilted to the slot's angle from the map. Container units size the input to
+   the slot's length whatever the screen size. */
 .pc-console-slider {
-  display: grid;
-  place-items: center;
-  transform: rotate(-8deg);
+  container-type: size;
+  transform: rotate(var(--pc-track-angle, 0deg));
 }
 
 .pc-console-slider input {
-  width: 100%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100cqh;
+  height: 100cqw;
+  margin: 0;
+  transform: translate(-50%, -50%) rotate(-90deg);
   accent-color: #e8f0f4;
   opacity: 0.56;
 }
