@@ -65,6 +65,12 @@ function hostLocalProvider(config) {
 
 let recoveryTimer, serverTimer;
 const networked = location.protocol === 'http:' || location.protocol === 'https:';
+// File-tray text fields must stay locked until their own source and save
+// session have loaded. Ordinary Reach startup is never file-tray readiness.
+if(reachFileMode){
+  soloTextarea.readOnly=true;draftArea.readOnly=true;
+  $('saveBtn').disabled=true;
+}
 // Autosave history belongs to the authenticated account, like server documents.
 openDB=function() {
   if(reachFileMode || !window.indexedDB || (networked && !serverReady))return Promise.resolve(null);
@@ -172,7 +178,7 @@ function markDirty() {
   setSaveStatus(saveConflict ? 'Changed elsewhere · save a copy' : 'Saving…');
   clearTimeout(recoveryTimer); recoveryTimer = setTimeout(writeRecovery, 120);
   clearTimeout(serverTimer);
-  if (!initializing) serverTimer = setTimeout(() => saveDocument(), 1000);
+  if (!initializing && !reachFileMode) serverTimer = setTimeout(() => saveDocument(), 1000);
   document.dispatchEvent(new Event('foresight:work-change'));
 }
 async function writeAutosave() {
@@ -190,7 +196,9 @@ async function writeAutosave() {
   });
 }
 async function saveDocument() {
-  if (initializing) return false;
+  // This is Reach's default document saver. Its Foresight replacement is
+  // installed only after a real file session is mounted.
+  if (reachFileMode || initializing) return false;
   if (savePromise) return savePromise;
   writeRecovery();
   if (saveConflict) { setSaveStatus('Changed elsewhere · My manuscripts → Save a copy'); return false; }
@@ -812,7 +820,10 @@ window.addEventListener('beforeunload',event=>{
     event.returnValue = '';
   }
 });
-document.addEventListener('visibilitychange',()=>{if(document.hidden){writeRecovery();saveDocument();}});
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden || reachFileMode)return; // Foresight has its own flush listener.
+  writeRecovery();saveDocument();
+});
 // Associate the donor's visual labels with their controls for keyboard/screen-reader use.
 document.querySelectorAll('.modal label').forEach(label=>{const next=label.nextElementSibling;if(next?.id&&!label.htmlFor)label.htmlFor=next.id;});
 async function startReach() {
