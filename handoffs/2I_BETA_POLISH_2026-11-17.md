@@ -25,6 +25,7 @@ Files: `2i/writers-room-v22.html`, `2i/2i-assets/reach.css`, `2i/2i-assets/reach
 ## Verified (RAN)
 - `tests/test_2i_polish_browser.py`: 33 passed. Layout checks at 11 sizes, 320 x 568 to 1920 x 1080: nothing off the side, Save, menu, settings and My manuscripts on screen, the writing page on the first screen. 16 of the layout checks fail on the previous files; every keyboard and lock check fails on the previous code.
 - Related suite (`-k "2i or writers or foresight or reach or phone or workbench or pubpartner"`): 399 passed, 2 skipped.
+- Full suite on the branch (commit 9759547, Python 3.13 sandbox): 2283 passed, 6 skipped (optional model/research tests), 0 failed, 724 s. Working tree clean afterwards; Alex vessel blob still 96fa66a728d07d5ff43b0d3d7fc17a466765cec1.
 - Clicked through on the real app (`run_reach.py`, disposable data dir): every menu item opens its dialog; Find & Replace, Rename, Export (`.md`), shelf, Collab commit, line lock, edit, insert, delete and undo all work. Chat and Generate with no model report "Ollama is not reachable" in the chat as a Writer's Room note.
 
 ## Not verified / not done
