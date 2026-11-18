@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pubcast 2i — Writer's Room</title>
 <script src="/static/reach_auth.js"></script>
-<link rel="stylesheet" href="/2i-assets/reach.css">
 <style>
 
 /* ═══════════════════════════════════════════════════════════════
@@ -130,6 +129,8 @@ html, body {
   box-shadow:none;
 }
 .top-icon-btn:hover { border-color:var(--gold); color:var(--gold-bright); background:rgba(205,163,73,0.12); }
+/* "My manuscripts" is a word, not an icon: a pill that fits its label. */
+#shelfBtn.top-icon-btn { width:auto; border-radius:18px; padding:0 13px; white-space:nowrap; font-size:11px; letter-spacing:.04em; }
 
 /* --- MAIN AREA --- */
 .main-area {
@@ -828,6 +829,8 @@ html, body {
 .zoom-ctrl.on-paper .zoom-btn:hover { border-color:var(--gold-deep); color:var(--ink); }
 .zoom-ctrl.on-paper .zoom-pct { color:var(--pencil-soft); }
 </style>
+<!-- The Reach desk layer restyles this page and carries its phone layout, so it must come after the page's own styles (as in 2i/index.html). -->
+<link rel="stylesheet" href="/2i-assets/reach.css">
 <script src="/static/program_audio_runtime.js"></script>
 <script src="/static/speech_client.js"></script>
 </head>
@@ -2309,6 +2312,13 @@ function drawSpine() {
 }
 window.addEventListener('load', drawSpine);
 window.addEventListener('resize', drawSpine);
+// The page also changes size without the window changing (the sidebar opens
+// or closes, the phone layout stacks, Collab adds the draft zone). Redraw the
+// coils whenever the spine itself changes size, so they are never stretched.
+if (typeof ResizeObserver === 'function') {
+  const spine = document.querySelector('.spiral-spine');
+  if (spine) new ResizeObserver(drawSpine).observe(spine);
+}
 
 // ── INIT ───────────────────────────────────────────────────────────
 function init() {

@@ -1,4 +1,6 @@
-/* Reach writing desk. Original v20 mechanics and notebook are preserved. */
+/* Reach writing desk. Original v20 mechanics and notebook are preserved.
+   Text sizes multiply the page's per-pane zoom (A- / A+); where a page sets
+   no zoom the variables default to 1. */
 :root { --parchment-soft:#d2c4a4; --gold:#c6a360; --gold-bright:#efdbac; }
 html,body { background:#120f0b; }
 .app-shell { grid-template-rows:76px minmax(0,1fr) 52px; border:1px solid #88703c; margin:8px; height:calc(100dvh - 16px); border-radius:13px; overflow:hidden; box-shadow:0 0 0 4px #17120c,0 0 0 5px #4c3b21; }
@@ -22,12 +24,12 @@ html,body { background:#120f0b; }
 .ref-name { font-size:14px; }
 .ref-list-container { min-height:90px; }
 .chat-log { flex:1; min-height:140px; max-height:none; gap:14px; }
-.chat-msg { font-family:Georgia,serif; font-size:15px; line-height:1.65; padding:12px 13px; border-radius:4px; border:1px solid #62502d; color:#eaddc3; background:#211e16; }
+.chat-msg { font-family:Georgia,serif; font-size:calc(15px * var(--zoom-chat, 1)); line-height:1.65; padding:12px 13px; border-radius:4px; border:1px solid #62502d; color:#eaddc3; background:#211e16; }
 .chat-msg.you { background:#29351f; border-color:#677441; }
 .chat-msg .who { font:10px ui-monospace,monospace; color:#cbb88b; letter-spacing:.1em; padding-bottom:7px; }
 .chat-msg.notice { font:12px/1.65 ui-sans-serif,system-ui,sans-serif; border-style:dashed; color:#dccba7; }
 .chat-input-row { flex-wrap:wrap; }
-#chatInput { flex:1 1 100%; width:100%; font:14px Georgia,serif; padding:12px; color:#eee1c6; }
+#chatInput { flex:1 1 100%; width:100%; font:calc(14px * var(--zoom-chat, 1)) Georgia,serif; padding:12px; color:#eee1c6; }
 #chatSendBtn { margin-left:auto; }
 .partner-label { font:10px ui-monospace,monospace; letter-spacing:.14em; text-transform:uppercase; color:#ccba90; }
 #partnerSelect { font:23px Georgia,serif; color:#f2dfb3; padding:7px 10px; border:1px solid #77613a; border-radius:4px; background:#19170f; width:100%; }
@@ -39,13 +41,13 @@ html,body { background:#120f0b; }
 .paper-title > div { font-size:14px; color:#987d4d; }
 .page-sheets { background:radial-gradient(ellipse at 8% 12%,#ead7af44,transparent 40%),linear-gradient(90deg,#dec89c,#f4e7cc 9%,#f1e0bd 95%,#cfb481); }
 .zone-label { font-size:10px; }
-.solo-textarea { font-family:'Cormorant Garamond',Georgia,serif; font-size:22px; line-height:1.65; color:#30251b; padding-right:25px; }
+.solo-textarea { font-family:'Cormorant Garamond',Georgia,serif; font-size:calc(22px * var(--zoom-manuscript, 1)); line-height:1.65; color:#30251b; padding-right:25px; }
 .solo-textarea::placeholder { color:#927a59; font-style:italic; }
 .page-sheets.solo-mode .manuscript-zone { display:flex; flex-direction:column; }
 .paper-title,.zone-label { flex-shrink:0; }
 .solo-editor { flex:1; min-height:180px; }
-.line-numbers { color:#927a59; font-size:12px; line-height:36.3px; }
-.m-line,.draft-area { font-size:21px; line-height:1.65; }
+.line-numbers { color:#927a59; font-size:12px; line-height:calc(36.3px * var(--zoom-manuscript, 1)); } /* = 22px x 1.65, the textarea line, so numbers stay on their lines at every zoom */
+.m-line,.draft-area { font-size:calc(21px * var(--zoom-manuscript, 1)); line-height:1.65; }
 .status-bar { background:#15130e; border-top:3px double #6a5431; padding:0 20px; font-size:11px; gap:10px; }
 #saveIndicator { font:11px/1.4 ui-sans-serif,system-ui,sans-serif; color:#dfd0ad; max-width:260px; }
 .save-btn { font:12px ui-monospace,monospace; min-width:92px; padding:9px 18px; }
@@ -62,5 +64,6 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .main-area.sidebar-hidden .notebook-frame { grid-column:1; }
 .main-area.sidebar-hidden #chatSection { grid-column:2; }
 @media(max-width:1100px) { .main-area { grid-template-columns:205px minmax(280px,1fr) 250px; padding:8px; gap:8px; } .section-body { padding:0 10px 12px; } .top-bar { padding:0 16px; } .top-tabs { margin-left:auto; } }
-@media(max-width:850px) { html,body { overflow:auto; } .app-shell { height:auto; min-height:calc(100dvh - 16px); grid-template-rows:auto 1fr auto; } .top-bar { min-height:75px; flex-wrap:wrap; gap:8px; padding:12px; } .top-tabs { order:3; width:100%; justify-content:center; } .main-area { display:flex; flex-direction:column; overflow:visible; } .notebook-frame { order:0; min-height:65dvh; height:65dvh; } .sidebar { order:2; overflow:visible; } #chatSection { order:1; min-height:320px; } .chat-log { max-height:300px; } .status-bar { min-height:58px; flex-wrap:wrap; padding:10px; } .paper-title h1 { font-size:27px; } .main-area.sidebar-hidden .sidebar { display:none; } #docTitleDisplay { max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .status-right { margin-left:auto; } }
+@media(max-width:850px) { html,body { overflow:auto; } .app-shell { height:auto; min-height:calc(100dvh - 16px); grid-template-rows:auto 1fr auto; grid-template-columns:minmax(0,1fr); overflow:clip; } .top-right { flex-wrap:wrap; justify-content:flex-end; } .status-bar { position:sticky; bottom:0; z-index:15; } .top-bar { min-height:75px; flex-wrap:wrap; gap:8px; padding:12px; } .top-tabs { order:3; width:100%; justify-content:center; } .main-area { display:flex; flex-direction:column; overflow:visible; } .notebook-frame { order:0; min-height:65dvh; height:65dvh; } .sidebar { order:2; overflow:visible; } #chatSection { order:1; min-height:320px; } .chat-log { max-height:300px; } .status-bar { min-height:58px; flex-wrap:wrap; padding:10px; } .paper-title h1 { font-size:27px; } .main-area.sidebar-hidden .sidebar { display:none; } #docTitleDisplay { max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .status-right { margin-left:auto; } }
+@media(max-width:600px) { .app-shell { margin:4px; min-height:calc(100dvh - 8px); border-radius:9px; } .top-bar { padding:10px; } .top-logo { font-size:21px; } .top-logo small { margin-top:2px; } .main-area { padding:6px; gap:8px; } .notebook-frame { padding:6px 4px 6px 2px; } .spiral-spine { flex-basis:28px; } .solo-textarea,.m-line,.draft-area { font-size:calc(19px * var(--zoom-manuscript, 1)); } .solo-textarea { padding-right:10px; } .line-numbers { flex-basis:28px; font-size:11px; line-height:calc(31.35px * var(--zoom-manuscript, 1)); } }
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; } }
