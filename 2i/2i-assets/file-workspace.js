@@ -7,6 +7,14 @@ const sessionNonce=qs.get('foresightSession');
 if(window.reachStarted){
   try{await window.reachStarted;}
   catch(error){$('saveBtn').disabled=true;$('saveIndicator').textContent='2i could not establish its account: '+error.message;return;}
+  // Reach may resolve its startup promise after showing a sign-in dialog.
+  // That is not authenticated editor readiness: no file mount, Save, or
+  // host-ready handshake is permitted until the next authenticated reload.
+  if(initializing){
+    $('saveBtn').disabled=true;
+    $('saveIndicator').textContent='Sign in to Reach to finish opening your manuscript.';
+    return;
+  }
 }
 // Normal 2i is already managed by Reach. The historical native adapter below
 // must not overwrite Reach's saveDocument/newDocument/openDocument functions or
