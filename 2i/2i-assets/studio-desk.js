@@ -62,6 +62,19 @@
   typewriter.title="Interactive blue and brass typewriter";
   typewriter.src="/typewriter-console?embedded=2i";
   typewriter.loading="lazy";
+  const expand=el("button","Expand keys",figure);
+  expand.id="twoiTypewriterExpand";expand.type="button";
+  expand.setAttribute("aria-expanded","false");
+  expand.setAttribute("aria-controls","twoiTypewriterConsole");
+  function setExpanded(on){
+    figure.classList.toggle("is-expanded",on);
+    expand.textContent=on?"Collapse keys":"Expand keys";
+    expand.setAttribute("aria-expanded",String(on));
+  }
+  expand.onclick=()=>setExpanded(!figure.classList.contains("is-expanded"));
+  document.addEventListener("keydown",e=>{
+    if(e.key==="Escape"&&figure.classList.contains("is-expanded")){setExpanded(false);e.preventDefault();}
+  });
   el("figcaption",config.seated?"Type on the machine or in the manuscript":"Typewriter view · keys edit this manuscript",figure);
 
   function currentText(){
@@ -104,6 +117,7 @@
   const syncPresentation=()=>{
     const active=document.body.dataset.twoiDesk==="typewriter";
     figure.hidden=!active;
+    if(!active)setExpanded(false);
     if(active)syncPaper();
   };
   document.addEventListener("twoi:presentation-change",syncPresentation);
