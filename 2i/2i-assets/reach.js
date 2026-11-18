@@ -269,7 +269,20 @@ async function saveToFile() {
   }
 }
 // What the Save button, File › Save and Ctrl+S do: the host when there is one, the file when there is not.
-function saveNow() { return networked ? saveDocument() : saveToFile(); }
+function saveNow() {
+  // File-tray documents are owned by ForesightFiles, not the Reach manuscript
+  // collection. File-menu and Ctrl+S can fire before the asynchronous mount,
+  // while Reach's ordinary saveDocument is still installed. Never let them
+  // write the wrong document or claim the actual file was saved.
+  if(reachFileMode) {
+    if(!window.foresightFileSession) {
+      setSaveStatus('Opening Foresight file · Save unavailable until ready');
+      return Promise.resolve(false);
+    }
+    return saveDocument(); // rebound by file-workspace.js to session.save()
+  }
+  return networked ? saveDocument() : saveToFile();
+}
 async function preserveBeforeSwitch() {
   if (chatSending || generating || editingIdx!==null) {
     addChat('notice', 'An inline edit, message or generation is still active. Finish or cancel it before changing manuscripts.');
