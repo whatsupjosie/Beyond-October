@@ -134,8 +134,9 @@ try{
 
   $('saveBtn').onclick=()=>saveDocument().catch(e=>{$('saveIndicator').textContent=e.message});
   $('saveBtn').disabled=false;
-  // Notify only our same-origin parent, never an arbitrary page.
-  parent.postMessage({type:'foresight:file-ready',fileId:id},location.origin);
+  // Announce readiness only after the file command listener is installed.
+  // An early duplicate could cause the host's first save/status command to
+  // arrive before there was anybody listening for it.
   let optionalActivity='full';
   const activityStatus=()=>{const s=session.activity();return {version:1,ready:true,mode:optionalActivity,
     capabilities:['status','save','export','activity','prepare-close'],
