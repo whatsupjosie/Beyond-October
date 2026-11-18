@@ -1647,13 +1647,47 @@ function snapshot(metadataOnly=false) {
   if (undoStack.length > MAX_UNDO) undoStack.shift();
   redoStack = [];
 }
+// Metadata changes (line locks, chapter markers) have to follow any later edits
+// instead of being restored onto the old paragraph indexes. Refuse an
+// ambiguous remap rather than protecting the wrong words.
+function remapMetadataPoint(point,liveLines){
+  const before=point.committed;
+  let head=0,tail=0;
+  while(head<before.length&&head<liveLines.length&&before[head]===liveLines[head])head++;
+  while(tail<before.length-head&&tail<liveLines.length-head&&
+    before[before.length-1-tail]===liveLines[liveLines.length-1-tail])tail++;
+  const oldEnd=before.length-tail,delta=liveLines.length-before.length;
+  const changed=head!==before.length||before.length!==liveLines.length;
+  let mappedLocks=new Set(point.lockedLines);
+  if(changed&&mappedLocks.size){
+    if(typeof NarrativeCore==='undefined'||typeof NarrativeCore.remapProtected!=='function')
+      throw Error("Cannot safely move protected line indexes without the narrative engine.");
+    mappedLocks=new Set(NarrativeCore.remapProtected(before,liveLines,mappedLocks));
+  }
+  const mappedChapters=point.chapters.map(ch=>{
+    const n=ch.startLine;
+    if(!Number.isInteger(n)||n<0||n>before.length)
+      throw Error("A chapter boundary has an invalid position; metadata undo was not applied.");
+    if(!changed||n<=head)return {...ch};
+    if(n>=oldEnd)return {...ch,startLine:n+delta};
+    throw Error("A later edit crosses a chapter boundary. Review that edit before undoing chapter metadata.");
+  });
+  return {lockedLines:mappedLocks,chapters:mappedChapters};
+}
 function restoreUndoPoint(s,kind) {
   const keepWriteText=!!s.metadataOnly&&!coWriting&&s.coWriting!==true;
   const liveText=keepWriteText?soloTextarea.value:null;
+  let metadata=null;
+  if(keepWriteText){
+    try{metadata=remapMetadataPoint(s,liveText.split('\n'));}
+    catch(error){addChat('notice',error.message);return false;}
+  }
   if(s.narrative&&window.twoiNarrativeHistory&&!keepWriteText)
     window.twoiNarrativeHistory.restore(s.narrative,buffer.join('\n')===s.buffer.join('\n')?'':buffer.join('\n'),kind);
   committed=keepWriteText?liveText.split('\n'):s.committed;
-  buffer=s.buffer;lockedLines=s.lockedLines;chapters=s.chapters;
+  buffer=s.buffer;
+  lockedLines=metadata?metadata.lockedLines:s.lockedLines;
+  chapters=metadata?metadata.chapters:s.chapters;
   // Metadata-only undo must not roll back formatting on subsequent edits.
   if(nativeFormatting&&!keepWriteText){manuscriptFormat=TwoiFormatCore.restore(s.formatting,committed);formatPrevious=committed.slice();}
   if(typeof s.coWriting==='boolean'){coWriting=s.coWriting;updateModeUI();}
@@ -1661,22 +1695,23 @@ function restoreUndoPoint(s,kind) {
   if(!coWriting)soloTextarea.value=committed.join('\n');
   if(kind==='undo'||kind==='redo')window.twoiCreativeSession?.record(kind);
   markDirty();render();
+  return true;
 }
 function undo() {
   if (!undoStack.length) return;
   if(window.twoiNarrativeHistory&&(generating||chatSending||editingIdx!==null)){addChat('notice','Finish the active edit or request before undoing.');return;}
   if(window.twoiNarrativeHistory&&playing)stopPlaying();
-  const point=undoStack.pop(),redoPoint=captureUndoPoint();
-  redoPoint.metadataOnly=!!point.metadataOnly;
-  redoStack.push(redoPoint);restoreUndoPoint(point,'undo');
+  const point=undoStack[undoStack.length-1],redoPoint=captureUndoPoint();
+  if(restoreUndoPoint(point,'undo')===false)return;
+  undoStack.pop();redoPoint.metadataOnly=!!point.metadataOnly;redoStack.push(redoPoint);
 }
 function redo() {
   if (!redoStack.length) return;
   if(window.twoiNarrativeHistory&&(generating||chatSending||editingIdx!==null)){addChat('notice','Finish the active edit or request before redoing.');return;}
   if(window.twoiNarrativeHistory&&playing)stopPlaying();
-  const point=redoStack.pop(),undoPoint=captureUndoPoint();
-  undoPoint.metadataOnly=!!point.metadataOnly;
-  undoStack.push(undoPoint);restoreUndoPoint(point,'redo');
+  const point=redoStack[redoStack.length-1],undoPoint=captureUndoPoint();
+  if(restoreUndoPoint(point,'redo')===false)return;
+  redoStack.pop();undoPoint.metadataOnly=!!point.metadataOnly;undoStack.push(undoPoint);
 }
 
 // ── DIRTY / AUTOSAVE ───────────────────────────────────────────────
