@@ -49,11 +49,21 @@ The original Reach commands now refuse those operations in `reachFileMode`, with
 
 This does **not** remove normal Reach manuscript navigation. Its original functions still operate when `reachFileMode` is false.
 
+### 7. Background/autosave could bypass the corrected Save dispatcher
+
+Reach's ordinary `markDirty()` still scheduled `saveDocument()` after one second, and its `visibilitychange` handler called `saveDocument()` whenever the tab became hidden. Neither went through `saveNow()`. When `startReach()` completed but the Foresight session was still mounting, these paths could write a different Reach manuscript despite the explicit Save guard.
+
+Added layered defenses: Reach's **default** `saveDocument()` refuses `reachFileMode`; Reach's scheduled autosave and visibility-save handlers skip file routes (Foresight's own session handles these); the file-tray textareas and Save button remain locked from page startup until `file-workspace.js` has installed a recoverable Foresight session. Failed or missing files remain read-only.
+
+The existing Foresight adapter still dispatches its own change notification, uses `session.flush()` for file persistence and flushes at pagehide/visibilitychange. Normal Reach auto-save and normal Reach editor input remain unchanged.
+
 ## Verification actually executed
 
 - `tests/test_2i_file_save_dispatch_node.js`: **9 focused checks passed** using actual GitHub `reach.js` saveNow source in an isolated V8 compatibility harness.
-- `tests/test_2i_file_host_ready_node.js`: **6 focused checks passed** using actual GitHub `file-workspace.js` in an isolated mock host. Covers normal immediate Save after readiness, account failure, pending login, missing file record, failed mount and decode failure with preserved original download.
+- `tests/test_2i_file_host_ready_node.js`: **7 focused checks passed** using actual GitHub `file-workspace.js` in an isolated mock host. Covers normal immediate Save after readiness, account failure, pending login, missing file record, failed mount and decode failure with preserved original download.
 - `tests/test_2i_file_navigation_isolation_node.js`: **5 focused checks passed** against actual Reach functions and the HTML drop listener in a V8 compatibility harness. Before and after mounting, file-tray Reach commands are blocked; the normal Reach route is not blocked.
+- `tests/test_2i_file_autosave_isolation_node.js`: **7 focused checks passed** from the current Reach source. It covers read-only startup, timer suppression, fail-closed default Save and visibilitychange while preserving normal Reach behavior.
+- Red/green check of background saving: the prior file-route visibility handler invoked the wrong Reach saver; the corrected handler does not.
 - Red/green check of Save: on parent code, a pre-mount file-tray Save called the wrong Reach saver; on the repaired source, it returned false and did not call Reach.
 - Red/green check of file readiness: **3 of 6** new tests failed against the parent file adapter and **all 6** passed on the repair. The failures concerned missing file, mount error/Save availability and working-copy decode failure.
 - Production JavaScript parsed after editing.
