@@ -54,11 +54,16 @@
       location.assign(config.returnPath);
     }catch(error){addChat("notice",error.message);}
   });
-  if(!config.seated)return;
+  // The selected presentation, not the studio seat, decides whether the typewriter art is available.
+  // Keep its paper a decorative reflection; the existing text editor remains the editable source of truth.
   const figure=el("figure",null,$("notebookFrame"));figure.id="twoiDeskScene";
-  const img=el("img",null,figure);img.src="/static/world/rooms/dressing_typewriter_sitting.png";img.alt="First-person view of the blue and gold typewriter at the desk";
+  const img=el("img",null,figure);
+  img.src=(location.protocol==="file:"?"../static/world/rooms/":"/static/world/rooms/")+"dressing_typewriter_sitting.png";
+  img.alt="Blue and brass typewriter on a writing desk";
   const preview=el("div","",figure);preview.id="twoiPaperPreview";preview.setAttribute("aria-hidden","true");
-  el("figcaption",config.room==="writers_room"?"Seated typewriter · shared artwork pending room-specific view":"Seated at the dressing-room typewriter",figure);
+  el("figcaption",config.seated
+    ? (config.room==="writers_room"?"Seated typewriter · shared artwork pending room-specific view":"Seated at the dressing-room typewriter")
+    : "Typewriter view · blue and brass studio artwork",figure);
   function syncPaper(){
     const text=coWriting?buffer.join("\n")||committed.join("\n"):soloTextarea.value;
     preview.textContent=text.slice(-500).split("\n").slice(-4).join("\n");
