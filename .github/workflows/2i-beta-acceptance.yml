@@ -1,0 +1,83 @@
+name: 2i beta acceptance gates
+
+on:
+  push:
+    branches:
+      - codex/2i-beta-test-gates-2026-11-17
+    paths:
+      - '.github/workflows/2i-beta-acceptance.yml'
+      - '2i/**'
+      - 'tests/test_2i_*'
+      - 'modules/writers_room*'
+      - 'requirements*.txt'
+      - 'package*.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: 2i-beta-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  logic-and-save:
+    name: Node 2i logic and Save Now
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Execute 2i Node regression suite
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/test_2i_*_node.js 2>&1 | tee 2i-node-tests.log
+      - name: Upload Node test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 2i-node-evidence
+          path: 2i-node-tests.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  chromium-and-storage:
+    name: Chromium UI and manuscript persistence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - name: Install application and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt -r requirements-dev.txt
+          python -m playwright install --with-deps chromium
+      - name: Run all 2i Python regressions and persistence checks
+        shell: bash
+        env:
+          CI: 'true'
+        run: |
+          set -o pipefail
+          python -m pytest -v -ra tests/test_2i_*.py tests/test_saves_survive_restart.py tests/test_writers_room_real_http.py tests/test_reach_writers_room.py --junitxml=2i-python-results.xml 2>&1 | tee 2i-python-tests.log
+      - name: Upload Chromium and persistence evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 2i-python-evidence
+          path: |
+            2i-python-tests.log
+            2i-python-results.xml
+          if-no-files-found: ignore
+          retention-days: 14
