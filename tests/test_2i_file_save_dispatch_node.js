@@ -13,12 +13,12 @@ const end=source.indexOf('async function preserveBeforeSwitch()',start);
 assert.ok(start>=0&&end>start,'Actual Reach saveNow function must exist');
 const code=source.slice(start,end);
 
-function harness({file=false,networked=true,mounted=false}={}){
+function harness({file=false,networked=true,mounted=false,fail=false}={}){
   const calls=[];
   const state={
     reachFileMode:file?'file-id':null,
     networked,
-    window:{foresightFileSession:mounted?{save(){calls.push('file-session');return Promise.resolve(true);}}:undefined},
+    window:{foresightFileSession:mounted?{save(){calls.push('file-session');return fail?Promise.reject(Error('Disk full')):Promise.resolve(true);}}:undefined},
     setSaveStatus:message=>calls.push({status:message}),
     saveToFile:()=>{calls.push('native-file-picker');return Promise.resolve(true);},
     saveDocument:()=>{calls.push('Reach manuscript save');return Promise.resolve(true);}
@@ -50,3 +50,11 @@ for(const online of [true,false]){
     assert.deepEqual(x.calls,['file-session']);
   });
 }
+
+test('failed file-session Save announces failure instead of producing unhandled rejection',async()=>{
+  const x=harness({file:true,networked:true,mounted:true,fail:true});
+  assert.equal(await x.save(),false);
+  assert.equal(x.calls[0],'file-session');
+  assert.match(x.calls[1].status,/Foresight file not saved/);
+  assert.match(x.calls[1].status,/Disk full/);
+});
