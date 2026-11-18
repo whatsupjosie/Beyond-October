@@ -42,17 +42,20 @@
     const next = value.slice(0,start)+action.text+value.slice(end);
     try { editor.focus({preventScroll:true}); } catch (_) { editor.focus(); }
     editor.setSelectionRange(start,end);
+    // Chromium's execCommand('insertText') may not dispatch a cancelable
+    // beforeinput event. Emit one before either insertion path so a protected
+    // editor can decline the change without relying on reverting it afterward.
+    const win = doc && doc.defaultView;
+    const Input = win && (win.InputEvent || win.Event);
+    if (Input && typeof editor.dispatchEvent === 'function') {
+      const pre = new Input('beforeinput',{bubbles:true,cancelable:true,inputType:action.inputType,data:action.text});
+      if (!editor.dispatchEvent(pre)) return {applied:false};
+    }
     let native = false;
     if (doc && typeof doc.execCommand === 'function') {
       try { native = !!doc.execCommand('insertText',false,action.text); } catch (_) { /* not supported */ }
     }
     if (!native && editor.value === value) {
-      const win = doc && doc.defaultView;
-      const Input = win && (win.InputEvent || win.Event);
-      if (Input) {
-        const pre = new Input('beforeinput',{bubbles:true,cancelable:true,inputType:action.inputType,data:action.text});
-        if (!editor.dispatchEvent(pre)) return {applied:false};
-      }
       editor.setRangeText(action.text,start,end,'end');
       if (Input) editor.dispatchEvent(new Input('input',{bubbles:true,inputType:action.inputType,data:action.text}));
     }
