@@ -1962,17 +1962,20 @@ function lockAll() {
   markDirty(); render();
 }
 function unlockSelected() {
-  if (selectedIdx === null) { addChat('pp', 'Select a line first, then unlock it.'); return; }
+  // Write mode has no selected paragraph: use the cursor's paragraph instead.
+  const idx=coWriting?selectedIdx:soloTextarea.value.slice(0,soloTextarea.selectionStart).split('\n').length-1;
+  if(idx===null){addChat('notice','Select a line first, then unlock it.');return;}
+  if(!lockedLines.has(idx)){addChat('notice','Line '+(idx+1)+' is not locked.');return;}
   snapshot();
-  lockedLines.delete(selectedIdx);
-  markDirty(); render();
+  lockedLines.delete(idx);
+  markDirty();render();
 }
 function newChapter() {
-  snapshot();
   const num = chapters.length + 1;
   const title = prompt('Chapter title:', 'Chapter ' + numberToWord(num));
-  if (!title) return;
+  if (!title) return; // Cancel must not create a phantom undo step.
   const sub = prompt('Subtitle (optional):', '') || '';
+  snapshot();
   chapters.push({ title, subtitle: sub, startLine: committed.length + buffer.length });
   markDirty(); render();
 }
@@ -2255,35 +2258,27 @@ $('frReplaceAllBtn').onclick = () => {
     $('frResult').textContent=hits+' replacement(s) made · '+skipped+' protected occurrence(s) skipped';
     $('frResult').className='test-result ok';return;
   }
-  snapshot();
-  let count = 0;
-  // Replace in committed
-  committed = committed.map(l => {
-    if (l.includes(find)) { count += l.split(find).length - 1; return l.split(find).join(replace); }
-    return l;
-  });
-  // Replace in buffer
-  buffer = buffer.map(l => {
-    if (l.includes(find)) { count += l.split(find).length - 1; return l.split(find).join(replace); }
-    return l;
-  });
-  // Replace in reading
-  if (reading?.text?.includes(find)) {
-    count += reading.text.split(find).length - 1;
-    reading.text = reading.text.split(find).join(replace);
+  // Fallback when NarrativeCore is unavailable: keep Claude's exact-count,
+  // locked-line-safe Replace All behavior without rebuilding Fable's primary path.
+  // The text area is authoritative in Write mode, and must be synchronized once.
+  if (!coWriting) committed = soloTextarea.value.split('\n');
+  const tally = value => value.split(find).length - 1;
+  const skipped = committed.reduce((n,line,i)=>n+(lockedLines.has(i)?tally(line):0),0);
+  const updated = committed.map((line,i)=>lockedLines.has(i)?line:line.split(find).join(replace));
+  const nextBuffer = buffer.map(line=>line.split(find).join(replace));
+  const count = committed.reduce((n,line,i)=>n+(lockedLines.has(i)?0:tally(line)),0)
+    +buffer.reduce((n,line)=>n+tally(line),0);
+  if(count) {
+    snapshot();
+    committed=updated;
+    buffer=nextBuffer;
+    if(!coWriting)soloTextarea.value=committed.join('\n');
+    if(reading?.text?.includes(find))reading.text=reading.text.split(find).join(replace);
+    markDirty();render();
   }
-  // Replace in solo textarea
-  if (!coWriting) {
-    const val = soloTextarea.value;
-    if (val.includes(find)) {
-      count += val.split(find).length - 1;
-      soloTextarea.value = val.split(find).join(replace);
-      committed = soloTextarea.value.split('\n');
-    }
-  }
-  $('frResult').textContent = count + ' replacement' + (count !== 1 ? 's' : '') + ' made';
-  $('frResult').className = 'test-result ok';
-  markDirty(); render();
+  $('frResult').textContent=count+' replacement'+(count!==1?'s':'')+' made'
+    +(skipped?'; '+skipped+' in locked lines left unchanged':'');
+  $('frResult').className='test-result ok';
 };
 
 // ── CONTEXT MENU ───────────────────────────────────────────────────
