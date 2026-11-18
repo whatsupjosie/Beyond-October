@@ -9,7 +9,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 const script=fs.readFileSync(path.join(__dirname,'../2i/2i-assets/file-workspace.js'),'utf8');
 
-async function launch({failReach=false}={}) {
+async function launch({failReach=false,authPending=false}={}) {
   const events=[],handlers={},created=[];
   class ResizeObserver{observe(){}disconnect(){}}
   const shell={style:{}};
@@ -53,7 +53,7 @@ async function launch({failReach=false}={}) {
     soloTextarea:{dispatchEvent(){}},
     markDirty(){},getDocState:()=>({}),loadDocState(){},render(){},
     coWriting:false,committed:['Text'],documentTitle:'Untitled',
-    chatSending:false,generating:false,editingIdx:null,PP:{inflight:false},
+    initializing:authPending,chatSending:false,generating:false,editingIdx:null,PP:{inflight:false},
     saveDocument:()=>false,saveDocumentAs:()=>false,
     openDocument:()=>false,newDocument:()=>false,
     Event:class{constructor(type){this.type=type}}
@@ -80,4 +80,13 @@ test('failed account startup announces no readiness and disables Save',async()=>
   assert.equal(f.events.filter(x=>x.type==='foresight:file-ready').length,0);
   assert.equal(f.buttons.saveBtn.disabled,true);
   assert.match(f.buttons.saveIndicator.textContent,/Account unavailable/);
+});
+test('a visible login prompt is not falsely announced as a ready document',async()=>{
+  // Reach's startReach() returns after showAccount() while initializing=true.
+  const f=await launch({authPending:true});
+  assert.equal(f.events.filter(x=>x.type==='foresight:file-ready').length,0);
+  assert.equal(f.events.filter(x=>x.type==='session-save').length,0);
+  assert.equal(f.window.foresightFileSession,undefined);
+  assert.equal(f.buttons.saveBtn.disabled,true);
+  assert.match(f.buttons.saveIndicator.textContent,/Sign in to Reach/);
 });
