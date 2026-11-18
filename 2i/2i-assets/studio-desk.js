@@ -54,48 +54,58 @@
       location.assign(config.returnPath);
     }catch(error){addChat("notice",error.message);}
   });
-  if(!config.seated)return;
+  // Claude's original /typewriter-console remains the source of the key mapping,
+  // key animations, keyboard support and sound. The 2i editor owns the words.
   const figure=el("figure",null,$("notebookFrame"));figure.id="twoiDeskScene";
-  const img=el("img",null,figure);img.src="/static/world/rooms/dressing_typewriter_sitting.png";img.alt="First-person view of the blue and gold typewriter at the desk";
-  const preview=el("div","",figure);preview.id="twoiPaperPreview";preview.setAttribute("aria-hidden","true");
-  el("figcaption",config.room==="writers_room"?"Seated typewriter · shared artwork pending room-specific view":"Seated at the dressing-room typewriter",figure);
-  function syncPaper(){
-    const text=coWriting?buffer.join("\n")||committed.join("\n"):soloTextarea.value;
-    preview.textContent=text.slice(-500).split("\n").slice(-4).join("\n");
+  const typewriter=el("iframe",null,figure);
+  typewriter.id="twoiTypewriterConsole";
+  typewriter.title="Interactive blue and brass typewriter";
+  typewriter.src="/typewriter-console?embedded=2i";
+  typewriter.loading="lazy";
+  el("figcaption",config.seated?"Type on the machine or in the manuscript":"Typewriter view · keys edit this manuscript",figure);
+
+  function currentText(){
+    return coWriting ? (buffer.join("\n")||committed.join("\n")) : soloTextarea.value;
   }
+  function syncPaper(){
+    if(typewriter.dataset.ready!=="true" || !typewriter.contentWindow)return;
+    typewriter.contentWindow.postMessage({
+      type:"pubcast:2i-manuscript",
+      // Only a decorative excerpt goes into the frame. Saving uses the actual editor.
+      text:currentText().slice(-2000)
+    },location.origin);
+  }
+  typewriter.addEventListener("load",()=>{typewriter.dataset.ready="false";});
+  window.addEventListener("message",event=>{
+    // Do not accept commands from another frame, domain, or an inactive view.
+    if(event.source!==typewriter.contentWindow || event.origin!==location.origin)return;
+    const data=event.data;
+    if(data?.type==="pubcast:2i-ready"){
+      typewriter.dataset.ready="true";syncPaper();return;
+    }
+    if(data?.type!=="pubcast:2i-key" || document.body.dataset.twoiDesk!=="typewriter")return;
+    if(initializing || generating || chatSending || editingIdx!==null){
+      addChat("notice","Finish the active edit or request before using the typewriter keys.");
+      return;
+    }
+    const target=coWriting?draftArea:soloTextarea;
+    if(!window.TwoiTypewriterInput){
+      addChat("notice","Typewriter input is unavailable; write in the manuscript instead.");
+      return;
+    }
+    window.TwoiTypewriterInput.apply(target,data.key);
+    // Existing input handlers enforce locked lines and synchronize Save Now.
+    syncPaper();
+  });
   document.addEventListener("foresight:work-change",syncPaper);
   for(const input of [soloTextarea,draftArea])input.addEventListener("input",syncPaper);
-  const oldRender=render;render=function(){oldRender();syncPaper();};syncPaper();
-  const options=el("div",null,controls);options.id="twoiAudioOptions";
-  const key="twoi.typewriter.audio.v1";/* Josie: "audio effects must be optional". Off until she turns them on; her choice is kept. */let preferences={click:false,bell:false};
-  try{const old=JSON.parse(localStorage.getItem(key)||"null");if(old){if(typeof old.click==="boolean")preferences.click=old.click;if(typeof old.bell==="boolean")preferences.bell=old.bell;}}catch{}
-  function toggle(name,label){
-    const l=el("label",null,options),i=el("input",null,l);i.type="checkbox";i.checked=preferences[name];l.append(document.createTextNode(" "+label));i.onchange=()=>{preferences[name]=i.checked;try{localStorage.setItem(key,JSON.stringify(preferences));}catch{}};
-  }
-  toggle("click","Key clicks");toggle("bell","Line-end bell");
-  const syncPresentation=()=>{const active=document.body.dataset.twoiDesk==="typewriter";figure.hidden=!active;options.style.display=active?"":"none";if(active)syncPaper();};
-  document.addEventListener("twoi:presentation-change",syncPresentation);syncPresentation();
-  let ctx=null,lastClick=0;
-  function sound(kind){
-    if(document.body.dataset.twoiDesk!=="typewriter"||!preferences[kind])return;
-    // Private UI effects only; not production/broadcast audio.
-    try{
-      const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
-      if(!ctx)ctx=new AC();if(ctx.state==="suspended")ctx.resume().catch(()=>{});
-      const t=ctx.currentTime;if(kind==="click"&&t-lastClick<0.022&&lastClick!==0)return;if(kind==="click")lastClick=t;
-      const o=ctx.createOscillator(),g=ctx.createGain();o.type=kind==="bell"?"sine":"triangle";o.frequency.setValueAtTime(kind==="bell"?1450:940,t);
-      if(kind==="click")o.frequency.exponentialRampToValueAtTime(190,t+0.027);
-      g.gain.setValueAtTime(kind==="bell"?0.075:0.045,t);g.gain.exponentialRampToValueAtTime(0.001,t+(kind==="bell"?0.22:0.042));o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+(kind==="bell"?0.23:0.05));o.onended=()=>{o.disconnect();g.disconnect();};
-    }catch{}
-  }
-  const before=new WeakMap();
-  function isWriting(node){return node===soloTextarea||node===draftArea||node?.matches?.(".m-line-edit textarea");}
-  document.addEventListener("beforeinput",e=>{if(e.isTrusted&&isWriting(e.target)&&!e.isComposing)before.set(e.target,e.target.value);},true);
-  document.addEventListener("input",e=>{
-    if(!e.isTrusted||!isWriting(e.target)||e.isComposing||!before.has(e.target))return;
-    const old=before.get(e.target);before.delete(e.target);
-    const c=TwoiStudioBridge.cue(old,e.target.value,e.target.selectionStart,e.inputType,e.data);
-    if(c.click)sound("click");if(c.bell)sound("bell");
-  });
-  window.addEventListener("pagehide",()=>{if(ctx){ctx.close().catch(()=>{});ctx=null;}});
+  const oldRender=render;
+  render=function(){oldRender();syncPaper();};
+  const syncPresentation=()=>{
+    const active=document.body.dataset.twoiDesk==="typewriter";
+    figure.hidden=!active;
+    if(active)syncPaper();
+  };
+  document.addEventListener("twoi:presentation-change",syncPresentation);
+  syncPresentation();
 })();
