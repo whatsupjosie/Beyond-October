@@ -5,6 +5,13 @@ Foresight inside this Build. It is **not** a declaration that all of PubCast is
 finished. Never treat a file, route, recovered donor, or test fixture as proof
 of live functionality.
 
+## 2026-11-17: Touchable consoles and typewriter keys (branch console-touch-typewriter-keys)
+
+Ledger: `handoffs/CONSOLE_TOUCH_AND_TYPEWRITER_2026-11-17.md`.
+
+- The audio and director consoles now send the login token, so their buttons no longer fail with "Authentication required"; knobs follow a finger, sliders send once. New typewriter page `/typewriter-console`: keys type on touch, mouse and keyboard.
+- Tested: 39 browser tests in real Chromium with emulated touch (`tests/test_console_touch_browser.py`, `tests/test_typewriter_console_manifest.py`) and the existing Node console test. Not tested: a real iPad or Safari; `control_room.html`, `studio_control_room.html` and `director_switcher.html` (they load the changed adapter file). Not built: sound, typewriter inside 2i.
+
 ## 2026-11-02: Production notes (sticky notes) and the PubCast profile
 
 Ledger: `handoffs/PRODUCTION_NOTES_2026-11-02.md`.

@@ -124,6 +124,29 @@
     document.head.appendChild(style);
   }
 
+  // The studio action API requires the signed-in token. Pages read it from the
+  // same places the rest of the app does (Reach session, then PubPartner login).
+  // Outside a browser (the Node tests) there is no storage and nothing is added.
+  function storedToken() {
+    try {
+      const session = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("pubcast_token") : "";
+      const local = typeof localStorage !== "undefined" ? localStorage.getItem("pubpartner.auth.token.v1") : "";
+      return session || local || "";
+    } catch (_err) {
+      return "";
+    }
+  }
+
+  function withAuth(options) {
+    const next = Object.assign({}, options || {});
+    const headers = Object.assign({}, next.headers || {});
+    const hasAuth = Object.keys(headers).some((name) => name.toLowerCase() === "authorization");
+    const token = hasAuth ? "" : storedToken();
+    if (token) headers.Authorization = "Bearer " + token;
+    if (Object.keys(headers).length) next.headers = headers;
+    return next;
+  }
+
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, function (char) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
@@ -209,7 +232,7 @@
 
     async _fetch(path, options) {
       if (!this.fetchImpl) throw new Error("fetch is not available for studio console hotspots");
-      const response = await this.fetchImpl(this.baseUrl + path, options || {});
+      const response = await this.fetchImpl(this.baseUrl + path, withAuth(options));
       const data = response && typeof response.json === "function" ? await response.json() : {};
       if (!response || !response.ok) {
         const message = data && data.detail ? data.detail : "Studio console request failed";
@@ -224,5 +247,6 @@
     buildConfirmModel: buildConfirmModel,
     readElementPayload: readElementPayload,
     requiresConfirmation: requiresConfirmation,
+    withAuth: withAuth,
   };
 });
