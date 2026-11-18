@@ -63,6 +63,17 @@ def tablet(base_url):
         browser.close()
 
 
+def _settle(page, expected, timeout_s=5.0, quiet_ms=300):
+    """Wait until the mocked studio has seen `expected` calls, then a quiet
+    spell, so a late extra call is caught instead of raced past."""
+    import time
+    deadline = time.monotonic() + timeout_s
+    while len(page.calls) < expected and time.monotonic() < deadline:
+        page.wait_for_timeout(25)
+    page.wait_for_timeout(quiet_ms)
+    assert len(page.calls) == expected, page.calls
+
+
 def _open(page, name):
     page.goto(f"{page.base_url}/static/{name}")
     page.wait_for_selector(".pc-console-hotspot")
@@ -173,8 +184,7 @@ def test_layout_refits_when_the_tablet_rotates(tablet):
 def test_console_buttons_send_the_signed_in_token(tablet):
     _open(tablet, "audio_console.html")
     tablet.touchscreen.tap(*_center(tablet, ".pc-console-hotspot--button"))
-    tablet.wait_for_timeout(400)
-    assert tablet.calls, "tap did not reach the studio API"
+    _settle(tablet, 1)
     assert all(call["auth"] == f"Bearer {TOKEN}" for call in tablet.calls)
 
 
@@ -191,8 +201,7 @@ def test_knob_follows_a_finger_and_sends_one_action_on_release(tablet):
     assert during != before, "knob did not move under the finger"
     assert not tablet.calls, "action must wait for release"
     cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
-    tablet.wait_for_timeout(500)
-    assert len(tablet.calls) == 1
+    _settle(tablet, 1)
     assert json.loads(tablet.calls[0]["body"])["value"] > 0.5
 
 
@@ -314,7 +323,6 @@ def _drag(page, cdp, x, y, dx, dy=0, steps=8):
     for step in range(1, steps + 1):
         cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x + dx * step / steps, "y": y + dy * step / steps, "id": 1}]})
     cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
-    page.wait_for_timeout(400)
 
 
 def test_tapping_a_volume_knob_sends_its_current_level_not_the_default(tablet):
@@ -322,10 +330,11 @@ def test_tapping_a_volume_knob_sends_its_current_level_not_the_default(tablet):
     x, y = _center(tablet, ".pc-console-knob")
     cdp = tablet.context.new_cdp_session(tablet)
     _drag(tablet, cdp, x, y, 60)                 # raise it
+    _settle(tablet, 1)
     raised = json.loads(tablet.calls[-1]["body"])["level"]
     assert raised > 0.5
     tablet.touchscreen.tap(x, y)                 # a plain tap afterwards
-    tablet.wait_for_timeout(400)
+    _settle(tablet, 2)
     tapped = json.loads(tablet.calls[-1]["body"])
     assert tapped["level"] == pytest.approx(raised), tapped
     assert len(tablet.calls) == 2
@@ -335,6 +344,7 @@ def test_dragging_a_knob_up_the_screen_also_raises_it(tablet):
     _open(tablet, "audio_console.html")
     x, y = _center(tablet, ".pc-console-knob")
     _drag(tablet, tablet.context.new_cdp_session(tablet), x, y, 0, -60)
+    _settle(tablet, 1)
     assert json.loads(tablet.calls[-1]["body"])["level"] > 0.5
 
 
@@ -360,11 +370,11 @@ def test_pushing_a_fader_up_its_slot_raises_the_level_and_sends_once(tablet):
     cdp = tablet.context.new_cdp_session(tablet)
     (bx, by), (tx, ty) = _slot_points(tablet, slider, -0.85, 0.85)
     _drag(tablet, cdp, bx, by, tx - bx, ty - by, steps=12)
-    assert len(tablet.calls) == 1, tablet.calls
+    _settle(tablet, 1)
     assert json.loads(tablet.calls[0]["body"])["level"] > 0.9
     (hx, hy), (lx, ly) = _slot_points(tablet, slider, 0.85, -0.85)
     _drag(tablet, cdp, hx, hy, lx - hx, ly - hy, steps=12)
-    assert len(tablet.calls) == 2, tablet.calls
+    _settle(tablet, 2)
     assert json.loads(tablet.calls[1]["body"])["level"] < 0.1
 
 
@@ -459,12 +469,14 @@ def test_a_muted_knob_drags_from_zero_not_from_the_default(tablet):
     x, y = _center(tablet, ".pc-console-knob")
     cdp = tablet.context.new_cdp_session(tablet)
     _drag(tablet, cdp, x, y, -400)                       # all the way down to 0
+    _settle(tablet, 1)
     assert json.loads(tablet.calls[-1]["body"])["level"] == 0
     _drag(tablet, cdp, x, y, 16)                         # a small nudge up
+    _settle(tablet, 2)
     nudged = json.loads(tablet.calls[-1]["body"])["level"]
     assert 0.05 < nudged < 0.2, nudged                   # from 0, not from 0.5
     tablet.evaluate("document.querySelector('.pc-console-knob').dispatchEvent(new WheelEvent('wheel', {deltaY: 100, bubbles: true, cancelable: true}))")
-    tablet.wait_for_timeout(400)
+    _settle(tablet, 3)
     assert json.loads(tablet.calls[-1]["body"])["level"] == pytest.approx(max(0, nudged - 0.05), abs=1e-6)
 
 
@@ -474,8 +486,7 @@ def test_a_burst_of_wheel_ticks_sends_once(tablet):
         "(() => { const k = document.querySelector('.pc-console-knob'); "
         "for (let i = 0; i < 10; i++) k.dispatchEvent(new WheelEvent('wheel', {deltaY: -100, bubbles: true, cancelable: true})); })()"
     )
-    tablet.wait_for_timeout(500)
-    assert len(tablet.calls) == 1, tablet.calls
+    _settle(tablet, 1)
     assert json.loads(tablet.calls[0]["body"])["level"] == pytest.approx(1.0)
 
 
@@ -577,15 +588,18 @@ def test_a_slow_earlier_answer_never_covers_the_newest_status(tablet):
         let first = true;
         window.fetch = (url, opts) => {
             const slow = first && opts && opts.method === 'POST' && String(url).includes('/api/studio/actions/');
-            if (slow) first = false;
-            return slow ? new Promise(r => setTimeout(() => r(real(url, opts)), 900)) : real(url, opts);
+            if (!slow) return real(url, opts);
+            first = false;
+            return new Promise(r => setTimeout(() => r(real(url, opts)), 900))
+                .then(res => { setTimeout(() => { window.__slowDone = true; }, 50); return res; });
         };
     })();""")
     _open(page, "audio_console.html")
     page.evaluate("document.querySelector('.pc-console-hotspot--button').click()")
     page.wait_for_timeout(100)
     page.evaluate("document.querySelector('.pc-console-hotspot--fan').click()")
-    page.wait_for_timeout(1400)
+    page.wait_for_function("window.__slowDone === true", timeout=5000)   # the slow answer has landed
+    page.wait_for_timeout(150)
     assert page.inner_text("[data-console-status]") == "Dialogue cue fan ok."
 
 
@@ -638,9 +652,10 @@ def test_each_key_sounds_once_and_the_switch_silences_and_is_remembered(tablet):
     for char in "ABC":
         _tap_char(tablet, char)
     tablet.touchscreen.tap(*_center(tablet, '[data-key-char="RETURN"]'))
+    # Resuming the audio clock is asynchronous: wait for it, do not race it.
+    tablet.wait_for_function("PubCastTypewriterSound.status().state === 'running'", timeout=5000)
     s = tablet.evaluate(status)
     assert s["played"] == 4 and s["lastKind"] == "return", s
-    assert s["state"] == "running", s                        # started by the first lifted touch
     toggle = "[data-typewriter-sound]"
     assert tablet.get_attribute(toggle, "aria-pressed") == "true"
     tablet.touchscreen.tap(*_center(tablet, toggle))
