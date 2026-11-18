@@ -53,6 +53,10 @@ Listen for "pubcast:key" on the frame: detail.text (what to insert), detail.char
 - 163 related Python tests pass (2 skipped, unrelated); Node test passes. Earlier: 94 related Python tests pass (2 skipped, unrelated research protocol); existing Node console test passes. Browser tests drive real Chromium with touch: every key legend types what it says (plain and shifted), 200 rapid taps in order, real mouse clicks, two fingers, hardware keyboard incl. Shift+1 and Backspace, text-box guard, blur release, long text scroll, knob drag/tap/cancel, slider single send, token header, rotation refit.
 - Screenshots with outlines checked by eye at landscape (1180 x 820) and portrait (820 x 1180): hotspots line up with the painted keys.
 
+## Regression checks run on the branch (2026-11-17, fresh clone, Python 3.12)
+- Full suite: 2289 passed, 6 skipped (optional model/research tests), 0 failed, 721 s. STATUS.md baseline from 2026-10-28 was 1,981 passed, 5 failed.
+- control_room.html, studio_control_room.html and director_switcher.html each load in Chromium with no JavaScript errors, identical to loading them with the original adapter file. Their buttons were NOT clicked through, so the token header on those pages is still unconfirmed.
+
 ## Not verified / not done
 - Not tried on a real iPad or Safari; only emulated touch in Chromium.
 - In portrait the keys are about 35 px wide; the size test only enforces landscape. The return-lever hotspot is a 135 x 131 px circle around a thin diagonal lever (generous, but not shaped to it).
@@ -60,5 +64,5 @@ Listen for "pubcast:key" on the frame: detail.text (what to insert), detail.char
 - Keys are about 41 x 34 px on an 11-inch iPad in landscape (the whole key pitch is the hit area). The art limits this while paper and keys stay on screen together.
 - Sound is not wired. The typewriter is not inside 2i: this is the bench page /typewriter-console.
 - The control-room consoles' remaining items from the 2026-06-18 handoff (curved slider paths, lever meaning) are untouched. Studio actions themselves were mocked in tests, not run against a live studio.
-- The control_room.html and studio_control_room.html pages were not changed or tested for touch.
+- The control_room.html and studio_control_room.html pages were not changed or tested for touch (they were only load-checked, see above).
 - Not committed or pushed: this session had read-only access to the repo.
