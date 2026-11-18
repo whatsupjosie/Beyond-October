@@ -72,6 +72,9 @@
         render();
       });
       parent.postMessage({type:"pubcast:2i-ready"}, location.origin);
+      window.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") parent.postMessage({type:"pubcast:2i-collapse"}, location.origin);
+      });
     }
     frame.addEventListener("pubcast:key", function (event) {
       const key = event.detail;
