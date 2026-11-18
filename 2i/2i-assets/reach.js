@@ -750,10 +750,13 @@ $('shelfCopy').onclick=async()=>{
   if(!await preserveBeforeSwitch())return;documentId=uuid();revision=0;saveConflict=false;
   conversationIds={};documentTitle=documentTitle.slice(0,193)+' — copy';markDirty();render();await saveDocument();closeModal('reachShelf');
 };
-// Native textarea undo must stay native while typing. Collab line edits use v20's stack.
+// Preserve native undo in EVERY text entry, including Find/Rename/dialogs.
+// Collab inline-line edits retain their separate manuscript undo contract.
 document.addEventListener('keydown',event=>{
   if(event.key==='Escape' && $('reachAccount').classList.contains('open')){event.preventDefault();event.stopImmediatePropagation();return;}
-  if((event.ctrlKey||event.metaKey)&&['z','y'].includes(event.key.toLowerCase())&&[soloTextarea,draftArea,chatInput].includes(document.activeElement)) event.stopImmediatePropagation();
+  const field=document.activeElement;
+  const typing=field&&(field.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(field.tagName))&&!field.closest?.('.m-line-edit');
+  if((event.ctrlKey||event.metaKey)&&['z','y'].includes(String(event.key).toLowerCase())&&typing)event.stopImmediatePropagation();
 },true);
 // Drop is handled once; invalid input cannot partially replace the active document.
 document.addEventListener('drop',async event=>{
