@@ -279,7 +279,12 @@ function saveNow() {
       setSaveStatus('Opening Foresight file · Save unavailable until ready');
       return Promise.resolve(false);
     }
-    return saveDocument(); // rebound by file-workspace.js to session.save()
+    // Menu and Ctrl+S have no Promise rejection handler of their own.
+    // A failed file write must be shown, not become an unhandled rejection.
+    return Promise.resolve().then(()=>saveDocument()).catch(error=>{
+      setSaveStatus('Foresight file not saved · ' + String(error?.message||error));
+      return false;
+    }); // rebound by file-workspace.js to session.save()
   }
   return networked ? saveDocument() : saveToFile();
 }
