@@ -118,6 +118,12 @@
     }
     if(data?.type==="pubcast:2i-collapse"){setExpanded(false);return;}
     if(data?.type!=="pubcast:2i-key" || document.body.dataset.twoiDesk!=="typewriter")return;
+    // Foresight files are not writable until the real file session has mounted.
+    // The chooser may render earlier, but typing must never bypass its save path.
+    if(filePresentation&&!window.foresightFileSession){
+      addChat("notice","Finish opening this Foresight file before using the typewriter.");
+      return;
+    }
     if(initializing || generating || chatSending || editingIdx!==null){
       addChat("notice","Finish the active edit or request before using the typewriter keys.");
       return;
