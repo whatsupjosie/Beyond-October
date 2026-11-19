@@ -61,12 +61,7 @@ def test_workspace_disk_save_reports_stale_revision_and_can_be_retried(page):
 
     # Restore normal fetch and retry the explicit Save. Both disk and UI must
     # now agree on the final revision.
-    frame.evaluate("""() => {
-        const hold = window.__heldWorkspaceWrite;
-        window.__heldWorkspaceWrite = null;
-        // This test replaces fetch only in this disposable browser frame.
-        window.location.hash = '#save-race-retry';
-    }""")
+    frame.evaluate("() => { window.__heldWorkspaceWrite = null; }")
     # The wrapper only holds POSTs; release the next one promptly.
     pane.get_by_role("button", name="Save", exact=True).click()
     frame.wait_for_function("() => !!window.__heldWorkspaceWrite")
