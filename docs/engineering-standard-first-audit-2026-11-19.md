@@ -18,6 +18,27 @@ Before implementing a subsystem, the engineer must:
 
 **Core integrity invariants:** a writer always knows which document is open; a save updates only that document and its authorized revision; a save status never asserts newer text was committed; exceptions never silently erase recoverable edits; locks and annotations survive legal undo/redo; unknown/out-of-sync records remain available separately rather than overwritten.
 
+
+## Owner clarification: preserve originality, prefer free foundations
+
+**Decision order:** KEEP a functioning original → REPAIR or EXTEND a useful original → ADOPT an established component for a genuinely missing capability → REPLACE only when meaningful comparative evidence proves the original substantially inferior or unsafe to maintain. Different or unconventional is not defective. Preserve every original, backup, author choice and creative behavior until explicitly approved.
+
+**Cost is a hard product constraint.** Preferred foundations must have **zero mandatory license, subscription, per-seat, usage, API, cloud, runtime or redistribution fees** and permit use in a **commercial, closed-source PubCast/2i release** without charging the owner. Prefer permissive open licenses (MIT, BSD, Apache-2.0, ISC, OFL where appropriate); verify applicable obligations for LGPL/GPL/MPL and exceptions case by case. "Free for personal use", "free tier", "source available", "free trial", and "free to download" are **not sufficient**. Avoid any vendor lock-in or paywall on essential features.
+
+**Free does not mean zero operational expense.** Storage, electricity, hardware, and optional hosting have real costs. A local/offline mode must work without mandatory paid infrastructure, externally billed requests, or hidden downloads. Verify licenses for binary builds, plugins, model weights, fonts, codecs, fixtures, and bundled assets **separately** from the parent library. Keep copyright/license notices where required.
+
+**A reusable shell/framework is an assist, not a new identity.** Evaluate it in a small reversible prototype on the actual existing application, measuring compatibility, accessibility, offline startup, packaging, resource use, rendering performance, control of user data, and whether it preserves the original look and interaction. The shell must serve the app, never dictate its design.
+
+Examples, subject to actual test and full transitive-license review:
+- **pywebview** (BSD-3-Clause): native desktop window around current web UI, appealing because PubCast already has a Python/FastAPI host. Verify required Windows WebView runtimes on target hardware.
+- **Tauri** (MIT/Apache-2.0): potentially compact desktop shell around the existing web UI; Rust toolchain and native WebView requirements add integration/build complexity.
+- **Electron** (MIT): mature and self-contained Chromium shell, but typically heavier on disk and RAM, especially relevant on modest laptops.
+- **PyInstaller** (GPL with special commercial-build exception): packaging, not a replacement editor or user interface; verify bundling of app/assets and other dependency obligations.
+
+Sources: https://github.com/r0x0r/pywebview ; https://github.com/tauri-apps/tauri ; https://github.com/electron/electron ; https://pyinstaller.org/en/stable/license.html .
+
+**Before asking the owner to approve a replacement**, present the existing solution, evidence of its real deficit, the compatible zero-fee alternative, the exact protected capabilities, a reversible migration and comparison results. An existing subsystem that performs adequately should not be replaced solely because a competitor exists. A capability *not yet implemented* should be researched and prototyped with standard components before authoring its underlying engine from scratch.
+
 ## Decision register (each is a *candidate*, not a claim of completed implementation)
 
 | Problem / repo evidence | Established practice or project (license) | Decision / condition |
