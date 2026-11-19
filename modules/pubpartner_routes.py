@@ -8,9 +8,10 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from .pubpartner_rate_limit import RateLimiter
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 
 from .pubpartner_core import PubPartnerSpine
+from .pubpartner_work_notes import WorkNoteNotFound, WorkNotesError
 from .pubpartner_vessel import VesselConflictError
 from .pubpartner_preflight import run_preflight
 from .pubpartner_backup import create_friend_backup, verify_friend_backup
@@ -892,3 +893,139 @@ async def provider_test(request: Request, identity: Dict[str, Any] = Depends(cur
 @router.get("/providers/local-config")
 async def local_model_defaults():
     return {"enabled": bool(os.getenv("PUBCAST_LOCAL_MODEL_URL")), "provider": default_provider()}
+
+
+# ── Project work notes ──────────────────────────────────────────────────────
+# User-owned notes per project: what was decided, worked on, left open, and
+# discussed. Detected notes wait as drafts in one autosave per session until
+# the user saves them; only saved notes reach a model. Note words are never
+# edited: a fix is a new note that replaces the old one.
+
+def _work_notes_call(action):
+    try:
+        return action()
+    except WorkNoteNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except WorkNotesError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/work-notes")
+async def list_work_notes(
+    request: Request,
+    project_id: str = "default",
+    status: str = "saved",
+    session_id: str = "",
+    limit: int = 500,
+    user_id: Optional[str] = None,
+    identity: Dict[str, Any] = Depends(current_identity),
+) -> Dict[str, Any]:
+    scoped_user = _scoped_user_id(request=request, identity=identity, explicit_value=user_id)
+    bounded = _bounded_int(limit, default=500, minimum=1, maximum=5000, field="limit")
+    return _work_notes_call(lambda: get_spine().work_notes.list_notes(
+        user_id=scoped_user, project_id=project_id, status=status[:20],
+        session_id=session_id, limit=bounded))
+
+
+@router.get("/work-notes/drafts")
+async def list_work_note_drafts(
+    request: Request,
+    project_id: str = "default",
+    session_id: str = "",
+    user_id: Optional[str] = None,
+    identity: Dict[str, Any] = Depends(current_identity),
+) -> Dict[str, Any]:
+    scoped_user = _scoped_user_id(request=request, identity=identity, explicit_value=user_id)
+    return _work_notes_call(lambda: get_spine().work_notes.drafts(
+        user_id=scoped_user, project_id=project_id, session_id=session_id))
+
+
+@router.get("/work-notes/export", response_class=PlainTextResponse)
+async def export_work_notes(
+    request: Request,
+    project_id: str = "default",
+    include_drafts: bool = False,
+    user_id: Optional[str] = None,
+    identity: Dict[str, Any] = Depends(current_identity),
+) -> PlainTextResponse:
+    scoped_user = _scoped_user_id(request=request, identity=identity, explicit_value=user_id)
+    text = _work_notes_call(lambda: get_spine().work_notes.export_text(
+        user_id=scoped_user, project_id=project_id, include_drafts=include_drafts))
+    return PlainTextResponse(text, media_type="text/plain; charset=utf-8")
+
+
+@router.get("/work-notes/verify")
+async def verify_work_notes(
+    request: Request,
+    user_id: Optional[str] = None,
+    identity: Dict[str, Any] = Depends(current_identity),
+) -> Dict[str, Any]:
+    scoped_user = _scoped_user_id(request=request, identity=identity, explicit_value=user_id)
+    return _work_notes_call(lambda: get_spine().work_notes.verify(user_id=scoped_user))
+
+
+@router.get("/work-notes/{note_id}/source")
+async def work_note_source(
+    note_id: str,
+    request: Request,
+    user_id: Optional[str] = None,
+    identity: Dict[str, Any] = Depends(current_identity),
+) -> Dict[str, Any]:
+    scoped_user = _scoped_user_id(request=request, identity=identity, explicit_value=user_id)
+    try:
+        return _work_notes_call(lambda: get_spine().work_note_source(user_id=scoped_user, note_id=note_id))
+    except (FileNotFoundError, KeyError, ValueError) as exc:
+        raise HTTPException(status_code=404, detail=f"source for this note could not be restored: {exc}")
+
+
+@router.post("/work-notes")
+async def add_work_note(request: Request, identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
+    body = await _json_dict(request)
+    scoped_user = _scoped_user_id(request=request, identity=identity, explicit_value=body.get("user_id"))
+    if "save" in body and not isinstance(body["save"], bool):
+        raise HTTPException(status_code=400, detail="save must be a boolean")
+    return _work_notes_call(lambda: get_spine().work_notes.add_note(
+        user_id=scoped_user,
+        project_id=str(body.get("project_id") or "default"),
+        kind=str(body.get("kind") or ""),
+        text=body.get("text"),
+        session_id=str(body.get("session_id") or ""),
+        save=bool(body.get("save", False)),
+    ))
+
+
+@router.post("/work-notes/save")
+async def save_work_notes(request: Request, identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
+    body = await _json_dict(request)
+    scoped_user = _scoped_user_id(request=request, identity=identity, explicit_value=body.get("user_id"))
+    note_ids = body.get("note_ids")
+    if note_ids is not None and (not isinstance(note_ids, list) or not all(isinstance(n, str) for n in note_ids)):
+        raise HTTPException(status_code=400, detail="note_ids must be a list of note ids")
+    return _work_notes_call(lambda: get_spine().work_notes.save(
+        user_id=scoped_user,
+        project_id=str(body.get("project_id") or "default"),
+        session_id=str(body.get("session_id") or ""),
+        note_ids=note_ids,
+    ))
+
+
+@router.post("/work-notes/{note_id}/replace")
+async def replace_work_note(note_id: str, request: Request, identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
+    body = await _json_dict(request)
+    scoped_user = _scoped_user_id(request=request, identity=identity, explicit_value=body.get("user_id"))
+    return _work_notes_call(lambda: get_spine().work_notes.replace(
+        user_id=scoped_user, note_id=note_id, text=body.get("text"), kind=str(body.get("kind") or "")))
+
+
+@router.post("/work-notes/{note_id}/drop")
+async def drop_work_note(note_id: str, request: Request, identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
+    body = await _json_dict(request)
+    scoped_user = _scoped_user_id(request=request, identity=identity, explicit_value=body.get("user_id"))
+    return _work_notes_call(lambda: get_spine().work_notes.drop(user_id=scoped_user, note_id=note_id))
+
+
+@router.post("/work-notes/{note_id}/withdraw")
+async def withdraw_work_note(note_id: str, request: Request, identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
+    body = await _json_dict(request)
+    scoped_user = _scoped_user_id(request=request, identity=identity, explicit_value=body.get("user_id"))
+    return _work_notes_call(lambda: get_spine().work_notes.withdraw(user_id=scoped_user, note_id=note_id))

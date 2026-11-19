@@ -51,6 +51,7 @@ from .pubpartner_tokens import PubPartnerTokenCounter
 from .pubpartner_receipts import PubPartnerReceiptStore
 from .pubpartner_relationship import RelationshipEngine
 from .pubpartner_knowledge import PubPartnerKnowledgeBroker
+from .pubpartner_work_notes import WorkNotesStore
 from .companion_advisory import CompanionAdvisor
 
 FCP_VERSION = "FCP1"
@@ -539,6 +540,7 @@ class FCP1Packet:
     guidance: List[Dict[str, Any]] = field(default_factory=list)
     vessel_context: Dict[str, Any] = field(default_factory=dict)
     conversation: List[Dict[str, str]] = field(default_factory=list)
+    work_notes: Dict[str, Any] = field(default_factory=dict)
     created_at: float = field(default_factory=_now)
 
     def canonical(self, *, include_source_text: bool = False) -> Dict[str, Any]:
@@ -561,7 +563,7 @@ class FCP1Packet:
             "derived_must_not_replace_original": True,
             "integrity": self.source.integrity(),
         }
-        return {
+        packet = {
             "v": FCP_VERSION,
             "lang": self.language,
             "u": self.user.compact(),
@@ -581,6 +583,11 @@ class FCP1Packet:
             "source_policy": source_policy,
             "ts": self.created_at,
         }
+        # Present only when the user has saved project notes, so packets for
+        # users without notes are byte-for-byte what they were before.
+        if self.work_notes:
+            packet["notes"] = self.work_notes
+        return packet
 
     def as_compact_text(self, *, include_source_text: bool = True) -> str:
         data = self.canonical(include_source_text=include_source_text)
@@ -608,6 +615,8 @@ class FCP1Packet:
             lines.append(f"vessel={j(data['vessel'])}")
         if data.get("history"):
             lines.append(f"history={j(data['history'])}")
+        if data.get("notes"):
+            lines.append(f"notes={j(data['notes'])}")
         lines.append(f"msg_ref={j(source['ref'])};lossless=true;kind={self.source.kind}")
         lines.append(f"source_policy={j(data['source_policy'])}")
         if include_source_text and "text" in source:
@@ -674,6 +683,9 @@ class PubPartnerSpine:
         self.receipts = PubPartnerReceiptStore(self.data_dir)
         self.relationship = RelationshipEngine(self.data_dir)
         self.knowledge = PubPartnerKnowledgeBroker()
+        # User-owned project notes: shared by every friend and model the user
+        # talks to, never stored inside a character cartridge or vessel.
+        self.work_notes = WorkNotesStore(self.data_dir)
 
     def _default_vessel_friend(self) -> Dict[str, Any]:
         """Combine the single authored Alex voice with her persistent vessel.
@@ -951,6 +963,29 @@ class PubPartnerSpine:
             memories.extend(MemoryRef(id="dock:" + row["id"], kind=row["kind"],
                 text=row["text"], importance=5, source="horizon_base_dock")
                 for row in docked_recall["items"])
+        work_notes_block: Dict[str, Any] = {}
+        work_notes_status: Dict[str, Any] = {"status": "not_private", "in_context": 0}
+        if turn_audience == "private":
+            try:
+                saved_notes = self.work_notes.context_for_model(
+                    user_id=user_id, project_id=project_id or "default")
+                work_notes_status = {"status": "ok", "in_context": len(saved_notes["notes"]),
+                                     "saved_total": saved_notes["saved_total"],
+                                     "not_shown": saved_notes["not_shown"]}
+                if saved_notes["notes"]:
+                    work_notes_block = {
+                        "rule": ("Project notes the user saved. Quote them exactly. 'decided' is settled, "
+                                 "'open' is unresolved, 'from: assistant' was said by a model, not the user. "
+                                 "not_shown counts saved notes left out for length; never assume they say nothing."),
+                        "project": project_id or "default",
+                        "items": saved_notes["notes"],
+                        "saved_total": saved_notes["saved_total"],
+                        "not_shown": saved_notes["not_shown"],
+                    }
+            except Exception as exc:
+                # Notes enrich a turn; a damaged notes file must never block one.
+                work_notes_status = {"status": "unavailable", "in_context": 0,
+                                     "error": f"{type(exc).__name__}: {exc}"[:240]}
         packet = FCP1Packet(
             language=language or primer.language,
             user=primer,
@@ -967,6 +1002,7 @@ class PubPartnerSpine:
             guidance=guidance,
             vessel_context=vessel_context,
             conversation=[{"role": row["role"], "content": row["content"]} for row in (history or [])],
+            work_notes=work_notes_block,
         )
         prompt_policy = self.prompt_policy(source, prompt_mode=prompt_mode)
         llm_prompt_text = packet.as_compact_text(include_source_text=prompt_policy["include_source_text"])
@@ -994,6 +1030,7 @@ class PubPartnerSpine:
             "vessel_claim_count": len(vessel_context.get("claims") or []),
             "vessel_event_count": len(vessel_context.get("events") or []),
             "vessel_recorded_event_id": vessel_event_id,
+            "work_notes_context": work_notes_status,
         }
         if log_turn:
             if companion is not None:
@@ -1252,6 +1289,15 @@ class PubPartnerSpine:
             except Exception as exc:
                 live_result["docking_capture"] = {"status": "failed", "error": type(exc).__name__}
         self._append_turn(user_id or "anon", session_id or "default", live_result)
+        live_result["work_notes"] = self._record_work_notes(
+            user_id=user_id or "anon", session_id=session_id or "default",
+            # The packet's project is authoritative: a saved session may have
+            # supplied it when the caller left project_id at its default.
+            project_id=str(((turn.get("fcp1") or {}).get("proj") or {}).get("id") or project_id or "default"),
+            turn=turn, message=message,
+            reply=voice.friend_response, provider_result=provider_result,
+            content_kind=content_kind,
+        )
         if self.blackbox_witness is not None:
             live_result['blackbox_committed'] = bool(self.blackbox_witness.record_event(
                 'partner.private_turn', source='pubpartner', actor=user_id,
@@ -1262,6 +1308,76 @@ class PubPartnerSpine:
                       'provider_error':provider_result.error,
                       'friend_id':friend_id}))
         return live_result
+
+    def _record_work_notes(
+        self,
+        *,
+        user_id: str,
+        session_id: str,
+        project_id: str,
+        turn: Dict[str, Any],
+        message: str,
+        reply: str,
+        provider_result: Any,
+        content_kind: str,
+    ) -> Dict[str, Any]:
+        """Add draft project notes found in this exchange to the session autosave.
+
+        Runs after the turn is already saved, so every draft can point back to
+        a turn that exists. Pasted code, lyrics, and other exact-text kinds are
+        not mined for notes. Replies are mined only when a real model answered.
+        """
+        source = turn.get("source") or {}
+        source_kind = str(source.get("kind") or content_kind or "message")
+        real_reply = bool(
+            provider_result.ok
+            and provider_result.provider not in {"mock", "echo", "offline"}
+            and isinstance(reply, str) and reply.strip()
+        )
+        try:
+            return self.work_notes.record_turn(
+                user_id=user_id,
+                project_id=project_id,
+                session_id=session_id,
+                turn_id=str(turn.get("turn_id") or ""),
+                user_text=message,
+                source_id=str(source.get("id") or ""),
+                source_sha256=str(source.get("sha256") or ""),
+                reply_text=reply if real_reply else "",
+                detect_user=source_kind == "message",
+                detect_reply=real_reply,
+            )
+        except Exception as exc:
+            # The exchange is already saved; a notes failure is reported, not raised.
+            logging.getLogger(__name__).exception("PubPartner work notes could not be recorded")
+            return {"ok": False, "added": [], "error": f"{type(exc).__name__}: {exc}"[:300]}
+
+    def work_note_source(self, *, user_id: str, note_id: str) -> Dict[str, Any]:
+        """Restore the exact chat text a detected note was quoted from and check it."""
+        note = self.work_notes.note(user_id=user_id, note_id=note_id)
+        if note["origin"] == "user_entry":
+            return {"ok": True, "note": note, "source": None,
+                    "verified": None, "detail": "written directly by the user; no chat source"}
+        start, end = note["span_start"], note["span_end"]
+        if note["origin"] == "user_message":
+            record = self.vault.load(user_id=user_id, session_id=note["session_id"], source_id=note["source_id"])
+            full_text = record.text
+            matches_source = record.sha256 == note["source_sha256"]
+            source = {"kind": "user_message", "source_id": record.source_id, "sha256": record.sha256}
+        else:
+            turns = self.list_turns(user_id=user_id, session_id=note["session_id"], limit=500)["turns"]
+            row = next((t for t in turns if isinstance(t, dict) and t.get("turn_id") == note["turn_id"]), None)
+            if row is None:
+                return {"ok": False, "note": note, "source": None, "verified": False,
+                        "detail": "the turn this note came from is not in the last 500 turns of its session"}
+            full_text = str(row.get("friend_response") or "")
+            matches_source = _sha256_text(full_text) == note["source_sha256"]
+            source = {"kind": "assistant_reply", "turn_id": note["turn_id"], "sha256": _sha256_text(full_text)}
+        excerpt = full_text[start:end]
+        verified = bool(matches_source and excerpt == note["text"])
+        return {"ok": True, "note": note, "source": source, "excerpt": excerpt,
+                "context": full_text, "verified": verified,
+                "detail": "exact match" if verified else "the note no longer matches its source"}
 
     def _live_receipt(
         self,
@@ -1693,6 +1809,13 @@ class PubPartnerSpine:
                 msg.pop("text", None)
                 msg["text_status"] = "omitted_turn_log_ref_only"
                 msg["note"] = "Exact source text lives only in VerbatimVault; restore by msg.ref.id."
+            notes = light["fcp1"].get("notes") if isinstance(light["fcp1"], dict) else None
+            if isinstance(notes, dict) and isinstance(notes.get("items"), list):
+                # Saved project notes live in the work-notes store; log which
+                # ones were used, not another copy of their words per turn.
+                notes["items"] = [{"id": item.get("id"), "kind": item.get("kind")}
+                                  for item in notes["items"] if isinstance(item, dict)]
+                notes["text_status"] = "omitted_turn_log_ref_only"
         if "fcp1_text" in light:
             light["fcp1_text"] = _clip(light["fcp1_text"], 4000)
         if "fcp1_json" in light:
