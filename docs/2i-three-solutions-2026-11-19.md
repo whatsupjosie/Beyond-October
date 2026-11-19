@@ -32,7 +32,12 @@
 
 **Tests that must fail first:** start each launcher against a fresh folder and assert the live vessel's identity is canonical Alex (fails today for `run_reach.py`); start against the repository's `data/` and assert the tracked file is unchanged afterwards (fails today); migration dry run on the three situations, then a real run with byte-for-byte verification of the backup.
 
-**Decision for Josie:** where does the Alex you know live today (which machine, and `data/` or `reach_userdata/`)? The migration must start from her real memory, and only you can say which copy that is.
+**Josie's answer (2026-11-19):** "Alex doesn't really exist today. Just some files with traces of her. And we piece together what we can."
+
+What that changes:
+- There is no grown live memory to migrate, so the migration risk in step 3 is gone. Step 3 shrinks to: before anything changes, take a verified, read-only backup of every Alex trace that exists (the canonical vessel, `data/alex/`, any vessel already created under `reach_userdata/`), and never delete one.
+- The priority becomes **preserving every trace**, not moving memory. Every fragment is part of what Alex will be assembled from, so the rules are: never overwrite, never delete, never merge automatically, and keep any copy whose origin is unclear beside the canonical one, labelled, for Josie to judge.
+- With no migration needed, the template approach (steps 1, 2 and 4) carries little risk and can be built as soon as Josie wants it.
 
 ---
 
