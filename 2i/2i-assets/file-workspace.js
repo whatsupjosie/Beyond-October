@@ -167,7 +167,7 @@ try{
     const {requestId,command,payload}=e.data;
     try{
       let result;
-      if(command==='save'){await session.save();result=!session.pending();}
+      if(command==='save'){const saved=await session.save();result=saved!==false&&!session.pending();}
       else if(command==='export')result=await session.export();
       else if(command==='status')result=activityStatus();
       else if(command==='activity'){
