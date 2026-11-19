@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PubCast Typewriter</title>
+  <link rel="stylesheet" href="/static/console_hotspot_renderer.css">
+</head>
+<body class="pc-console-page">
+  <main class="pc-console-shell">
+    <header class="pc-console-topbar">
+      <h1 class="pc-console-title">Typewriter</h1>
+      <div class="pc-console-topbar-tools">
+        <button class="pc-sound-toggle" type="button" data-typewriter-sound aria-pressed="true">Sound on</button>
+        <div class="pc-console-meta" data-console-meta>typewriter_console</div>
+      </div>
+    </header>
+    <section class="pc-console-mount" data-console-manifest="/static/typewriter_console_hotspot_manifest.json"></section>
+    <footer class="pc-console-statusbar">
+      <span data-console-status>Loading typewriter...</span>
+      <span>Touch, click or type</span>
+    </footer>
+  </main>
+  <script src="/static/studio_console_hotspots.js"></script>
+  <script src="/static/console_hotspot_renderer.js"></script>
+  <script src="/static/typewriter_sound.js"></script>
+  <script src="/static/typewriter_console_demo.js"></script>
+</body>
+</html>

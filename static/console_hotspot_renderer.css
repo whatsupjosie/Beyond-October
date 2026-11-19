@@ -12,6 +12,7 @@ body.pc-console-page {
 
 .pc-console-shell {
   min-height: 100vh;
+  min-height: 100dvh; /* iPad Safari: 100vh is taller than the visible screen */
   display: grid;
   grid-template-rows: auto 1fr auto;
 }
@@ -74,6 +75,7 @@ body.pc-console-page {
 
 .pc-console-hotspot {
   position: absolute;
+  transform: rotate(var(--pc-angle, 0deg));
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
@@ -100,14 +102,22 @@ body.pc-console-page {
   background: rgba(255, 78, 220, 0.08);
 }
 
+/* Faders run up and down their painted slot: the range input is turned
+   upright (low at the bottom, high at the top) and the whole control is then
+   tilted to the slot's angle from the map. Container units size the input to
+   the slot's length whatever the screen size. */
 .pc-console-slider {
-  display: grid;
-  place-items: center;
-  transform: rotate(-8deg);
+  container-type: size;
 }
 
 .pc-console-slider input {
-  width: 100%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100cqh;
+  height: 100cqw;
+  margin: 0;
+  transform: translate(-50%, -50%) rotate(-90deg);
   accent-color: #e8f0f4;
   opacity: 0.56;
 }
@@ -131,4 +141,136 @@ body.pc-console-page {
 
 [data-console-status][data-level="ok"] {
   color: #bdf4cb;
+}
+
+/* ---- Touch, pen and mouse behaviour (all consoles) ------------------------ */
+.pc-console-hotspot {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+/* A knob or dial is dragged, so the browser must not scroll or zoom under the
+   finger while it turns. Keys and sliders need the same. */
+.pc-console-knob,
+.pc-console-hotspot--key,
+.pc-console-slider,
+.pc-console-slider input {
+  touch-action: none;
+}
+
+/* Hover outlines make no sense under a finger and stick after a tap. */
+@media (hover: none) {
+  .pc-console-hotspot:hover:not(.is-active):not(.is-pressed) {
+    outline: none;
+    background: transparent;
+  }
+}
+
+/* Small controls get a larger invisible touch target on touchscreens only, so
+   the art and the hotspot map stay exactly where they were. */
+@media (pointer: coarse) {
+  .pc-console-hotspot:not(.pc-console-hotspot--key):not(.pc-console-hotspot--monitor)::before {
+    content: "";
+    position: absolute;
+    inset: calc(var(--pc-touch-pad, 8px) * -1);
+  }
+}
+
+/* ---- Typewriter keys ------------------------------------------------------- */
+.pc-console-hotspot--key {
+  border-radius: 50%;
+  transition: transform 40ms ease-out, background 40ms ease-out, box-shadow 40ms ease-out;
+}
+
+.pc-console-hotspot--key.is-pressed {
+  transform: rotate(var(--pc-angle, 0deg)) translateY(2px) scale(0.94);
+  background: radial-gradient(ellipse at 50% 40%, rgba(0, 0, 0, 0.34), rgba(0, 0, 0, 0.14) 70%);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.55);
+}
+
+.pc-console-hotspot--lever.is-active,
+.pc-console-hotspot--lever.is-pressed {
+  background: rgba(255, 214, 120, 0.18);
+}
+
+.pc-typewriter-paper {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 3.2% 6%;
+  overflow: hidden;
+  color: #2a1d14;
+  font: 600 16px/1.5 "Courier New", Courier, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  pointer-events: none;
+}
+
+.pc-typewriter-caret::after {
+  content: "";
+  display: inline-block;
+  width: 0.55em;
+  height: 1.05em;
+  vertical-align: text-bottom;
+  background: rgba(42, 29, 20, 0.55);
+  animation: pc-caret 1s steps(2, start) infinite;
+}
+
+@keyframes pc-caret {
+  to { visibility: hidden; }
+}
+
+/* Cropped consoles: the frame is wider than its window and shifted, so only the
+   machine shows and every control is larger. */
+.pc-console-viewport {
+  overflow: hidden;
+  line-height: 0;
+  max-width: 100%;
+}
+
+.pc-console-viewport > .pc-console-frame {
+  max-width: none;
+}
+
+/* Shift is armed: light both Shift keys until the next key is struck. */
+.is-shifted [data-key-char="SHIFT"] {
+  background: rgba(255, 214, 120, 0.34);
+  box-shadow: 0 0 14px rgba(255, 214, 120, 0.7), inset 0 0 6px rgba(255, 240, 200, 0.6);
+}
+
+/* The way back in after being signed out. */
+[data-console-signin] {
+  color: #ffd27a;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Typewriter page: the sound switch sits beside the map name. */
+.pc-console-topbar-tools {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* A comfortable 30 px to touch, but it borrows the bar's own padding (the
+   negative margin) so the bar stays its usual height: a taller bar would
+   shrink the machine and its keys. */
+.pc-sound-toggle {
+  height: 30px;
+  margin: -9px 0;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 214, 120, 0.55);
+  border-radius: 999px;
+  background: rgba(255, 214, 120, 0.12);
+  color: #f4e6c4;
+  font: 600 12px/1 system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.pc-sound-toggle[aria-pressed="false"] {
+  border-color: rgba(200, 200, 200, 0.35);
+  background: transparent;
+  color: #9a9a9a;
 }

@@ -124,6 +124,29 @@
     document.head.appendChild(style);
   }
 
+  // The studio action API requires the signed-in token. Pages read it from the
+  // same places the rest of the app does (Reach session, then PubPartner login).
+  // Outside a browser (the Node tests) there is no storage and nothing is added.
+  function storedToken() {
+    try {
+      const session = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("pubcast_token") : "";
+      const local = typeof localStorage !== "undefined" ? localStorage.getItem("pubpartner.auth.token.v1") : "";
+      return session || local || "";
+    } catch (_err) {
+      return "";
+    }
+  }
+
+  function withAuth(options) {
+    const next = Object.assign({}, options || {});
+    const headers = Object.assign({}, next.headers || {});
+    const hasAuth = Object.keys(headers).some((name) => name.toLowerCase() === "authorization");
+    const token = hasAuth ? "" : storedToken();
+    if (token) headers.Authorization = "Bearer " + token;
+    if (Object.keys(headers).length) next.headers = headers;
+    return next;
+  }
+
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, function (char) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
@@ -209,13 +232,28 @@
 
     async _fetch(path, options) {
       if (!this.fetchImpl) throw new Error("fetch is not available for studio console hotspots");
-      const response = await this.fetchImpl(this.baseUrl + path, options || {});
-      const data = response && typeof response.json === "function" ? await response.json() : {};
-      if (!response || !response.ok) {
-        const message = data && data.detail ? data.detail : "Studio console request failed";
-        throw new Error(message);
+      const response = await this.fetchImpl(this.baseUrl + path, withAuth(options));
+      if (!response) throw new Error("Studio console request failed");
+      // A proxy or crashed host can answer with HTML; that must surface as a
+      // clear failure, not as a JSON parse error.
+      let data = {};
+      if (typeof response.json === "function") {
+        try {
+          data = await response.json();
+        } catch (_err) {
+          data = {};
+        }
       }
-      return data;
+      if (!response.ok) {
+        if (response.status === 401) {
+          const signedOut = new Error("Sign in to use the console.");
+          signedOut.code = "auth_required";
+          throw signedOut;
+        }
+        const detail = data && typeof data.detail === "string" ? data.detail : "";
+        throw new Error(detail || ("Studio console request failed" + (response.status ? " (" + response.status + ")" : "")));
+      }
+      return data || {};
     }
   }
 
@@ -224,5 +262,7 @@
     buildConfirmModel: buildConfirmModel,
     readElementPayload: readElementPayload,
     requiresConfirmation: requiresConfirmation,
+    withAuth: withAuth,
+    storedToken: storedToken,
   };
 });

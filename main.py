@@ -2750,6 +2750,9 @@ async def page_audio_console(request: Request): return _page("audio_console.html
 @app.get("/director-console", include_in_schema=False)
 async def page_director_console(request: Request): return _page("director_console.html", request)
 
+@app.get("/typewriter-console", include_in_schema=False)
+async def page_typewriter_console(request: Request): return _page("typewriter_console.html", request)
+
 @app.get("/safe-console", include_in_schema=False)
 async def page_safe_console(request: Request): return _page("safe_console.html", request)
 

@@ -1,0 +1,507 @@
+{
+ "schema": "pubcast.console_hotspot_manifest.v1",
+ "console_id": "typewriter_console",
+ "keyboard_mirror": true,
+ "image": {
+  "clean_path": "/static/typewriter_keys.webp",
+  "width_px": 2560,
+  "height_px": 1430,
+  "coordinate_mode": "normalized_percentages"
+ },
+ "paper": {
+  "x": 0.347,
+  "y": 0.0,
+  "w": 0.308,
+  "h": 0.372
+ },
+ "view": {
+  "x": 0.16,
+  "w": 0.68
+ },
+ "color_legend": {
+  "key": "typewriter key: acts on touch-down, announces pubcast:key"
+ },
+ "hotspots": [
+  {
+   "id": "tw.key.1",
+   "kind": "key",
+   "label": "Key 1",
+   "char": "1",
+   "x": 0.33203,
+   "y": 0.62704,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.2",
+   "kind": "key",
+   "label": "Key 2",
+   "char": "2",
+   "x": 0.3638,
+   "y": 0.62704,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.3",
+   "kind": "key",
+   "label": "Key 3",
+   "char": "3",
+   "x": 0.39505,
+   "y": 0.62704,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.4",
+   "kind": "key",
+   "label": "Key 4",
+   "char": "4",
+   "x": 0.4263,
+   "y": 0.62704,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.5",
+   "kind": "key",
+   "label": "Key 5",
+   "char": "5",
+   "x": 0.45703,
+   "y": 0.62704,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.6",
+   "kind": "key",
+   "label": "Key 6",
+   "char": "6",
+   "x": 0.48828,
+   "y": 0.62704,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.7",
+   "kind": "key",
+   "label": "Key 7",
+   "char": "7",
+   "x": 0.51953,
+   "y": 0.62704,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.8",
+   "kind": "key",
+   "label": "Key 8",
+   "char": "8",
+   "x": 0.55078,
+   "y": 0.62704,
+   "w": 0.02969,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.9",
+   "kind": "key",
+   "label": "Key 9",
+   "char": "9",
+   "x": 0.58047,
+   "y": 0.62704,
+   "w": 0.02969,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.0",
+   "kind": "key",
+   "label": "Key 0",
+   "char": "0",
+   "x": 0.61172,
+   "y": 0.62704,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.dash",
+   "kind": "key",
+   "label": "Key -",
+   "char": "-",
+   "x": 0.64349,
+   "y": 0.62704,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.q",
+   "kind": "key",
+   "label": "Key Q",
+   "char": "Q",
+   "x": 0.31693,
+   "y": 0.67832,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.w",
+   "kind": "key",
+   "label": "Key W",
+   "char": "W",
+   "x": 0.34818,
+   "y": 0.67832,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.e",
+   "kind": "key",
+   "label": "Key E",
+   "char": "E",
+   "x": 0.37943,
+   "y": 0.67832,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.r",
+   "kind": "key",
+   "label": "Key R",
+   "char": "R",
+   "x": 0.41068,
+   "y": 0.67832,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.t",
+   "kind": "key",
+   "label": "Key T",
+   "char": "T",
+   "x": 0.44193,
+   "y": 0.67832,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.y",
+   "kind": "key",
+   "label": "Key Y",
+   "char": "Y",
+   "x": 0.47344,
+   "y": 0.67832,
+   "w": 0.03021,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.u",
+   "kind": "key",
+   "label": "Key U",
+   "char": "U",
+   "x": 0.50365,
+   "y": 0.67832,
+   "w": 0.03021,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.i",
+   "kind": "key",
+   "label": "Key I",
+   "char": "I",
+   "x": 0.5349,
+   "y": 0.67832,
+   "w": 0.03021,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.o",
+   "kind": "key",
+   "label": "Key O",
+   "char": "O",
+   "x": 0.5651,
+   "y": 0.67832,
+   "w": 0.03021,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.p",
+   "kind": "key",
+   "label": "Key P",
+   "char": "P",
+   "x": 0.59531,
+   "y": 0.67832,
+   "w": 0.03021,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.half",
+   "kind": "key",
+   "label": "Key ½",
+   "char": "½",
+   "x": 0.62734,
+   "y": 0.67832,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.a",
+   "kind": "key",
+   "label": "Key A",
+   "char": "A",
+   "x": 0.33203,
+   "y": 0.72494,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.s",
+   "kind": "key",
+   "label": "Key S",
+   "char": "S",
+   "x": 0.3638,
+   "y": 0.72494,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.d",
+   "kind": "key",
+   "label": "Key D",
+   "char": "D",
+   "x": 0.39505,
+   "y": 0.72494,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.f",
+   "kind": "key",
+   "label": "Key F",
+   "char": "F",
+   "x": 0.42578,
+   "y": 0.72494,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.g",
+   "kind": "key",
+   "label": "Key G",
+   "char": "G",
+   "x": 0.45703,
+   "y": 0.72494,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.h",
+   "kind": "key",
+   "label": "Key H",
+   "char": "H",
+   "x": 0.48828,
+   "y": 0.72494,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.j",
+   "kind": "key",
+   "label": "Key J",
+   "char": "J",
+   "x": 0.51953,
+   "y": 0.72494,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.k",
+   "kind": "key",
+   "label": "Key K",
+   "char": "K",
+   "x": 0.55078,
+   "y": 0.72494,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.l",
+   "kind": "key",
+   "label": "Key L",
+   "char": "L",
+   "x": 0.58203,
+   "y": 0.72494,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.semicolon",
+   "kind": "key",
+   "label": "Key ;",
+   "char": ";",
+   "x": 0.61354,
+   "y": 0.72494,
+   "w": 0.03021,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.apostrophe",
+   "kind": "key",
+   "label": "Key '",
+   "char": "'",
+   "x": 0.64375,
+   "y": 0.72494,
+   "w": 0.03021,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.z",
+   "kind": "key",
+   "label": "Key Z",
+   "char": "Z",
+   "x": 0.34141,
+   "y": 0.77343,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.x",
+   "kind": "key",
+   "label": "Key X",
+   "char": "X",
+   "x": 0.37318,
+   "y": 0.77343,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.c",
+   "kind": "key",
+   "label": "Key C",
+   "char": "C",
+   "x": 0.40443,
+   "y": 0.77343,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.v",
+   "kind": "key",
+   "label": "Key V",
+   "char": "V",
+   "x": 0.43542,
+   "y": 0.77343,
+   "w": 0.03021,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.b",
+   "kind": "key",
+   "label": "Key B",
+   "char": "B",
+   "x": 0.46563,
+   "y": 0.77343,
+   "w": 0.03021,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.n",
+   "kind": "key",
+   "label": "Key N",
+   "char": "N",
+   "x": 0.49609,
+   "y": 0.77343,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.m",
+   "kind": "key",
+   "label": "Key M",
+   "char": "M",
+   "x": 0.52734,
+   "y": 0.77343,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.comma",
+   "kind": "key",
+   "label": "Key ,",
+   "char": ",",
+   "x": 0.55859,
+   "y": 0.77343,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.period",
+   "kind": "key",
+   "label": "Key .",
+   "char": ".",
+   "x": 0.58984,
+   "y": 0.77343,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.slash",
+   "kind": "key",
+   "label": "Key /",
+   "char": "/",
+   "x": 0.62109,
+   "y": 0.77343,
+   "w": 0.03073,
+   "h": 0.04569
+  },
+  {
+   "id": "tw.key.shift_left",
+   "kind": "key",
+   "label": "Shift",
+   "char": "SHIFT",
+   "x": 0.29661,
+   "y": 0.77389,
+   "w": 0.03906,
+   "h": 0.04662
+  },
+  {
+   "id": "tw.key.shift_right",
+   "kind": "key",
+   "label": "Shift",
+   "char": "SHIFT",
+   "x": 0.6638,
+   "y": 0.77389,
+   "w": 0.03906,
+   "h": 0.04662
+  },
+  {
+   "id": "tw.key.blank",
+   "kind": "key",
+   "label": "Blank key",
+   "char": "BLANK",
+   "x": 0.29714,
+   "y": 0.72494,
+   "w": 0.02865,
+   "h": 0.04196
+  },
+  {
+   "id": "tw.key.space",
+   "kind": "key",
+   "label": "Space bar",
+   "char": "SPACE",
+   "x": 0.36615,
+   "y": 0.82844,
+   "w": 0.26875,
+   "h": 0.04196
+  },
+  {
+   "id": "tw.lever.return",
+   "kind": "lever",
+   "label": "Carriage return lever",
+   "char": "RETURN",
+   "x": 0.22324,
+   "y": 0.317,
+   "w": 0.03516,
+   "h": 0.22613,
+   "angle_deg": 47.1
+  }
+ ]
+}
