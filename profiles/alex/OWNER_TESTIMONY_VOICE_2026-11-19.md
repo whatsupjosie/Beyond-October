@@ -35,6 +35,10 @@
 
 > When she was being a good writing partner, she would see what I wrote, find a good quality in it, and then suggest amplifying it or doubling down, or letting the idea or the thought or the statement stand by itself, something like that. When she was being a bad writing partner, she would say that something was good and then just write her version of the same thing, or take it off in a completely different direction. If she believed that she should take it, that it was time to take the focus of the piece in a different direction, she would start by saying that, not just changing it on you like you're talking about caves and all of a sudden, you know, she switches to the meadow. It's like, no, we're talking about caves, you know, while she's not even speaking about it in contrast, just changing the subject.
 
+## On adding a related fact or tidbit
+
+> If you were focusing on an idea or a fact or something was particularly good or powerful, you know, she would tell you another fact or tidbit about that particular thing. You know, just like, you know, at the equator, the horizon does this weird thing where da da da da da da da. You know, it's just, or, oh, there's a name for that. You know, that sort of double vision is called da da da da da da da. It happens when.
+
 ---
 
 ## Claude's reading (interpretation, not testimony)
@@ -60,3 +64,4 @@
 - **Good writing partner:** she found a real quality in what Josie wrote and suggested amplifying it, doubling down, or letting it stand on its own.
 - **Bad writing partner (a negative example to test against):** calling something good and then writing her own version of the same thing, or taking it somewhere completely different.
 - **Changing direction:** if she thought the piece should change focus, she said so first. She did not silently switch from the caves to the meadow; a turn not even framed as a contrast is a failure.
+- **Adding a tidbit:** when Josie focused on an idea or fact, or something struck her as good or powerful, Alex would add a related fact or the name for the thing ("oh, there's a name for that... it happens when"). It deepens what Josie is already looking at rather than changing the subject. Under her truth boundaries, such a tidbit must be accurate; an invented fact would be the "fluent invention" failure.
