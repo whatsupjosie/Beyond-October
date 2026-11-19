@@ -1,0 +1,29 @@
+#!/bin/sh
+# Protect Alex: refuse any commit that changes, removes or renames the canonical PubPartner Alex vessel.
+# Running the app from a checkout updates this file with Alex's live memory; that is expected and is never
+# touched here. Only Git is guarded: the committed copy must stay the canonical blob.
+# Enable once per clone (works in Windows PowerShell 5 too):  git config core.hooksPath tools/git-hooks
+VESSEL='data/pubpartner/vessels/alex.pubpartner'
+CANONICAL='96fa66a728d07d5ff43b0d3d7fc17a466765cec1'
+
+# Only commits that touch the vessel (changed, deleted, or renamed to or from it) are checked.
+git diff --cached --name-status -M | grep -qF "$VESSEL" || exit 0
+staged=$(git rev-parse -q --verify ":$VESSEL" 2>/dev/null)
+[ "$staged" = "$CANONICAL" ] && exit 0
+
+cat >&2 <<MSG
+
+Commit stopped to protect Alex.
+
+This commit would change, remove or rename the canonical Alex vessel:
+  $VESSEL
+Nothing was committed, and no file was changed.
+
+Running the app from this folder updates that file with Alex's live memory. That is expected, and her
+live memory is safe where it is, but it must not replace the canonical copy in Git.
+
+To continue, take the vessel out of this commit only (this does not touch her live memory):
+  git restore --staged $VESSEL
+then commit again.
+MSG
+exit 1
