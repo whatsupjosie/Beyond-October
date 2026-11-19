@@ -240,17 +240,29 @@ async function mount(c,host,file,options={}){
   async function saveAs(){
     // Obtain the native handle during the user gesture; generating a document can be asynchronous.
     const name=outputName();let picked;
-    if(root.showSaveFilePicker) {try{picked=await root.showSaveFilePicker({suggestedName:name})}catch(e){if(e.name==='AbortError')return;throw e}}
+    if(root.showSaveFilePicker) {try{picked=await root.showSaveFilePicker({suggestedName:name})}catch(e){if(e.name==='AbortError')return false;throw e}}
     const target=ext(picked?.name||name);
     if(richMode&&target!=='2i')throw Error('Choose a .2i archive destination. Use Download working DOCX for Word format.');
     const format=editor&&['docx','2i'].includes(target)?target:undefined;
     if(editor&&['pdf','png','jpg','jpeg','xlsx','pptx','doc','odt','zip'].includes(target))throw Error('Use a text, DOCX or 2i destination for this editable copy; this format cannot be written.');
     if(canvas&&target!=='png')throw Error('Edited images must be saved as PNG; choose a .png destination.');
-    const blob=await output(format);
-    if(picked){const stream=await picked.createWritable();try{await stream.write(blob);await stream.close()}catch(e){await stream.abort().catch(()=>{});throw e}handle=picked;delete value.workspace;value.handle=handle;value.savedFormat=format;value.name=picked.name;c.data.name=value.name;host.setTitle(value.name);richMetadataChanged();say('Saved file: '+picked.name)}
-    else {download(name,blob);say('Copy downloaded · destination follows your browser settings')}
-
+    // The file's bytes belong to the revision at the beginning of serialization.
+    // Persisting a newer working copy does NOT make those earlier exported bytes current.
+    const exportedVersion=serial,blob=await output(format);
+    if(picked){
+      const stream=await picked.createWritable();
+      try{await stream.write(blob);await stream.close()}catch(e){await stream.abort().catch(()=>{});throw e}
+      handle=picked;delete value.workspace;value.handle=handle;value.savedFormat=format;value.name=picked.name;
+      c.data.name=value.name;host.setTitle(value.name);richMetadataChanged();
+    }else download(name,blob);
     await persist();
+    // A rich rename inside this operation advances serial once, independently of edits.
+    if(serial!==exportedVersion+(richMode&&picked?1:0)){
+      say('A copy was written, but newer edits are not in that copy. Save again before closing.');
+      return false;
+    }
+    say(picked?'Saved file: '+picked.name:'Download requested · confirm the copy reached your device');
+    return true;
   }
   async function saveToWorkspace(){
     const chosen=prompt('Save in your local PubCast workspace. Use folders such as Scripts/example.py.',value.workspace?.path||outputName());
@@ -259,16 +271,43 @@ async function mount(c,host,file,options={}){
     const target=ext(path),format=editor&&['docx','2i'].includes(target)?target:undefined;
     if(richMode&&target!=='2i')throw Error('Choose a .2i archive filename. Use Download working DOCX for Word format.');
     if(editor&&['pdf','png','jpg','jpeg','xlsx','pptx','doc','odt','zip'].includes(target))throw Error('Choose a text, DOCX or 2i filename for this text copy.');
-    if(value.working&&target!=='png')throw Error('Edited images are saved as PNG.');
-    const saved=await workspace('file',{path,data:await base64(await output(format)),expected_revision:value.workspace?.path===path?value.workspace.revision:null});
-    value.workspace={path:saved.path,revision:saved.revision,format};handle=undefined;delete value.handle;richMetadataChanged();await persist();say('Saved local file: '+saved.path);return true;
+    if(value.working&&target!=='png')throw Error('Edited images must be saved as PNG.');
+    const exportedVersion=serial,blob=await output(format);
+    const saved=await workspace('file',{path,data:await base64(blob),expected_revision:value.workspace?.path===path?value.workspace.revision:null});
+    value.workspace={path:saved.path,revision:saved.revision,format};handle=undefined;delete value.handle;
+    richMetadataChanged();await persist();
+    if(serial!==exportedVersion+(richMode?1:0)){
+      say('Saved an earlier version to '+saved.path+'. Newer edits are not in that file. Save again.');
+      return false;
+    }
+    say('Saved local file: '+saved.path);return true;
   }
   async function save(){
     if(opening||richOpening)throw Error('Wait for this file to finish opening.');
     await processing;
     if(richMode)return persist(); // Explicit export writes files; ordinary Save retains the working copy locally.
-    if(value.workspace){const saved=await workspace('file',{path:value.workspace.path,data:await base64(await output(value.workspace.format)),expected_revision:value.workspace.revision});value.workspace.revision=saved.revision;await persist();say('Saved local file: '+saved.path);return true;}
-    if(handle){if(handle.queryPermission&&await handle.queryPermission({mode:'readwrite'})!=='granted'&&await handle.requestPermission({mode:'readwrite'})!=='granted')throw Error('File permission was not granted. Use Save As to choose a destination.');const blob=await output(value.savedFormat);const stream=await handle.createWritable();try{await stream.write(blob);await stream.close()}catch(e){await stream.abort().catch(()=>{});throw e}}
+    if(value.workspace){
+      const exportedVersion=serial,blob=await output(value.workspace.format);
+      const saved=await workspace('file',{path:value.workspace.path,data:await base64(blob),expected_revision:value.workspace.revision});
+      value.workspace.revision=saved.revision;
+      await persist();
+      if(serial!==exportedVersion){
+        say('Saved an earlier version to '+saved.path+'. Newer edits are not in that file. Save again.');
+        return false;
+      }
+      say('Saved local file: '+saved.path);return true;
+    }
+    if(handle){
+      if(handle.queryPermission&&await handle.queryPermission({mode:'readwrite'})!=='granted'&&await handle.requestPermission({mode:'readwrite'})!=='granted')throw Error('File permission was not granted. Use Save As to choose a destination.');
+      const exportedVersion=serial,blob=await output(value.savedFormat),stream=await handle.createWritable();
+      try{await stream.write(blob);await stream.close()}catch(e){await stream.abort().catch(()=>{});throw e}
+      await persist();
+      if(serial!==exportedVersion){
+        say('Saved an earlier version to the chosen device file. Newer edits are not in that file. Save again.');
+        return false;
+      }
+      say('Saved file: '+handle.name);return true;
+    }
     return persist();
   }
   function fileActivity(){const dirty=!!(changed||richMetadataDirty),busy=opening||richOpening||writing>0||imageWrites>0;return {dirty,busy,recovery:!!value&&!dirty&&!busy&&!localSaveError};}
