@@ -132,6 +132,8 @@ struct FrameAck {
     avatar_id:  String,
     /// Microseconds from receipt to world-matrix recompute
     latency_us: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<&'static str>,
 }
 
 /// World matrices for all joints of one avatar.
@@ -390,7 +392,8 @@ async fn handle_connection(
                         let latency   = t_recv.elapsed().as_micros() as u64;
 
                         let ack = FrameAck {
-                            ok: true,
+                            ok: frame_n > 0,
+                            error: (frame_n == 0).then_some("Avatar capacity reached"),
                             frame: frame_n,
                             avatar_id,
                             latency_us: latency,
@@ -598,15 +601,31 @@ async fn stats_logger(registry: AvatarRegistry, mut shutdown: broadcast::Receive
 /// ```
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Initialize tracing
-    let filter = std::env::var("RUST_LOG").unwrap_or_else(|_| "pubcast=info".to_string());
+    let mut cfg = RendererConfig::from_env();
+    let mut filter = std::env::var("RUST_LOG").unwrap_or_else(|_| "ws_renderer=info".to_string());
+    let mut args = std::env::args().skip(1);
+    while let Some(flag) = args.next() {
+        if flag == "--help" || flag == "-h" {
+            println!("ws_renderer [--port PORT] [--fps 1..240] [--log-level LEVEL]");
+            return Ok(());
+        }
+        let value = args.next().ok_or_else(|| anyhow::anyhow!("Missing value for {flag}"))?;
+        match flag.as_str() {
+            "--port" => cfg.listen_addr.set_port(value.parse()?),
+            "--fps" => {
+                cfg.render_fps = value.parse()?;
+                anyhow::ensure!((1..=240).contains(&cfg.render_fps), "FPS must be within 1..240");
+            }
+            "--log-level" => filter = value,
+            _ => anyhow::bail!("Unknown renderer option {flag}"),
+        }
+    }
     tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::new(filter))
+        .with_env_filter(tracing_subscriber::EnvFilter::try_new(filter)?)
         .with_target(false)
         .compact()
         .init();
 
-    let cfg = RendererConfig::from_env();
     run_server(cfg).await
 }
 
