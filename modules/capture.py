@@ -25,6 +25,7 @@ import logging
 import os
 import shutil
 import time
+import weakref
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -283,8 +284,14 @@ class SessionCapture:
         self.cameras = cameras
         self.recording = recording
         self.engine = FFmpegCaptureEngine()
+        self._locks = weakref.WeakValueDictionary()
+        self._unregistered: Dict[str, List[Path]] = {}
 
     async def start(self, session) -> List[str]:
+        async with self._locks.setdefault(session.session_id, asyncio.Lock()):
+            return await self._start(session)
+
+    async def _start(self, session) -> List[str]:
         if not self.engine.available:
             return []
         if session.state != RecordingState.ACTIVE:
@@ -299,28 +306,30 @@ class SessionCapture:
         return [str(path) for path in paths]
 
     async def finish(self, session_id: str) -> List[Dict[str, Any]]:
-        if not self.engine.available:
-            return []
-        if not self.engine.is_capturing(session_id):
-            return []
-        paths = await self.engine.stop(session_id)
-        artifacts: List[Dict[str, Any]] = []
-        for path in paths:
-            try:
-                artifact = self.recording.register_artifact(session_id, path)
-            except Exception as exc:
-                logger.warning("Could not register capture artifact %s for %s: %s", path, session_id, exc)
-                continue
+        async with self._locks.setdefault(session_id, asyncio.Lock()):
+            return await self._finish(session_id)
+
+    async def _finish(self, session_id: str) -> List[Dict[str, Any]]:
+        pending = self._unregistered.setdefault(session_id, [])
+        if self.engine.is_capturing(session_id):
+            pending.extend(await self.engine.stop(session_id))
+        artifacts = []
+        for path in pending.copy():
+            # Leave a completed file queued on a registration failure. The
+            # caller sees the failure and a retry uses the existing bytes.
+            artifact = self.recording.register_artifact(session_id, path)
+            pending.remove(path)
             artifacts.append({
                 "name": artifact.name,
                 "format": artifact.format.value,
                 "file_path": artifact.file_path.as_posix(),
                 "size_bytes": artifact.size_bytes,
             })
+        self._unregistered.pop(session_id, None)
         return artifacts
 
     async def shutdown(self) -> None:
-        for session_id in self.engine.active_sessions():
+        for session_id in set(self.engine.active_sessions()).union(self._unregistered):
             try:
                 await self.finish(session_id)
                 self.recording.stop_session(session_id)

@@ -632,18 +632,6 @@ def create_production_router(
         """
         now = time.time()
         stopped, capture_errors = [], []
-        for session in recording.list_sessions():
-            if session.state not in (RecordingState.ACTIVE, RecordingState.COUNTDOWN, RecordingState.PAUSED):
-                continue
-            try:
-                recording.stop_session(session.session_id)
-                stopped.append(session.session_id)
-                try:
-                    await capture.finish(session.session_id)
-                except Exception as exc:
-                    capture_errors.append({"session_id": session.session_id, "error": str(exc)})
-            except Exception as exc:
-                capture_errors.append({"session_id": session.session_id, "error": str(exc)})
         apply_audio_event(program_audio_state, {"action": "stop_all"})
         program_audio_state.publish({"action": "stop_all"})
         apply_audio_event(program_audio_state, {"action": "set_volume", "bus": "master", "volume": 0})
@@ -657,6 +645,22 @@ def create_production_router(
                 "blackout": True,
                 "blackout_seq": now,
             })
+
+        async def stop_take(session):
+            try:
+                await capture.finish(session.session_id)
+            except Exception as exc:
+                capture_errors.append({"session_id": session.session_id, "error": str(exc)})
+            try:
+                recording.stop_session(session.session_id)
+                stopped.append(session.session_id)
+            except Exception as exc:
+                capture_errors.append({"session_id": session.session_id, "error": str(exc)})
+
+        active_states = (RecordingState.ACTIVE, RecordingState.COUNTDOWN, RecordingState.PAUSED)
+        await asyncio.gather(*(stop_take(session) for session in recording.list_sessions()
+                               if session.state in active_states))
+        if hub:
             await hub.broadcast_system_event({
                 "type": "production_panic",
                 "payload": {
