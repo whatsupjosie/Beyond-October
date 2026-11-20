@@ -188,7 +188,13 @@ def test_studio_progress_and_avatar_come_back_after_pubcast_restarts(tmp_path):
                 # it saves on its own once you stand still
                 page.wait_for_function("""() => window.PubCastLive.state.progressRevision >= 1 &&
                     window.PubCastLive.state.progressSavedAt && document.getElementById('progressInfo').textContent.includes('saved')""", timeout=15000)
-                page.wait_for_timeout(2500)                                                     # let the last change go out
+                # Read the owner's saved choices from the host itself before closing.
+                page.wait_for_function("""async id => {
+                    const r = await fetch('/api/studio/progress');
+                    const p = (await r.json()).progress;
+                    return p?.avatars?.repeat === id && p.hologram === true &&
+                           p.tune?.['green_room/main']?.mult === 1.25;
+                }""", arg=avatar_id, timeout=15000)
                 assert page.problems == []
                 ctx.close()
             finally:
@@ -226,6 +232,9 @@ def test_studio_progress_and_avatar_come_back_after_pubcast_restarts(tmp_path):
                 page.wait_for_function("document.documentElement.dataset.ready === '1'", timeout=30000)
                 assert page.evaluate("window.PubCastWalk.S.room.id") == "dressing_room"
                 assert page.evaluate("window.PubCastWalk.S.char") == "repeat"
+                page.goto(host.base + "/walk?demo=husky")
+                page.wait_for_function("document.documentElement.dataset.ready === '1'")
+                assert page.evaluate("window.PubCastWalk.S.avatarIds.repeat") == avatar_id
                 assert errors == []
             finally:
                 browser.close()

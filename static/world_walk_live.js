@@ -286,30 +286,43 @@
     } catch (e) { return null; }
   }
   async function flushProgress(keepalive) {
-    const p = saving.pending; if (!p || state.host !== true) return false;
-    saving.pending = null; clearTimeout(saving.timer);
-    const body = JSON.stringify(p);
+    if (saving.inflight || !saving.pending || state.host !== true) return false;
+    const body = saving.pending;
+    saving.inflight = body; saving.pending = null;
+    clearTimeout(saving.timer);
+    let saved = false;
     try {
       const r = await fetch(PROGRESS_URL, { method: "PUT", headers: { "Content-Type": "application/json" },
-                                            body: JSON.stringify({ progress: p }), keepalive: !!keepalive });
+                                            body: '{"progress":' + body + '}', keepalive: !!keepalive });
       if (!r.ok) throw new Error("HTTP " + r.status);
       const j = await r.json();
-      saving.lastSent = body; state.progressRevision = j.revision; state.progressSavedAt = j.saved_at; announce();
-      return true;
+      saving.lastSent = body; state.progressRevision = j.revision; state.progressSavedAt = j.saved_at;
+      saved = true;
     } catch (e) {
       state.lastError = "Could not save studio progress (" + ((e && e.message) || e) + "); it will try again";
-      if (!saving.pending) { saving.pending = p; saving.timer = setTimeout(() => flushProgress(false), 5000); }
+      if (!saving.pending) saving.pending = body;
+    } finally {
+      saving.inflight = null;
+      state.progressPending = !!saving.pending;
       announce();
-      return false;
+      if (saving.pending) {
+        if (saved) flushProgress(true);
+        else saving.timer = setTimeout(() => flushProgress(false), 5000);
+      }
     }
+    return saved;
   }
-  /* Ask for `p` (the walker's whole progress snapshot) to be kept. Unchanged snapshots cost nothing; changes are
-     grouped and sent a moment later, or straight away with now=true (used when the page is closing). */
   function saveProgress(p, now) {
     if (state.host !== true || !p) return;
     const body = JSON.stringify(p);
-    if (body === saving.lastSent && !saving.pending) return;
-    saving.pending = p; clearTimeout(saving.timer);
+    if (body === (saving.pending || saving.inflight || saving.lastSent)) {
+      if (now && saving.pending) flushProgress(true);
+      return;
+    }
+    saving.pending = body;
+    state.progressPending = true;
+    announce();
+    clearTimeout(saving.timer);
     if (now) flushProgress(true);
     else saving.timer = setTimeout(() => flushProgress(false), 900);
   }
