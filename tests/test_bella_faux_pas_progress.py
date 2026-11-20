@@ -189,12 +189,15 @@ def test_studio_progress_and_avatar_come_back_after_pubcast_restarts(tmp_path):
                 page.wait_for_function("""() => window.PubCastLive.state.progressRevision >= 1 &&
                     window.PubCastLive.state.progressSavedAt && document.getElementById('progressInfo').textContent.includes('saved')""", timeout=15000)
                 # Read the owner's saved choices from the host itself before closing.
-                page.wait_for_function("""async id => {
-                    const r = await fetch('/api/studio/progress');
-                    const p = (await r.json()).progress;
-                    return p?.avatars?.repeat === id && p.hologram === true &&
-                           p.tune?.['green_room/main']?.mult === 1.25;
-                }""", arg=avatar_id, timeout=15000)
+                deadline = time.monotonic() + 15
+                while True:
+                    progress = httpx.get(host.base + "/api/studio/progress",
+                                         headers={"Authorization": "Bearer " + token}).json()["progress"] or {}
+                    if (progress.get("avatars", {}).get("repeat") == avatar_id and progress.get("hologram")
+                            and progress.get("tune", {}).get("green_room/main", {}).get("mult") == 1.25):
+                        break
+                    assert time.monotonic() < deadline, progress
+                    page.wait_for_timeout(200)
                 assert page.problems == []
                 ctx.close()
             finally:
