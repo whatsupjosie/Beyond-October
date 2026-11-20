@@ -277,3 +277,28 @@ def test_multi_camera_stop_preserves_media_and_names_the_missing_source(tmp_path
     assert hub.events[-1]["payload"]["capture_errors"] == result["capture_errors"]
     reopened = create_recording_service(tmp_path, cameras).get_session("two-cams")
     assert reopened.to_dict()["capture_errors"] == result["capture_errors"]
+
+
+
+async def test_encoding_assigns_distinct_paths_to_sources_with_overlapping_names(tmp_path):
+    import shutil
+    import pytest
+    from dataclasses import replace
+    from modules.capture import FFmpegCaptureEngine
+
+    if not shutil.which("ffmpeg"):
+        pytest.skip("requires FFmpeg")
+    cameras = create_default_cameras()
+    service = create_recording_service(tmp_path / "data", cameras)
+    base = cameras.get("wide_shot")
+    sources = [replace(base, source_id=name) for name in ("A/B", "A:B", "A_B-2")]
+    previous = tmp_path / "A_B.mp4"
+    previous.write_bytes(b"old source")
+    engine = FFmpegCaptureEngine()
+    try:
+        paths = await engine.start("collision", sources, service.get_profile("broadcast_mp4"), tmp_path)
+        assert len({p.name.casefold() for p in paths}) == len(sources)
+        assert previous not in paths
+    finally:
+        await engine.stop("collision")
+    assert previous.read_bytes() == b"old source"
