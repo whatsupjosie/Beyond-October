@@ -295,8 +295,14 @@ def test_native_text_undo_and_clipboard_paste(page):
     page.keyboard.insert_text(" typed")
     text.press("Control+z")
     assert text.input_value() == "start"
-    page.context.grant_permissions(["clipboard-read", "clipboard-write"])
-    page.evaluate("navigator.clipboard.writeText(' pasted')")
+    page.evaluate("""() => {
+        const source = document.createElement('textarea');
+        source.id = 'clipboard-source';
+        source.value = ' pasted';
+        document.body.appendChild(source);
+        source.select();
+    }""")
+    page.locator("#clipboard-source").press("Control+c")
     text.press("End")
     text.press("Control+v")
     page.wait_for_function(
@@ -481,3 +487,26 @@ def test_2i_open_edit_export_preserves_title_and_unknown_metadata(page):
     assert result["title"] == "Author title"
     assert result["state"]["committed"] == ["Edited text"]
     assert result["state"]["extensionMetadata"] == {"keep": "verbatim"}
+
+
+def test_native_edit_burst_commits_one_current_revision(page):
+    page.evaluate("openFile('burst.txt', 'seed')")
+    page.wait_for_function("document.querySelector('#host iframe')?.contentWindow.foresightFileSession")
+    result = page.evaluate("""async () => {
+      const frame = document.querySelector('#host iframe').contentWindow;
+      const field = frame.document.getElementById('soloTextarea');
+      const read = () => ForesightFiles.record(c.data.fileId);
+      const start = (await read()).revision || 0;
+      for (let index=0; index<40; index++) {
+        field.value = 'draft ' + index;
+        field.dispatchEvent(new frame.Event('input', {bubbles:true}));
+      }
+      const deadline = performance.now() + 5000;
+      while (frame.foresightFileSession.pending()) {
+        if (performance.now() > deadline) throw Error('Autosave never settled');
+        await new Promise(resolve => setTimeout(resolve, 25));
+      }
+      const saved = await read();
+      return {writes:saved.revision-start, text:saved.draft};
+    }""")
+    assert result == {"writes": 1, "text": "draft 39"}

@@ -94,7 +94,10 @@ const host={body:toolbar,changed(){},setTitle(title){documentTitle=title;render(
 
 let session;
 const originalMarkDirty=markDirty;
-markDirty=function(){originalMarkDirty();if(session){soloTextarea.dispatchEvent(new Event('foresight-native-change'));session.flush().catch(e=>{$('saveIndicator').textContent='Save failed: '+e.message})}};
+markDirty=function(){
+  originalMarkDirty();
+  if(session)soloTextarea.dispatchEvent(new Event('foresight-native-change'));
+};
 try{
   session=await ForesightFiles.mount(c,host,null,{
     editor:soloTextarea,
