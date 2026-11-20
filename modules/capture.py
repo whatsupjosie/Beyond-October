@@ -211,15 +211,21 @@ class FFmpegCaptureEngine:
         procs: List[_CaptureProcess] = []
         output_paths: List[Path] = []
 
+        reserved_names = {p.name.casefold() for p in session_dir.iterdir()}
         for src in sources:
             ext = profile.container.value          # mp4 / webm / wav / mov
-            safe_name = src.source_id.replace("/", "_").replace(":", "_")
+            safe_name = src.source_id.replace("/", "_").replace("\\", "_").replace(":", "_")
             out_path = session_dir / f"{safe_name}.{ext}"
+            suffix = 2
+            while out_path.name.casefold() in reserved_names:
+                out_path = session_dir / f"{safe_name}-{suffix}.{ext}"
+                suffix += 1
+            reserved_names.add(out_path.name.casefold())
 
             input_args  = _build_ffmpeg_input(src.transport.value, src.endpoint)
             output_args = _build_ffmpeg_output(profile, out_path)
 
-            cmd = [self._bin, "-y"] + input_args + output_args
+            cmd = [self._bin, "-n"] + input_args + output_args
             logger.info("FFmpeg cmd for %s: %s", src.source_id, " ".join(cmd))
 
             try:
@@ -335,6 +341,8 @@ class SessionCapture:
         profile = self.recording.get_profile(session.profile_id)
         session_dir = self.recording._session_dir(session.session_id)
         paths = await self.engine.start(session.session_id, source_objects, profile, session_dir)
+        if self.engine.errors.get(session.session_id):
+            self.recording.note_capture_errors(session.session_id, self.engine.errors[session.session_id])
         return [str(path) for path in paths]
 
     async def set_paused(self, session_id: str, paused: bool):
