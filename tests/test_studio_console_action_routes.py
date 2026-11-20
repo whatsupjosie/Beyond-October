@@ -152,3 +152,55 @@ async def test_stop_waits_for_inflight_start_and_retries_unsaved_media(tmp_path,
         release.set()
         await start
         service.stop_session("race")
+
+
+async def test_pause_controls_encoder_and_stopping_while_paused_keeps_media(tmp_path, monkeypatch):
+    import asyncio
+    import shutil
+    import signal
+    import subprocess
+    import pytest
+    from modules.capture import SessionCapture
+
+    if not hasattr(signal, "SIGSTOP") or not shutil.which("ffprobe"):
+        pytest.skip("requires POSIX process suspension and ffprobe")
+    cameras = create_default_cameras()
+    service = create_recording_service(tmp_path, cameras)
+    capture = SessionCapture(cameras, service)
+    if not capture.engine.available:
+        pytest.skip("requires FFmpeg")
+    take = service.start_session("pause-test", ["wide_shot"], profile_id="broadcast_mp4",
+                                 operator="op", countdown_seconds=0)
+    try:
+        [output] = await capture.start(take)
+        proc = capture.engine._active[take.session_id][0]
+        for _ in range(200):
+            if Path(output).exists() and Path(output).stat().st_size:
+                break
+            await asyncio.sleep(.05)
+        await asyncio.sleep(.5)
+        with monkeypatch.context() as fault:
+            def fail_write(*args):
+                raise OSError("volume offline")
+            fault.setattr(service, "_write_metadata", fail_write)
+            with pytest.raises(OSError, match="volume offline"):
+                await capture.set_paused(take.session_id, True)
+        assert not proc.paused and take.state.value == "active"
+        await capture.set_paused(take.session_id, True)
+        assert proc.paused and take.state.value == "paused"
+        status = Path(f"/proc/{proc.proc.pid}/status")
+        if status.exists():
+            for _ in range(100):
+                if "T (stopped)" in status.read_text():
+                    break
+                await asyncio.sleep(.01)
+            assert "T (stopped)" in status.read_text()
+        await capture.set_paused(take.session_id, False)
+        assert not proc.paused and take.state.value == "active"
+        await capture.set_paused(take.session_id, True)
+        [artifact] = await asyncio.wait_for(capture.finish(take.session_id), timeout=10)
+        subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
+                        "-show_entries", "stream=codec_name", artifact["file_path"]], check=True)
+    finally:
+        await capture.shutdown()
+        service.stop_session(take.session_id)

@@ -519,7 +519,9 @@ def create_production_router(
         body = await _json_dict(request)
         paused = _bool_field(body, "paused", default=True)
         try:
-            session = recording.pause_session(session_id, paused)
+            session = await capture.set_paused(session_id, paused)
+        except (RuntimeError, ProcessLookupError) as exc:
+            raise HTTPException(409, str(exc)) from exc
         except (KeyError, ValueError) as exc:
             raise HTTPException(400, str(exc))
         return session.to_dict()

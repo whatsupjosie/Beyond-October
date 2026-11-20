@@ -24,6 +24,7 @@ import asyncio
 import logging
 import os
 import shutil
+import signal
 import time
 import weakref
 from dataclasses import dataclass, field
@@ -129,9 +130,27 @@ class _CaptureProcess:
     proc: asyncio.subprocess.Process
     started_at: float = field(default_factory=time.time)
 
+    paused: bool = False
+
+    def set_paused(self, paused: bool) -> None:
+        if self.paused == paused:
+            return
+        if self.proc.returncode is not None:
+            raise RuntimeError(f"Encoder for {self.source_id} has already stopped")
+        sig = getattr(signal, "SIGSTOP" if paused else "SIGCONT", None)
+        if sig is None:
+            raise NotImplementedError("This platform cannot suspend an active FFmpeg capture")
+        self.proc.send_signal(sig)
+        self.paused = paused
+
     async def terminate(self) -> None:
         if self.proc.returncode is None:
             try:
+                if self.paused:
+                    try:
+                        self.set_paused(False)
+                    except ProcessLookupError:
+                        pass
                 if self.proc.stdin:
                     self.proc.stdin.write(b"q")
                     await self.proc.stdin.drain()
@@ -244,25 +263,26 @@ class FFmpegCaptureEngine:
 
         return output_paths
 
-    async def pause(self, session_id: str) -> None:
-        """Send SIGSTOP to all processes (Unix) or no-op on Windows."""
-        for cp in self._active.get(session_id, []):
-            if cp.proc.returncode is None:
+    def set_paused(self, session_id: str, paused: bool) -> None:
+        changed = []
+        try:
+            for cp in self._active.get(session_id, []):
+                if cp.paused != paused:
+                    cp.set_paused(paused)
+                    changed.append(cp)
+        except Exception:
+            for cp in reversed(changed):
                 try:
-                    import signal
-                    cp.proc.send_signal(signal.SIGSTOP)
-                except (AttributeError, ProcessLookupError, OSError):
-                    pass   # Windows: SIGSTOP not available — silently skip
+                    cp.set_paused(not paused)
+                except (RuntimeError, OSError):
+                    logger.exception("Failed to restore encoder state for %s", cp.source_id)
+            raise
+
+    async def pause(self, session_id: str) -> None:
+        self.set_paused(session_id, True)
 
     async def resume(self, session_id: str) -> None:
-        """Send SIGCONT to all processes (Unix) or no-op on Windows."""
-        for cp in self._active.get(session_id, []):
-            if cp.proc.returncode is None:
-                try:
-                    import signal
-                    cp.proc.send_signal(signal.SIGCONT)
-                except (AttributeError, ProcessLookupError, OSError):
-                    pass
+        self.set_paused(session_id, False)
 
     def is_capturing(self, session_id: str) -> bool:
         return session_id in self._active
@@ -304,6 +324,19 @@ class SessionCapture:
         session_dir = self.recording._session_dir(session.session_id)
         paths = await self.engine.start(session.session_id, source_objects, profile, session_dir)
         return [str(path) for path in paths]
+
+    async def set_paused(self, session_id: str, paused: bool):
+        async with self._locks.setdefault(session_id, asyncio.Lock()):
+            session = self.recording.get_session(session_id)
+            if session.state not in {RecordingState.ACTIVE, RecordingState.PAUSED}:
+                raise ValueError("Cannot pause a session that is not active")
+            was_paused = session.state == RecordingState.PAUSED
+            self.engine.set_paused(session_id, paused)
+            try:
+                return self.recording.pause_session(session_id, paused)
+            except Exception:
+                self.engine.set_paused(session_id, was_paused)
+                raise
 
     async def finish(self, session_id: str) -> List[Dict[str, Any]]:
         async with self._locks.setdefault(session_id, asyncio.Lock()):
