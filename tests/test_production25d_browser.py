@@ -378,3 +378,44 @@ def test_remote_panic_stops_real_capture_blacks_program_and_silences_audio(studi
     assert "PANIC" in page.locator("#state").inner_text()
     assert page.evaluate("async () => ((await PubCast25DStore.list())[0].media.bytes > 1000)")
     page.evaluate("panicTone.stop()")
+
+
+def test_panic_interrupts_an_ordinary_stop_without_polling(studio):
+    page, _ = studio
+    wait_for_actors(page)
+    page.evaluate("""() => {
+      const Native = MediaRecorder;
+      window.MediaRecorder = class extends Native {
+        start() { window.liveEncoder = this; return super.start(100); }
+        set ondataavailable(handler) {
+          super.ondataavailable = event => {
+            if (this.state === "recording") (this.held ||= []).push(event);
+            else handler.call(this, event);
+          };
+          this.deliver = handler;
+        }
+        stop() {
+          for (const event of this.held || []) this.deliver.call(this, event);
+          this.held = [];
+          super.stop();
+        }
+        requestData() {}
+      };
+    }""")
+    page.click("#start")
+    page.click("#record")
+    page.wait_for_function("PubCast25DStudio.state().recording")
+    page.wait_for_function("liveEncoder.held?.some(event => event.data.size > 1000)")
+    result = page.evaluate("""async () => {
+      const studio = PubCast25DStudio;
+      const ordinary = studio.stopRecording();
+      const before = liveEncoder.state;
+      const panic = studio.stopRecording({immediate:true});
+      const after = liveEncoder.state;
+      await Promise.all([ordinary, panic]);
+      const [session] = await PubCast25DStore.list();
+      return {before, after, takes: session.recordings.length, bytes: session.media.bytes};
+    }""")
+    assert result["before"] == "recording"
+    assert result["after"] == "inactive"
+    assert result["takes"] == 1 and result["bytes"] > 1000

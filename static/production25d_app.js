@@ -370,9 +370,14 @@ function waitForFirstData(rec,ms){
 }
 async function stopRecording(options){
  if(!state.recorder)return;
- if(state.recordingPromise)return state.recordingPromise;
- const immediate=!!(options&&options.immediate===true);
+ const immediate=options?.immediate===true;
  const rec=state.recorder;
+ if(state.recordingPromise){
+   // A background tab can delay the ordinary stop timer. PANIC must stop
+   // encoding now; the existing onstop callback owns the final data and save.
+   if(immediate&&rec.state==="recording")rec.stop();
+   return state.recordingPromise;
+ }
  state.recordingPromise=new Promise((resolve,reject)=>{
    rec.onstop=async ()=>{
      try{
@@ -405,7 +410,7 @@ async function stopRecording(options){
    (async()=>{
      try{
        if(!immediate&&rec.state==="recording")await waitForFirstData(rec,3000);
-       if(rec.state==="inactive")rec.onstop();else rec.stop();
+       if(rec.state!=="inactive")rec.stop();
      }catch(e){state.recordingPromise=null;cleanupMedia();state.recorder=null;reject(e);}
    })();
  });
