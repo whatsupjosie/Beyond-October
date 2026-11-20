@@ -56,6 +56,7 @@ class RecordingArtifact:
     format: ContainerFormat
     file_path: Path
     size_bytes: int = 0
+    source_key: Optional[str] = None
 
 
 @dataclass
@@ -111,6 +112,7 @@ class RecordingSession:
                     "format": art.format.value,
                     "file_path": art.file_path.as_posix(),
                     "size_bytes": art.size_bytes,
+                    **({"source_key": art.source_key} if art.source_key else {}),
                 }
                 for art in self.artifacts
             ],
@@ -171,7 +173,7 @@ class RecordingService:
                 session_id = self._validated_session_id(payload.get("session_id"))
                 if session_id != directory.name:
                     raise ValueError("Recording metadata does not match its directory")
-                session = self._session_from_dict(payload)
+                session = self._session_from_dict(payload, local_metadata=True)
                 if session.state not in {RecordingState.STOPPED, RecordingState.ARCHIVED}:
                     session.recovery = {"previous_state": session.state.value, "detected_at": time.time(),
                                         "last_confirmed_at": session.updated_at, "interrupted": True}
@@ -434,17 +436,44 @@ class RecordingService:
             except ValueError:
                 artifact_format = self.get_profile(session.profile_id).container
 
-        artifact = RecordingArtifact(
-            name=name or path.name,
-            format=artifact_format,
-            file_path=path,
-            size_bytes=path.stat().st_size,
-        )
-        artifacts = [
-            existing for existing in session.artifacts
-            if Path(existing.file_path).resolve() != path.resolve()
-        ]
-        self._commit_metadata(session, artifacts=[*artifacts, artifact], updated_at=time.time())
+        # A source on removable storage must still be available to the Gallery
+        # and export after restart. Capture workers already write inside the take.
+        session_dir = self._session_dir(session_id)
+        source = path.resolve()
+        source_key = None
+        owned_path = None
+        old_copy = None
+        if source.parent != session_dir.resolve():
+            source_key = hashlib.sha256(os.fsencode(os.path.normcase(str(source)))).hexdigest()
+            old_copy = next((a for a in session.artifacts if a.source_key == source_key), None)
+            # The final media name appears only after the complete copy is flushed.
+            with tempfile.TemporaryDirectory(dir=session_dir, prefix=".source-copy-") as staging:
+                pending = Path(staging) / "media"
+                with source.open("rb") as stream, pending.open("xb") as output:
+                    shutil.copyfileobj(stream, output, length=1024 * 1024)
+                    output.flush()
+                    os.fsync(output.fileno())
+                owned_path = session_dir / f"source-{uuid.uuid4().hex}{path.suffix}"
+                pending.replace(owned_path)
+
+        try:
+            artifact_path = owned_path or path
+            artifact = RecordingArtifact(
+                name=name or path.name, format=artifact_format, file_path=artifact_path,
+                size_bytes=artifact_path.stat().st_size, source_key=source_key,
+            )
+            artifacts = [a for a in session.artifacts if a is not old_copy and a.file_path.resolve() != source]
+            self._commit_metadata(session, artifacts=[*artifacts, artifact], updated_at=time.time())
+        except BaseException:
+            if owned_path is not None:
+                owned_path.unlink(missing_ok=True)
+            raise
+        if old_copy and old_copy.file_path.parent.resolve() == session_dir.resolve() and old_copy.file_path.name.startswith("source-"):
+            try:
+                old_copy.file_path.unlink(missing_ok=True)
+            except OSError:
+                logger.warning("Superseded media copy retained at %s", old_copy.file_path)
+
         self._blackbox_event(
             "recording.artifact",
             actor=session.operator,
@@ -613,6 +642,8 @@ class RecordingService:
             raise ValueError("Stop the recording before exporting immutable media")
         if not session.artifacts:
             raise ValueError("No recorded media is available for export")
+        if len({a.file_path.resolve() for a in session.artifacts}) != len(session.artifacts):
+            raise ValueError("Distinct recording sources resolve to the same file; relink original media before export")
         for artifact in session.artifacts:
             if not artifact.file_path.is_file():
                 raise ValueError(f"Missing recording artifact: {artifact.name}")
@@ -822,7 +853,7 @@ class RecordingService:
         metadata_path = self._session_dir(session.session_id) / f"{session.session_id}.json"
         write_json(metadata_path, session.to_dict())
 
-    def _session_from_dict(self, payload: Dict) -> RecordingSession:
+    def _session_from_dict(self, payload: Dict, *, local_metadata: bool = False) -> RecordingSession:
         session = RecordingSession(
             session_id=payload["session_id"],
             sources=list(payload.get("sources", [])),
@@ -843,6 +874,7 @@ class RecordingService:
                 format=ContainerFormat(item["format"]),
                 file_path=self._session_dir(session.session_id) / Path(str(item["file_path"]).replace("\\", "/")).name,
                 size_bytes=item.get("size_bytes", 0),
+                source_key=item.get("source_key") if local_metadata else None,
             )
             for item in payload.get("artifacts", [])
         ]
