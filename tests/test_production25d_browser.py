@@ -419,3 +419,37 @@ def test_panic_interrupts_an_ordinary_stop_without_polling(studio):
     assert result["before"] == "recording"
     assert result["after"] == "inactive"
     assert result["takes"] == 1 and result["bytes"] > 1000
+
+
+
+def test_crashed_studio_page_reopens_committed_media_in_another_tab(studio, tmp_path):
+    page, context = studio
+    wait_for_actors(page)
+    page.click("#start")
+    page.click("#record")
+    deadline = time.monotonic() + 45
+    while True:
+        take = page.evaluate("async () => (await PubCast25DStore.list())[0]?.media")
+        if take and take["incomplete"] and take["durationMs"] >= 2500 and take["bytes"] > 1000:
+            break
+        assert time.monotonic() < deadline, take
+        page.wait_for_timeout(200)
+    # A real renderer-process crash bypasses beforeunload, stop and finalizers.
+    url = page.url
+    with page.expect_event("crash", timeout=15000):
+        with pytest.raises(pw.Error):
+            page.goto("chrome://crash", timeout=15000)
+    reopened = context.new_page()
+    reopened.goto(url)
+    reopened.wait_for_function("document.documentElement.dataset.production25d === 'ready'")
+    partial = reopened.locator("#sessionList button").filter(has_text="INCOMPLETE")
+    partial.click()
+    reopened.wait_for_function("playback.readyState >= 2 && playback.videoWidth === 1280")
+    reopened.evaluate("playback.play()")
+    reopened.wait_for_function("playback.currentTime > 0")
+    with reopened.expect_download() as pending:
+        reopened.click("#download")
+    path = tmp_path / "interrupted.webm"
+    pending.value.save_as(path)
+    subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-frames:v", "1", "-f", "null", "-"], check=True)
+    reopened.close()
