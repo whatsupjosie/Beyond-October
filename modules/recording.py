@@ -14,7 +14,7 @@ import subprocess
 import time
 import tempfile
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
@@ -287,10 +287,18 @@ class RecordingService:
             countdown_seconds=countdown_seconds,
             state=RecordingState.COUNTDOWN if countdown_seconds else RecordingState.ACTIVE,
         )
-        self._sessions[session_id] = session
         session_dir = self._session_dir(session_id)
-        session_dir.mkdir(parents=True, exist_ok=True)
-        self._write_metadata(session)
+        try:
+            session_dir.mkdir(exist_ok=False)
+        except FileExistsError as exc:
+            raise ValueError(f"Session '{session_id}' already exists") from exc
+        try:
+            self._write_metadata(session)
+        except Exception:
+            # Only remove our own empty reservation.
+            session_dir.rmdir()
+            raise
+        self._sessions[session_id] = session
         
         # NEW: Create pipeline session for detailed event logging
         try:
@@ -313,13 +321,18 @@ class RecordingService:
         logger.info("Recording session %s created with sources %s", session_id, sources)
         return session
 
+    def _commit_metadata(self, session: RecordingSession, **changes) -> None:
+        # Existing callers retain the live session object. Publish the update
+        # to those callers only once the atomic on-disk replacement succeeds.
+        self._write_metadata(replace(session, **changes))
+        for field_name, value in changes.items():
+            setattr(session, field_name, value)
+
     def activate_session(self, session_id: str) -> RecordingSession:
         session = self.get_session(session_id)
         if session.state not in {RecordingState.REQUESTED, RecordingState.COUNTDOWN}:
             raise ValueError(f"Cannot activate session in state {session.state}")
-        session.state = RecordingState.ACTIVE
-        session.updated_at = time.time()
-        self._write_metadata(session)
+        self._commit_metadata(session, state=RecordingState.ACTIVE, updated_at=time.time())
         self._blackbox_event("recording.state", actor=session.operator, data={"session_id": session.session_id, "state": "active"})
         logger.info("Recording session %s is now active", session_id)
         return session
@@ -328,10 +341,8 @@ class RecordingService:
         session = self.get_session(session_id)
         if session.state == RecordingState.STOPPED:
             return session
-        session.state = RecordingState.STOPPED
-        session.ended_at = time.time()
-        session.updated_at = session.ended_at
-        self._write_metadata(session)
+        ended_at = time.time()
+        self._commit_metadata(session, state=RecordingState.STOPPED, ended_at=ended_at, updated_at=ended_at)
         
         # NEW: Stop pipeline session and log summary
         pipeline = self._pipeline_sessions.pop(session_id, None)
@@ -380,9 +391,7 @@ class RecordingService:
         session = self.get_session(session_id)
         if session.state not in {RecordingState.ACTIVE, RecordingState.PAUSED}:
             raise ValueError("Cannot pause a session that is not active")
-        session.state = RecordingState.PAUSED if paused else RecordingState.ACTIVE
-        session.updated_at = time.time()
-        self._write_metadata(session)
+        self._commit_metadata(session, state=RecordingState.PAUSED if paused else RecordingState.ACTIVE, updated_at=time.time())
         self._blackbox_event("recording.state", actor=session.operator, data={"session_id": session.session_id, "state": session.state.value, "paused": paused})
         logger.info("Recording session %s %s", session_id, "paused" if paused else "resumed")
         return session
@@ -391,18 +400,14 @@ class RecordingService:
         session = self.get_session(session_id)
         if session.state != RecordingState.STOPPED:
             raise ValueError("Only stopped sessions can be archived")
-        session.state = RecordingState.ARCHIVED
-        session.updated_at = time.time()
-        self._write_metadata(session)
+        self._commit_metadata(session, state=RecordingState.ARCHIVED, updated_at=time.time())
         logger.info("Recording session %s archived", session_id)
         return session
 
     def mark_moment(self, session_id: str, label: str, operator: Optional[str] = None) -> RecordingMarker:
         session = self.get_session(session_id)
         marker = RecordingMarker(timestamp=time.time(), label=label, operator=operator)
-        session.markers.append(marker)
-        session.updated_at = marker.timestamp
-        self._write_metadata(session)
+        self._commit_metadata(session, markers=[*session.markers, marker], updated_at=marker.timestamp)
         self._blackbox_event("recording.state", actor=operator or session.operator, data={"session_id": session.session_id, "state": session.state.value, "marker_label": label})
         logger.info("Session %s :: marker '%s'", session_id, label)
         return marker
@@ -435,13 +440,11 @@ class RecordingService:
             file_path=path,
             size_bytes=path.stat().st_size,
         )
-        session.artifacts = [
+        artifacts = [
             existing for existing in session.artifacts
             if Path(existing.file_path).resolve() != path.resolve()
         ]
-        session.artifacts.append(artifact)
-        session.updated_at = time.time()
-        self._write_metadata(session)
+        self._commit_metadata(session, artifacts=[*artifacts, artifact], updated_at=time.time())
         self._blackbox_event(
             "recording.artifact",
             actor=session.operator,

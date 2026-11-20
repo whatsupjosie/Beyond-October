@@ -188,3 +188,31 @@ def test_nonportable_archive_paths_are_rejected_before_publication(tmp_path, mem
     with pytest.raises(ValueError, match="path"):
         service.import_session(archive)
     assert not (service.recordings_dir / "invalid").exists()
+
+
+def test_metadata_failure_preserves_retryable_session(tmp_path, monkeypatch):
+    service = create_recording_service(tmp_path, create_default_cameras())
+    options = dict(profile_id="audio_only", operator="engineer", countdown_seconds=0)
+
+    def full_disk(*args):
+        raise OSError("disk full")
+
+    with monkeypatch.context() as fault:
+        fault.setattr(service, "_write_metadata", full_disk)
+        with pytest.raises(OSError, match="disk full"):
+            service.start_session("retry", ["wide_shot"], **options)
+    assert service.list_sessions() == []
+    session = service.start_session("retry", ["wide_shot"], **options)
+    with monkeypatch.context() as fault:
+        fault.setattr(service, "_write_metadata", full_disk)
+        with pytest.raises(OSError, match="disk full"):
+            service.mark_moment("retry", "take one")
+        assert session.markers == []
+        with pytest.raises(OSError, match="disk full"):
+            service.stop_session("retry")
+        assert session.state.value == "active"
+    service.mark_moment("retry", "take one")
+    service.stop_session("retry")
+    restored = create_recording_service(tmp_path, create_default_cameras()).get_session("retry")
+    assert [m.label for m in restored.markers] == ["take one"]
+    assert restored.state.value == "stopped"
