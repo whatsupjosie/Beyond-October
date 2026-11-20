@@ -218,7 +218,10 @@ def test_restore_real_host_sign_in_open_work_and_play_recording(tmp_path):
             assert api.get(media_url).content == source_media
 
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(args=GL_ARGS)
+            try:
+                browser = playwright.chromium.launch(args=GL_ARGS)
+            except Exception as exc:
+                pytest.skip(f"Chromium unavailable for restored-host browser acceptance: {exc}")
             try:
                 context = browser.new_context(viewport={"width": 1280, "height": 900})
                 context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(restored_host.base + "/") else route.abort())

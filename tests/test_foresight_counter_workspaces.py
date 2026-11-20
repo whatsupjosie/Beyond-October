@@ -69,7 +69,10 @@ def browser():
         args = ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"]
         if os.environ.get("FORESIGHT_SINGLE_PROCESS") == "1":
             args += ["--single-process", "--no-zygote"]
-        b = p.chromium.launch(args=args, executable_path=os.environ.get("FORESIGHT_TEST_CHROMIUM") or None)
+        try:
+            b = p.chromium.launch(args=args, executable_path=os.environ.get("FORESIGHT_TEST_CHROMIUM") or None)
+        except Exception as exc:
+            pytest.skip(f"Chromium unavailable for Counter workspace checks: {exc}")
         yield b
         b.close()
 

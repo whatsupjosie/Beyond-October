@@ -77,18 +77,19 @@ async function startupTests(){
  settingsContext.configureOwnerModels('bob',{provider:'ollama',model:'bob-local'});
  assert.equal(settingsContext.modelConfig.model,'bob-local');assert.equal(settings.get('reach2i_model_v1'),oldPaid);
  console.log('PASS: ownerless/other-account paid settings never become a new account’s defaults');
- const boot=html.slice(html.indexOf('async function boot(){'),html.lastIndexOf('boot();'));
+ const boot=html.slice(html.indexOf('async function boot(){'),html.lastIndexOf('boot().catch'));
  const legacy=JSON.stringify({trays:[{id:'legacy-private-title'}]});
  const layouts=new Map([['foresight.counter.v3',legacy],['foresight.counter.v3:alice',JSON.stringify({trays:[{id:'alice-only'}]})]]);
  for(const owner of ['alice','bob']){
    let restored,key;
-   const ctx={window:{},hintEl:{style:{}},ForesightFiles:{ownerScope:async()=>owner},
+   const ctx={window:{},document:{documentElement:{dataset:{}}},hintEl:{style:{}},ForesightFiles:{ownerScope:async()=>owner},
      hostLayout:{enable(){},load:async()=>null,stamp:()=>0,save(){}},
      params:{has:k=>k==='once'},counter:{setStorageKey:k=>{key=k},restore:v=>{restored=v}},
      refreshDots(){},setInterval(){},updateHint(){},localStorage:{getItem:k=>layouts.get(k)}};
    vm.createContext(ctx);vm.runInContext(boot,ctx);await ctx.boot();
    assert.equal(key,'foresight.counter.v3:'+owner);
    assert.equal(restored?.trays[0].id,owner==='alice'?'alice-only':undefined);
+   assert.equal(ctx.document.documentElement.dataset.foresightCounter,'ready');
  }
  assert.equal(layouts.get('foresight.counter.v3'),legacy,'unowned legacy layouts remain intact');
  const create=html.slice(html.indexOf('function createRenderer('),html.indexOf('const G = createRenderer'));

@@ -1,0 +1,32 @@
+{
+  "branch": "codex/main-debug-20261119",
+  "draft_pr": 15,
+  "run_date": "2026-11-19",
+  "verified": {
+    "recording_console_timeline_batch": "31 passed",
+    "recording_action_routes_final_head": "10 passed",
+    "counter_host_api_readiness": "9 passed, 1 browser test deselected",
+    "singleton_order_reproduction": "13 passed",
+    "node_root": "74 passed, 0 failed",
+    "python_final_head": "2150 passed, 133 skipped, 16 subtests passed, 0 failed, 0 errors, 333.92 seconds"
+  },
+  "browser_blocker": {
+    "playwright_download": "Browser CDN returned HTTP 403",
+    "system_chromium": "process_singleton_posix.cc:297: socket() failed: Operation not permitted (1)",
+    "focused_browser_regressions": "6 skipped at launch",
+    "long_take": "1 skipped at launch; recording never began"
+  },
+  "open_acceptance": [
+    "both operator consoles in a running Chromium page",
+    "crash/reopen/download/decode regression on this final head",
+    "30-minute recording, reopen, download, packet span and decoded beginning/middle/end frames",
+    "Counter layout/restart in a running browser",
+    "real Kokoro/Whisper speech playback and stop acceptance"
+  ],
+  "claims_not_made": [
+    "no 30-minute recording evidence was produced",
+    "no browser acceptance was converted into a pass",
+    "no GitHub Actions were run",
+    "no merge or deployment was performed"
+  ]
+}

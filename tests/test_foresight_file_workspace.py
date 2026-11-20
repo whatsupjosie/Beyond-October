@@ -48,14 +48,17 @@ def page(tmp_path, monkeypatch):
     assert userdb._sync_create_owner_via_setup("offline-writer", "offline-writer-password-1234")
     with sync_playwright() as p:
         engine = os.environ.get("FORESIGHT_TEST_BROWSER", "chromium")
-        browser = (
-            p.firefox.launch(timeout=20000)
-            if engine == "firefox"
-            else p.chromium.launch(
-                args=["--single-process", "--no-zygote", "--use-angle=swiftshader"],
-                executable_path=os.environ.get("FORESIGHT_TEST_CHROMIUM") or None
+        try:
+            browser = (
+                p.firefox.launch(timeout=20000)
+                if engine == "firefox"
+                else p.chromium.launch(
+                    args=["--single-process", "--no-zygote", "--use-angle=swiftshader"],
+                    executable_path=os.environ.get("FORESIGHT_TEST_CHROMIUM") or None
+                )
             )
-        )
+        except Exception as exc:
+            pytest.skip(f"{engine} unavailable for Foresight file workspace checks: {exc}")
         context = browser.new_context(
             viewport={"width": 1400, "height": 1000}, accept_downloads=True
         )
