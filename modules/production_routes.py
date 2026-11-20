@@ -44,7 +44,7 @@ from modules.blackbox_runtime import BlackBoxRuntimeWitness
 from modules.studio_camera_preflight import all_camera_visibility, camera_visibility_report, recording_preflight, studio_readiness
 from modules.program_audio import ProgramAudioState, apply_audio_event
 from modules.program_audio_routes import create_program_audio_router
-from modules.studio_console_actions import execute_studio_action, list_studio_actions
+from modules.studio_console_actions import confirmed_stop_session_id, execute_studio_action, list_studio_actions
 
 logger = logging.getLogger("pubcast.production")
 
@@ -376,6 +376,8 @@ def create_production_router(
         body = await _json_dict(request)
         actor = str(identity.get("user_id") or "director")
         try:
+            if action_id == "recording.stop":
+                await capture.finish(confirmed_stop_session_id(body))
             response = execute_studio_action(
                 action_id,
                 body,
@@ -386,6 +388,8 @@ def create_production_router(
             )
         except ValueError as exc:
             raise HTTPException(400, str(exc))
+        except KeyError as exc:
+            raise HTTPException(404, str(exc)) from exc
 
         if response.get("ok") and action_id == "recording.start":
             session_data = response.get("result", {})
@@ -395,14 +399,6 @@ def create_production_router(
                 capture_paths = await capture.start(session)
                 if capture_paths:
                     session_data["capture_paths"] = capture_paths
-        elif response.get("ok") and action_id == "recording.stop":
-            session_data = response.get("result", {})
-            session_id = session_data.get("session_id") or body.get("session_id")
-            if session_id:
-                artifacts = await capture.finish(str(session_id))
-                if artifacts:
-                    session_data["artifacts"] = artifacts
-
         _blackbox_event(
             "studio.action",
             source="recording",

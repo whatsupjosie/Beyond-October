@@ -204,3 +204,39 @@ async def test_pause_controls_encoder_and_stopping_while_paused_keeps_media(tmp_
     finally:
         await capture.shutdown()
         service.stop_session(take.session_id)
+
+
+def test_console_stop_finalizes_media_before_it_closes_the_take(tmp_path, monkeypatch):
+    from modules.capture import SessionCapture
+
+    cameras = create_default_cameras()
+    service = create_recording_service(tmp_path, cameras)
+    take = service.start_session("console-stop", ["wide_shot"], profile_id="broadcast_mp4",
+                                 operator="op", countdown_seconds=0)
+    capture = SessionCapture(cameras, service)
+    observed = []
+
+    async def finish(session_id):
+        observed.append(service.get_session(session_id).state.value)
+        output = service._session_dir(session_id) / "existing-take.mp4"
+        output.write_bytes(b"capture fixture")
+        service.register_artifact(session_id, output)
+        return []
+
+    monkeypatch.setattr(capture, "finish", finish)
+    app = FastAPI()
+    app.include_router(create_production_router(cameras, service, FakeHub(), capture=capture))
+    with TestClient(app) as client:
+        url = "/api/studio/actions/recording.stop"
+        assert client.post(url, json={"session_id": take.session_id}).status_code == 400
+        assert not observed
+        response = client.post(url, json={"session_id": take.session_id, "confirm": True})
+    assert observed == ["active"]
+    assert response.json()["result"]["artifacts"][0]["size_bytes"] == len(b"capture fixture")
+
+
+def test_console_requires_a_boolean_for_recording_override(tmp_path):
+    client, _, _, _ = make_client(tmp_path)
+    for action in ("recording.preflight", "recording.start"):
+        result = client.post(f"/api/studio/actions/{action}", json={"confirm": True, "host_override": "false"})
+        assert result.status_code == 400 and "boolean" in result.json()["detail"]
