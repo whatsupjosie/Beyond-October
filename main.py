@@ -1813,6 +1813,8 @@ async def lifespan(application: FastAPI):
                     session = recording.get_session(timeline_take)
                     await capture.finish(timeline_take)
                     recording.stop_session(timeline_take)
+                    if session.capture_errors:
+                        raise RuntimeError("Timeline recording has failed sources: " + ", ".join(session.capture_errors))
                     if not session.artifacts:
                         raise RuntimeError("Timeline recording produced no media")
                 else:

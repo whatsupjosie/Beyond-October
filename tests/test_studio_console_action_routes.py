@@ -117,6 +117,7 @@ async def test_stop_waits_for_inflight_start_and_retries_unsaved_media(tmp_path,
     entered, release = asyncio.Event(), asyncio.Event()
     output = service._session_dir("race") / "wide_shot.mp4"
     class Encoder:
+        errors = {}
         available = True
         active = False
         async def start(self, *args):
@@ -240,3 +241,39 @@ def test_console_requires_a_boolean_for_recording_override(tmp_path):
     for action in ("recording.preflight", "recording.start"):
         result = client.post(f"/api/studio/actions/{action}", json={"confirm": True, "host_override": "false"})
         assert result.status_code == 400 and "boolean" in result.json()["detail"]
+
+
+def test_multi_camera_stop_preserves_media_and_names_the_missing_source(tmp_path):
+    import shutil
+    import subprocess
+    import time
+    import pytest
+    from modules.cameras import CameraTransport
+
+    if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
+        pytest.skip("requires FFmpeg and ffprobe")
+    cameras = create_default_cameras()
+    missing = cameras.get("medium_shot")
+    missing.transport = CameraTransport.FILE
+    missing.endpoint = str(tmp_path / "offline-camera.mp4")
+    service = create_recording_service(tmp_path, cameras)
+    hub = FakeHub()
+    app = FastAPI()
+    app.include_router(create_production_router(cameras, service, hub))
+    with TestClient(app) as client:
+        start = client.post("/api/recording/start", json={"session_id": "two-cams",
+                            "sources": ["wide_shot", "medium_shot"], "countdown_seconds": 0})
+        assert start.status_code == 200
+        output = service._session_dir("two-cams") / "wide_shot.mp4"
+        deadline = time.monotonic() + 15
+        while (not output.exists() or not output.stat().st_size) and time.monotonic() < deadline:
+            time.sleep(.05)
+        time.sleep(.5)
+        result = client.post("/api/recording/two-cams/stop").json()
+    assert result["state"] == "stopped"
+    assert [a["name"] for a in result["artifacts"]] == ["wide_shot.mp4"]
+    subprocess.run(["ffmpeg", "-v", "error", "-i", str(output), "-frames:v", "1", "-f", "null", "-"], check=True)
+    assert set(result["capture_errors"]) == {"medium_shot"}
+    assert hub.events[-1]["payload"]["capture_errors"] == result["capture_errors"]
+    reopened = create_recording_service(tmp_path, cameras).get_session("two-cams")
+    assert reopened.to_dict()["capture_errors"] == result["capture_errors"]

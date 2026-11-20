@@ -504,6 +504,7 @@ def create_production_router(
                     "session_id": session_id,
                     "duration": (session.ended_at or time.time()) - session.started_at,
                     "artifacts": artifacts,
+                    "capture_errors": session.capture_errors,
                 },
             })
 
@@ -647,6 +648,8 @@ def create_production_router(
         async def stop_take(session):
             try:
                 await capture.finish(session.session_id)
+                capture_errors.extend({"session_id": session.session_id, "source": source, "error": message}
+                                      for source, message in session.capture_errors.items())
             except Exception as exc:
                 capture_errors.append({"session_id": session.session_id, "error": str(exc)})
             try:

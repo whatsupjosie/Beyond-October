@@ -175,6 +175,7 @@ class FFmpegCaptureEngine:
     """
 
     def __init__(self) -> None:
+        self.errors: Dict[str, Dict[str, str]] = {}
         self._active: Dict[str, List[_CaptureProcess]] = {}   # session_id → [processes]
         try:
             self._bin = _ffmpeg_bin()
@@ -238,6 +239,7 @@ class FFmpegCaptureEngine:
                 logger.info("Capture started for %s → %s (pid=%d)", src.source_id, out_path, proc.pid)
 
             except Exception as e:
+                self.errors.setdefault(session_id, {})[src.source_id] = "Encoder could not start"
                 logger.error("Failed to start FFmpeg for %s: %s", src.source_id, e)
 
         if procs:
@@ -250,17 +252,24 @@ class FFmpegCaptureEngine:
         Terminate all FFmpeg processes for a session.
         Returns list of completed output file paths.
         """
-        procs = self._active.pop(session_id, [])
+        procs = self._active.get(session_id, [])
         output_paths: List[Path] = []
-
-        for cp in procs:
-            await cp.terminate()
-            if cp.output_path.exists() and cp.output_path.stat().st_size > 0:
+        results = await asyncio.gather(*(cp.terminate() for cp in procs), return_exceptions=True)
+        for cp, result in zip(procs, results):
+            has_bytes = cp.output_path.is_file() and cp.output_path.stat().st_size > 0
+            if isinstance(result, BaseException) or cp.proc.returncode != 0 or not has_bytes:
+                detail = (f"Encoder exited with status {cp.proc.returncode}" if cp.proc.returncode is not None
+                          else "Encoder termination could not be confirmed")
+                detail += "; partial bytes retained" if has_bytes else "; no recorded media"
+                self.errors.setdefault(session_id, {})[cp.source_id] = detail
+                logger.warning("Capture %s/%s: %s", session_id, cp.source_id, detail)
+            if has_bytes and cp.proc.returncode is not None:
                 output_paths.append(cp.output_path)
-                logger.info("Artifact ready: %s (%d bytes)", cp.output_path, cp.output_path.stat().st_size)
-            else:
-                logger.warning("No media written for %s — file missing or empty.", cp.source_id)
-
+        remaining = [cp for cp in procs if cp.proc.returncode is None]
+        if remaining:
+            self._active[session_id] = remaining
+        else:
+            self._active.pop(session_id, None)
         return output_paths
 
     def set_paused(self, session_id: str, paused: bool) -> None:
@@ -312,9 +321,12 @@ class SessionCapture:
             return await self._start(session)
 
     async def _start(self, session) -> List[str]:
-        if not self.engine.available:
-            return []
         if session.state != RecordingState.ACTIVE:
+            return []
+        if not self.engine.available:
+            self.recording.note_capture_errors(session.session_id, {
+                source_id: "FFmpeg unavailable; no capture started" for source_id in session.sources
+            })
             return []
         source_objects = [self.cameras.get(source_id) for source_id in session.sources]
         source_objects = [source for source in source_objects if source is not None]
@@ -346,6 +358,12 @@ class SessionCapture:
         pending = self._unregistered.setdefault(session_id, [])
         if self.engine.is_capturing(session_id):
             pending.extend(await self.engine.stop(session_id))
+        errors = self.engine.errors.get(session_id)
+        if errors:
+            self.recording.note_capture_errors(session_id, errors)
+            self.engine.errors.pop(session_id, None)
+        if self.engine.is_capturing(session_id):
+            raise RuntimeError("One or more encoders are still running")
         artifacts = []
         for path in pending.copy():
             # Leave a completed file queued on a registration failure. The

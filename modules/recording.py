@@ -91,6 +91,7 @@ class RecordingSession:
     artifacts: List[RecordingArtifact] = field(default_factory=list)
     markers: List[RecordingMarker] = field(default_factory=list)
     recovery: Optional[Dict[str, Any]] = None
+    capture_errors: Dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> Dict:
         return {
@@ -106,6 +107,7 @@ class RecordingSession:
             "updated_at": self.updated_at,
             "ended_at": self.ended_at,
             "recovery": self.recovery,
+            "capture_errors": dict(self.capture_errors),
             "artifacts": [
                 {
                     "name": art.name,
@@ -271,6 +273,8 @@ class RecordingService:
     ) -> RecordingSession:
         if not sources:
             raise ValueError("At least one source is required")
+        if len(set(sources)) != len(sources):
+            raise ValueError("Each recording source must be selected only once")
         session_id = self._validated_session_id(
             session_id or f"rec_{uuid.uuid4().hex[:10]}"
         )
@@ -388,6 +392,10 @@ class RecordingService:
         self._blackbox_event("recording.state", actor=session.operator, data={"session_id": session.session_id, "state": "stopped", "duration_sec": round((session.ended_at or time.time()) - session.started_at, 3)})
         logger.info("Recording session %s stopped", session_id)
         return session
+
+    def note_capture_errors(self, session_id: str, errors: Dict[str, str]) -> None:
+        session = self.get_session(session_id)
+        self._commit_metadata(session, capture_errors={**session.capture_errors, **errors}, updated_at=time.time())
 
     def pause_session(self, session_id: str, paused: bool) -> RecordingSession:
         session = self.get_session(session_id)
@@ -867,6 +875,7 @@ class RecordingService:
             updated_at=payload.get("updated_at", time.time()),
             ended_at=payload.get("ended_at"),
             recovery=payload.get("recovery"),
+            capture_errors=dict(payload.get("capture_errors") or {}),
         )
         session.artifacts = [
             RecordingArtifact(
