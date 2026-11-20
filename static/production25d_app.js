@@ -19,7 +19,7 @@ const lastFrame=document.createElement("canvas");lastFrame.width=Core.W;lastFram
 const state={pkg:null,performers:[],assets:{},avatarBridge:null,avatarError:"",
 programId:null,previewId:null,
 session:null,media:null,mediaError:null,recorder:null,videoStream:null,micStream:null,audioContext:null,micSource:null,
-micGain:null,micAnalyser:null,audioDest:null,recordingPromise:null,recordingComplete:null,recordedChunks:[],
+micGain:null,micAnalyser:null,audioDest:null,recordingPromise:null,recordingComplete:null,journal:null,startingRecording:false,
 recordingStartedAt:0,recordingId:null,recovery:null,
 recordingMime:"",microphoneMuted:false,microphoneLevel:1,selected:null,playbackUrl:null,downloadUrl:null,
 lastTick:0,blackout:false,panicActive:false,lowerThird:false,lowerText:"BELLA FAUX PAS",scores:[0,0],transition:null,
@@ -51,7 +51,7 @@ async function safe(fn){
 function setControls(){
  const active=!!state.session,rec=!!state.recorder,stopping=!!state.recordingPromise;
  el.start.disabled=active;el.genre.disabled=active;el.stop.disabled=!active||stopping;
- el.record.disabled=!active||rec||stopping||!state.storageReady;
+ el.record.disabled=!active||rec||stopping||state.startingRecording||!state.storageReady;
  el.recordStop.disabled=!rec||stopping;
  el.record.disabled=el.record.disabled||!!state.recovery;
  $("recoveryPanel").hidden=!state.recovery;
@@ -305,12 +305,13 @@ function cleanupMedia(){
 }
 async function startRecording(){
  if(!state.session)throw Error("Start a production before recording");
- if(state.recorder||state.recordingPromise)throw Error("Already recording");
+ if(state.startingRecording||state.recorder||state.recordingPromise)throw Error("Already recording");
  if(state.recovery)throw Error("Save or download the unsaved take before recording again");
  if(!state.storageReady)throw Error("Local persistent session storage is unavailable");
  if(typeof el.program.captureStream!=="function")throw Error("Canvas.captureStream is unsupported");
  const mime=recordedMime();
- state.recordedChunks=[];state.mediaError=null;
+ state.startingRecording=true;state.mediaError=null;setControls();
+ const session=state.session;
  try{
    // Captures exactly the program canvas presented to the operator.
    state.videoStream=el.program.captureStream(30);
@@ -344,15 +345,40 @@ async function startRecording(){
    }
    const rec=new MediaRecorder(combined,mime?{mimeType:mime,videoBitsPerSecond:3000000}:{videoBitsPerSecond:3000000});
    state.recordingMime=rec.mimeType||mime||"browser default";
-   rec.ondataavailable=e=>{if(e.data?.size)state.recordedChunks.push(e.data)};
-   rec.onerror=e=>{state.mediaError=e.error||Error("MediaRecorder error")};
    state.recordingStartedAt=Date.now();
    state.recordingId=state.session.id+"-take-"+state.recordingStartedAt;
+   if(state.session!==session||state.panicActive)throw Error("Recording start interrupted");
+   const header={id:state.recordingId,sessionId:session.id,mime:state.recordingMime,
+     startedAt:new Date(state.recordingStartedAt).toISOString(),offsetMs:state.recordingStartedAt-Date.parse(session.startedAt),
+     incomplete:true};
+   const journal={id:header.id,sequence:0,bytes:0,committed:0,tail:[],writes:Promise.resolve(),failure:null};
+   state.journal=journal;
+   rec.ondataavailable=e=>{
+     const blob=e.data;
+     if(!blob?.size)return;
+     const sequence=journal.sequence++;
+     journal.bytes+=blob.size;
+     const latest={...header,bytes:journal.bytes,durationMs:Date.now()-state.recordingStartedAt};
+     journal.writes=journal.writes.then(async()=>{
+       if(!journal.failure){
+         try{await Store.appendChunk(latest,sequence,blob);journal.committed++;return;}
+         catch(err){journal.failure=err;state.mediaError=err;}
+       }
+       journal.tail.push(blob);
+       if(rec.state==="recording")safe(()=>stopRecording({immediate:true}));
+     });
+   };
+   rec.onerror=e=>{state.mediaError=e.error||Error("MediaRecorder error");safe(()=>stopRecording({immediate:true}));};
+   rec.onstop=()=>{
+     state.mediaError=state.mediaError||Error("Encoder stopped unexpectedly");
+     safe(()=>stopRecording({immediate:true}));
+   };
    rec.start(1000);state.recorder=rec;
    emit("recording.start",{mime:state.recordingMime,microphone:!!state.micStream,
      sharedProgramMix:!!state.programMixSource,canvas:[Core.W,Core.H]});
    log("REC START "+state.recordingMime+" / microphone "+(state.micStream?"ON":"OFF"));setControls();
- }catch(e){cleanupMedia();state.recorder=null;setControls();throw e;}
+ }catch(e){cleanupMedia();state.recorder=null;throw e;}
+ finally{state.startingRecording=false;setControls();}
 }
 /* A recorder stopped before it has encoded anything hands over nothing, and a take that short is lost ("Recorder
    generated no video data"). On an idle machine that does not happen even at 150 ms; on a busy one a stop within about
@@ -361,7 +387,7 @@ function waitForFirstData(rec,ms){
  return new Promise(resolve=>{
    const started=Date.now();
    const look=()=>{
-     if(state.recordedChunks.length||rec.state!=="recording"||Date.now()-started>=ms)return resolve();
+     if(state.journal?.sequence||rec.state!=="recording"||Date.now()-started>=ms)return resolve();
      try{rec.requestData();}catch(e){}
      setTimeout(look,100);
    };
@@ -370,14 +396,24 @@ function waitForFirstData(rec,ms){
 }
 async function stopRecording(options){
  if(!state.recorder)return;
- if(state.recordingPromise)return state.recordingPromise;
- const immediate=!!(options&&options.immediate===true);
+ const immediate=options?.immediate===true;
  const rec=state.recorder;
+ if(state.recordingPromise){
+   // A background tab can delay the ordinary stop timer. PANIC must stop
+   // encoding now; the existing onstop callback owns the final data and save.
+   if(immediate&&rec.state==="recording")rec.stop();
+   return state.recordingPromise;
+ }
  state.recordingPromise=new Promise((resolve,reject)=>{
    rec.onstop=async ()=>{
      try{
+       const journal=state.journal;
+       await journal.writes;
        const captureError=state.mediaError;
-       const blob=new Blob(state.recordedChunks,{type:rec.mimeType||"video/webm"});
+       const mime=rec.mimeType||"video/webm";
+       const prefix=journal.committed?await Store.readChunks(journal.id,mime):null;
+       const blob=new Blob(prefix?[prefix,...journal.tail]:journal.tail,{type:mime});
+       if(blob.size!==journal.bytes)throw Error("Recorded chunk bytes did not match the journal");
        if(blob.size===0)throw Error("Recorder generated no video data");
        emit("recording.stop",{bytes:blob.size,mime:blob.type});
        const sess=state.session;
@@ -390,8 +426,8 @@ async function stopRecording(options){
          offsetMs:state.recordingStartedAt-Date.parse(sess.startedAt),
          durationMs:Date.now()-state.recordingStartedAt,incomplete:!!captureError};
        sess.recordings.push(sess.media);
-       state.recovery={session:sess,blob,take:sess.media};
-       await Store.save(sess,blob);
+       state.recovery={session:sess,blob,take:sess.media,chunked:!journal.failure};
+       await Store.save(sess,blob,!journal.failure);
        state.recovery=null;
        log((captureError?"PARTIAL TAKE SAVED ":"REC SAVED ")+blob.size+" bytes; "+sess.events.length+" session events");
        await refreshSessions();
@@ -399,13 +435,14 @@ async function stopRecording(options){
        resolve(blob);
      }catch(e){state.mediaError=e;log("REC FAILED "+e.message+(state.recovery?"; unsaved media remains available for recovery":""));reject(e)}
      finally{
-       cleanupMedia();state.recordedChunks=[];state.recorder=null;state.recordingPromise=null;setControls();
+       cleanupMedia();state.journal=null;state.recorder=null;state.recordingPromise=null;setControls();
      }
    };
    (async()=>{
      try{
        if(!immediate&&rec.state==="recording")await waitForFirstData(rec,3000);
-       if(rec.state==="inactive")rec.onstop();else rec.stop();
+       if(rec.state!=="inactive")rec.stop();
+       else if(immediate&&state.mediaError)queueMicrotask(()=>rec.onstop());
      }catch(e){state.recordingPromise=null;cleanupMedia();state.recorder=null;reject(e);}
    })();
  });
@@ -584,7 +621,7 @@ function initializeControls(){
  }));
  $("recoverySave").addEventListener("click",()=>safe(async()=>{
    const recovery=state.recovery;if(!recovery)return;
-   await Store.save(recovery.session,recovery.blob);state.recovery=null;
+   await Store.save(recovery.session,recovery.blob,recovery.chunked);state.recovery=null;
    el.alert.textContent="";status("ON AIR");setControls();await refreshSessions();log("RECOVERY SAVED "+recovery.take.id);
  }));
  el.manifest.addEventListener("click",()=>safe(()=>{if(state.selected?.session)downloadBlob(new Blob([JSON.stringify(state.selected.session,null,2)],{type:"application/json"}),state.selected.session.id+".json")}));

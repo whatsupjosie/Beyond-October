@@ -188,7 +188,16 @@ def test_studio_progress_and_avatar_come_back_after_pubcast_restarts(tmp_path):
                 # it saves on its own once you stand still
                 page.wait_for_function("""() => window.PubCastLive.state.progressRevision >= 1 &&
                     window.PubCastLive.state.progressSavedAt && document.getElementById('progressInfo').textContent.includes('saved')""", timeout=15000)
-                page.wait_for_timeout(2500)                                                     # let the last change go out
+                # Read the owner's saved choices from the host itself before closing.
+                deadline = time.monotonic() + 15
+                while True:
+                    progress = httpx.get(host.base + "/api/studio/progress",
+                                         headers={"Authorization": "Bearer " + token}).json()["progress"] or {}
+                    if (progress.get("avatars", {}).get("repeat") == avatar_id and progress.get("hologram")
+                            and progress.get("tune", {}).get("green_room/main", {}).get("mult") == 1.25):
+                        break
+                    assert time.monotonic() < deadline, progress
+                    page.wait_for_timeout(200)
                 assert page.problems == []
                 ctx.close()
             finally:
@@ -226,6 +235,9 @@ def test_studio_progress_and_avatar_come_back_after_pubcast_restarts(tmp_path):
                 page.wait_for_function("document.documentElement.dataset.ready === '1'", timeout=30000)
                 assert page.evaluate("window.PubCastWalk.S.room.id") == "dressing_room"
                 assert page.evaluate("window.PubCastWalk.S.char") == "repeat"
+                page.goto(host.base + "/walk?demo=husky")
+                page.wait_for_function("document.documentElement.dataset.ready === '1'")
+                assert page.evaluate("window.PubCastWalk.S.avatarIds.repeat") == avatar_id
                 assert errors == []
             finally:
                 browser.close()

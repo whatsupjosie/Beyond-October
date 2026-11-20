@@ -66,6 +66,12 @@ def _confirmed(payload: Mapping[str, Any]) -> bool:
     return payload.get("confirm") is True or str(payload.get("confirm") or "").strip().lower() == "yes"
 
 
+def confirmed_stop_session_id(payload: Mapping[str, Any]) -> str:
+    if not _confirmed(payload):
+        raise ValueError("recording.stop requires confirm=true")
+    return _require(payload, "session_id")
+
+
 def execute_studio_action(
     action_id: str,
     payload: Mapping[str, Any],
@@ -77,6 +83,9 @@ def execute_studio_action(
 ) -> Dict[str, Any]:
     body = dict(payload or {})
     action_id = str(action_id or "").strip()
+
+    if action_id in {"recording.start", "recording.preflight"} and not isinstance(body.get("host_override", False), bool):
+        raise ValueError("host_override must be a boolean")
 
     if action_id == "studio.readiness":
         result = studio_readiness(cameras, recording, audio_status=audio_state.status())
@@ -126,9 +135,7 @@ def execute_studio_action(
         )
         result = session.to_dict()
     elif action_id == "recording.stop":
-        if not _confirmed(body):
-            raise ValueError("recording.stop requires confirm=true")
-        result = recording.stop_session(_require(body, "session_id")).to_dict()
+        result = recording.stop_session(confirmed_stop_session_id(body)).to_dict()
     elif action_id == "audio.status":
         result = audio_state.status()
     elif action_id == "audio.event":

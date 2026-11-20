@@ -46,7 +46,7 @@ import json
 import logging
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Any, TYPE_CHECKING
+from typing import Callable, Dict, List, Optional, Set, Any, TYPE_CHECKING
 from dataclasses import dataclass, field
 from enum import Enum
 import socket

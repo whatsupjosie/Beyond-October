@@ -33,6 +33,7 @@ const R = PubCastCameraRig, $ = id => document.getElementById(id), cv = $("c"), 
 const START = { x: -4, y: 1.6, z: -8, pan: 0, tilt: 0, fov: 50 * R.DEG, focus: 5 }, LOOP = 12;
 const subjectAt = t => [1.2 * (t % LOOP) - 6, 1.7, 3];
 let rig = R.create(START), mode = "keys", held = new Set(), mouse = { dx: 0, dy: 0, wheel: 0, shift: false }, locked = false;
+let holdEndPose = false;
 let clock = 0, recording = null, playing = null, last = performance.now();
 const shot = [];
 for (let k = 0; k <= LOOP; k++) { const p = R.newPose({ x: -4, y: 1.6, z: -8 + 4 * Math.min(1, k / 6), fov: 50 * R.DEG }), a = R.aimAt(p, subjectAt(k)); shot.push({ t: k, pose: Object.assign(p, a, { focus: R.project(Object.assign({}, p, a), subjectAt(k)).dist }) }); }
@@ -41,25 +42,29 @@ addEventListener("keydown", e => {
   if (e.code === "KeyR" && !e.repeat) return toggleRecord();
   if (e.code === "KeyP" && !e.repeat) return startPlay();
   if (e.code === "Home") return reset();
-  if (R.KEYS[e.code]) { held.add(e.code); e.preventDefault(); }
+  if (R.KEYS[e.code]) { holdEndPose = false; held.add(e.code); e.preventDefault(); }
 });
 addEventListener("keyup", e => held.delete(e.code));
 addEventListener("blur", () => held.clear());
 cv.addEventListener("click", () => { if (mode === "mouse" && !locked && cv.requestPointerLock) cv.requestPointerLock(); });
 document.addEventListener("pointerlockchange", () => { locked = document.pointerLockElement === cv; });
-addEventListener("mousemove", e => { if (locked || mode === "mouse" && e.buttons) { mouse.dx += e.movementX; mouse.dy += e.movementY; } });
-addEventListener("wheel", e => { if (mode === "mouse") { mouse.wheel += Math.sign(-e.deltaY); mouse.shift = e.shiftKey; e.preventDefault(); } }, { passive: false });
-$("mode").addEventListener("change", e => { mode = e.target.value; held.clear(); if (mode === "shot") { clock = 0; } e.target.blur(); });
+addEventListener("mousemove", e => { if (locked || mode === "mouse" && e.buttons) { holdEndPose = false; mouse.dx += e.movementX; mouse.dy += e.movementY; } });
+addEventListener("wheel", e => { if (mode === "mouse") { holdEndPose = false; mouse.wheel += Math.sign(-e.deltaY); mouse.shift = e.shiftKey; e.preventDefault(); } }, { passive: false });
+$("mode").addEventListener("change", e => { mode = e.target.value; holdEndPose = false; held.clear(); if (mode === "shot") { clock = 0; } e.target.blur(); });
 $("rec").addEventListener("click", toggleRecord); $("play").addEventListener("click", startPlay); $("reset").addEventListener("click", reset);
-function reset() { rig = R.create(START); clock = 0; recording = null; playing = null; }
-function toggleRecord() { if (rig.isRecording()) { recording = rig.stopRecording(); $("rec").textContent = "Record (R)"; } else { playing = null; rig.startRecording(30); clock = 0; $("rec").textContent = "Stop recording (R)"; } }
-function startPlay() { if (!recording) return; if (rig.isRecording()) toggleRecord(); playing = { t: 0 }; clock = 0; }
+function reset() { holdEndPose = false; $("rec").textContent = "Record (R)"; rig = R.create(START); clock = 0; recording = null; playing = null; }
+function toggleRecord() { holdEndPose = false; if (rig.isRecording()) { recording = rig.stopRecording(); $("rec").textContent = "Record (R)"; } else { playing = null; rig.startRecording(30); clock = 0; $("rec").textContent = "Stop recording (R)"; } }
+function startPlay() { if (!recording) return; if (rig.isRecording()) toggleRecord(); playing = { t: 0 }; rig.setPose(R.playback(recording, 0)); clock = 0; }
 
 function frame(now) {
-  const dt = Math.min(0.05, (now - last) / 1000); last = now; clock += dt;
+  const dt = Math.min(0.25, (now - last) / 1000); last = now; clock += dt;
   if (playing) {
-    const p = R.playback(recording, playing.t); playing.t += dt; rig.setPose(p);
-    if (playing.t > recording.samples.length / recording.rate) playing = null;
+    const endTime = (recording.samples.length - 1) / recording.rate;
+    playing.t = Math.min(playing.t + dt, endTime);
+    rig.setPose(R.playback(recording, playing.t));
+    if (playing.t >= endTime) { playing = null; holdEndPose = true; }
+  } else if (holdEndPose) {
+    // The operator can inspect the last frame until the next camera input.
   } else if (mode === "shot") {
     rig.setPose(R.shotPose(shot, clock % LOOP)); if (rig.isRecording()) rig.step(dt, null);     // setPose leaves no speed, so this only advances the recording's clock
   } else {

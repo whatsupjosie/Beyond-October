@@ -24,10 +24,14 @@ import asyncio
 import logging
 import os
 import shutil
+import signal
 import time
+import weakref
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
+
+from .recording import RecordingState
 
 logger = logging.getLogger(__name__)
 
@@ -126,9 +130,27 @@ class _CaptureProcess:
     proc: asyncio.subprocess.Process
     started_at: float = field(default_factory=time.time)
 
+    paused: bool = False
+
+    def set_paused(self, paused: bool) -> None:
+        if self.paused == paused:
+            return
+        if self.proc.returncode is not None:
+            raise RuntimeError(f"Encoder for {self.source_id} has already stopped")
+        sig = getattr(signal, "SIGSTOP" if paused else "SIGCONT", None)
+        if sig is None:
+            raise NotImplementedError("This platform cannot suspend an active FFmpeg capture")
+        self.proc.send_signal(sig)
+        self.paused = paused
+
     async def terminate(self) -> None:
         if self.proc.returncode is None:
             try:
+                if self.paused:
+                    try:
+                        self.set_paused(False)
+                    except ProcessLookupError:
+                        pass
                 if self.proc.stdin:
                     self.proc.stdin.write(b"q")
                     await self.proc.stdin.drain()
@@ -153,6 +175,7 @@ class FFmpegCaptureEngine:
     """
 
     def __init__(self) -> None:
+        self.errors: Dict[str, Dict[str, str]] = {}
         self._active: Dict[str, List[_CaptureProcess]] = {}   # session_id → [processes]
         try:
             self._bin = _ffmpeg_bin()
@@ -188,15 +211,21 @@ class FFmpegCaptureEngine:
         procs: List[_CaptureProcess] = []
         output_paths: List[Path] = []
 
+        reserved_names = {p.name.casefold() for p in session_dir.iterdir()}
         for src in sources:
             ext = profile.container.value          # mp4 / webm / wav / mov
-            safe_name = src.source_id.replace("/", "_").replace(":", "_")
+            safe_name = src.source_id.replace("/", "_").replace("\\", "_").replace(":", "_")
             out_path = session_dir / f"{safe_name}.{ext}"
+            suffix = 2
+            while out_path.name.casefold() in reserved_names:
+                out_path = session_dir / f"{safe_name}-{suffix}.{ext}"
+                suffix += 1
+            reserved_names.add(out_path.name.casefold())
 
             input_args  = _build_ffmpeg_input(src.transport.value, src.endpoint)
             output_args = _build_ffmpeg_output(profile, out_path)
 
-            cmd = [self._bin, "-y"] + input_args + output_args
+            cmd = [self._bin, "-n"] + input_args + output_args
             logger.info("FFmpeg cmd for %s: %s", src.source_id, " ".join(cmd))
 
             try:
@@ -216,6 +245,7 @@ class FFmpegCaptureEngine:
                 logger.info("Capture started for %s → %s (pid=%d)", src.source_id, out_path, proc.pid)
 
             except Exception as e:
+                self.errors.setdefault(session_id, {})[src.source_id] = "Encoder could not start"
                 logger.error("Failed to start FFmpeg for %s: %s", src.source_id, e)
 
         if procs:
@@ -228,38 +258,46 @@ class FFmpegCaptureEngine:
         Terminate all FFmpeg processes for a session.
         Returns list of completed output file paths.
         """
-        procs = self._active.pop(session_id, [])
+        procs = self._active.get(session_id, [])
         output_paths: List[Path] = []
-
-        for cp in procs:
-            await cp.terminate()
-            if cp.output_path.exists() and cp.output_path.stat().st_size > 0:
+        results = await asyncio.gather(*(cp.terminate() for cp in procs), return_exceptions=True)
+        for cp, result in zip(procs, results):
+            has_bytes = cp.output_path.is_file() and cp.output_path.stat().st_size > 0
+            if isinstance(result, BaseException) or cp.proc.returncode != 0 or not has_bytes:
+                detail = (f"Encoder exited with status {cp.proc.returncode}" if cp.proc.returncode is not None
+                          else "Encoder termination could not be confirmed")
+                detail += "; partial bytes retained" if has_bytes else "; no recorded media"
+                self.errors.setdefault(session_id, {})[cp.source_id] = detail
+                logger.warning("Capture %s/%s: %s", session_id, cp.source_id, detail)
+            if has_bytes and cp.proc.returncode is not None:
                 output_paths.append(cp.output_path)
-                logger.info("Artifact ready: %s (%d bytes)", cp.output_path, cp.output_path.stat().st_size)
-            else:
-                logger.warning("No media written for %s — file missing or empty.", cp.source_id)
-
+        remaining = [cp for cp in procs if cp.proc.returncode is None]
+        if remaining:
+            self._active[session_id] = remaining
+        else:
+            self._active.pop(session_id, None)
         return output_paths
 
-    async def pause(self, session_id: str) -> None:
-        """Send SIGSTOP to all processes (Unix) or no-op on Windows."""
-        for cp in self._active.get(session_id, []):
-            if cp.proc.returncode is None:
+    def set_paused(self, session_id: str, paused: bool) -> None:
+        changed = []
+        try:
+            for cp in self._active.get(session_id, []):
+                if cp.paused != paused:
+                    cp.set_paused(paused)
+                    changed.append(cp)
+        except Exception:
+            for cp in reversed(changed):
                 try:
-                    import signal
-                    cp.proc.send_signal(signal.SIGSTOP)
-                except (AttributeError, ProcessLookupError, OSError):
-                    pass   # Windows: SIGSTOP not available — silently skip
+                    cp.set_paused(not paused)
+                except (RuntimeError, OSError):
+                    logger.exception("Failed to restore encoder state for %s", cp.source_id)
+            raise
+
+    async def pause(self, session_id: str) -> None:
+        self.set_paused(session_id, True)
 
     async def resume(self, session_id: str) -> None:
-        """Send SIGCONT to all processes (Unix) or no-op on Windows."""
-        for cp in self._active.get(session_id, []):
-            if cp.proc.returncode is None:
-                try:
-                    import signal
-                    cp.proc.send_signal(signal.SIGCONT)
-                except (AttributeError, ProcessLookupError, OSError):
-                    pass
+        self.set_paused(session_id, False)
 
     def is_capturing(self, session_id: str) -> bool:
         return session_id in self._active
@@ -272,3 +310,87 @@ class FFmpegCaptureEngine:
         for sid in list(self._active.keys()):
             await self.stop(sid)
         logger.info("FFmpegCaptureEngine shut down.")
+
+
+class SessionCapture:
+    """One host-owned encoder registry for API, console, and timeline takes."""
+
+    def __init__(self, cameras, recording):
+        self.cameras = cameras
+        self.recording = recording
+        self.engine = FFmpegCaptureEngine()
+        self._locks = weakref.WeakValueDictionary()
+        self._unregistered: Dict[str, List[Path]] = {}
+
+    async def start(self, session) -> List[str]:
+        async with self._locks.setdefault(session.session_id, asyncio.Lock()):
+            return await self._start(session)
+
+    async def _start(self, session) -> List[str]:
+        if session.state != RecordingState.ACTIVE:
+            return []
+        if not self.engine.available:
+            self.recording.note_capture_errors(session.session_id, {
+                source_id: "FFmpeg unavailable; no capture started" for source_id in session.sources
+            })
+            return []
+        source_objects = [self.cameras.get(source_id) for source_id in session.sources]
+        source_objects = [source for source in source_objects if source is not None]
+        if not source_objects:
+            return []
+        profile = self.recording.get_profile(session.profile_id)
+        session_dir = self.recording._session_dir(session.session_id)
+        paths = await self.engine.start(session.session_id, source_objects, profile, session_dir)
+        if self.engine.errors.get(session.session_id):
+            self.recording.note_capture_errors(session.session_id, self.engine.errors[session.session_id])
+        return [str(path) for path in paths]
+
+    async def set_paused(self, session_id: str, paused: bool):
+        async with self._locks.setdefault(session_id, asyncio.Lock()):
+            session = self.recording.get_session(session_id)
+            if session.state not in {RecordingState.ACTIVE, RecordingState.PAUSED}:
+                raise ValueError("Cannot pause a session that is not active")
+            was_paused = session.state == RecordingState.PAUSED
+            self.engine.set_paused(session_id, paused)
+            try:
+                return self.recording.pause_session(session_id, paused)
+            except Exception:
+                self.engine.set_paused(session_id, was_paused)
+                raise
+
+    async def finish(self, session_id: str) -> List[Dict[str, Any]]:
+        async with self._locks.setdefault(session_id, asyncio.Lock()):
+            return await self._finish(session_id)
+
+    async def _finish(self, session_id: str) -> List[Dict[str, Any]]:
+        pending = self._unregistered.setdefault(session_id, [])
+        if self.engine.is_capturing(session_id):
+            pending.extend(await self.engine.stop(session_id))
+        errors = self.engine.errors.get(session_id)
+        if errors:
+            self.recording.note_capture_errors(session_id, errors)
+            self.engine.errors.pop(session_id, None)
+        if self.engine.is_capturing(session_id):
+            raise RuntimeError("One or more encoders are still running")
+        artifacts = []
+        for path in pending.copy():
+            # Leave a completed file queued on a registration failure. The
+            # caller sees the failure and a retry uses the existing bytes.
+            artifact = self.recording.register_artifact(session_id, path)
+            pending.remove(path)
+            artifacts.append({
+                "name": artifact.name,
+                "format": artifact.format.value,
+                "file_path": artifact.file_path.as_posix(),
+                "size_bytes": artifact.size_bytes,
+            })
+        self._unregistered.pop(session_id, None)
+        return artifacts
+
+    async def shutdown(self) -> None:
+        for session_id in set(self.engine.active_sessions()).union(self._unregistered):
+            try:
+                await self.finish(session_id)
+                self.recording.stop_session(session_id)
+            except Exception:
+                logger.exception("Could not finalize capture %s on shutdown", session_id)

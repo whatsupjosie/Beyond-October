@@ -111,6 +111,7 @@ from modules import alex_routes, auth_routes, userdb, auth as auth_module
 from modules.route_security import auth_enforced, current_identity, bound_actor, require_role
 from modules.timeline_routes import register_timeline_handler
 from modules.timeline import EventType
+from modules.capture import SessionCapture
 
 # — Optional modules — every import guarded; server boots regardless —
 _HAS_CRICKET          = False
@@ -906,6 +907,9 @@ async def lifespan(application: FastAPI):
             yield
         finally:
             application.state._pubcast_lifespan_users = 0
+            if timeline_player is not None:
+                await timeline_player.stop()
+            await application.state.session_capture.shutdown()
             if rearmed_camera_broadcast is not None:
                 await rearmed_camera_broadcast.stop()
             if evo_orchestrator is not None:
@@ -1147,7 +1151,9 @@ async def lifespan(application: FastAPI):
     application.include_router(create_blackbox_router(blackbox_witness))
     recording = create_recording_service(DATA_DIR, cameras, blackbox_witness=blackbox_witness)
     program_audio_state = ProgramAudioState()
-    application.include_router(create_production_router(cameras, recording, hub, blackbox=blackbox_witness, program_audio_state=program_audio_state, include_overlapping_compat_routes=False))
+    capture = SessionCapture(cameras, recording)
+    application.state.session_capture = capture
+    application.include_router(create_production_router(cameras, recording, hub, capture=capture, blackbox=blackbox_witness, program_audio_state=program_audio_state, include_overlapping_compat_routes=False))
     from modules.pubcast_vision_integration import PubcastVisionManager
     from modules.pubcast_vision_routes import create_vision_router
     vision_manager = PubcastVisionManager(camera_manager=cameras, data_dir=DATA_DIR)
@@ -1747,11 +1753,11 @@ async def lifespan(application: FastAPI):
         try:
             # Camera switches
             async def handle_timeline_camera(params):
-                to_cam = params.get('to', 'cam_1')
+                requested = params.get('to') or params.get('cam') or 'wide_shot'
+                to_cam = {'wide': 'wide_shot', 'medium': 'medium_shot', 'close': 'close_up'}.get(requested, requested)
                 transition = params.get('transition', 'cut')
-                if cameras:
-                    # Use correct method: set_program_source (not async)
-                    cameras.set_program_source(to_cam)
+                if not cameras or not cameras.set_program_source(to_cam):
+                    raise ValueError(f"Unavailable timeline camera: {to_cam}")
                 if production_log:
                     emit("timeline", "camera_switch", {"to": to_cam, "transition": transition})
             
@@ -1776,30 +1782,46 @@ async def lifespan(application: FastAPI):
                     emit("timeline", "bot_chat", {"user": user, "room": room})
             
             # Recording control
+            timeline_take = None
+
             async def handle_timeline_record(params):
-                action = params.get('action')
-                if action == 'start' and recording:
-                    # Create recording session with timeline-specified parameters
+                nonlocal timeline_take
+                action = params.get("action")
+                if action == "start":
+                    if timeline_take and recording.get_session(timeline_take).state.value in {"active", "paused", "countdown"}:
+                        raise ValueError("Timeline already has an active recording")
+                    program = cameras.get_program_source()
                     session = recording.start_session(
-                        session_id=None,  # Auto-generate
-                        sources=params.get('sources', ['cam_1']),  # Default to cam_1
-                        profile_id=params.get('profile_id', 'broadcast_mp4'),  # Default profile
-                        operator='timeline_automation',
-                        preset=params.get('preset'),
-                        host_override=True,  # Timeline has authority
-                        countdown_seconds=0,  # Immediate start for timeline
+                        session_id=None,
+                        sources=params.get("sources", [program.source_id] if program else []),
+                        profile_id=params.get("profile_id", "broadcast_mp4"),
+                        operator="timeline_automation", preset=params.get("preset"),
+                        countdown_seconds=0,
                     )
-                    if production_log:
-                        emit("timeline", "recording_start", {"session_id": session.session_id})
-                elif action == 'stop' and recording:
-                    # Stop most recent active session
-                    active_sessions = [s for s in recording.list_sessions() 
-                                     if s.state in ['active', 'countdown']]
-                    if active_sessions:
-                        recording.stop_session(active_sessions[-1].session_id)
-                    if production_log:
-                        emit("timeline", "recording_stop", {})
-            
+                    timeline_take = session.session_id
+                    try:
+                        paths = await capture.start(session)
+                        if len(paths) != len(session.sources):
+                            raise RuntimeError("Timeline could not start every requested encoder")
+                    except BaseException:
+                        await capture.finish(timeline_take)
+                        recording.stop_session(timeline_take)
+                        raise
+                elif action == "stop":
+                    if not timeline_take:
+                        raise ValueError("Timeline has no recording to stop")
+                    session = recording.get_session(timeline_take)
+                    await capture.finish(timeline_take)
+                    recording.stop_session(timeline_take)
+                    if session.capture_errors:
+                        raise RuntimeError("Timeline recording has failed sources: " + ", ".join(session.capture_errors))
+                    if not session.artifacts:
+                        raise RuntimeError("Timeline recording produced no media")
+                else:
+                    raise ValueError("Unknown timeline recording action")
+                if production_log:
+                    emit("timeline", "recording_" + action, {"session_id": timeline_take})
+
             register_timeline_handler(EventType.CAMERA, handle_timeline_camera)
             register_timeline_handler(EventType.LIGHTING, handle_timeline_lighting)
             register_timeline_handler(EventType.CHAT, handle_timeline_chat)
@@ -1881,6 +1903,9 @@ async def lifespan(application: FastAPI):
 
     # — Shutdown —
     logger.info("— PubCast AI shutting down —")
+    if timeline_player is not None:
+        await timeline_player.stop()
+    await application.state.session_capture.shutdown()
     for _speech in (stt_engine, tts_engine):
         if _speech is not None:
             await _speech.close()

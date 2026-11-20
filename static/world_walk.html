@@ -368,6 +368,7 @@ const S = {
   cans: {}, canArm: null, canSel: -1, canDrag: null,
   vel: [0, 1], moving: false, path: [],
   avatarIds: {},            // character -> avatar id in the library, so the choice is kept with your progress
+  demoAvatars: new Set(),   // characters temporarily showing a bundled preview
   demoHeights: {},           // temporary demo-only height override; never saved as character height or library identity
   library: [],
 };
@@ -1280,7 +1281,7 @@ for (const [id, demo] of Object.entries(GLB_DEMOS)) {
   $(id).addEventListener("click", async () => {
     const character = S.char;
     if (await loadGlb(demo.url, demo.label)) {
-      delete S.avatarIds[character];
+      S.demoAvatars.add(character);
       if (demo.height) S.demoHeights[character] = demo.height;
       else delete S.demoHeights[character];
       syncLibrarySelect();
@@ -1296,7 +1297,7 @@ $("glbFile").addEventListener("change", e => {
   }).finally(() => setTimeout(() => URL.revokeObjectURL(url), 5000)); e.target.value = "";
 });
 $("glbClear").addEventListener("click", () => { const G = window.PubCastGLB; if (G) G.clear(S.char); delete S.avatarIds[S.char]; delete S.demoHeights[S.char]; syncLibrarySelect(); setGlbInfo(); });
-$("glbHolo").addEventListener("change", e => { const G = window.PubCastGLB; if (G) G.setHologram(e.target.checked); });
+$("glbHolo").addEventListener("change", e => { const G = window.PubCastGLB; if (G) { G.setHologram(e.target.checked); keepProgress(true); } });
 canvas.addEventListener("dragover", e => e.preventDefault());
 canvas.addEventListener("drop", e => {
   e.preventDefault(); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
@@ -1578,7 +1579,7 @@ function syncLibrarySelect() {
   sel.textContent = "";
   sel.appendChild(new Option("(none for this character)", ""));
   for (const a of S.library) sel.appendChild(new Option(a.name + (a.canonical_height_in ? "  (" + a.canonical_height_in + " in)" : ""), a.id));
-  sel.value = S.avatarIds[S.char] && libraryEntry(S.avatarIds[S.char]) ? S.avatarIds[S.char] : "";
+  sel.value = !S.demoAvatars.has(S.char) && S.avatarIds[S.char] && libraryEntry(S.avatarIds[S.char]) ? S.avatarIds[S.char] : "";
 }
 async function refreshLibrary() {
   const L = window.PubCastLive; if (!L) return;
@@ -1588,9 +1589,10 @@ async function refreshLibrary() {
   syncLibrarySelect();
 }
 $("glbLibrary").addEventListener("change", async e => {
+  const character = S.char;
   const a = libraryEntry(e.target.value);
-  if (!a) { const G = window.PubCastGLB; if (G) G.clear(S.char); delete S.avatarIds[S.char]; delete S.demoHeights[S.char]; setGlbInfo(); return; }
-  if (await loadGlb(a.url, a.name)) { S.avatarIds[S.char] = a.id; delete S.demoHeights[S.char]; }
+  if (!a) { const G = window.PubCastGLB; if (G) G.clear(S.char); delete S.avatarIds[S.char]; delete S.demoHeights[S.char]; setGlbInfo(); keepProgress(true); return; }
+  if (await loadGlb(a.url, a.name)) { S.avatarIds[character] = a.id; S.demoAvatars.delete(character); delete S.demoHeights[character]; keepProgress(true); }
   syncLibrarySelect();
 });
 /* wait for the 3D part (a module that loads on its own) before putting saved avatars on */
@@ -1598,11 +1600,11 @@ function glbReady() {
   return window.PubCastGLB ? Promise.resolve(window.PubCastGLB)
     : new Promise(res => document.addEventListener("pubcast-glb-ready", () => res(window.PubCastGLB), { once: true }));
 }
-async function wearSavedAvatars() {
+async function wearSavedAvatars(demoCharacter) {
   const G = await glbReady();
   for (const [ch, id] of Object.entries(S.avatarIds)) {
-    const a = libraryEntry(id); if (!a || !CHAR[ch]) { delete S.avatarIds[ch]; continue; }
-    try { await G.load(ch, a.url, a.name); } catch (e) { G.state.lastError = String(e && e.message || e); delete S.avatarIds[ch]; }
+    const a = libraryEntry(id); if (!a || !CHAR[ch] || ch === demoCharacter) continue;
+    try { await G.load(ch, a.url, a.name); } catch (e) { G.state.lastError = String(e && e.message || e); }
   }
   setGlbInfo(); syncLibrarySelect();
 }
@@ -1615,7 +1617,7 @@ function progressSnapshot() {
            char: S.char, avatars: Object.assign({}, S.avatarIds), hologram: !!(G && G.state.hologram), tune: S.tune, cans: S.cans };
 }
 function keepProgress(now) {
-  const L = window.PubCastLive; if (!L) return;
+  const L = window.PubCastLive; if (!L || document.documentElement.dataset.ready !== "1") return;
   if (!now && (S.moving || S.target)) return;          // saved when you stop, not every step
   const snap = progressSnapshot(); if (snap) L.saveProgress(snap, now);
 }
@@ -1625,7 +1627,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 window.addEventListener("pubcast:live-status", e => {
   const st = e.detail || {}, box = $("progressInfo"); if (!box) return;
   box.textContent = st.host === false ? "Progress is kept only when PubCast is running behind this page."
-    : st.progressSavedAt ? "Progress saved on this PubCast (revision " + st.progressRevision + ")." : "";
+    : st.progressPending ? "Saving studio progress…" : st.progressSavedAt ? "Progress saved on this PubCast (revision " + st.progressRevision + ")." : "";
 });
 
 /* ------------------------------ boot -------------------------------------- */
@@ -1659,8 +1661,8 @@ window.PubCastWalk = {
     // ?demo=husky is a direct launch of the real bundled GLB on the real room artwork.
     // A demo must not replace a saved avatar or character identity in persistent progress.
     const directHusky = q.get("demo") === "husky";
-    if (directHusky) delete S.avatarIds[S.char];
-    refreshLibrary().then(() => { if (Object.keys(S.avatarIds).length) wearSavedAvatars(); });
+    const demoCharacter = directHusky ? S.char : null;
+    refreshLibrary().then(() => wearSavedAvatars(demoCharacter));
     if (saved && typeof saved.hologram === "boolean") { $("glbHolo").checked = saved.hologram; glbReady().then(G => G.setHologram(saved.hologram)); }
     if (q.get("pads") === "0") { S.show.pads = false; $("shPads").checked = false; }
     if (q.get("refs") === "1") { S.show.refs = true; $("shRefs").checked = true; }
@@ -1669,7 +1671,8 @@ window.PubCastWalk = {
       await glbReady();
       if (!await loadGlb(GLB_DEMOS.glbDemoHusky.url, GLB_DEMOS.glbDemoHusky.label))
         throw new Error("Bundled Husky GLB failed to load: " + (window.PubCastGLB.state.lastError || "unknown error"));
-      S.demoHeights[S.char] = 36;
+      S.demoAvatars.add(demoCharacter);
+      S.demoHeights[demoCharacter] = 36;
       syncLibrarySelect();
     }
     document.documentElement.dataset.ready = "1";
