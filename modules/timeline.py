@@ -4,7 +4,7 @@ modules/timeline.py — Deterministic Timeline Sequencer
 Rear View Foresight LLC — Feic Mo Chroí — 2026-03-25
 """
 from __future__ import annotations
-import asyncio, json, logging, time
+import asyncio, inspect, json, logging, math, time
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -41,9 +41,10 @@ class TimelineDefinition:
     events: List[TimelineEvent]=field(default_factory=list); loop: bool=False; version: str="1.0"
     def validate(self):
         issues=[]
+        if not math.isfinite(self.duration) or self.duration <= 0: issues.append("Duration must be finite and positive")
         if not self.events: issues.append("No events")
         for i,e in enumerate(self.events):
-            if e.t<0: issues.append(f"Event {i} negative time")
+            if not math.isfinite(e.t) or e.t<0: issues.append(f"Event {i} invalid time")
             if e.t>self.duration: issues.append(f"Event {i} exceeds duration")
         return issues
     def to_dict(self):
@@ -63,6 +64,8 @@ class TimelinePlayer:
     def __init__(self, tick_rate=1/60):
         self._timeline: Optional[TimelineDefinition]=None; self._state=TimelineState.IDLE
         self._start_time=0.0; self._pause_offset=0.0; self._pause_time=0.0
+        self._position = 0.0
+        self._skipped: Set[int] = set()
         self._tick_rate=tick_rate; self._handlers: Dict[EventType,List[Callable]]={}
         self._on_complete: List[Callable]=[]; self._on_error: List[Callable]=[]
         self._task: Optional[asyncio.Task]=None; self._log: List[Dict]=[]
@@ -70,9 +73,9 @@ class TimelinePlayer:
     def state(self): return self._state
     @property
     def elapsed(self):
-        if self._state==TimelineState.RUNNING: return time.time()-self._start_time-self._pause_offset
+        if self._state==TimelineState.RUNNING: return time.monotonic()-self._start_time-self._pause_offset
         elif self._state==TimelineState.PAUSED: return self._pause_time-self._start_time-self._pause_offset
-        return 0
+        return self._position
     @property
     def progress(self):
         return min(1.0,self.elapsed/self._timeline.duration) if self._timeline else 0
@@ -80,20 +83,54 @@ class TimelinePlayer:
     def on_complete(self,cb): self._on_complete.append(cb)
     def on_error(self,cb): self._on_error.append(cb)
     def load_timeline(self,td):
+        if self._state in (TimelineState.RUNNING, TimelineState.PAUSED):
+            return ["Stop playback before replacing the timeline"]
         issues=td.validate()
-        if not issues: self._timeline=td; self._reset(); self._state=TimelineState.IDLE; self._log=[]
+        if not issues: self._timeline=td; self._reset(); self._position=0; self._state=TimelineState.IDLE; self._log=[]
         return issues
     async def start(self):
-        if not self._timeline or self._state==TimelineState.RUNNING: return False
-        self._reset(); self._state=TimelineState.RUNNING; self._start_time=time.time(); self._pause_offset=0; self._log=[]
-        self._task=asyncio.create_task(self._run()); return True
+        if not self._timeline or self._state in (TimelineState.RUNNING, TimelineState.PAUSED):
+            return False
+        position = self._position if self._state == TimelineState.IDLE else 0.0
+        self._reset()
+        self._state = TimelineState.RUNNING
+        self.seek(position)
+        self._log.clear()
+        self._task = asyncio.create_task(self._run())
+        return True
+
+    def seek(self, position: float):
+        if not self._timeline or not math.isfinite(position) or not 0 <= position <= self._timeline.duration:
+            raise ValueError("Seek position outside the timeline")
+        now = time.monotonic()
+        self._position = position
+        self._start_time = now - position
+        self._pause_offset = 0.0
+        self._pause_time = now
+        if self._state in (TimelineState.COMPLETE, TimelineState.FAILED):
+            self._state = TimelineState.IDLE
+        self._skipped.clear()
+        for index, event in enumerate(self._timeline.events):
+            if event.t >= position:
+                event.fired = False
+                event.fired_at = event.error = None
+            elif not event.fired:
+                self._skipped.add(index)
+
     async def stop(self):
-        self._state=TimelineState.IDLE
-        if self._task: self._task.cancel(); self._task=None
+        self._state = TimelineState.IDLE
+        self._position = 0.0
+        if self._task:
+            self._task.cancel()
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
+            self._task = None
     async def pause(self):
-        if self._state==TimelineState.RUNNING: self._state=TimelineState.PAUSED; self._pause_time=time.time()
+        if self._state==TimelineState.RUNNING: self._state=TimelineState.PAUSED; self._pause_time=time.monotonic()
     async def resume(self):
-        if self._state==TimelineState.PAUSED: self._pause_offset+=time.time()-self._pause_time; self._state=TimelineState.RUNNING
+        if self._state==TimelineState.PAUSED: self._pause_offset+=time.monotonic()-self._pause_time; self._state=TimelineState.RUNNING
     def status(self):
         return {"state":self._state.value,"timeline":self._timeline.name if self._timeline else None,
                 "elapsed":round(self.elapsed,2),"progress":round(self.progress,3),
@@ -106,11 +143,16 @@ class TimelinePlayer:
             while self._state in (TimelineState.RUNNING,TimelineState.PAUSED):
                 if self._state==TimelineState.PAUSED: await asyncio.sleep(0.1); continue
                 el=self.elapsed
-                for ev in self._timeline.events:
-                    if not ev.fired and el>=ev.t: await self._fire(ev,el)
+                for index, ev in enumerate(self._timeline.events):
+                    if index not in self._skipped and not ev.fired and el >= ev.t:
+                        await self._fire(ev, el)
+                        if self._state == TimelineState.FAILED:
+                            self._position = el
+                            return
                 if el>=self._timeline.duration:
-                    if self._timeline.loop: self._reset(); self._start_time=time.time(); self._pause_offset=0
+                    if self._timeline.loop: self._reset(); self._start_time=time.monotonic(); self._pause_offset=0
                     else:
+                        self._position = self._timeline.duration
                         self._state=TimelineState.COMPLETE
                         for cb in self._on_complete:
                             try:
@@ -131,11 +173,13 @@ class TimelinePlayer:
         custom = [h for h in self._handlers.get(EventType.CUSTOM, []) if h not in specific]
         for handler in specific + custom:
             try:
-                r=await handler(ev) if asyncio.iscoroutinefunction(handler) else handler(ev)
+                r = handler(ev)
+                if inspect.isawaitable(r):
+                    r = await r
                 if r is False: raise RuntimeError(f"Handler returned False for {ev.label}")
             except Exception as exc:
                 ev.error=str(exc); entry["success"]=False; entry["error"]=str(exc)
-                if ev.critical: self._state=TimelineState.FAILED; return
+                if ev.critical: self._state=TimelineState.FAILED
                 break
         self._log.append(entry)
 
@@ -157,6 +201,7 @@ class TimelinePlayer:
         }
 
     def _reset(self):
+        self._skipped.clear()
         if self._timeline:
             for e in self._timeline.events: e.fired=False; e.fired_at=None; e.error=None
 

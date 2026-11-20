@@ -906,6 +906,8 @@ async def lifespan(application: FastAPI):
             yield
         finally:
             application.state._pubcast_lifespan_users = 0
+            if timeline_player is not None:
+                await timeline_player.stop()
             if rearmed_camera_broadcast is not None:
                 await rearmed_camera_broadcast.stop()
             if evo_orchestrator is not None:
@@ -1747,11 +1749,11 @@ async def lifespan(application: FastAPI):
         try:
             # Camera switches
             async def handle_timeline_camera(params):
-                to_cam = params.get('to', 'cam_1')
+                requested = params.get('to') or params.get('cam') or 'wide_shot'
+                to_cam = {'wide': 'wide_shot', 'medium': 'medium_shot', 'close': 'close_up'}.get(requested, requested)
                 transition = params.get('transition', 'cut')
-                if cameras:
-                    # Use correct method: set_program_source (not async)
-                    cameras.set_program_source(to_cam)
+                if not cameras or not cameras.set_program_source(to_cam):
+                    raise ValueError(f"Unavailable timeline camera: {to_cam}")
                 if production_log:
                     emit("timeline", "camera_switch", {"to": to_cam, "transition": transition})
             
@@ -1782,7 +1784,7 @@ async def lifespan(application: FastAPI):
                     # Create recording session with timeline-specified parameters
                     session = recording.start_session(
                         session_id=None,  # Auto-generate
-                        sources=params.get('sources', ['cam_1']),  # Default to cam_1
+                        sources=params.get('sources', ['wide_shot']),
                         profile_id=params.get('profile_id', 'broadcast_mp4'),  # Default profile
                         operator='timeline_automation',
                         preset=params.get('preset'),
@@ -1881,6 +1883,8 @@ async def lifespan(application: FastAPI):
 
     # — Shutdown —
     logger.info("— PubCast AI shutting down —")
+    if timeline_player is not None:
+        await timeline_player.stop()
     for _speech in (stt_engine, tts_engine):
         if _speech is not None:
             await _speech.close()
