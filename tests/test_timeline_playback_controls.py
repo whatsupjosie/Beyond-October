@@ -50,3 +50,51 @@ async def test_critical_failure_stops_sibling_cues_and_is_logged():
     assert calls == ["first"]
     assert player.status()["state"] == "failed"
     assert player.get_log()[0]["error"] == "unavailable camera"
+
+
+def test_live_host_timeline_records_and_leaves_operator_countdown_alone(client, tmp_path, monkeypatch):
+    import shutil
+    import subprocess
+    import time
+    from pathlib import Path
+
+    if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
+        pytest.skip("FFmpeg and ffprobe are required for encoded take verification")
+    monkeypatch.setattr(routes, "TIMELINES_DIR", tmp_path)
+    (tmp_path / "take.json").write_text(json.dumps({
+        "name": "take", "duration": 3, "events": [
+            {"t": 0, "type": "record", "critical": True, "params": {"action": "start", "sources": ["wide_shot"]}},
+            {"t": 3, "type": "record", "critical": True, "params": {"action": "stop"}},
+        ],
+    }))
+    def sessions():
+        return client.get("/api/recording/sessions").json()
+
+    previous = {s["session_id"] for s in sessions()}
+    assert client.post("/api/timeline/load", json={"name": "take"}).is_success
+    assert client.post("/api/timeline/play").is_success
+    deadline = time.monotonic() + 15
+    while not any(s["session_id"] not in previous for s in sessions()):
+        assert time.monotonic() < deadline
+        time.sleep(.05)
+    other = client.post("/api/recording/start", json={"sources": ["wide_shot"], "countdown_seconds": 30})
+    assert other.is_success
+    operator = other.json()["session_id"]
+    try:
+        while client.get("/api/timeline/status").json()["state"] == "running":
+            assert time.monotonic() < deadline
+            time.sleep(.1)
+        assert client.get("/api/timeline/status").json()["state"] == "complete"
+        after = {s["session_id"]: s for s in sessions() if s["session_id"] not in previous}
+        assert after.pop(operator)["state"] == "countdown"
+        (take,) = after.values()
+        assert take["state"] == "stopped"
+        (artifact,) = take["artifacts"]
+        file = Path(artifact["file_path"])
+        assert file.stat().st_size == artifact["size_bytes"] > 0
+        probe = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
+                                "-show_entries", "stream=codec_name", "-of", "csv=p=0", str(file)],
+                               text=True, capture_output=True, check=True, timeout=10)
+        assert probe.stdout.strip() == "h264"
+    finally:
+        client.post("/api/recording/" + operator + "/stop")

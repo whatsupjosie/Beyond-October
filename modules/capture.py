@@ -27,7 +27,9 @@ import shutil
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
+
+from .recording import RecordingState
 
 logger = logging.getLogger(__name__)
 
@@ -272,3 +274,55 @@ class FFmpegCaptureEngine:
         for sid in list(self._active.keys()):
             await self.stop(sid)
         logger.info("FFmpegCaptureEngine shut down.")
+
+
+class SessionCapture:
+    """One host-owned encoder registry for API, console, and timeline takes."""
+
+    def __init__(self, cameras, recording):
+        self.cameras = cameras
+        self.recording = recording
+        self.engine = FFmpegCaptureEngine()
+
+    async def start(self, session) -> List[str]:
+        if not self.engine.available:
+            return []
+        if session.state != RecordingState.ACTIVE:
+            return []
+        source_objects = [self.cameras.get(source_id) for source_id in session.sources]
+        source_objects = [source for source in source_objects if source is not None]
+        if not source_objects:
+            return []
+        profile = self.recording.get_profile(session.profile_id)
+        session_dir = self.recording._session_dir(session.session_id)
+        paths = await self.engine.start(session.session_id, source_objects, profile, session_dir)
+        return [str(path) for path in paths]
+
+    async def finish(self, session_id: str) -> List[Dict[str, Any]]:
+        if not self.engine.available:
+            return []
+        if not self.engine.is_capturing(session_id):
+            return []
+        paths = await self.engine.stop(session_id)
+        artifacts: List[Dict[str, Any]] = []
+        for path in paths:
+            try:
+                artifact = self.recording.register_artifact(session_id, path)
+            except Exception as exc:
+                logger.warning("Could not register capture artifact %s for %s: %s", path, session_id, exc)
+                continue
+            artifacts.append({
+                "name": artifact.name,
+                "format": artifact.format.value,
+                "file_path": artifact.file_path.as_posix(),
+                "size_bytes": artifact.size_bytes,
+            })
+        return artifacts
+
+    async def shutdown(self) -> None:
+        for session_id in self.engine.active_sessions():
+            try:
+                await self.finish(session_id)
+                self.recording.stop_session(session_id)
+            except Exception:
+                logger.exception("Could not finalize capture %s on shutdown", session_id)

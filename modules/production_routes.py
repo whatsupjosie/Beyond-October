@@ -29,6 +29,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from fastapi.responses import FileResponse
 
+from modules.capture import SessionCapture
 from modules.cameras import CameraManager, CameraSource, CameraTransport
 from modules.recording import (
     RecordingService,
@@ -130,16 +131,12 @@ def create_production_router(
     blackbox: Optional[BlackBoxRuntimeWitness] = None,
     program_audio_state: Optional[ProgramAudioState] = None,
     include_overlapping_compat_routes: bool = True,
+    capture: Optional[SessionCapture] = None,
 ) -> APIRouter:
     """Create the production API router."""
     router = APIRouter(tags=["Production"])
     program_audio_state = program_audio_state or ProgramAudioState()
-    capture_engine = None
-    try:
-        from modules.capture import FFmpegCaptureEngine
-        capture_engine = FFmpegCaptureEngine()
-    except Exception as exc:
-        logger.warning("FFmpeg capture engine unavailable: %s", exc)
+    capture = capture or SessionCapture(cameras, recording)
 
     # Compatibility bridge routes are mounted here because main.py already mounts
     # production_routes after the core runtime managers exist. These bridge routers
@@ -152,41 +149,6 @@ def create_production_router(
     def _blackbox_event(event_type: str, *, source: str, actor: str = "SYS", data: Optional[Dict[str, Any]] = None) -> None:
         if blackbox is not None:
             blackbox.record_event(event_type, source=source, actor=actor, data=data or {})
-
-    async def _start_capture_for_session(session) -> List[str]:
-        if capture_engine is None or not getattr(capture_engine, "available", False):
-            return []
-        if session.state != RecordingState.ACTIVE:
-            return []
-        source_objects = [cameras.get(source_id) for source_id in session.sources]
-        source_objects = [source for source in source_objects if source is not None]
-        if not source_objects:
-            return []
-        profile = recording.get_profile(session.profile_id)
-        session_dir = recording._session_dir(session.session_id)
-        paths = await capture_engine.start(session.session_id, source_objects, profile, session_dir)
-        return [str(path) for path in paths]
-
-    async def _stop_capture_for_session(session_id: str) -> List[Dict[str, Any]]:
-        if capture_engine is None or not getattr(capture_engine, "available", False):
-            return []
-        if not capture_engine.is_capturing(session_id):
-            return []
-        paths = await capture_engine.stop(session_id)
-        artifacts: List[Dict[str, Any]] = []
-        for path in paths:
-            try:
-                artifact = recording.register_artifact(session_id, path)
-            except Exception as exc:
-                logger.warning("Could not register capture artifact %s for %s: %s", path, session_id, exc)
-                continue
-            artifacts.append({
-                "name": artifact.name,
-                "format": artifact.format.value,
-                "file_path": artifact.file_path.as_posix(),
-                "size_bytes": artifact.size_bytes,
-            })
-        return artifacts
 
     # —
     # CAMERAS
@@ -430,14 +392,14 @@ def create_production_router(
             session_id = session_data.get("session_id")
             if session_id:
                 session = recording.get_session(session_id)
-                capture_paths = await _start_capture_for_session(session)
+                capture_paths = await capture.start(session)
                 if capture_paths:
                     session_data["capture_paths"] = capture_paths
         elif response.get("ok") and action_id == "recording.stop":
             session_data = response.get("result", {})
             session_id = session_data.get("session_id") or body.get("session_id")
             if session_id:
-                artifacts = await _stop_capture_for_session(str(session_id))
+                artifacts = await capture.finish(str(session_id))
                 if artifacts:
                     session_data["artifacts"] = artifacts
 
@@ -489,7 +451,7 @@ def create_production_router(
         except (ValueError, PermissionError, KeyError) as exc:
             raise HTTPException(400, str(exc))
 
-        capture_paths = await _start_capture_for_session(session)
+        capture_paths = await capture.start(session)
 
         if hub:
             await hub.broadcast_system_event({
@@ -517,7 +479,7 @@ def create_production_router(
         except (KeyError, ValueError) as exc:
             raise HTTPException(400, str(exc))
 
-        capture_paths = await _start_capture_for_session(session)
+        capture_paths = await capture.start(session)
 
         if hub:
             await hub.broadcast_system_event({
@@ -534,7 +496,7 @@ def create_production_router(
     async def stop_recording(session_id: str, identity: Dict[str, Any] = Depends(require_role("mod"))):
         """Stop a recording session."""
         try:
-            artifacts = await _stop_capture_for_session(session_id)
+            artifacts = await capture.finish(session_id)
             session = recording.stop_session(session_id)
         except KeyError as exc:
             raise HTTPException(404, str(exc))
@@ -677,7 +639,7 @@ def create_production_router(
                 recording.stop_session(session.session_id)
                 stopped.append(session.session_id)
                 try:
-                    await _stop_capture_for_session(session.session_id)
+                    await capture.finish(session.session_id)
                 except Exception as exc:
                     capture_errors.append({"session_id": session.session_id, "error": str(exc)})
             except Exception as exc:
