@@ -340,4 +340,4 @@ def test_jeremy_never_appears_as_visible_cast_or_avatar():
     presets = [p.model_dump() for p in list_presets()]
     assert all("jeremy" not in p["id"].lower() for p in presets)
     assert all("jeremy" not in p["name"].lower() for p in presets)
-    assert any(c["display_name"] == "Sir. Purfluous" for c in cast)
+    assert any(c["display_name"] == "Sir Purfluous" for c in cast)
