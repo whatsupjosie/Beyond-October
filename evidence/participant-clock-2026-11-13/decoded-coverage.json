@@ -1,0 +1,23 @@
+{
+  "one_second_windows": 1805,
+  "tone_amplitude_floor": 0.01,
+  "quiet_windows_seconds": {
+    "440": [],
+    "880": []
+  },
+  "frequency_peak_range_hz": {
+    "440": [
+      439,
+      441
+    ],
+    "880": [
+      878,
+      880
+    ]
+  },
+  "minimum_window_amplitude": {
+    "440": 0.05503440053760539,
+    "880": 0.029835763028453692
+  },
+  "method": "8 kHz timestamp-aligned decode, one-second Hann-window FFT, peak within \u00b18 Hz of each generated tone to include bounded playout rate changes"
+}

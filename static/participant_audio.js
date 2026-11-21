@@ -1,6 +1,6 @@
 /* Authenticated one-way PCM contribution; one canonical program mixer.
- * Ordered frames, fixed playout lead and strict latency/backpressure bounds.
- * A late/gapped stream is disconnected explicitly, never silently accelerated.
+ * Ordered frames, bounded playout lead and strict latency/backpressure bounds.
+ * Receiver-clock compensation is bounded; gaps still disconnect explicitly.
  */
 (function(global){
 'use strict';
@@ -58,7 +58,7 @@ class ParticipantAudio {
   if(!this.closed)throw Error('Leave the current audio connection first');
   if(!consent)throw Error('Consent to send and record your microphone is required');
   if(/dressing/.test(location.pathname)||this.mixer?.room==='dressing')throw Error('Leave the dressing room before contributing audio');
-  const generation=++this.generation;this.closed=false;this.host=false;
+  const generation=++this.generation;this.closed=false;this.host=false;this.senderTiming=null;
   try{
    this.report('Requesting microphone permission…');
    const media=stream||await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true},video:false});
