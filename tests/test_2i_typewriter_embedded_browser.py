@@ -9,7 +9,7 @@ from __future__ import annotations
 import pytest
 
 sync_api = pytest.importorskip("playwright.sync_api")
-from test_2i_hosted_layout import reach, _open  # existing disposable authenticated host
+from tests.test_2i_hosted_layout import reach, _open  # existing disposable authenticated host
 
 
 def test_typewriter_edits_real_manuscript_and_survives_save_reload(reach):
