@@ -137,10 +137,19 @@ async function load(character, url, label, options = {}) {
   }
   const normalMaterials = new Map(), holo = hologramMaterial();
   root.traverse(o => { if (o.isMesh) normalMaterials.set(o, o.material); });
-  const inst = { character, sourceUrl: new URL(url, location.href).href, label: label || character, group: norm.wrap, mixer, actions, gait, yaw: 0, wWalk: 0, phase: 0,
+  const mouth = [];
+  root.traverse(mesh => {
+    const index = mesh.morphTargetDictionary?.vis_open_ah;
+    if (Number.isInteger(index) && mesh.morphTargetInfluences) mouth.push({mesh, index, rest: mesh.morphTargetInfluences[index]});
+  });
+  const inst = { mouth, jaw: null, character, sourceUrl: new URL(url, location.href).href, label: label || character, group: norm.wrap, mixer, actions, gait, yaw: 0, wWalk: 0, phase: 0,
                  clipAssets: gltf.animations, activeGesture: null, clips: gltf.animations.map(a => a.name), nativeHeight: norm.nativeHeight, meshCount, skinned, normalMaterials, holo,
                  tris, bones: boneSet.size };
   if(options.signal?.aborted){dispose(inst);throw new DOMException("Avatar load cancelled","AbortError");}
+  if (options.requireJaw && !mouth.length) {
+    dispose(inst);
+    throw new Error("The avatar has no speech mouth rig");
+  }
   const old = avatars.get(character); if (old) dispose(old);
   avatars.set(character, inst);
   return { clips: inst.clips, nativeHeight: inst.nativeHeight, meshes: meshCount, skinned, hasWalk: !!walk, hasIdle: !!idle, tris, bones: inst.bones };
@@ -227,6 +236,11 @@ function draw(ctx, character, cx, fy, H, motion) {
     inst.group.position.y = moving ? Math.abs(Math.sin(inst.phase)) * 0.012 : 0;
     inst.group.rotation.z = moving ? Math.sin(inst.phase) * 0.035 : 0;
   }
+  if (inst.jaw !== null) {
+    for (const {mesh, index, rest} of inst.mouth) {
+      mesh.morphTargetInfluences[index] = rest + (1 - rest) * inst.jaw;
+    }
+  }
   // look
   inst.group.traverse(o => { if (o.isMesh) o.material = state.hologram ? inst.holo : (inst.normalMaterials.get(o) || o.material); });
 
@@ -264,11 +278,17 @@ function playClip(character, pattern) {
   inst.activeGesture = {action, elapsed: 0, duration: Math.max(.05, clip.duration)};
   return true;
 }
+function setJaw(character, weight) {
+  const inst = avatars.get(character);
+  if (!inst?.mouth.length || !Number.isFinite(weight)) return false;
+  inst.jaw = Math.max(0, Math.min(1, weight));
+  return true;
+}
 function setHologram(on) { state.hologram = !!on; }
 function info(character) {
   const i = avatars.get(character); if (!i) return null;
-  return { label: i.label, sourceUrl: i.sourceUrl, clips: i.clips, nativeHeight: i.nativeHeight, meshes: i.meshCount, skinned: i.skinned, tris: i.tris, bones: i.bones, proceduralWalk: !!i.gait };
+  return { label: i.label, sourceUrl: i.sourceUrl, clips: i.clips, nativeHeight: i.nativeHeight, meshes: i.meshCount, skinned: i.skinned, tris: i.tris, bones: i.bones, proceduralWalk: !!i.gait, hasJaw: !!i.mouth.length, jaw: i.jaw ?? 0 };
 }
 
-window.PubCastGLB = { load, clear, has, draw, playClip, setHologram, info, state };
+window.PubCastGLB = { load, clear, has, draw, playClip, setJaw, setHologram, info, state };
 document.dispatchEvent(new Event("pubcast-glb-ready"));

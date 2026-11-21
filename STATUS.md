@@ -5,6 +5,20 @@ Foresight inside this Build. It is **not** a declaration that all of PubCast is
 finished. Never treat a file, route, recovered donor, or test fixture as proof
 of live functionality.
 
+## Market-readiness acceptance
+
+Each system needs explicit user-facing acceptance criteria. Track its status as working, integrated or finished, with the verified commit, environment and evidence.
+
+- **Working** means the component passes its own observable checks.
+- **Integrated** means the normal PubCast workflow connects the component to its real inputs and consumers.
+- **Finished** means the integrated workflow passes acceptance, failure and recovery checks, and regressions for affected behavior. Significant repairs require independent review. Revisit temporary blockers before closing each phase.
+
+Check the release candidate across Studio and Control Room, capture and export, speech and avatars, Alex and Jeremy, access and consent, offline operation, and supported devices. Track verified capabilities and open gates in the existing integration and acceptance ledgers. Verify and reuse existing implementations before replacing them.
+
+### Studio speech and Pete
+
+Local synthesized speech drives the bundled Pete rig through the Studio's dialogue mixer. Chromium with local Flite has verified rendered mouth movement, signal on the Program mixer, and neutral reset on Stop, normal completion, and production shutdown. This is audio-level mouth movement. Phoneme timing, phoneme-specific shapes, real device checks, and casting through the shared camera pool remain open. The original Studio cast remains the default.
+
 ## 2026-11-02: Production notes (sticky notes) and the PubCast profile
 
 Ledger: `handoffs/PRODUCTION_NOTES_2026-11-02.md`.

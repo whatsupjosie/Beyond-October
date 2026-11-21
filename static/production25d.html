@@ -96,6 +96,11 @@ html.drag-scroll-active,html.drag-scroll-active *{cursor:grabbing!important;user
 <div class="row"><button id="scoreLeft">SCORE +1 PLAYER 1</button><button id="scoreRight">SCORE +1 PLAYER 2</button></div>
 <div class="row"><button id="lower">TOGGLE LOWER THIRD</button><button id="black">BLACK / RETURN</button></div>
 <small>Moving changes stage coordinates. A loaded GLB uses actual rig animation; if a model is unavailable the output reports that failure instead of pretending a substitute is 3D.</small>
+<div class="row"><button id="castPete" type="button">Cast Pete in selected slot</button></div>
+<div class="field"><label for="peteLine">Pete’s dialogue</label><input id="peteLine" type="text" maxlength="1800"></div>
+<div class="row"><button id="speakPete" type="button" disabled>Speak line</button><button id="stopPete" type="button" disabled>Stop line</button></div>
+<p id="peteStatus" role="status" aria-live="polite"></p>
+<small>Pete’s mouth follows local speech audio. Shared camera-pool previews require the default cast.</small>
 <p id="avatarStatus" class="muted">Checking avatar renderer…</p>
 </section>
 <section style="margin-top:12px"><h2>REPLACEABLE SET ASSETS</h2>
@@ -118,6 +123,7 @@ html.drag-scroll-active,html.drag-scroll-active *{cursor:grabbing!important;user
 <script src="./production25d_switcher_bridge.js"></script>
 <script src="./production25d_frame_publisher.js"></script>
 <script src="./program_audio_runtime.js"></script>
+<script src="./speech_client.js"></script>
 <script src="./participant_audio.js"></script>
 <script src="./production25d_sources.js"></script>
 <script src="./production25d_clacker.js"></script>
