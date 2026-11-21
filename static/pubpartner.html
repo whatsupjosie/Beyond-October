@@ -80,7 +80,7 @@
           <button role="menuitem" data-command="focus-preview">Avatar preview</button><button role="menuitem" data-command="focus-setup">Companion selection</button><button role="menuitem" data-command="cartridge-avatar">Choose avatar…</button>
         </div></div>
         <div class="menu-root"><button type="button" data-menu="memory" aria-haspopup="menu" aria-expanded="false">Memory</button><div class="menu-pop" role="menu">
-          <button role="menuitem" data-command="focus-memory">What we’ve learned</button><button role="menuitem" data-command="refresh-relationship">Refresh relationship</button><button role="menuitem" data-command="show-encounters">Evidence encounters</button><button role="menuitem" data-command="show-guidance">Guidance and corrections</button>
+          <button role="menuitem" data-command="focus-memory">What we’ve learned</button><button role="menuitem" data-command="focus-notes">Project notes</button><button role="menuitem" data-command="refresh-relationship">Refresh relationship</button><button role="menuitem" data-command="show-encounters">Evidence encounters</button><button role="menuitem" data-command="show-guidance">Guidance and corrections</button>
         </div></div>
         <div class="menu-root"><button type="button" data-menu="settings" aria-haspopup="menu" aria-expanded="false">Settings</button><div class="menu-pop menu-pop-right" role="menu">
           <button role="menuitem" data-command="focus-setup">Friend and provider setup</button><button role="menuitem" data-command="focus-knowledge">Reference settings</button><button role="menuitem" data-command="toggle-customize">Customize layout</button>
@@ -187,6 +187,17 @@
           <div class="relationship-counts"><span><strong id="confirmedCount">0</strong> confirmed</span><span><strong id="emergingCount">0</strong> emerging</span></div>
           <div id="lessonList" class="lesson-list"><p class="empty-copy">No relationship lessons yet. Teach your friend naturally: “I prefer…”, “Never…”, or “When…, please…”.</p></div>
           <div class="relationship-actions"><button id="refreshRelationship">Refresh</button><button id="showEncounters">Evidence</button></div>
+        </div>
+        <span class="resize-handle" aria-hidden="true"></span>
+      </section>
+
+      <section class="panel project-notes" data-panel="notes" style="left:1285px;top:78px;width:420px;height:420px;">
+        <div class="panel-title drag-handle"><span>Project Notes</span><span class="status-pill" id="notesStatus">No notes yet</span><button class="mini" data-panel-action="collapse">–</button></div>
+        <div class="notes-body">
+          <div class="relationship-counts"><span><strong id="notesSavedCount">0</strong> saved</span><span><strong id="notesDraftCount">0</strong> waiting to save</span></div>
+          <div id="notesList" class="lesson-list notes-list" aria-live="polite"><p class="empty-copy">Decisions, files, versions, and open items from your chats collect here as drafts. Save keeps them, and every model you talk to then knows them.</p></div>
+          <div class="notes-add"><select id="noteKind" aria-label="Note kind"><option value="decided">Decided</option><option value="worked_on">Worked on</option><option value="open">Still open</option><option value="discussed">Discussed</option></select><input id="noteText" maxlength="4000" placeholder="Add a note in your own words" aria-label="New note"><button id="addNote" type="button">Add</button></div>
+          <div class="relationship-actions"><button id="saveNotes" type="button">Save</button><button id="refreshNotes" type="button">Refresh</button><button id="exportNotes" type="button">Export</button></div>
         </div>
         <span class="resize-handle" aria-hidden="true"></span>
       </section>

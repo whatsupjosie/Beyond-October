@@ -435,3 +435,14 @@ html[data-motion="reduced"] *,html[data-motion="reduced"] *::before,html[data-mo
 /* An open menu is moved outside the clipped top bar (see floatMenu in pubpartner.js); it keeps the same look */
 .menu-pop.floating{display:grid;gap:3px;position:fixed;z-index:9000}
 .menu-pop.floating button{box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 5px 15px rgba(0,0,0,.18)}
+
+/* Project notes: drafts wait for Save; saved notes reach every model. */
+.notes-body { display: flex; flex-direction: column; gap: 8px; height: calc(100% - 46px); padding: 8px 10px 10px; box-sizing: border-box; }
+.notes-list { min-height: 0; }
+.notes-group-title { margin: 4px 0 0; font-size: .72rem; letter-spacing: .04em; text-transform: uppercase; color: rgba(235,229,241,.62); }
+.note-item.is-draft { border-left-color: rgba(255,193,92,.78); }
+.note-item.from-model .lesson-copy::before { content: "Model: "; opacity: .7; }
+.notes-add { display: flex; gap: 6px; }
+.notes-add select { flex: 0 0 auto; }
+.notes-add input { flex: 1; min-width: 0; }
+

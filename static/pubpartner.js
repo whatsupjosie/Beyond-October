@@ -573,6 +573,152 @@
     }
   }
 
+  // ── Project notes ────────────────────────────────────────────────────
+  // Drafts are listed exactly as detected; nothing here edits a note's words.
+  const NOTES_PROJECT = 'pubpartner';
+  const NOTE_KIND_LABEL = { decided: 'Decided', worked_on: 'Worked on', open: 'Still open', discussed: 'Discussed' };
+
+  function noteRow(note, actions) {
+    const d = document.createElement('div');
+    d.className = 'lesson-item note-item' + (note.status === 'draft' ? ' is-draft' : '') + (note.origin === 'assistant_reply' ? ' from-model' : '');
+    const copy = document.createElement('span');
+    copy.className = 'lesson-copy';
+    copy.textContent = note.text;
+    const meta = document.createElement('small');
+    const when = new Date(Number(note.saved_at || note.created_at || 0) * 1000);
+    meta.textContent = `${NOTE_KIND_LABEL[note.kind] || note.kind} · ${note.status === 'draft' ? 'unsaved draft' : 'saved'} · ${when.toLocaleDateString()}`;
+    d.append(copy, meta);
+    if (actions.length) {
+      const row = document.createElement('div');
+      row.className = 'lesson-review-actions';
+      for (const [action, label] of actions) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.noteAction = action;
+        button.dataset.noteId = note.note_id;
+        button.textContent = label;
+        row.appendChild(button);
+      }
+      d.appendChild(row);
+    }
+    return d;
+  }
+
+  function notesGroup(list, title, notes, actions) {
+    if (!notes.length) return;
+    const h = document.createElement('p');
+    h.className = 'notes-group-title';
+    h.textContent = title;
+    list.appendChild(h);
+    for (const note of notes) list.appendChild(noteRow(note, actions));
+  }
+
+  async function refreshNotes(showDebug = false) {
+    const x = ids();
+    const list = $('notesList');
+    if (!list) return null;
+    try {
+      const q = `user_id=${encodeURIComponent(x.user_id)}&project_id=${encodeURIComponent(NOTES_PROJECT)}`;
+      const [drafts, saved] = await Promise.all([
+        api(`/api/pubpartner/work-notes/drafts?${q}&session_id=${encodeURIComponent(x.session_id)}`),
+        api(`/api/pubpartner/work-notes?${q}&status=saved`),
+      ]);
+      const here = (drafts.this_session && drafts.this_session.notes) || [];
+      const earlier = (drafts.earlier_sessions || []).flatMap((g) => g.notes || []);
+      const kept = saved.notes || [];
+      $('notesSavedCount').textContent = String(kept.length);
+      $('notesDraftCount').textContent = String(here.length + earlier.length);
+      $('notesStatus').textContent = here.length + earlier.length ? 'Unsaved drafts' : (kept.length ? 'All saved' : 'No notes yet');
+      $('notesStatus').className = 'status-pill ' + (here.length + earlier.length ? 'warn' : 'good');
+      list.innerHTML = '';
+      if (!here.length && !earlier.length && !kept.length) {
+        const p = document.createElement('p');
+        p.className = 'empty-copy';
+        p.textContent = 'Decisions, files, versions, and open items from your chats collect here as drafts. Save keeps them, and every model you talk to then knows them.';
+        list.appendChild(p);
+      }
+      notesGroup(list, 'This chat, not saved yet', here, [['save', 'Save'], ['drop', 'Drop']]);
+      notesGroup(list, `Earlier chats, not saved yet (kept ${drafts.retention_days || 7} days)`, earlier, [['save', 'Save'], ['drop', 'Drop']]);
+      notesGroup(list, 'Saved', kept.slice().reverse(), [['fix', 'Fix'], ['withdraw', 'Stop using'], ['source', 'Source']]);
+      if (showDebug) setDebug({ drafts, saved });
+      return { drafts, saved };
+    } catch (e) {
+      $('notesStatus').textContent = 'Notes unavailable';
+      $('notesStatus').className = 'status-pill warn';
+      if (showDebug) setDebug('Project notes unavailable: ' + e.message);
+      return null;
+    }
+  }
+
+  async function noteAction(action, noteId) {
+    const x = ids();
+    const body = { user_id: x.user_id };
+    try {
+      if (action === 'save') {
+        setDebug(await api('/api/pubpartner/work-notes/save', { method: 'POST', body: JSON.stringify({ ...body, project_id: NOTES_PROJECT, note_ids: [noteId] }) }));
+        toast('Note saved.');
+      } else if (action === 'drop') {
+        setDebug(await api(`/api/pubpartner/work-notes/${encodeURIComponent(noteId)}/drop`, { method: 'POST', body: JSON.stringify(body) }));
+        toast('Draft dropped.');
+      } else if (action === 'withdraw') {
+        setDebug(await api(`/api/pubpartner/work-notes/${encodeURIComponent(noteId)}/withdraw`, { method: 'POST', body: JSON.stringify(body) }));
+        toast('Models will no longer be told this note. It stays on record.');
+      } else if (action === 'fix') {
+        const text = window.prompt('Write the corrected note. The old note stays on record as replaced.');
+        if (!text || !text.trim()) return;
+        setDebug(await api(`/api/pubpartner/work-notes/${encodeURIComponent(noteId)}/replace`, { method: 'POST', body: JSON.stringify({ ...body, text }) }));
+        toast('Saved the corrected note.');
+      } else if (action === 'source') {
+        const src = await api(`/api/pubpartner/work-notes/${encodeURIComponent(noteId)}/source?user_id=${encodeURIComponent(x.user_id)}`);
+        setDebug(src);
+        toast(src.verified === false ? 'This note no longer matches its chat source.' : (src.verified ? 'Exact chat source restored into the debug drawer.' : 'You wrote this note directly.'));
+        return;
+      }
+      await refreshNotes(false);
+    } catch (e) {
+      toast('Notes: ' + e.message);
+    }
+  }
+
+  async function saveAllNotes() {
+    const x = ids();
+    try {
+      const result = await api('/api/pubpartner/work-notes/save', { method: 'POST', body: JSON.stringify({ user_id: x.user_id, project_id: NOTES_PROJECT, session_id: x.session_id }) });
+      toast(result.count ? `Saved ${result.count} note${result.count === 1 ? '' : 's'} from this chat.` : 'Nothing in this chat is waiting to save.');
+      setDebug(result);
+      await refreshNotes(false);
+    } catch (e) { toast('Save failed: ' + e.message); }
+  }
+
+  async function addOwnNote() {
+    const text = $('noteText').value;
+    if (!text.trim()) return toast('Write the note first.');
+    const x = ids();
+    try {
+      const result = await api('/api/pubpartner/work-notes', { method: 'POST', body: JSON.stringify({ user_id: x.user_id, project_id: NOTES_PROJECT, session_id: x.session_id, kind: $('noteKind').value, text, save: false }) });
+      $('noteText').value = '';
+      toast(result.duplicate ? 'That note is already there.' : 'Added as a draft. Save keeps it.');
+      await refreshNotes(false);
+    } catch (e) { toast('Add failed: ' + e.message); }
+  }
+
+  async function exportNotes() {
+    const x = ids();
+    try {
+      const headers = new Headers();
+      if (authState.token) headers.set('authorization', `Bearer ${authState.token}`);
+      const res = await fetch(`/api/pubpartner/work-notes/export?user_id=${encodeURIComponent(x.user_id)}&project_id=${encodeURIComponent(NOTES_PROJECT)}`, { headers });
+      if (!res.ok) throw new Error(res.statusText);
+      const text = await res.text();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+      link.download = `project-notes-${NOTES_PROJECT}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => { URL.revokeObjectURL(link.href); link.remove(); }, 0);
+    } catch (e) { toast('Export failed: ' + e.message); }
+  }
+
   async function refreshRelationship(showDebug = false) {
     const x = ids();
     try {
@@ -744,7 +890,10 @@
       updateOutput(last);
       const learned = (last.relationship && last.relationship.learned_lessons) || [];
       if (learned.length) toast(`Shared understanding updated: ${learned.length} explicit lesson${learned.length === 1 ? '' : 's'}.`);
+      const noted = (last.work_notes && last.work_notes.added) || [];
+      if (noted.length && !learned.length) toast(`${noted.length} project note${noted.length === 1 ? '' : 's'} waiting to save.`);
       await refreshRelationship(false);
+      await refreshNotes(false);
       if (epoch === chatEpoch) setDebug({ source: last.source, provider_result: last.provider_result,
         knowledge_result: last.knowledge_result, receipt: last.receipt, token_comparison: last.token_comparison,
         voice: last.voice_restoration, relationship: last.relationship });
@@ -842,6 +991,22 @@
     if (!panel) return;
     panel.classList.remove('is-collapsed');
     panel.style.zIndex = String(++zTop);
+    if (name === 'notes') keepPanelOnDesk(panel);
+  }
+
+  // The notes tray sits to the right of the original trays; on a narrower
+  // screen pull it back inside the desk instead of leaving it out of sight.
+  function keepPanelOnDesk(panel) {
+    const deskEl = document.querySelector('.desk');
+    if (!panel || !deskEl) return;
+    const d = deskEl.getBoundingClientRect();
+    if (!d.width || !d.height) return;
+    const w = Math.min(panel.offsetWidth || 420, Math.max(210, d.width - 12));
+    const h = Math.min(panel.offsetHeight || 420, Math.max(120, d.height - 12));
+    const left = parseFloat(panel.style.left) || 0;
+    const top = parseFloat(panel.style.top) || 0;
+    panel.style.left = `${Math.max(0, Math.min(left, d.width - w))}px`;
+    panel.style.top = `${Math.max(0, Math.min(top, d.height - h))}px`;
   }
 
   async function backupFriend() {
@@ -1111,7 +1276,7 @@
   function configureCommands() {
     const focus=(name)=>()=>{focusPanel(name);document.querySelector(`.panel[data-panel="${name}"]`)?.scrollIntoView({behavior:document.documentElement.dataset.motion==='reduced'?'auto':'smooth',block:'center',inline:'center'});};
     registerCommand('new-session',()=>$('newSession').click()); registerCommand('backup-friend',backupFriend); registerCommand('save-workspace',()=>WorkspaceRuntime.save(true)); registerCommand('import-layout',()=>$('layoutImport').click()); registerCommand('export-layout',()=>WorkspaceRuntime.exportLayout()); registerCommand('undo-layout',()=>WorkspaceRuntime.undo()); registerCommand('reset-layout',()=>WorkspaceRuntime.reset()); registerCommand('compact-layout',()=>WorkspaceRuntime.compact()); registerCommand('toggle-motion',()=>{setMotion(document.documentElement.dataset.motion==='reduced'?'full':'reduced');toast(document.documentElement.dataset.motion==='reduced'?'Reduced motion enabled.':'Full motion enabled.');}); registerCommand('toggle-customize',toggleCustomize);
-    for (const name of ['conversation','preview','files','output','status','tools','knowledge','setup']) registerCommand(`focus-${name}`,focus(name)); registerCommand('focus-memory',focus('wardrobe'));
+    for (const name of ['conversation','preview','files','output','status','tools','knowledge','setup','notes']) registerCommand(`focus-${name}`,focus(name)); registerCommand('focus-memory',focus('wardrobe'));
     registerCommand('verify-receipts',verifyReceipts); registerCommand('restore-source',restoreSource); registerCommand('provider-test',providerTest); registerCommand('preflight',runPreflight); registerCommand('refresh-relationship',()=>refreshRelationship(true)); registerCommand('show-encounters',()=>refreshRelationship(true)); registerCommand('show-guidance',showGuidance); registerCommand('new-cartridge',()=>openCartridgeGate('new')); registerCommand('cartridge-avatar',()=>openCartridgeGate('avatar'));
   }
 
@@ -1125,6 +1290,8 @@
   function startLivingTelemetry() {
     refreshStatus();
     refreshRelationship(false);
+    keepPanelOnDesk(document.querySelector('.panel[data-panel="notes"]'));
+    refreshNotes(false);
     if (!telemetryTimer) telemetryTimer = setInterval(refreshStatus, 6500);
     setInterval(() => {
       const c = document.querySelector('.preview-art');
@@ -1151,7 +1318,7 @@
 
   $('send').addEventListener('click', sendTurn);
   $('message').addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') sendTurn(); });
-  $('newSession').addEventListener('click', async () => { resetChat(); $('sessionId').value = 'chat-' + (window.crypto?.randomUUID?.() || Date.now().toString(36)); sessionOpened = false; try { await ensureSession(); } catch (e) { toast('Session failed: ' + e.message); } });
+  $('newSession').addEventListener('click', async () => { resetChat(); $('sessionId').value = 'chat-' + (window.crypto?.randomUUID?.() || Date.now().toString(36)); sessionOpened = false; try { await ensureSession(); await refreshNotes(false); } catch (e) { toast('Session failed: ' + e.message); } });
   $('restoreSource').addEventListener('click', restoreSource);
   $('showReceipts').addEventListener('click', showReceipts);
   $('showFcp1').addEventListener('click', () => setDebug(last || 'No turn yet.'));
@@ -1166,6 +1333,16 @@
     if (!button) return;
     reviewLesson(button.dataset.lessonId, button.dataset.lessonAction);
   });
+  const notesList = $('notesList');
+  if (notesList) notesList.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-note-action]');
+    if (!button) return;
+    noteAction(button.dataset.noteAction, button.dataset.noteId);
+  });
+  const saveNotesBtn = $('saveNotes'); if (saveNotesBtn) saveNotesBtn.addEventListener('click', saveAllNotes);
+  const refreshNotesBtn = $('refreshNotes'); if (refreshNotesBtn) refreshNotesBtn.addEventListener('click', () => refreshNotes(true));
+  const exportNotesBtn = $('exportNotes'); if (exportNotesBtn) exportNotesBtn.addEventListener('click', exportNotes);
+  const addNoteBtn = $('addNote'); if (addNoteBtn) addNoteBtn.addEventListener('click', addOwnNote);
   const toolRelationship = $('toolRelationship'); if (toolRelationship) toolRelationship.addEventListener('click', () => { focusPanel('wardrobe'); refreshRelationship(true); });
   const toolGuidance = $('toolGuidance'); if (toolGuidance) toolGuidance.addEventListener('click', showGuidance);
   const toolReceipts = $('toolReceipts'); if (toolReceipts) toolReceipts.addEventListener('click', verifyReceipts);
