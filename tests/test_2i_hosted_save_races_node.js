@@ -24,6 +24,11 @@ function createFixture({holdFirst = false, failStatus = null} = {}) {
   const requests = [], recoveries = [], statuses = [];
   const waiting = [];
   const state = {
+    // Reach's default saver gained a guard that returns early in Foresight file
+    // mode (2i/2i-assets/reach.js, saveDocument). These seven cases all exercise
+    // the hosted path, so the sandbox must define it as false; without it the
+    // sliced function throws ReferenceError before any assertion runs.
+    reachFileMode: false,
     initializing: false, savePromise: null, saveConflict: false,
     networked: true, serverReady: true, recoverySafe: true,
     documentDirty: true, documentHandle: null, fileSavingId: null,
