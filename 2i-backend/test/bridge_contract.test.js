@@ -267,19 +267,19 @@ test('live Reach transport: 8787 bridge discovers real bots and preserves real u
   assert.ok(listing.payload.characters.some(c => c.id === 'pete' && c.name === 'Pete'));
 
   const missing = await invoke('POST', '/api/chat/character', {
-    body: { character_id: 'definitely_missing', message: 'hello', user_id: 'bridge-test' },
+    body: { character_id: 'definitely_missing', message: 'hello' },
     ip: '127.0.1.2', headers: liveHeaders,
   });
   assert.equal(missing.statusCode, 404);
   assert.match(missing.payload.error, /definitely_missing/);
 
-  // The fixture Pete has no host API key in this isolated run. That is useful:
-  // it proves a real request crossed the 8787 handler into Reach and that the
-  // bridge translates Reach's 503 into its documented clean no-key response.
+  // The seeded Pete cartridge supplies a real offline response.
   const pete = await invoke('POST', '/api/chat/character', {
-    body: { character_id: 'pete', message: 'bridge transport test', user_id: 'bridge-test' },
+    body: { character_id: 'pete', message: 'bridge transport test' },
     ip: '127.0.1.3', headers: liveHeaders,
   });
-  assert.equal(pete.statusCode, 503);
-  assert.match(pete.payload.error, /no API key configured/i);
+  assert.equal(pete.statusCode, 200);
+  assert.equal(pete.payload.provider, 'offline_character');
+  assert.equal(pete.payload.character_id, 'pete');
+  assert.ok(pete.payload.reply.trim());
 });

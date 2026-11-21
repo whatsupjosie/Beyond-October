@@ -27,6 +27,7 @@
       this.buses = new Map();
       this.active = new Set();
       this.dialogueActive = 0;
+      this.dialogueStarts = 0;
       this.lastError = null;
       this.room = roomId(options.room || "controlroom");
       this.externalStops = new Set();
@@ -271,6 +272,7 @@
         if (options.signal?.aborted) throw new DOMException('Playback canceled', 'AbortError');
         await audio.play();
         if (options.signal?.aborted) throw new DOMException('Playback canceled', 'AbortError');
+        if (busName === "dialogue") this.dialogueStarts += 1;
         return handle;
       }
       catch (error) { this.lastError = error.message; this.stopHandle(handle); throw error; }
@@ -337,6 +339,7 @@
         contextState: this.context?.state || "not_started",
         activeSources: this.active.size,
         dialogueActive: this.dialogueActive,
+        dialogueStarts: this.dialogueStarts,
         masterVolume: this.masterVolume,
         buses,
         lastError: this.lastError,

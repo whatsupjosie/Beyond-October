@@ -19,14 +19,14 @@ const {ProgramAudioRuntime}=require('../static/program_audio_runtime.js');
 (async()=>{
  const runtime=new ProgramAudioRuntime();
  await assert.rejects(runtime.playUrl('fail',{bus:'dialogue'}));
- assert.equal(runtime.active.size,0);assert.equal(runtime.dialogueActive,0);
+ assert.equal(runtime.active.size,0);assert.equal(runtime.dialogueActive,0);assert.equal(runtime.status().dialogueStarts,0);
  await runtime.playUrl('voice',{bus:'dialogue'});
- assert.equal(runtime.dialogueActive,1);
+ assert.equal(runtime.dialogueActive,1);assert.equal(runtime.status().dialogueStarts,1);
  runtime.setRoom('dressing');assert.equal(runtime.active.size,0);
  await assert.rejects(runtime.playUrl('music',{bus:'music'}));
  assert.equal(runtime.playUISound(),null);
  const announcement=await runtime.consume({action:'play',room:'dressing',url:'call',bus:'dialogue',authorized_director:true});
- assert(announcement.audio);runtime.stopAll();
+ assert(announcement.audio);assert.equal(runtime.status().dialogueStarts,2);runtime.stopAll();
  assert.deepEqual(await runtime.consume({action:'play',room:'studio',url:'private'}),{skipped:true});
  assert.deepEqual(await runtime.consume({action:'play',url:'ordinary'}),{blocked:true});
  console.log('PASS: room policy, director exception, rejected playback cleanup, interruption');

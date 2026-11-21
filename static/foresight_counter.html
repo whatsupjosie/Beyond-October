@@ -508,14 +508,16 @@ drawBarArt(); addEventListener('resize', drawBarArt);
 window.__counter = counter; window.__programs = programs;
 window.__settle = () => counter.settle(300); window.__draw = () => counter.debug.draw();
 async function boot(){
+  document.documentElement.dataset.foresightCounter = 'loading';
   try{
     if(window.ReachAuth){
       const session = await window.ReachAuth.requireSession('/foresight-counter');
-      if(session === null) return;   // on the way to the sign-in page
+      if(session === null){ document.documentElement.dataset.foresightCounter = 'redirecting'; return; }   // on the way to the sign-in page
     }
   }catch(err){
     hintEl.textContent = 'Reach sign-in is unavailable (' + (err && err.message || err) + '). Check that the Reach server is running, then reload.';
     hintEl.style.display = 'block';
+    document.documentElement.dataset.foresightCounter = 'error';
     return;
   }
   let layoutKey;
@@ -524,7 +526,7 @@ async function boot(){
     counter.setStorageKey(params.has('nosave')?null:layoutKey);
   } catch(error) {
     hintEl.textContent='Cannot open this account’s workspace: '+error.message;
-    hintEl.style.display='block'; return;
+    hintEl.style.display='block'; document.documentElement.dataset.foresightCounter = 'error'; return;
   }
   refreshDots(); setInterval(refreshDots, 6000);
   // Unscoped legacy layouts and file bytes remain untouched. Their owner is
@@ -545,8 +547,13 @@ async function boot(){
   updateHint();
   if(!params.has('once')){ counter.settle(120); counter.start(); }
   setInterval(updateHint, 1000);
+  document.documentElement.dataset.foresightCounter = 'ready';
 }
-boot();
+boot().catch(error => {
+  hintEl.textContent='Cannot restore this workspace: '+(error && error.message || error);
+  hintEl.style.display='block';
+  document.documentElement.dataset.foresightCounter = 'error';
+});
 </script>
 </body>
 </html>

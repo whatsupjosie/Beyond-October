@@ -50,6 +50,8 @@ def test_every_mode_runs_draws_and_a_recorded_move_plays_back_exactly(server):
             rec = page.evaluate("window.__try.state().recording"); assert rec and len(rec["samples"]) > 30
             page.select_option("#mode", "shot"); page.keyboard.press("KeyP")
             page.wait_for_function("window.__try.state().playing === false", timeout=8000)
+            # Let the underlying scripted-shot clock advance several frames.
+            page.evaluate("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve))))")
             end = pose(); want = rec["samples"][-1]
             assert abs(end["z"] - want[2]) < 0.02 and abs(end["x"] - want[0]) < 0.02       # it ends where the recording ended
             # D: the scripted shot runs

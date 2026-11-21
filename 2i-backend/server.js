@@ -1013,14 +1013,14 @@ app.post('/api/manuscript/commit', rateLimitMiddleware('api-manuscript'), async 
  *   character_id: "pete" | "sir_purfluous" | "repeat" | ...
  *   message:      string
  *   room_id:      string  (default: "studio")
- *   user_id:      string  (default: "user")
+ *   user_id:      string  (optional; the host uses the signed-in identity)
  * }
  *
  * Environment: PUBCAST_URL=http://localhost:8000 (required)
  */
 app.post('/api/chat/character', rateLimitMiddleware('api-claude'), async (req, res) => {
   const startTime = Date.now();
-  const { character_id, message, room_id = 'studio', user_id = 'user' } = req.body || {};
+  const { character_id, message, room_id = 'studio', user_id } = req.body || {};
 
   // Validate
   if (!character_id || typeof character_id !== 'string') {

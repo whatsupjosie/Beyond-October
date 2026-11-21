@@ -40,8 +40,11 @@ def client_no_lifespan(raw_app):
     Use for route-structure and import tests only."""
     # raise_server_exceptions=False so structural tests don't explode on
     # uninitialised singletons being called.
-    with TestClient(raw_app, raise_server_exceptions=False) as c:
+    c = TestClient(raw_app, raise_server_exceptions=False)
+    try:
         yield c
+    finally:
+        c.close()
 
 
 # ── Full lifespan client — services actually start ────────────────────────────

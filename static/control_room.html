@@ -145,6 +145,7 @@ const CAMS=[{id:'cam1',n:'1',l:'WIDE',sourceId:'wide_shot'},{id:'cam2',n:'2',l:'
 const MODES=['auto','news','documentary','cinematic','manual'];
 const MODE_BTN_MAP={auto:'dAuto',news:'dNews',documentary:'dDoc',cinematic:'dCine',manual:'dMan'};
 const studioActions=window.PubCastStudioConsoleHotspots?new window.PubCastStudioConsoleHotspots.StudioConsoleHotspots():null;
+let failedRecordingSources=[];
 let pgm='cam1',pvw='cam2',isRec=false,recStart=0,mode='auto',ws=null,activeRecordingSessionId='';
 let audioMuted=[false,false,false,false,false];
 let controlBlackout=false,lastPanic=0,lastBlackout=0;
@@ -207,7 +208,7 @@ function updateUI(){
   MODES.forEach(m=>{const el=document.getElementById(MODE_BTN_MAP[m]);if(el)el.className='hotspot round'+(mode===m?' pvw-active':'')});
   document.getElementById('srMode').textContent='MODE: '+mode.toUpperCase();
   document.getElementById('srCam').textContent='PGM: '+(pc?'CAM '+pc.n:'BLACK');
-  document.getElementById('srRec').textContent='REC: '+(isRec?'â— ON':'OFF');
+  document.getElementById('srRec').textContent=failedRecordingSources.length?'CAPTURE ERROR: '+failedRecordingSources.join(', '):'REC: '+(isRec?'â— ON':'OFF');
   document.getElementById('tRec').className='hotspot rect'+(isRec?' rec-active':'');
 }
 async function setPGM(id){
@@ -230,10 +231,11 @@ async function toggleRec(){
     if(!source){document.getElementById("srRec").textContent="REC BLOCKED: NO VERIFIED PROGRAM";return;}
     const started=await runStudioAction('recording.start',{session_id:`image_console_${Date.now()}`,sources:[source.sourceId],profile_id:'broadcast_mp4',countdown_seconds:0},{safety:'confirm',label:'Start recording'});
     if(!started||!started.result||!started.result.session_id)return;
-    activeRecordingSessionId=started.result.session_id;isRec=true;recStart=Date.now();
+    activeRecordingSessionId=started.result.session_id;failedRecordingSources=Object.keys(started.result.capture_errors||{});isRec=true;recStart=Date.now();
   }else{
     const stopped=activeRecordingSessionId?await runStudioAction('recording.stop',{session_id:activeRecordingSessionId},{safety:'confirm',label:'Stop recording'}):null;
     if(activeRecordingSessionId&&!stopped)return;
+    failedRecordingSources=Object.keys(stopped?.result?.capture_errors||{});
     activeRecordingSessionId='';isRec=false;document.getElementById('hudTime').textContent='00:00:00';
   }
   document.getElementById('hudRec').classList.toggle('on',isRec);document.getElementById('liveTag').style.display=isRec?'block':'none';updateUI()
@@ -366,6 +368,7 @@ function handleWsEvent(m){
       break;
     }
     case 'recording_started':
+      failedRecordingSources=Object.keys(m.payload?.capture_errors||{});
       isRec=true; recStart=Date.now();
       document.getElementById('hudRec').classList.add('on');
       document.getElementById('liveTag').style.display='block';
@@ -373,6 +376,7 @@ function handleWsEvent(m){
       break;
     case 'recording_stopped':
     case 'recording_archived':
+      if(m.payload?.capture_errors)failedRecordingSources=Object.keys(m.payload.capture_errors);
       isRec=false;
       document.getElementById('hudRec').classList.remove('on');
       document.getElementById('hudTime').textContent='00:00:00';

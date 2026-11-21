@@ -110,7 +110,12 @@ class CameraMetadata:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'CameraMetadata':
         """Create from dictionary"""
-        return cls(**data)
+        values = dict(data)
+        values.pop("id", None)  # The owning CameraSource keeps its identifier.
+        for key, enum in (("transport", CameraTransport), ("status", CameraStatus), ("role", CameraRole)):
+            if key in values:
+                values[key] = enum(values[key])
+        return cls(**values)
 
 class CameraSource:
     """Individual camera source with real-time monitoring"""
@@ -545,6 +550,7 @@ class AdvancedCameraManager:
                 self.program_source = production_state.get('program_source')
                 self.preview_source = production_state.get('preview_source')
                 self.recording_sources = production_state.get('recording_sources', [])
+                self.auto_switch_rules = config.get('auto_switch_rules', {})
                 
                 logger.info(f"Loaded configuration for {len(self.sources)} cameras")
             else:
@@ -637,7 +643,8 @@ class AdvancedCameraManager:
             logger.info("Camera configuration saved")
             
         except Exception as e:
-            logger.error(f"Failed to save camera configuration: {e}")
+            logger.exception("Failed to save camera configuration")
+            raise
     
     async def initialize_all_cameras(self) -> Dict[str, bool]:
         """Initialize all configured cameras"""

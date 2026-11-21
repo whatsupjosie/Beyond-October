@@ -188,3 +188,59 @@ def test_nonportable_archive_paths_are_rejected_before_publication(tmp_path, mem
     with pytest.raises(ValueError, match="path"):
         service.import_session(archive)
     assert not (service.recordings_dir / "invalid").exists()
+
+
+def test_metadata_failure_preserves_retryable_session(tmp_path, monkeypatch):
+    service = create_recording_service(tmp_path, create_default_cameras())
+    options = dict(profile_id="audio_only", operator="engineer", countdown_seconds=0)
+
+    def full_disk(*args):
+        raise OSError("disk full")
+
+    with monkeypatch.context() as fault:
+        fault.setattr(service, "_write_metadata", full_disk)
+        with pytest.raises(OSError, match="disk full"):
+            service.start_session("retry", ["wide_shot"], **options)
+    assert service.list_sessions() == []
+    session = service.start_session("retry", ["wide_shot"], **options)
+    with monkeypatch.context() as fault:
+        fault.setattr(service, "_write_metadata", full_disk)
+        with pytest.raises(OSError, match="disk full"):
+            service.mark_moment("retry", "take one")
+        assert session.markers == []
+        with pytest.raises(OSError, match="disk full"):
+            service.stop_session("retry")
+        assert session.state.value == "active"
+    service.mark_moment("retry", "take one")
+    service.stop_session("retry")
+    restored = create_recording_service(tmp_path, create_default_cameras()).get_session("retry")
+    assert [m.label for m in restored.markers] == ["take one"]
+    assert restored.state.value == "stopped"
+
+
+def test_same_named_external_source_remains_distinct_after_restart(tmp_path):
+    service, session, source = recording(tmp_path)
+    external = tmp_path / "remote-camera" / source.name
+    external.parent.mkdir()
+    external.write_bytes(b"separate source bytes")
+    service.register_artifact(session.session_id, external)
+    service.register_artifact(session.session_id, external)
+    # The external camera's storage goes offline after the operator registered it.
+    external.unlink()
+    reopened = create_recording_service(service.base_dir, create_default_cameras())
+    artifacts = reopened.get_session(session.session_id).artifacts
+    assert len(artifacts) == 2
+    assert {a.file_path.read_bytes() for a in artifacts} == {source.read_bytes(), b"separate source bytes"}
+
+
+def test_legacy_collapsed_tracks_cannot_export_the_same_bytes_twice(tmp_path):
+    service, session, source = recording(tmp_path)
+    metadata = source.parent / (session.session_id + ".json")
+    value = json.loads(metadata.read_text())
+    original = value["artifacts"][0]
+    value["artifacts"].append({**original, "file_path": "external/" + source.name})
+    metadata.write_text(json.dumps(value))
+    reopened = create_recording_service(service.base_dir, create_default_cameras())
+    with pytest.raises(ValueError, match="relink original media"):
+        reopened.export_session(session.session_id, container=ContainerFormat.WAV)
+    assert not list(reopened.exports_dir.glob("*.zip"))

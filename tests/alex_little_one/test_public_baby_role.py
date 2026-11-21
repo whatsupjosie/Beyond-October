@@ -40,7 +40,12 @@ def test_public_baby_role_policy_only_visible_when_enabled(tmp_path, monkeypatch
     monkeypatch.setattr(main, "DATA_DIR", tmp_path)
     monkeypatch.setattr(main, "alex_bridge", None)
 
-    with TestClient(main.app) as client:
+    # These route checks deliberately replace DATA_DIR and alex_bridge.  Do not
+    # enter the singleton app lifespan under those temporary globals: the app's
+    # first successful boot is cached, and monkeypatch teardown would otherwise
+    # replace the live bridge with its pre-boot value.
+    client = TestClient(main.app)
+    try:
         monkeypatch.setattr(main, "DATA_DIR", tmp_path)
         monkeypatch.setattr(main, "alex_bridge", None)
 
@@ -71,6 +76,8 @@ def test_public_baby_role_policy_only_visible_when_enabled(tmp_path, monkeypatch
         assert policy["guest_visibility"] == "all_guests"
         assert policy["authority_model"] == "owner_retains_final_authority"
         assert "sexual remarks" in policy["forbidden_behaviors"]
+    finally:
+        client.close()
 
 
 def test_big_mode_now_disables_public_baby_role(tmp_path, monkeypatch):
@@ -86,7 +93,8 @@ def test_big_mode_now_disables_public_baby_role(tmp_path, monkeypatch):
         care_profile=_care_profile(),
     )
 
-    with TestClient(main.app) as client:
+    client = TestClient(main.app)
+    try:
         monkeypatch.setattr(main, "DATA_DIR", tmp_path)
         monkeypatch.setattr(main, "alex_bridge", None)
         response = client.post(
@@ -98,6 +106,8 @@ def test_big_mode_now_disables_public_baby_role(tmp_path, monkeypatch):
         assert payload["action"] == "exited"
         assert payload["care_profile"]["public_role"] == "none"
         assert payload["policy"]["public_role_active"] is False
+    finally:
+        client.close()
 
 
 def test_blocked_guest_behavior_triggers_public_role_moderation(tmp_path):
@@ -340,4 +350,4 @@ def test_jeremy_never_appears_as_visible_cast_or_avatar():
     presets = [p.model_dump() for p in list_presets()]
     assert all("jeremy" not in p["id"].lower() for p in presets)
     assert all("jeremy" not in p["name"].lower() for p in presets)
-    assert any(c["display_name"] == "Sir. Purfluous" for c in cast)
+    assert any(c["display_name"] == "Sir Purfluous" for c in cast)

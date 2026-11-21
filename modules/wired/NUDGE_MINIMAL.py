@@ -11,6 +11,9 @@ Change your imports and initialization, that's it.
 # STEP 1: Import the nudge system
 # ==============================================================================
 
+import asyncio
+from fastapi import WebSocket
+
 from .wired_system import (
     NudgeQueue,
     NudgeConsumer,

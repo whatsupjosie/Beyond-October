@@ -69,6 +69,14 @@ def test_stale_writer_and_oversize_are_refused(api):
     assert api.put("/api/foresight/counter-layout", headers=a, json={"layout": big}).status_code == 413
 
 
+def test_counter_ready_marker_follows_restore_and_start():
+    source = (ROOT / "static" / "foresight_counter.html").read_text(encoding="utf-8")
+    ready = source.index("dataset.foresightCounter = 'ready'")
+    assert source.index("if(saved) counter.restore(saved)") < ready
+    assert source.index("counter.start()") < ready
+    assert "boot().catch(error =>" in source
+
+
 # ── the real Counter, across a restart ───────────────────────────────────────
 
 sync_api = pytest.importorskip("playwright.sync_api")
@@ -117,8 +125,7 @@ def _signed_in_counter(browser, base, user, password):
     page.goto(base + "/login?next=%2Fforesight-counter")
     page.fill("#loginUser", user); page.fill("#loginPass", password); page.keyboard.press("Enter")
     page.wait_for_url("**/foresight-counter**", timeout=20000)
-    page.wait_for_function("!!window.__programs && !!window.__counter && !!window.__hostLayout", timeout=30000)
-    page.wait_for_timeout(800)
+    page.wait_for_function("document.documentElement.dataset.foresightCounter === 'ready'", timeout=30000)
     return ctx, page
 
 
@@ -188,8 +195,7 @@ def test_counter_layout_comes_back_after_a_restart_in_a_fresh_browser(tmp_path):
                 page.goto(reach.base + "/login?next=%2Fforesight-counter")
                 page.fill("#loginUser", user); page.fill("#loginPass", password); page.keyboard.press("Enter")
                 page.wait_for_url("**/foresight-counter**", timeout=20000)
-                page.wait_for_function("!!window.__counter && !!window.__hostLayout", timeout=30000)
-                page.wait_for_timeout(800)
+                page.wait_for_function("document.documentElement.dataset.foresightCounter === 'ready'", timeout=30000)
                 assert page.evaluate("Object.keys(localStorage).some(k => k.startsWith('foresight.counter.v3:') && !k.endsWith(':saved_at'))")
                 assert _titles(page) == []
                 assert page.errors == []
