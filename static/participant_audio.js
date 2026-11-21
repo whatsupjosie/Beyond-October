@@ -6,7 +6,7 @@
 'use strict';
 class ParticipantAudio {
  constructor({mixer=global.PubcastProgramAudio,onState=()=>{}}={}){
-  this.mixer=mixer;this.onState=onState;this.peers=new Map();this.closed=true;this.generation=0;
+  this.mixer=mixer;this.onState=onState;this.peers=new Map();this.closed=true;this.generation=0;this.lastFault=null;
  }
  report(message){this.onState(message,{closed:this.closed});}
  async request(path,method='GET',body,key){
@@ -34,12 +34,13 @@ class ParticipantAudio {
   });this.check(generation);
   worker.onerror=()=>{if(generation===this.generation)this.fail(Error('Audio worker failed'));};
   worker.onmessage=e=>{if(this.closed||generation!==this.generation)return;
+   if(e.data.type==='sender-timing'){this.senderTiming=e.data;return;}
    try{this.receive(e.data);}catch(error){this.fail(error);}};
  }
  async open(){
   if(!this.closed)throw Error('Close the current audio connection first');
   if(!this.mixer?.allowed())throw Error('Audio contributions are blocked in this room');
-  const generation=++this.generation;this.closed=false;this.host=true;
+  const generation=++this.generation;this.closed=false;this.host=true;this.lastFault=null;
   try{
    await this.mixer.ensureContext().resume();this.check(generation);
    const r=await this.request('/rooms','POST');await this.adopt(r,generation);
@@ -68,7 +69,7 @@ class ParticipantAudio {
    if(this.context.sampleRate!==r.sample_rate)throw Error('This device cannot match the production audio sample rate');
    await this.context.audioWorklet.addModule('/static/blackbox_pcm_worklet.js');this.check(generation);
    await this.socket(generation,this.context.sampleRate);this.check(generation);
-   this.source=this.context.createMediaStreamSource(media);this.node=new AudioWorkletNode(this.context,'blackbox-pcm');
+   this.source=this.context.createMediaStreamSource(media);this.node=new AudioWorkletNode(this.context,'blackbox-pcm',{processorOptions:{measure:true}});
    this.worker.postMessage({type:'send',port:this.node.port},[this.node.port]);
    this.source.connect(this.node);this.node.connect(this.context.destination);
    media.getAudioTracks().forEach(t=>t.addEventListener('ended',()=>this.close().catch(()=>{}),{once:true}));
@@ -79,6 +80,10 @@ class ParticipantAudio {
   if(event.type==='error'){this.fail(Error(event.message));return;}
   if(!this.host)throw Error('Unexpected return audio');
   if(event.type==='left'||event.type==='fault'){
+   if(event.type==='fault'){
+    this.lastFault={peer:event.peer,message:event.message,diagnostic:event.diagnostic||null,observedAt:new Date().toISOString()};
+    console.warn('Participant audio fault',JSON.stringify({message:event.message,diagnostic:event.diagnostic||null}));
+   }
    this.drop(event.peer);this.report(event.message||'Participant disconnected; rejoin the invitation to reconnect.');return;
   }
   if(event.type!=='source'||this.peers.has(event.peer))throw Error('Invalid audio source');

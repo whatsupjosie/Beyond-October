@@ -42,5 +42,35 @@ def test_independently_admitted_guests_mix_record_reconnect_and_export(studio, p
             return context, page
 
         monkeypatch.setattr(recording, 'contributor', contributor)
-        recording.test_two_peers_mix_controls_separate_durable_stems_and_original_server_export(
-            studio, production_browser, production_server, tmp_path)
+        try:
+            recording.test_two_peers_mix_controls_separate_durable_stems_and_original_server_export(
+                studio, production_browser, production_server, tmp_path)
+        except Exception:
+            # When the test reports that #recordStop is disabled, don't guess
+            # whether setControls is wrong. Capture the actual recorder and
+            # finalization state, user-visible errors, and the recent event log.
+            # Never print authentication tokens or participant profile data.
+            page, _ = studio
+            try:
+                snapshot = page.evaluate("""() => ({
+                  ui: {
+                    recordStopDisabled: document.querySelector('#recordStop')?.disabled,
+                    recordDisabled: document.querySelector('#record')?.disabled,
+                    recordStopLabel: document.querySelector('#recordStop')?.textContent,
+                    recBadge: document.querySelector('#recBadge')?.textContent,
+                    captureStatus: document.querySelector('#captureStatus')?.textContent,
+                    alert: document.querySelector('#alert')?.textContent,
+                    audioStatus: document.querySelector('#participantAudioStatus')?.textContent
+                  },
+                  studio: window.PubCast25DStudio?.state?.(),
+                  liveInputs: window.PubcastProgramAudio?.inputs?.size,
+                  deskClosed: window.PubCastAudioDesk?.closed,
+                  events: Array.from(document.querySelectorAll('#events > *'))
+                    .slice(-20).map(x => x.textContent)
+                })""")
+                print("ADMITTED_GUEST_RECORDING_STATE_AT_FAILURE", snapshot, flush=True)
+                print("ADMITTED_GUEST_BROWSER_ERRORS", getattr(page, "problems", []), flush=True)
+            except Exception as diagnostic_error:
+                print("ADMITTED_GUEST_DIAGNOSTIC_UNAVAILABLE",
+                      type(diagnostic_error).__name__, str(diagnostic_error), flush=True)
+            raise
