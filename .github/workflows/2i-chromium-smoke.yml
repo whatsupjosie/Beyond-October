@@ -1,0 +1,53 @@
+name: 2i Chromium smoke tests
+
+on:
+  push:
+    branches:
+      - codex/github-browser-tests-2026-11-17
+    paths:
+      - '.github/workflows/2i-chromium-smoke.yml'
+      - '2i/**'
+      - 'tests/test_2i_speech_wiring.py'
+      - 'requirements*.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: 2i-chromium-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt -r requirements-dev.txt
+          python -m playwright install --with-deps chromium
+      - name: Run 2i browser regression tests
+        env:
+          CI: 'true'
+        run: |
+          python -m pytest -v -rs tests/test_2i_speech_wiring.py --junitxml=2i-chromium-results.xml
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 2i-chromium-results
+          path: 2i-chromium-results.xml
+          if-no-files-found: ignore
+          retention-days: 7
