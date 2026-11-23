@@ -76,3 +76,40 @@ def test_reject_bad_mode_and_empty_question(tmp_path):
     doc = store.start(user_id="u", partner_id="alex", mode="system")
     with pytest.raises(CalibrationError):
         store.record(user_id="u", interview_id=doc["id"], action="main_question", text=" ")
+
+
+def test_optional_voice_sample_is_owner_scoped(tmp_path):
+    store = CalibrationStore(tmp_path)
+    doc = store.start(user_id="owner", partner_id="alex", mode="user")
+    stored = store.save_audio(user_id="owner", interview_id=doc["id"],
+                              data=b"fake-audio-payload", content_type="audio/webm")
+    path = store.audio_path(user_id="owner", interview_id=doc["id"],
+                            audio_ref=stored["audio_ref"])
+    assert path.read_bytes() == b"fake-audio-payload"
+    with pytest.raises(FileNotFoundError):
+        store.audio_path(user_id="intruder", interview_id=doc["id"],
+                         audio_ref=stored["audio_ref"])
+    with pytest.raises(CalibrationError):
+        store.save_audio(user_id="owner", interview_id=doc["id"],
+                         data=b"not valid", content_type="application/x-executable")
+    store.close(user_id="owner", interview_id=doc["id"])
+    with pytest.raises(CalibrationError):
+        store.save_audio(user_id="owner", interview_id=doc["id"],
+                         data=b"another", content_type="audio/webm")
+
+
+def test_voice_audio_reference_persists_with_user_answer(tmp_path):
+    store = CalibrationStore(tmp_path)
+    doc = store.start(user_id="owner", partner_id="alex", mode="user")
+    recorded = store.save_audio(user_id="owner", interview_id=doc["id"],
+                                data=b"audio-bytes", content_type="audio/ogg")
+    state = store.record(user_id="owner", interview_id=doc["id"],
+                         action="main_question", text="How do you feel?")
+    qid = state["questions"][0]["id"]
+    state = store.record(user_id="owner", interview_id=doc["id"],
+                         action="answer", question_id=qid,
+                         text="[Voice response recorded; no transcript provided]",
+                         evidence={"audio_ref": recorded["audio_ref"]}, modality="voice")
+    reopened = store.get(user_id="owner", interview_id=doc["id"])
+    assert reopened["questions"][0]["answer"]["evidence"]["audio_ref"] == recorded["audio_ref"]
+    assert reopened["questions"][0]["answer"]["modality"] == "voice"
