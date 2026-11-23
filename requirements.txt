@@ -28,6 +28,8 @@ numpy>=1.26.0,<3.0
 # pubpartner/memory_store.py imports scikit-learn unguarded (TF-IDF memory scoring),
 # and pubpartner/__init__.py imports memory_store, so it is a hard runtime dependency.
 scikit-learn>=1.4,<2.0
+# Built-in PubPartner cartridge studio loads character/voice YAML at runtime.
+pyyaml>=6.0,<7.0
 psutil>=5.9,<8.0
 
 # POSIX shared-memory fast path. Native Windows intentionally skips this and
