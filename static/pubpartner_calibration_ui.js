@@ -4,7 +4,7 @@
   const $ = id => document.getElementById(id);
   const gate = $('calibrationGate');
   if (!gate) return;
-  const state = { doc: null, asked: 0, moment: null, moments: [], currentId: null, followup: false, saved: false, audioRef: '', recorder: null, recordingTimer: null, audioUrl: null };
+  const state = { doc: null, asked: 0, moment: null, moments: [], currentId: null, followup: false, saved: false, audioRef: '', recorder: null, recordingTimer: null, audioUrl: null, audioUploading: false };
   const userQuestions = [
     "How are you feeling today? Tell me a little about your day.",
     "Thinking about this moment, were you upset, excited, or feeling something else?",
@@ -160,6 +160,7 @@
     });
   }
   async function saveAnswer() {
+    if (state.recorder || state.audioUploading) { say('Stop the recording and let it finish saving first.'); return; }
     const answer = $('calibrationAnswer').value.trim() || (state.audioRef ? '[Voice response recorded; no transcript provided]' : '');
     if (!answer) { say('Type, dictate, or record a response, or finish the interview.'); return; }
     if (!state.currentId) {
@@ -268,6 +269,7 @@
         const blob = new Blob(chunks, {type:mime});
         if (!blob.size) { say('No audio was captured.'); return; }
         if (blob.size > 4 * 1024 * 1024) { say('Recording exceeds the 4 MB storage limit.'); return; }
+        state.audioUploading = true;
         try {
           const headers = {'Content-Type':mime};
           if (token()) headers.Authorization = 'Bearer ' + token();
@@ -285,6 +287,7 @@
           player.hidden = false;
           say('Voice sample saved. You can play it back, add text, and save your answer.');
         } catch(e) { say('Audio was not saved: ' + errText(e)); }
+        finally { state.audioUploading = false; }
       };
       state.recorder = recorder;
       state.audioRef = '';
