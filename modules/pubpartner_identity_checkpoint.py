@@ -37,11 +37,11 @@ def validate_identity_packet(turn: Mapping[str, Any]) -> dict:
     prompt = turn.get("llm_prompt_text")
     if not isinstance(prompt, str) or not prompt.strip():
         raise ValueError("Missing model-facing identity context")
-    if not prompt.startswith("@FCP1") or "\\nf=" not in prompt or "\\nu=" not in prompt:
+    if not prompt.startswith("@FCP1") or "\nf=" not in prompt or "\nu=" not in prompt:
         raise ValueError("Model-facing prompt omitted the FCP1 identity or user")
-    if fcp["m"] and "\\nm=" not in prompt:
+    if fcp["m"] and "\nm=" not in prompt:
         raise ValueError("Retrieved memories missing from model-facing prompt")
-    if fcp["guide"] and "\\nguide=" not in prompt:
+    if fcp["guide"] and "\nguide=" not in prompt:
         raise ValueError("Behavioral guidance missing from model-facing prompt")
     return {
         "friend_id": str(friend.get("id") or friend.get("friend_id")),
