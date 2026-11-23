@@ -347,6 +347,11 @@ def verify_friend_backup(path: Path | str) -> Dict[str, Any]:
             manifest = json.loads(zf.read("PUBPARTNER_BACKUP_MANIFEST.json").decode("utf-8"))
             if not isinstance(manifest, dict) or manifest.get("format") != BACKUP_FORMAT:
                 return {"ok": False, "error": "unsupported backup format"}
+            # Older backups used fuzzy path matching and can contain foreign
+            # records. Do not approve one for download/restore just because
+            # its ZIP hashes match. Create a new strictly scoped backup.
+            if manifest.get("scope") != "owner_and_partner":
+                return {"ok": False, "error": "legacy unscoped backup; re-export required"}
             rows = manifest.get("files")
             if not isinstance(rows, list):
                 return {"ok": False, "error": "invalid file manifest"}
