@@ -256,7 +256,7 @@
         <blockquote id="calibrationExcerpt" style="white-space:pre-wrap"></blockquote>
         <p id="calibrationQuestion" style="font-weight:600"></p>
         <label>Your response<textarea id="calibrationAnswer" rows="3" maxlength="16000" placeholder="Say it in your own words"></textarea></label>
-        <button type="button" id="calibrationDictate">🎙 Dictate response</button><small>Browser dictation may use an external speech service; verify its privacy settings before using. No audio archive is created by this control.</small>
+        <button type="button" id="calibrationDictate">🎙 Dictate response</button><small>Browser dictation may use an external speech service. It does not preserve the original audio.</small><button type="button" id="calibrationRecordAudio">● Record voice sample (max 60 seconds)</button><button type="button" id="calibrationStopAudio" hidden>Stop recording</button><audio id="calibrationAudioPreview" controls hidden></audio><small>Optional local recording, saved only when you explicitly record. Your audio can be reviewed later for EQ calibration.</small>
         <button type="button" id="calibrationSubmit">Save answer</button>
         <div id="calibrationFollowupBlock" hidden>
           <p id="calibrationFollowupQuestion"></p><label>Your follow-up answer<textarea id="calibrationFollowup" rows="2" maxlength="16000" placeholder="Respond to your partner, if you want"></textarea></label>
