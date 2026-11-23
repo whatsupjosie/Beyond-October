@@ -45,6 +45,7 @@ from .pubpartner_provider import PubPartnerProviderDispatcher
 from .pubpartner_voice import AlexPersonalizationEngine
 from .pubpartner_profiles import PubPartnerProfileStore
 from .pubpartner_guidance import PubPartnerGuidanceStore
+from .pubpartner_blackbox_light import PubPartnerBlackboxLight
 from .pubpartner_tokens import PubPartnerTokenCounter
 from .pubpartner_receipts import PubPartnerReceiptStore
 from .pubpartner_relationship import RelationshipEngine
@@ -670,6 +671,7 @@ class PubPartnerSpine:
         self.guidance_store = PubPartnerGuidanceStore(self.data_dir)
         self.token_counter = PubPartnerTokenCounter()
         self.receipts = PubPartnerReceiptStore(self.data_dir)
+        self.blackbox_light = PubPartnerBlackboxLight(self.data_dir)
         self.relationship = RelationshipEngine(self.data_dir)
         self.knowledge = PubPartnerKnowledgeBroker()
 
@@ -1309,6 +1311,22 @@ class PubPartnerSpine:
                 live_result["docking_capture"] = {"status": "recorded", "id": experience_id}
             except Exception as exc:
                 live_result["docking_capture"] = {"status": "failed", "error": type(exc).__name__}
+        # Reuse ConversationArchive as the searchable exact-dialogue projection.
+        # Original user text still belongs to VerbatimVault; shared rooms stay out.
+        archive_result: Dict[str, Any] = {"status": "skipped", "reason": "not_successful_private_turn"}
+        if provider_result.ok and _turn_audience(task, room_id) == "private":
+            try:
+                archive_result = self.blackbox_light.capture_exchange(
+                    user_id=user_id or "anon", friend_id=friend_id,
+                    session_id=session_id or "default",
+                    source_id=str((turn.get("source") or {}).get("id") or ""),
+                    user_text=message, friend_response=voice.friend_response,
+                    provider=provider_result.provider, model=provider_result.model,
+                    receipt_id=str(receipt.get("receipt_id") or ""),
+                )
+            except Exception as exc:
+                archive_result = {"status": "failed", "error": f"{type(exc).__name__}: {exc}"[:240]}
+        live_result["blackbox_light"] = archive_result
         self._append_turn(user_id or "anon", session_id or "default", live_result)
         if self.blackbox_witness is not None:
             live_result['blackbox_committed'] = bool(self.blackbox_witness.record_event(
