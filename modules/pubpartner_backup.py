@@ -26,28 +26,34 @@ def _slug(value: str, limit: int = 120) -> str:
     return "".join(c if c.isalnum() or c in "-_." else "_" for c in str(value or "anon"))[:limit]
 
 
-def _record_owner_matches(path: Path, user_id: str) -> bool:
-    """Require self-identification for receipt and turn logs; filenames alone
-    cannot disambiguate underscores in different user IDs.
+def _session_identity(path: Path) -> Dict[str, str]:
+    """Resolve the explicit session owner and partner; never trust filename
+    prefixes as proof of ownership or character identity.
     """
+    if path.name.endswith("_turns.jsonl"):
+        path = path.with_name(path.name.removesuffix("_turns.jsonl") + ".json")
     try:
-        if path.name.endswith("_turns.jsonl"):
-            # Turn records lack a guaranteed top-level user ID. They belong to
-            # a session identified by the paired state file.
-            state_path = path.with_name(path.name.removesuffix("_turns.jsonl") + ".json")
-            state = json.loads(state_path.read_text(encoding="utf-8"))
-            return state.get("user_id") == user_id
-        if path.suffix == ".jsonl":
-            any_rows = False
-            for line in path.read_text(encoding="utf-8").splitlines():
-                if not line.strip():
-                    continue
-                any_rows = True
-                if json.loads(line).get("user_id") != user_id:
-                    return False
-            return any_rows
-        return json.loads(path.read_text(encoding="utf-8")).get("user_id") == user_id
+        state = json.loads(path.read_text(encoding="utf-8"))
+        friend = state.get("friend") or {}
+        return {"user_id": str(state.get("user_id") or ""),
+                "friend_id": str(friend.get("id") or friend.get("friend_id") or "")}
     except (ValueError, OSError, AttributeError, TypeError):
+        return {}
+
+
+def _receipt_matches(path: Path, *, user_id: str, friend_id: str, root: Path) -> bool:
+    """Receipts do not carry a friend ID, so only include a chain if its
+    exact matching session state belongs to this user and partner.
+    """
+    prefix = path.name.removesuffix(".jsonl")
+    state = root / "sessions" / (prefix + ".json")
+    scope = _session_identity(state)
+    if scope != {"user_id": user_id, "friend_id": friend_id}:
+        return False
+    try:
+        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        return bool(rows) and all(row.get("user_id") == user_id for row in rows)
+    except (ValueError, OSError, TypeError):
         return False
 
 
@@ -85,9 +91,11 @@ def _eligible_backup_files(root: Path, *, user_id: str, friend_id: str) -> List[
                 continue
             if folder.name == "sessions" and path.name.endswith("_turns.jsonl"):
                 # The matching saved session state must assert the owner.
-                if _record_owner_matches(path, user_id):
+                if _session_identity(path) == {"user_id": user_id, "friend_id": friend_id}:
                     include(path)
-            elif _record_owner_matches(path, user_id):
+            elif folder.name == "sessions" and _session_identity(path) == {"user_id": user_id, "friend_id": friend_id}:
+                include(path)
+            elif folder.name == "receipts" and _receipt_matches(path, user_id=user_id, friend_id=friend_id, root=root):
                 include(path)
     return sorted(set(chosen))
 
