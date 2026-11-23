@@ -787,7 +787,8 @@ async def create_backup(request: Request, identity: Dict[str, Any] = Depends(req
 
 
 @router.get("/backups/{filename}")
-async def download_backup(filename: str, identity=Depends(require_role("owner"))):
+async def download_backup(filename: str, request: Request, identity=Depends(require_role("owner"))):
+    owner = _scoped_user_id(request=request, identity=identity)
     safe = Path(filename).name
     if safe != filename or not safe.endswith(".zip"):
         raise HTTPException(status_code=400, detail="invalid backup filename")
@@ -797,15 +798,21 @@ async def download_backup(filename: str, identity=Depends(require_role("owner"))
     check = verify_friend_backup(path)
     if not check.get("ok"):
         raise HTTPException(status_code=409, detail=f"backup failed verification: {check.get('error')}")
-    return FileResponse(path, media_type="application/zip", filename=safe)
+    if (check.get("manifest") or {}).get("user_id") != owner:
+        raise HTTPException(status_code=404, detail="backup not found")
+    return FileResponse(path, media_type="application/zip", filename=safe, headers={"Cache-Control": "no-store"})
 
 
 @router.get("/backups/{filename}/verify")
-async def verify_backup(filename: str, identity=Depends(require_role("owner"))) -> Dict[str, Any]:
+async def verify_backup(filename: str, request: Request, identity=Depends(require_role("owner"))) -> Dict[str, Any]:
+    owner = _scoped_user_id(request=request, identity=identity)
     safe = Path(filename).name
     if safe != filename or not safe.endswith(".zip"):
         raise HTTPException(status_code=400, detail="invalid backup filename")
-    return verify_friend_backup(get_spine().data_dir / "pubpartner" / "backups" / safe)
+    check = verify_friend_backup(get_spine().data_dir / "pubpartner" / "backups" / safe)
+    if check.get("ok") and (check.get("manifest") or {}).get("user_id") != owner:
+        raise HTTPException(status_code=404, detail="backup not found")
+    return check
 
 
 @router.get("/living/state")
