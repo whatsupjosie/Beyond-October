@@ -17,6 +17,7 @@ def test_standalone_host_mounts_existing_cartridge_workflow(tmp_path, monkeypatc
     paths = set(pubpartner_app.app.openapi()["paths"])
     assert "/api/pubpartner/cartridges" in paths
     assert "/api/pubpartner/cartridges/{cartridge_id}" in paths
+    assert "/api/avatars/imports" in paths
     with TestClient(pubpartner_app.app) as client:
         response = client.get("/api/pubpartner/cartridges", headers={"X-Client-Id": "owner"})
     assert response.status_code == 200, response.text
