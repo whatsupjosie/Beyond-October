@@ -103,3 +103,25 @@ def test_backups_remain_user_scoped_even_for_same_friend(tmp_path):
     with zipfile.ZipFile(archive["path"]) as zf:
         assert not any("bob_s1" in name for name in zf.namelist())
         assert zf.read("PUBPARTNER_BACKUP_MANIFEST.json").find(b'"user_id": "alice"') >= 0
+
+
+def test_dot_segment_cannot_escape_partner_directory(tmp_path):
+    root = tmp_path / "pubpartner"
+    folder = root / "relationship" / "alice" / "alex"
+    folder.mkdir(parents=True)
+    (folder / "lessons.json").write_text("PRIVATE_ALEX_RELATIONSHIP", encoding="utf-8")
+    backup = create_friend_backup(tmp_path, user_id="alice", friend_id="..")
+    with zipfile.ZipFile(backup["path"]) as archive:
+        names = archive.namelist()
+        assert not any("lessons.json" in name for name in names)
+        assert b"PRIVATE_ALEX_RELATIONSHIP" not in b"".join(
+            archive.read(name) for name in names
+        )
+
+
+def test_calibration_user_storage_rejects_dot_segment_traversal(tmp_path):
+    store = CalibrationStore(tmp_path)
+    doc = store.start(user_id="..", partner_id="alex", mode="user")
+    expected = tmp_path / "pubpartner" / "calibration" / "anon" / (doc["id"] + ".json")
+    assert expected.is_file()
+    assert store.get(user_id="..", interview_id=doc["id"])["id"] == doc["id"]
