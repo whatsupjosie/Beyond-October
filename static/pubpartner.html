@@ -80,7 +80,7 @@
           <button role="menuitem" data-command="focus-preview">Avatar preview</button><button role="menuitem" data-command="focus-setup">Companion selection</button><button role="menuitem" data-command="cartridge-avatar">Choose avatar…</button>
         </div></div>
         <div class="menu-root"><button type="button" data-menu="memory" aria-haspopup="menu" aria-expanded="false">Memory</button><div class="menu-pop" role="menu">
-          <button role="menuitem" data-command="focus-memory">What we’ve learned</button><button role="menuitem" data-command="refresh-relationship">Refresh relationship</button><button role="menuitem" data-command="show-encounters">Evidence encounters</button><button role="menuitem" data-command="show-guidance">Guidance and corrections</button>
+          <button role="menuitem" data-command="focus-memory">What we’ve learned</button><button role="menuitem" id="openCalibrationMenu">Calibrate PubPartner…</button><button role="menuitem" data-command="refresh-relationship">Refresh relationship</button><button role="menuitem" data-command="show-encounters">Evidence encounters</button><button role="menuitem" data-command="show-guidance">Guidance and corrections</button>
         </div></div>
         <div class="menu-root"><button type="button" data-menu="settings" aria-haspopup="menu" aria-expanded="false">Settings</button><div class="menu-pop menu-pop-right" role="menu">
           <button role="menuitem" data-command="focus-setup">Friend and provider setup</button><button role="menuitem" data-command="focus-knowledge">Reference settings</button><button role="menuitem" data-command="toggle-customize">Customize layout</button>
@@ -248,6 +248,45 @@
       <div class="bottom-actions"><button id="toggleCustomize">Customize Layout</button><button id="themeToggle">Lantern / Glass</button><button id="backupFriend" title="Create a portable, verified backup without provider keys or runtime secrets">Back Up My Friend</button></div>
     </footer>
   </div>
+  <div id="calibrationGate" class="auth-gate" role="dialog" aria-modal="true" aria-labelledby="calibrationTitle" hidden>
+    <div class="auth-card panel-glow" style="width:min(94vw,640px);max-height:90dvh;overflow:auto;text-align:left">
+      <h2 id="calibrationTitle">Calibrate PubPartner</h2>
+      <p id="calibrationStatus" role="status">Help your partner understand you, or refine how they present themselves.</p>
+      <div id="calibrationSetup">
+        <label>Partner<select id="calibrationPartner"><option value="alex">Alex</option><option value="craig">Craig</option><option value="friend">Friend</option></select></label>
+        <label>Calibration type<select id="calibrationMode"><option value="user">User: understand me</option><option value="system">System: character and presentation</option></select></label>
+        <button type="button" id="calibrationStart">Start calibration</button><label>Resume a previous interview<select id="calibrationResumeList"><option value="">Choose previous session</option></select></label><button type="button" id="calibrationResume">Resume selected</button>
+      </div>
+      <div id="calibrationInterview" hidden>
+        <p id="calibrationProgress"></p>
+        <label>Recent conversation moments<select id="calibrationMoment"><option value="">No archived moment selected</option></select></label>
+        <blockquote id="calibrationExcerpt" style="white-space:pre-wrap"></blockquote>
+        <p id="calibrationQuestion" style="font-weight:600"></p>
+        <label>Your response<textarea id="calibrationAnswer" rows="3" maxlength="16000" placeholder="Say it in your own words"></textarea></label>
+        <button type="button" id="calibrationDictate">🎙 Dictate response</button><small>Browser dictation may use an external speech service. It does not preserve the original audio.</small><button type="button" id="calibrationRecordAudio">● Record voice sample (max 60 seconds)</button><button type="button" id="calibrationStopAudio" hidden>Stop recording</button><audio id="calibrationAudioPreview" controls hidden></audio><small>Optional local recording, saved only when you explicitly record. Your audio can be reviewed later for EQ calibration.</small>
+        <button type="button" id="calibrationSubmit">Save answer</button>
+        <div id="calibrationFollowupBlock" hidden>
+          <p id="calibrationFollowupQuestion"></p><label>Your follow-up answer<textarea id="calibrationFollowup" rows="2" maxlength="16000" placeholder="Respond to your partner, if you want"></textarea></label>
+          <button type="button" id="calibrationAskFollowup">Save follow-up answer</button>
+        </div>
+        <button type="button" id="calibrationOfferFollowup" hidden>Ask a clarifying question</button><button type="button" id="calibrationNext" hidden>Next question</button>
+        <button type="button" id="calibrationFinish">Finish formal interview</button>
+      </div>
+      <div id="calibrationContinuation" hidden>
+        <p>Formal questions are complete. You can keep talking, and your partner can ask for clarification.</p>
+        <label>Additional feedback<textarea id="calibrationExtra" rows="3" maxlength="16000"></textarea></label>
+        <button type="button" id="calibrationSaveExtra">Save additional feedback</button><button type="button" id="calibrationClarify">Ask for clarification</button><p id="calibrationClarificationText"></p>
+        <label>What should your partner remember or do differently? (optional, applied only when you approve)
+          <textarea id="calibrationLesson" rows="3" maxlength="600"></textarea>
+        </label>
+        <button type="button" id="calibrationApplyLesson">Approve and apply correction</button>
+        <button type="button" id="calibrationCloseSession">Close session</button>
+      </div>
+      <p id="calibrationMessage" role="status"></p>
+      <button type="button" id="calibrationDismiss">Close window</button>
+    </div>
+  </div>
   <script src="/static/pubpartner.js"></script>
+  <script src="/static/pubpartner_calibration_ui.js"></script>
 </body>
 </html>
