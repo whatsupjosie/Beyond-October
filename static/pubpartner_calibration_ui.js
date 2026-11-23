@@ -4,7 +4,7 @@
   const $ = id => document.getElementById(id);
   const gate = $('calibrationGate');
   if (!gate) return;
-  const state = { doc: null, asked: 0, moment: null, moments: [], currentId: null, followup: false, saved: false };
+  const state = { doc: null, asked: 0, moment: null, moments: [], currentId: null, followup: false, saved: false, audioRef: '', recorder: null, recordingTimer: null, audioUrl: null };
   const userQuestions = [
     "How are you feeling today? Tell me a little about your day.",
     "Thinking about this moment, were you upset, excited, or feeling something else?",
@@ -42,7 +42,7 @@
   }
   function show(id, visible) { $(id).hidden = !visible; }
   function selectedEvidence() {
-    return state.moment ? { session_id: state.moment.session_id, turn_id: state.moment.turn_id || '', source_id: state.moment.source_id || '' } : {};
+    return { ...(state.moment ? { session_id: state.moment.session_id, turn_id: state.moment.turn_id || '', source_id: state.moment.source_id || '' } : {}), ...(state.audioRef ? { audio_ref: state.audioRef } : {}) };
   }
   async function loadMoments() {
     state.moments = [];
@@ -82,6 +82,7 @@
     $('calibrationAnswer').value = '';
     $('calibrationFollowup').value = '';
     state.currentId = null; state.followup = false; state.saved = false;
+    state.audioRef = ''; clearAudioPreview();
     show('calibrationFollowupBlock', false);
     show('calibrationOfferFollowup', false);
     show('calibrationNext', false);
@@ -154,12 +155,13 @@
   }
   async function event(action, text, question_id) {
     return call('/calibration/interviews/' + state.doc.id + '/events', 'POST', {
-      action, text, question_id: question_id || '', evidence: selectedEvidence(), modality: 'text'
+      action, text, question_id: question_id || '', evidence: selectedEvidence(),
+      modality: state.audioRef && (action === 'answer' || action === 'follow_up_answer') ? 'voice' : 'text'
     });
   }
   async function saveAnswer() {
-    const answer = $('calibrationAnswer').value.trim();
-    if (!answer) { say('Enter a response, or finish the interview.'); return; }
+    const answer = $('calibrationAnswer').value.trim() || (state.audioRef ? '[Voice response recorded; no transcript provided]' : '');
+    if (!answer) { say('Type, dictate, or record a response, or finish the interview.'); return; }
     if (!state.currentId) {
       const first = await event('main_question', questionText());
       state.currentId = first.questions[first.questions.length - 1].id;
@@ -233,6 +235,72 @@
     show('calibrationInterview', false);
     show('calibrationContinuation', false);
   }
+  function clearAudioPreview() {
+    if (state.audioUrl) URL.revokeObjectURL(state.audioUrl);
+    state.audioUrl = null;
+    const player = $('calibrationAudioPreview');
+    player.hidden = true;
+    player.removeAttribute('src');
+    player.load();
+  }
+  async function recordAudio() {
+    if (!state.doc || state.doc.state !== 'formal') { say('Start an interview first.'); return; }
+    if (state.recorder) { say('A recording is already in progress.'); return; }
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      say('Voice recording is unavailable in this browser. You can type instead.');
+      return;
+    }
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    try {
+      const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
+      const mime = candidates.find(m => MediaRecorder.isTypeSupported(m));
+      if (!mime) throw new Error('No compatible audio recording format');
+      const recorder = new MediaRecorder(stream, {mimeType: mime, audioBitsPerSecond: 24000});
+      const chunks = [];
+      recorder.ondataavailable = e => { if (e.data?.size) chunks.push(e.data); };
+      recorder.onerror = e => say('Recording failed: ' + (e.error?.message || 'unknown error'));
+      recorder.onstop = async () => {
+        clearTimeout(state.recordingTimer);
+        state.recordingTimer = null;
+        state.recorder = null;
+        stream.getTracks().forEach(t => t.stop());
+        show('calibrationStopAudio', false);
+        const blob = new Blob(chunks, {type:mime});
+        if (!blob.size) { say('No audio was captured.'); return; }
+        if (blob.size > 4 * 1024 * 1024) { say('Recording exceeds the 4 MB storage limit.'); return; }
+        try {
+          const headers = {'Content-Type':mime};
+          if (token()) headers.Authorization = 'Bearer ' + token();
+          headers['X-Client-Id'] = user();
+          const reply = await fetch('/api/pubpartner/calibration/interviews/' + state.doc.id + '/audio', {
+            method:'POST', headers, body:blob
+          });
+          if (!reply.ok) throw new Error('Audio upload failed: ' + reply.status);
+          const stored = await reply.json();
+          state.audioRef = stored.audio_ref;
+          clearAudioPreview();
+          state.audioUrl = URL.createObjectURL(blob);
+          const player = $('calibrationAudioPreview');
+          player.src = state.audioUrl;
+          player.hidden = false;
+          say('Voice sample saved. You can play it back, add text, and save your answer.');
+        } catch(e) { say('Audio was not saved: ' + errText(e)); }
+      };
+      state.recorder = recorder;
+      state.audioRef = '';
+      clearAudioPreview();
+      recorder.start(250);
+      show('calibrationStopAudio', true);
+      state.recordingTimer = setTimeout(() => recorder.state === 'recording' && recorder.stop(), 60000);
+      say('Recording your voice. It will stop automatically at 60 seconds.');
+    } catch(e) {
+      stream.getTracks().forEach(t => t.stop());
+      say('Microphone error: ' + errText(e));
+    }
+  }
+  function stopAudio() {
+    if (state.recorder?.state === 'recording') state.recorder.stop();
+  }
   function dictate() {
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Recognition) {
@@ -283,4 +351,6 @@
   $('calibrationApplyLesson').addEventListener('click', wrap(approveLesson));
   $('calibrationCloseSession').addEventListener('click', wrap(closeSession));
   $('calibrationDictate').addEventListener('click', dictate);
+  $('calibrationRecordAudio').addEventListener('click', wrap(recordAudio));
+  $('calibrationStopAudio').addEventListener('click', stopAudio);
 })();
