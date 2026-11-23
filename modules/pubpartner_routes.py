@@ -965,3 +965,39 @@ async def calibration_close(interview_id: str, request: Request, identity: Dict[
         return _calibration_store().close(user_id=user, interview_id=interview_id)
     except (CalibrationError, FileNotFoundError):
         raise HTTPException(status_code=404, detail="calibration interview not found")
+
+
+@router.get("/calibration/moments")
+async def calibration_moments(request: Request, session_id: str = "pubpartner_live",
+                              identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
+    """Selected user's recent *real* completed exchanges, with exact user source restored.
+    Never invent acoustic observations or infer feelings from transcript alone.
+    """
+    user_id = _scoped_user_id(request=request, identity=identity)
+    sid = str(session_id or "pubpartner_live")[:120]
+    spine = get_spine()
+    moments = []
+    for turn in reversed(spine.list_turns(user_id=user_id, session_id=sid, limit=40)["turns"]):
+        if not isinstance(turn, dict) or not (turn.get("provider_result") or {}).get("ok"):
+            continue
+        source = turn.get("source") or {}
+        source_id = str(source.get("id") or "")
+        if not source_id:
+            continue
+        try:
+            exact = spine.restore_source(user_id=user_id, session_id=sid, source_id=source_id)
+        except (OSError, ValueError, KeyError, FileNotFoundError):
+            continue
+        user_text = str(exact.get("text") or "")
+        partner_text = str(turn.get("friend_response") or "")
+        if not user_text or not partner_text:
+            continue
+        moments.append({
+            "session_id": sid, "source_id": source_id,
+            "turn_id": str(turn.get("turn_id") or (turn.get("receipt") or {}).get("receipt_id") or ""),
+            "user_excerpt": user_text[:600], "partner_excerpt": partner_text[:600],
+            "truncated": len(user_text) > 600 or len(partner_text) > 600,
+        })
+        if len(moments) >= 12:
+            break
+    return {"ok": True, "moments": moments}
