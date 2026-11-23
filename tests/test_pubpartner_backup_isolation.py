@@ -125,3 +125,14 @@ def test_calibration_user_storage_rejects_dot_segment_traversal(tmp_path):
     expected = tmp_path / "pubpartner" / "calibration" / "anon" / (doc["id"] + ".json")
     assert expected.is_file()
     assert store.get(user_id="..", interview_id=doc["id"])["id"] == doc["id"]
+
+
+def test_guidance_slug_collision_does_not_expose_other_account(tmp_path):
+    from modules.pubpartner_guidance import PubPartnerGuidanceStore
+    guidance = PubPartnerGuidanceStore(tmp_path)
+    guidance.add(user_id="a!b", friend_id="alex", text="SECRET_FOR_FIRST_OWNER")
+    guidance.add(user_id="a_b", friend_id="alex", text="SECOND_OWNER_ONLY")
+    first = guidance.list(user_id="a!b", friend_id="alex")["guidance"]
+    second = guidance.list(user_id="a_b", friend_id="alex")["guidance"]
+    assert [row["text"] for row in first] == ["SECRET_FOR_FIRST_OWNER"]
+    assert [row["text"] for row in second] == ["SECOND_OWNER_ONLY"]
