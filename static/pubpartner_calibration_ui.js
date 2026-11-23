@@ -83,11 +83,12 @@
     $('calibrationFollowup').value = '';
     state.currentId = null; state.followup = false; state.saved = false;
     show('calibrationFollowupBlock', false);
+    show('calibrationOfferFollowup', false);
     show('calibrationNext', false);
     $('calibrationSubmit').disabled = false;
     $('calibrationSubmit').textContent = 'Save answer';
     $('calibrationAskFollowup').disabled = false;
-    $('calibrationAskFollowup').textContent = 'Ask follow-up';
+    $('calibrationFollowupQuestion').textContent = '';
     $('calibrationNext').textContent = state.asked >= 2 ? 'Another question (optional)' : 'Next question';
   }
   async function start() {
@@ -121,26 +122,31 @@
     await event('answer', answer, state.currentId);
     state.saved = true;
     $('calibrationSubmit').disabled = true;
-    show('calibrationFollowupBlock', true);
+    show('calibrationOfferFollowup', true);
     show('calibrationNext', state.asked < 5);
     $('calibrationProgress').textContent = state.asked + ' main questions recorded.';
     say('Saved. An optional follow-up can clarify this answer, or you can continue or finish.');
   }
+  function suggestedFollowup() {
+    return state.doc.mode === 'system'
+      ? 'Was it something I said, or how I said it?'
+      : 'Was that connected to this conversation, or something else?';
+  }
   async function followup() {
     if (!state.saved || !state.currentId) { say('Save the main answer first.'); return; }
-    const text = $('calibrationFollowup').value.trim();
-    if (!text) { say('Write a follow-up if you need one.'); return; }
     if (state.followup) { say('One follow-up per main question.'); return; }
-    await event('follow_up', text, state.currentId);
+    const follow = suggestedFollowup();
+    await event('follow_up', follow, state.currentId);
     state.followup = true;
-    $('calibrationFollowup').placeholder = 'Answer the follow-up here';
+    $('calibrationFollowupQuestion').textContent = follow;
     $('calibrationFollowup').value = '';
-    $('calibrationAskFollowup').textContent = 'Save follow-up answer';
-    say('Follow-up saved. Respond below if you want.');
+    show('calibrationFollowupBlock', true);
+    show('calibrationOfferFollowup', false);
+    say('Optional follow-up. You may answer, move on, or finish.');
   }
   async function followupAnswer() {
     const text = $('calibrationFollowup').value.trim();
-    if (!text) { say('Enter your answer.'); return; }
+    if (!text) { say('Enter your answer, or skip it.'); return; }
     await event('follow_up_answer', text, state.currentId);
     $('calibrationAskFollowup').disabled = true;
     say('Follow-up answer saved.');
@@ -211,7 +217,8 @@
   $('calibrationStart').addEventListener('click', wrap(start));
   $('calibrationMoment').addEventListener('change', selectMoment);
   $('calibrationSubmit').addEventListener('click', wrap(saveAnswer));
-  $('calibrationAskFollowup').addEventListener('click', wrap(() => state.followup ? followupAnswer() : followup()));
+  $('calibrationOfferFollowup').addEventListener('click', wrap(followup));
+  $('calibrationAskFollowup').addEventListener('click', wrap(followupAnswer));
   $('calibrationNext').addEventListener('click', wrap(() => {
     if (!state.saved) { say('Save the answer before moving on.'); return; }
     if (state.asked >= 5) return finish();
