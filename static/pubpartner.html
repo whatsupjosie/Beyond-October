@@ -241,6 +241,13 @@
       </section>
     </main>
 
+    <input id="layoutImport" type="file" accept="application/json,.json" hidden />
+    <footer class="bottombar panel-glow">
+      <span>PubPartner 0.1.0-prebeta.10-ui-candidate · Alex vessel foundation · evidence-governed memory · model portability</span>
+      <span id="saveStatus">All changes saved locally</span>
+      <div class="bottom-actions"><button id="toggleCustomize">Customize Layout</button><button id="themeToggle">Lantern / Glass</button><button id="backupFriend" title="Create a portable, verified backup without provider keys or runtime secrets">Back Up My Friend</button></div>
+    </footer>
+  </div>
   <div id="calibrationGate" class="auth-gate" role="dialog" aria-modal="true" aria-labelledby="calibrationTitle" hidden>
     <div class="auth-card panel-glow" style="width:min(94vw,640px);max-height:90dvh;overflow:auto;text-align:left">
       <h2 id="calibrationTitle">Calibrate PubPartner</h2>
@@ -278,13 +285,6 @@
       <p id="calibrationMessage" role="status"></p>
       <button type="button" id="calibrationDismiss">Close window</button>
     </div>
-  </div>
-    <input id="layoutImport" type="file" accept="application/json,.json" hidden />
-    <footer class="bottombar panel-glow">
-      <span>PubPartner 0.1.0-prebeta.10-ui-candidate · Alex vessel foundation · evidence-governed memory · model portability</span>
-      <span id="saveStatus">All changes saved locally</span>
-      <div class="bottom-actions"><button id="toggleCustomize">Customize Layout</button><button id="themeToggle">Lantern / Glass</button><button id="backupFriend" title="Create a portable, verified backup without provider keys or runtime secrets">Back Up My Friend</button></div>
-    </footer>
   </div>
   <script src="/static/pubpartner.js"></script>
   <script src="/static/pubpartner_calibration_ui.js"></script>
