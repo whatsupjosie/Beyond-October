@@ -47,6 +47,7 @@ from .pubpartner_profiles import PubPartnerProfileStore
 from .pubpartner_guidance import PubPartnerGuidanceStore
 from .pubpartner_tokens import PubPartnerTokenCounter
 from .pubpartner_receipts import PubPartnerReceiptStore
+from .pubpartner_identity_checkpoint import checkpoint as identity_checkpoint
 from .pubpartner_relationship import RelationshipEngine
 from .pubpartner_knowledge import PubPartnerKnowledgeBroker
 from .companion_advisory import CompanionAdvisor
@@ -1064,6 +1065,14 @@ class PubPartnerSpine:
             task=knowledge_task,
         )
         turn = self.knowledge.inject_reference(turn, knowledge_result)
+        # Receipt chain is durable per user/session and survives host restarts.
+        # Counting completed live dispatches, not packet-preview requests, keeps
+        # response 1, 4, 7... stable even when preview endpoints are called.
+        receipt_state = self.receipts.verify(user_id=user_id or "anon", session_id=session_id or "default")
+        if not receipt_state.get("ok"):
+            raise ValueError("Cannot establish identity checkpoint sequence: receipt chain invalid")
+        response_number = int(receipt_state["entries"]) + 1
+        turn["identity_checkpoint"] = await identity_checkpoint(turn, response_number)
         provider_result = await self.provider_dispatcher.dispatch(turn, provider or {})
         provider_fallback: Optional[Dict[str, Any]] = None
         if allow_fallback and not provider_result.ok and provider_result.provider not in {"offline", "mock"}:
@@ -1098,6 +1107,7 @@ class PubPartnerSpine:
             review = companion_advisor.review(message, voice.friend_response, content_kind=str((turn.get("source") or {}).get("kind") or content_kind))
             receipt["companion_review"] = review
             live_result["companion_review"] = review
+        receipt["identity_checkpoint"] = turn["identity_checkpoint"]
         receipt_chain_row = self.receipts.append(user_id=user_id or "anon", session_id=session_id or "default", receipt=receipt)
         live_result.update({
             "live_loop": True,
