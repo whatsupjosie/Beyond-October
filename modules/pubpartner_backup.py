@@ -2,15 +2,20 @@
 from __future__ import annotations
 
 import hashlib
+import re
+import sqlite3
+import tempfile
 import json
 import time
 import uuid
 import zipfile
+
+from .pubpartner_blackbox_light import PubPartnerBlackboxLight
 from pathlib import Path
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, List
 
 BACKUP_FORMAT = "PubPartnerFriendBackup.v1"
-_ALLOWED_ROOTS = ("profiles", "guidance", "relationship", "receipts", "sessions", "verbatim")
+_ALLOWED_ROOTS = ("profiles", "guidance", "relationship", "receipts", "sessions", "verbatim", "calibration")
 
 
 def _sha(path: Path) -> str:
@@ -21,32 +26,210 @@ def _sha(path: Path) -> str:
     return h.hexdigest()
 
 
+def _slug(value: str, limit: int = 120) -> str:
+    return "".join(c if c.isalnum() or c in "-_." else "_" for c in str(value or "anon"))[:limit]
+
+
+def _session_identity(path: Path) -> Dict[str, str]:
+    """Resolve the explicit session owner and partner; never trust filename
+    prefixes as proof of ownership or character identity.
+    """
+    if path.name.endswith("_turns.jsonl"):
+        path = path.with_name(path.name.removesuffix("_turns.jsonl") + ".json")
+    try:
+        state = json.loads(path.read_text(encoding="utf-8"))
+        friend = state.get("friend") or {}
+        return {"user_id": str(state.get("user_id") or ""),
+                "friend_id": str(friend.get("id") or friend.get("friend_id") or "")}
+    except (ValueError, OSError, AttributeError, TypeError):
+        return {}
+
+
+def _receipt_matches(path: Path, *, user_id: str, friend_id: str, root: Path) -> bool:
+    """Receipts do not carry a friend ID, so only include a chain if its
+    exact matching session state belongs to this user and partner.
+    """
+    prefix = path.name.removesuffix(".jsonl")
+    state = root / "sessions" / (prefix + ".json")
+    scope = _session_identity(state)
+    if scope != {"user_id": user_id, "friend_id": friend_id}:
+        return False
+    try:
+        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        return bool(rows) and all(row.get("user_id") == user_id for row in rows)
+    except (ValueError, OSError, TypeError):
+        return False
+
+
+def _session_is_exclusive(path: Path, *, user_id: str, friend_id: str) -> bool:
+    """A session is portable as a whole only if every saved turn is this pair.
+
+    Sessions can be reused with another friend, so trusting only the session's
+    current friend would leak earlier conversations, sources and receipts.
+    """
+    if _session_identity(path) != {"user_id": user_id, "friend_id": friend_id}:
+        return False
+    turns = path.with_name(path.stem + "_turns.jsonl")
+    if not turns.exists():
+        return True
+    if turns.is_symlink():
+        return False
+    try:
+        for line in turns.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            fcp1 = record.get("fcp1") or {}
+            if not isinstance(fcp1, dict) or (fcp1.get("f") or {}).get("id") != friend_id:
+                return False
+        return True
+    except (ValueError, OSError, AttributeError, TypeError):
+        return False
+
+
+def _eligible_backup_files(root: Path, *, user_id: str, friend_id: str) -> List[Path]:
+    """Choose only precisely attributable owner/partner paths, fail closed."""
+    su, sf = _slug(user_id), _slug(friend_id)
+    chosen: List[Path] = []
+
+    def include(path: Path) -> None:
+        if path.is_file() and not path.is_symlink() and not any(
+            parent.is_symlink() for parent in path.parents if parent != root.parent
+        ):
+            chosen.append(path)
+
+    friend_profile = root / "profiles" / "friends" / f"{sf}.json"
+    # Custom cartridge profiles belong to their creator, not to every owner.
+    if friend_profile.exists():
+        try:
+            profile = json.loads(friend_profile.read_text(encoding="utf-8"))
+            cartridge = profile.get("cartridge") or {}
+            if not cartridge or str(cartridge.get("created_by") or "") == user_id:
+                include(friend_profile)
+        except (ValueError, OSError, AttributeError, TypeError):
+            pass
+    include(root / "profiles" / "users" / f"{su}.json")
+
+    pair_dir = root / "relationship" / su / sf
+    if pair_dir.is_dir() and not pair_dir.is_symlink():
+        for file in pair_dir.rglob("*"):
+            include(file)
+
+    sessions_root = root / "sessions"
+    matching_states = []
+    if sessions_root.is_dir():
+        for state in sessions_root.glob(f"{su}_*.json"):
+            if not state.is_symlink() and _session_is_exclusive(
+                state, user_id=user_id, friend_id=friend_id
+            ):
+                matching_states.append(state)
+                include(state)
+                include(state.with_name(state.stem + "_turns.jsonl"))
+                receipt = root / "receipts" / (state.stem + ".jsonl")
+                if _receipt_matches(receipt, user_id=user_id, friend_id=friend_id, root=root):
+                    include(receipt)
+
+    # A complete audit hash chain is only valid for a single-partner session.
+    # Do not include a mixed session's raw sources or its audit chain.
+    for state in matching_states:
+        try:
+            state_data = json.loads(state.read_text(encoding="utf-8"))
+            session_id = str(state_data["session_id"])
+            source_dir = root / "verbatim" / su / _slug(session_id)
+            if not source_dir.is_dir() or source_dir.is_symlink():
+                continue
+            metadata_files = sorted(source_dir.glob("src_*.json"))
+            if not metadata_files:
+                continue
+            safe_sources = []
+            for metadata_path in metadata_files:
+                source = json.loads(metadata_path.read_text(encoding="utf-8"))
+                meta = source.get("metadata") or {}
+                if (source.get("user_id") != user_id or
+                    source.get("session_id") != session_id or
+                    meta.get("friend_id") != friend_id):
+                    safe_sources = []
+                    break
+                raw = metadata_path.with_suffix(".utf8")
+                if not raw.is_file() or raw.is_symlink():
+                    safe_sources = []
+                    break
+                safe_sources.extend((metadata_path, raw))
+            if safe_sources:
+                for path in safe_sources:
+                    include(path)
+                include(source_dir / "audit_hash_chain.jsonl")
+        except (ValueError, OSError, KeyError, AttributeError, TypeError):
+            continue
+
+    # Interviews and recorded audio are shared under an owner folder; select
+    # only the particular partner's interview ids, never the whole directory.
+    calibration = root / "calibration" / su
+    if calibration.is_dir() and not calibration.is_symlink():
+        for path in calibration.glob("*.json"):
+            try:
+                doc = json.loads(path.read_text(encoding="utf-8"))
+                if doc.get("user_id") != user_id or doc.get("partner_id") != friend_id:
+                    continue
+                if doc.get("id") != path.stem:
+                    continue
+                include(path)
+                audio = calibration / "audio" / path.stem
+                if audio.is_dir() and not audio.is_symlink():
+                    for sample in audio.iterdir():
+                        if sample.suffix in {".wav", ".webm", ".m4a", ".ogg"}:
+                            include(sample)
+            except (ValueError, OSError, AttributeError, TypeError):
+                continue
+
+    # The selected cartridge's authored YAML and seed memory belong to this
+    # owner. Its live SQLite memory is snapshotted separately while archiving.
+    cartridge = root / "cartridges" / sf
+    if cartridge.is_dir() and not cartridge.is_symlink():
+        appearance = cartridge / "appearance.yaml"
+        try:
+            import yaml
+            meta = yaml.safe_load(appearance.read_text(encoding="utf-8")) or {}
+            if str(meta.get("created_by") or "") == user_id:
+                for name in ("character.yaml", "voice_profile.yaml",
+                             "appearance.yaml", "memories.jsonl"):
+                    include(cartridge / name)
+        except (ValueError, OSError, AttributeError, TypeError):
+            pass
+
+    return sorted(set(chosen))
+
+
+def _scoped_guidance(root: Path, *, user_id: str, friend_id: str) -> bytes:
+    """Project the shared owner guidance file, excluding other partners."""
+    path = root / "guidance" / f"{_slug(user_id)}.jsonl"
+    if not path.is_file() or path.is_symlink():
+        return b""
+    rows = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except (ValueError, TypeError):
+            continue
+        if (isinstance(row, dict) and row.get("user_id") == user_id and
+            row.get("friend_id") in {friend_id, "*"}):
+            rows.append(json.dumps(row, ensure_ascii=False, separators=(",", ":")))
+    return ("\n".join(rows) + "\n").encode("utf-8") if rows else b""
+
+
 def create_friend_backup(data_dir: Path | str, *, user_id: str = "anon", friend_id: str = "craig") -> Dict[str, Any]:
     data_dir = Path(data_dir)
     root = data_dir / "pubpartner"
     out_dir = root / "backups"
     out_dir.mkdir(parents=True, exist_ok=True)
-    safe_user = "".join(c if c.isalnum() or c in "-_." else "_" for c in str(user_id or "anon"))[:80]
-    safe_friend = "".join(c if c.isalnum() or c in "-_." else "_" for c in str(friend_id or "friend"))[:80]
+    safe_user = _slug(user_id, 80)
+    safe_friend = _slug(friend_id, 80)
     filename = f"PubPartner_Friend_Backup_{safe_user}_{safe_friend}_{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}.zip"
     target = out_dir / filename
 
-    candidates: List[Path] = []
-    for name in _ALLOWED_ROOTS:
-        base = root / name
-        if not base.exists():
-            continue
-        for path in base.rglob("*"):
-            if not path.is_file() or path.is_symlink():
-                continue
-            rel = path.relative_to(root)
-            # User filtering is best-effort because legacy stores use multiple
-            # layouts. Profile/provider defaults are intentionally included;
-            # secrets and BYOK data are outside the allowed roots.
-            rel_text = rel.as_posix()
-            if name in {"relationship", "verbatim"} and safe_user not in rel_text:
-                continue
-            candidates.append(path)
+    candidates = _eligible_backup_files(root, user_id=user_id, friend_id=friend_id)
 
     manifest = {
         "format": BACKUP_FORMAT,
@@ -61,14 +244,31 @@ def create_friend_backup(data_dir: Path | str, *, user_id: str = "anon", friend_
         rel = path.relative_to(root).as_posix()
         manifest["files"].append({"path": rel, "size": path.stat().st_size, "sha256": _sha(path)})
 
+    # The searchable SQLite archive is shared across owners; never put the
+    # entire database into a per-user backup. Export just this owner/partner.
+    light_export = None
+    light_db = data_dir / "conversation_archive" / "pubpartner_light.sqlite3"
+    if light_db.exists():
+        light_export = json.dumps(
+            PubPartnerBlackboxLight(data_dir).export(user_id=user_id, friend_id=friend_id),
+            ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+        manifest["files"].append({
+            "path": "blackbox_light/conversations.json",
+            "size": len(light_export),
+            "sha256": hashlib.sha256(light_export).hexdigest(),
+        })
+
     with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
         zf.writestr("PUBPARTNER_BACKUP_MANIFEST.json", json.dumps(manifest, ensure_ascii=False, indent=2))
         zf.writestr(
             "README_RESTORE.txt",
-            "PubPartner friend backup\n\nThis archive contains user-owned profiles, guidance, relationship records, receipts, sessions, and exact-source custody records. It does not contain API keys or runtime secrets. Restore support should verify every manifest hash before writing data.\n",
+            "PubPartner friend backup\n\nThis archive contains owner-scoped partner profiles, guidance, relationship records, conversation sources, calibration records, and verified session files. It excludes other users, provider credentials, Wallet custody, and runtime secrets. Verify manifest hashes before recovery.\n",
         )
         for path in sorted(set(candidates)):
             zf.write(path, arcname=f"pubpartner/{path.relative_to(root).as_posix()}")
+        if light_export is not None:
+            zf.writestr("pubpartner/blackbox_light/conversations.json", light_export)
 
     return {
         "ok": True,
