@@ -693,6 +693,49 @@ class PubPartnerSpine:
         }
         return merged
 
+    def _owned_cartridge_memories(
+        self, *, user_id: str, friend_id: str, message: str,
+        limit: int, private: bool,
+    ) -> tuple[List[MemoryRef], Dict[str, Any]]:
+        """Reuse an existing cartridge's ranked memories, never a second store.
+
+        The published cartridge studio records a creator ID. Do not surface its
+        personal memories to other users or shared PubCast rooms. The profile
+        is a discovery pointer, not authorization.
+        """
+        if not private or limit < 1:
+            return [], {"status": "skipped", "reason": "not_private_or_no_memory_budget"}
+        if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{1,47}", friend_id):
+            return [], {"status": "skipped", "reason": "not_a_cartridge_id"}
+        saved = self.profiles.load_profile("friend", friend_id, fallback_id="friend")
+        cartridge_metadata = saved.get("cartridge") if isinstance(saved, dict) else None
+        if not isinstance(cartridge_metadata, dict) or saved.get("id") != friend_id:
+            return [], {"status": "skipped", "reason": "not_a_cartridge"}
+        if str(cartridge_metadata.get("created_by") or "") != str(user_id):
+            return [], {"status": "skipped", "reason": "different_owner"}
+        folder = self.data_dir / "pubpartner" / "cartridges" / friend_id
+        if folder.is_symlink() or not (folder / "character.yaml").is_file():
+            return [], {"status": "skipped", "reason": "cartridge_unavailable"}
+        try:
+            from pubpartner.cartridge import load_cartridge
+            with load_cartridge(folder) as loaded:
+                scored = loaded.memory.query(message, top_k=limit)
+            rows = [
+                MemoryRef(
+                    id=f"cartridge:{friend_id}:{item.memory.id}",
+                    kind=item.memory.memory_type,
+                    text=item.memory.text,
+                    importance=max(1, min(10, round(item.memory.importance * 10))),
+                    source="cartridge_memory",
+                )
+                for item in scored
+            ]
+            return rows, {"status": "ok", "count": len(rows)}
+        except Exception as exc:
+            # Missing/corrupted cartridge memory never destroys an otherwise
+            # valid conversation. Report failure rather than fabricate recall.
+            return [], {"status": "failed", "error": f"{type(exc).__name__}: {exc}"[:200]}
+
     def set_byok_manager(self, manager: Any) -> None:
         """Attach the encrypted BYOK store after the main app boots it.
 
@@ -964,6 +1007,15 @@ class PubPartnerSpine:
             memories.extend(MemoryRef(id="dock:" + row["id"], kind=row["kind"],
                 text=row["text"], importance=5, source="horizon_base_dock")
                 for row in docked_recall["items"])
+        # Existing portable cartridges already have ranked SQLite memory. Reuse
+        # it in hosted PubPartner for the cartridge's owner only; profile data
+        # alone otherwise loses all portable memory at the hosted boundary.
+        cartridge_memories, cartridge_recall = self._owned_cartridge_memories(
+            user_id=user_id, friend_id=profile.friend_id, message=message,
+            limit=min(3, max(0, max_memories)), private=turn_audience == "private",
+        )
+        if cartridge_memories:
+            memories = [*cartridge_memories, *memories][:max_memories]
         packet = FCP1Packet(
             language=language or primer.language,
             user=primer,
@@ -1003,6 +1055,7 @@ class PubPartnerSpine:
             "alex_bridge": alex_packet,
             "jeremy_whisper": whisper,
             "memory_count": len(memories),
+            "cartridge_recall": cartridge_recall,
             "vessel_context_hash": vessel_context.get("context_hash"),
             "vessel_claim_count": len(vessel_context.get("claims") or []),
             "vessel_event_count": len(vessel_context.get("events") or []),
