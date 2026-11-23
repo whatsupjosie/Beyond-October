@@ -16,7 +16,7 @@ def packet():
             "history": [],
             "source_policy": {"immutable": True},
         },
-        "llm_prompt_text": "@FCP1\\nu={}" + "\\nf={\\\"id\\\":\\\"alex\\\"}",
+        "llm_prompt_text": "@FCP1\nu={}" + "\nf={\\\"id\\\":\\\"alex\\\"}",
         "memory_count": 0,
         "guidance_count": 0,
     }
