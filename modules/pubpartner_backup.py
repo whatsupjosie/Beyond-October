@@ -220,65 +220,113 @@ def _scoped_guidance(root: Path, *, user_id: str, friend_id: str) -> bytes:
 
 
 def create_friend_backup(data_dir: Path | str, *, user_id: str = "anon", friend_id: str = "craig") -> Dict[str, Any]:
+    """Produce an atomic, verifiable, strictly scoped *working-data* backup.
+
+    It is NOT the paired Iteration Wallet's sealed birth/last-good custody.
+    Mixed-partner sessions are excluded rather than silently exported whole.
+    """
     data_dir = Path(data_dir)
     root = data_dir / "pubpartner"
     out_dir = root / "backups"
     out_dir.mkdir(parents=True, exist_ok=True)
-    safe_user = _slug(user_id, 80)
-    safe_friend = _slug(friend_id, 80)
-    filename = f"PubPartner_Friend_Backup_{safe_user}_{safe_friend}_{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}.zip"
+    safe_user, safe_friend = _slug(user_id, 80), _slug(friend_id, 80)
+    filename = (
+        f"PubPartner_Friend_Backup_{safe_user}_{safe_friend}_"
+        f"{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}.zip"
+    )
     target = out_dir / filename
-
+    temporary_target = out_dir / ("." + filename + ".partial")
     candidates = _eligible_backup_files(root, user_id=user_id, friend_id=friend_id)
+    extras: Dict[str, Path] = {}
+    warnings = [
+        "Not a sealed Iteration Wallet checkpoint; birth/last-good/quarantine custody is separate",
+        "Undocked portable state and non-attributable mixed sessions are not included",
+        "User-authored text may contain sensitive details even though provider credential stores are excluded",
+    ]
 
-    manifest = {
-        "format": BACKUP_FORMAT,
-        "created_at": time.time(),
-        "user_id": user_id,
-        "friend_id": friend_id,
-        "contains_secrets": False,
-        "roots": list(_ALLOWED_ROOTS),
-        "files": [],
-    }
-    for path in sorted(set(candidates)):
-        rel = path.relative_to(root).as_posix()
-        manifest["files"].append({"path": rel, "size": path.stat().st_size, "sha256": _sha(path)})
+    try:
+        with tempfile.TemporaryDirectory(prefix="pp_backup_") as staging_dir:
+            staging = Path(staging_dir)
+            guidance = _scoped_guidance(root, user_id=user_id, friend_id=friend_id)
+            if guidance:
+                gp = staging / "guidance.jsonl"
+                gp.write_bytes(guidance)
+                extras[f"guidance/{_slug(user_id)}.jsonl"] = gp
 
-    # The searchable SQLite archive is shared across owners; never put the
-    # entire database into a per-user backup. Export just this owner/partner.
-    light_export = None
-    light_db = data_dir / "conversation_archive" / "pubpartner_light.sqlite3"
-    if light_db.exists():
-        light_export = json.dumps(
-            PubPartnerBlackboxLight(data_dir).export(user_id=user_id, friend_id=friend_id),
-            ensure_ascii=False, sort_keys=True, separators=(",", ":")
-        ).encode("utf-8")
-        manifest["files"].append({
-            "path": "blackbox_light/conversations.json",
-            "size": len(light_export),
-            "sha256": hashlib.sha256(light_export).hexdigest(),
-        })
+            light_db = data_dir / "conversation_archive" / "pubpartner_light.sqlite3"
+            if light_db.exists():
+                # The underlying SQLite file spans all users. Never ZIP it whole.
+                payload = PubPartnerBlackboxLight(data_dir).export(
+                    user_id=user_id, friend_id=friend_id)
+                bp = staging / "blackbox_light.json"
+                bp.write_text(
+                    json.dumps(payload, ensure_ascii=False, sort_keys=True,
+                               separators=(",", ":")), encoding="utf-8")
+                extras["blackbox_light/conversations.json"] = bp
 
-    with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
-        zf.writestr("PUBPARTNER_BACKUP_MANIFEST.json", json.dumps(manifest, ensure_ascii=False, indent=2))
-        zf.writestr(
-            "README_RESTORE.txt",
-            "PubPartner friend backup\n\nThis archive contains owner-scoped partner profiles, guidance, relationship records, conversation sources, calibration records, and verified session files. It excludes other users, provider credentials, Wallet custody, and runtime secrets. Verify manifest hashes before recovery.\n",
-        )
-        for path in sorted(set(candidates)):
-            zf.write(path, arcname=f"pubpartner/{path.relative_to(root).as_posix()}")
-        if light_export is not None:
-            zf.writestr("pubpartner/blackbox_light/conversations.json", light_export)
+            cartridge = root / "cartridges" / _slug(friend_id)
+            yaml_path = cartridge / "appearance.yaml"
+            if yaml_path.is_file() and not yaml_path.is_symlink():
+                import yaml
+                appearance = yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
+                if str(appearance.get("created_by") or "") == user_id:
+                    live_db = cartridge / "memories.db"
+                    if live_db.is_file() and not live_db.is_symlink():
+                        # Take SQLite's transaction-consistent snapshot: raw DB
+                        # copy would omit uncheckpointed WAL writes.
+                        sqlite_copy = staging / "cartridge_memories.db"
+                        source_uri = live_db.resolve().as_uri() + "?mode=ro"
+                        with sqlite3.connect(source_uri, uri=True) as original:
+                            with sqlite3.connect(sqlite_copy) as destination:
+                                original.backup(destination)
+                        extras[f"cartridges/{_slug(friend_id)}/memories.db"] = sqlite_copy
+
+            selected = {p.relative_to(root).as_posix(): p for p in candidates}
+            if set(selected) & set(extras):
+                raise RuntimeError("backup manifest path collision")
+            selected.update(extras)
+            manifest = {
+                "format": BACKUP_FORMAT,
+                "created_at": time.time(),
+                "user_id": user_id,
+                "friend_id": friend_id,
+                "scope": "owner_and_partner",
+                "backup_kind": "working_data_not_sealed_wallet_custody",
+                "contains_secrets": False,
+                "roots": sorted({p.split("/", 1)[0] for p in selected}),
+                "files": [
+                    {"path": rel, "size": path.stat().st_size, "sha256": _sha(path)}
+                    for rel, path in sorted(selected.items())
+                ],
+                "warnings": warnings,
+            }
+            with zipfile.ZipFile(temporary_target, "w", compression=zipfile.ZIP_DEFLATED,
+                                 compresslevel=9) as zf:
+                zf.writestr("PUBPARTNER_BACKUP_MANIFEST.json",
+                            json.dumps(manifest, ensure_ascii=False, indent=2))
+                zf.writestr("README_RESTORE.txt",
+                            "PubPartner working-data backup. Verify every manifest hash "
+                            "before any recovery. This is not an Iteration Wallet sealed "
+                            "snapshot. It omits cross-partner sessions and all managed "
+                            "provider credential stores. Personal text may be sensitive.\n")
+                for rel, path in sorted(selected.items()):
+                    zf.write(path, arcname=f"pubpartner/{rel}")
+            check = verify_friend_backup(temporary_target)
+            if not check.get("ok"):
+                raise RuntimeError("self-verification failed: " + str(check.get("error")))
+            temporary_target.replace(target)
+    finally:
+        if temporary_target.exists():
+            temporary_target.unlink()
 
     return {
-        "ok": True,
-        "format": BACKUP_FORMAT,
-        "filename": filename,
-        "path": str(target),
-        "file_count": len(manifest["files"]),
-        "size": target.stat().st_size,
-        "sha256": _sha(target),
+        "ok": True, "format": BACKUP_FORMAT, "filename": filename,
+        "path": str(target), "file_count": len(manifest["files"]),
+        "size": target.stat().st_size, "sha256": _sha(target),
         "download_url": f"/api/pubpartner/backups/{filename}",
+        "scope": "owner_and_partner",
+        "backup_kind": "working_data_not_sealed_wallet_custody",
+        "warnings": warnings,
         "contains_secrets": False,
     }
 
