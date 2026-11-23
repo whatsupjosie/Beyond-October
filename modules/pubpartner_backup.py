@@ -104,7 +104,10 @@ def _eligible_backup_files(root: Path, *, user_id: str, friend_id: str) -> List[
         try:
             profile = json.loads(friend_profile.read_text(encoding="utf-8"))
             cartridge = profile.get("cartridge") or {}
-            if not cartridge or str(cartridge.get("created_by") or "") == user_id:
+            if (friend_id in {"alex", "craig", "friend"} and not cartridge):
+                include(friend_profile)
+            elif (isinstance(cartridge, dict) and
+                  str(cartridge.get("created_by") or "") == user_id):
                 include(friend_profile)
         except (ValueError, OSError, AttributeError, TypeError):
             pass
@@ -332,23 +335,56 @@ def create_friend_backup(data_dir: Path | str, *, user_id: str = "anon", friend_
 
 
 def verify_friend_backup(path: Path | str) -> Dict[str, Any]:
+    """Read-only verification, rejecting extra entries, traversal, and tampering.
+
+    A verified backup is still not automatically authorized for restoration.
+    """
     path = Path(path)
-    if not path.exists():
+    if not path.is_file() or path.is_symlink():
         return {"ok": False, "error": "backup not found"}
     try:
         with zipfile.ZipFile(path, "r") as zf:
             manifest = json.loads(zf.read("PUBPARTNER_BACKUP_MANIFEST.json").decode("utf-8"))
-            if manifest.get("format") != BACKUP_FORMAT:
+            if not isinstance(manifest, dict) or manifest.get("format") != BACKUP_FORMAT:
                 return {"ok": False, "error": "unsupported backup format"}
-            for row in manifest.get("files", []):
-                arc = "pubpartner/" + str(row.get("path") or "")
-                data = zf.read(arc)
-                digest = hashlib.sha256(data).hexdigest()
-                if digest != row.get("sha256"):
-                    return {"ok": False, "error": "hash mismatch", "path": row.get("path")}
-            return {"ok": True, "files": len(manifest.get("files", [])), "manifest": manifest}
+            rows = manifest.get("files")
+            if not isinstance(rows, list):
+                return {"ok": False, "error": "invalid file manifest"}
+            names = zf.namelist()
+            if len(names) != len(set(names)):
+                return {"ok": False, "error": "duplicate ZIP entries"}
+            expected = {"PUBPARTNER_BACKUP_MANIFEST.json", "README_RESTORE.txt"}
+            paths_seen = set()
+            for row in rows:
+                if not isinstance(row, dict):
+                    return {"ok": False, "error": "invalid manifest row"}
+                rel = row.get("path")
+                if not isinstance(rel, str) or not rel or "\\" in rel:
+                    return {"ok": False, "error": "invalid manifest path"}
+                parts = Path(rel).parts
+                if (rel.startswith("/") or len(parts) < 2 or
+                    any(part in ("", ".", "..") for part in parts)):
+                    return {"ok": False, "error": "unsafe manifest path", "path": rel}
+                if rel in paths_seen:
+                    return {"ok": False, "error": "duplicate manifest path", "path": rel}
+                paths_seen.add(rel)
+                arc = "pubpartner/" + rel
+                expected.add(arc)
+                info = zf.getinfo(arc)
+                if info.is_dir() or info.file_size != row.get("size"):
+                    return {"ok": False, "error": "size mismatch", "path": rel}
+                digest = hashlib.sha256()
+                with zf.open(info, "r") as stream:
+                    for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                        digest.update(chunk)
+                if digest.hexdigest() != row.get("sha256"):
+                    return {"ok": False, "error": "hash mismatch", "path": rel}
+            if set(names) != expected:
+                return {"ok": False, "error": "unexpected or missing ZIP entries"}
+            return {"ok": True, "files": len(rows), "manifest": manifest}
     except Exception as exc:
         return {"ok": False, "error": str(exc)}
+
 
 
 __all__ = ["create_friend_backup", "verify_friend_backup", "BACKUP_FORMAT"]
