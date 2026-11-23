@@ -33,6 +33,7 @@ from modules.pub_manager_authority import (
 )
 from modules.pubpartner_backup import create_friend_backup
 from modules.pubpartner_cartridges import create_pubpartner_cartridge_router
+from modules.avatar_imports import create_avatar_import_router
 from modules.pubpartner_vessel import PubPartnerVesselRuntime
 
 try:
@@ -212,6 +213,8 @@ app.include_router(pubpartner_routes.router)
 # The standalone app uses the same existing cartridge studio as PubCast.
 # Without this mount, the shipped New Cartridge UI fails with 404.
 app.include_router(create_pubpartner_cartridge_router(DATA_DIR))
+# Existing cartridge editor asks the same avatar import library as PubCast.
+app.include_router(create_avatar_import_router(DATA_DIR))
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
