@@ -914,12 +914,17 @@ class PubPartnerSpine:
                     pass  # recall is an enrichment; it must never break the turn
 
 
-        guidance = self.guidance_store.compact(
-            user_id=user_id,
-            friend_id=profile.friend_id,
-            project_id=project_id or "default",
-            task=task or {},
-            limit=8,
+        # User-owned guidance is private relationship material. Reuse the same
+        # audience boundary already applied to Vessel and Relationship Engine:
+        # shared studio rooms must not receive someone's private preferences.
+        guidance = (
+            self.guidance_store.compact(
+                user_id=user_id,
+                friend_id=profile.friend_id,
+                project_id=project_id or "default",
+                task=task or {},
+                limit=8,
+            ) if turn_audience == "private" else []
         )
         relationship_guidance = (
             self.relationship.compact(
