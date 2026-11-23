@@ -162,3 +162,37 @@ class CalibrationStore:
                 except (OSError, ValueError, KeyError, json.JSONDecodeError):
                     continue
         return sorted(rows, key=lambda d: d["created_at"], reverse=True)[:max(1, min(100, limit))]
+
+    def save_audio(self, *, user_id: str, interview_id: str,
+                   data: bytes, content_type: str) -> Dict[str, Any]:
+        """Save an explicitly recorded sample. No automatic audio collection."""
+        self.get(user_id=user_id, interview_id=interview_id)
+        mime = content_type.split(";", 1)[0].strip().lower()
+        allowed = {"audio/webm": "webm", "audio/ogg": "ogg",
+                   "audio/mp4": "m4a", "audio/wav": "wav",
+                   "audio/x-wav": "wav"}
+        if mime not in allowed:
+            raise CalibrationError("unsupported audio format")
+        if not data or len(data) > 4 * 1024 * 1024:
+            raise CalibrationError("audio sample must be between 1 byte and 4 MB")
+        audio_id = uuid.uuid4().hex
+        directory = self.root / _slug(user_id) / "audio" / interview_id
+        directory.mkdir(parents=True, exist_ok=True)
+        path = directory / (audio_id + "." + allowed[mime])
+        with path.open("xb") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        return {"ok": True, "audio_ref": audio_id, "bytes": len(data),
+                "content_type": mime, "interview_id": interview_id}
+
+    def audio_path(self, *, user_id: str, interview_id: str,
+                   audio_ref: str) -> Path:
+        self.get(user_id=user_id, interview_id=interview_id)
+        if not re.fullmatch(r"[a-f0-9]{32}", audio_ref):
+            raise CalibrationError("invalid audio reference")
+        directory = self.root / _slug(user_id) / "audio" / interview_id
+        files = [p for p in directory.glob(audio_ref + ".*") if p.suffix in {".webm", ".ogg", ".m4a", ".wav"}] if directory.exists() else []
+        if len(files) != 1:
+            raise FileNotFoundError("audio not found")
+        return files[0]
