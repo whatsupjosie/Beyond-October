@@ -46,7 +46,7 @@ def test_approved_correction_uses_existing_relationship_guidance():
     relationship = read("modules/pubpartner_relationship.py")
     assert "'/relationship/lessons'" in ui
     assert "status: 'confirmed'" in ui
-    assert "this.relationship.compact(" in core
+    assert "self.relationship.compact(" in core
     assert 'globally_applicable = kind in {"boundary", "workflow", "identity"}' in relationship
     assert "calibration_id" in ui
 
