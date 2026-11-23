@@ -764,6 +764,16 @@ class PubPartnerSpine:
             "friend": profile.compact(),
             "user": primer.compact(),
             "provider": provider_profile.compact(),
+            # Keep non-secret connection details for resumed sessions. The FCP1
+            # packet deliberately contains only the normalized provider name and
+            # model, so it cannot reconstruct a local host or BYOK reference.
+            "provider_runtime": {
+                key: value for key, value in
+                (provider.items() if isinstance(provider, dict) else [])
+                if key in {"provider", "name", "model", "host", "base_url",
+                           "credential_model_id", "require_api_key", "max_tokens"}
+                and isinstance(value, (str, int, float, bool))
+            },
             "alex_bridge": alex_packet,
             "jeremy_whisper": whisper,
             "created_at": _now(),
@@ -1069,11 +1079,22 @@ class PubPartnerSpine:
             task=knowledge_task,
         )
         turn = self.knowledge.inject_reference(turn, knowledge_result)
-        provider_result = await self.provider_dispatcher.dispatch(turn, provider or {})
+        # A resumed session must use its saved non-secret provider connection,
+        # not silently fall back to localhost/default just because this turn
+        # omitted the provider object. Explicit per-turn configuration wins.
+        dispatch_config = provider
+        if dispatch_config is None:
+            saved = self._read_session_state(user_id or "anon", session_id or "default")
+            dispatch_config = saved.get("provider_runtime") or saved.get("provider")
+        if isinstance(dispatch_config, str):
+            dispatch_config = self.profiles.resolve_provider(dispatch_config)
+        if not isinstance(dispatch_config, dict):
+            dispatch_config = {}
+        provider_result = await self.provider_dispatcher.dispatch(turn, dispatch_config)
         provider_fallback: Optional[Dict[str, Any]] = None
         if allow_fallback and not provider_result.ok and provider_result.provider not in {"offline", "mock"}:
             provider_fallback = provider_result.as_dict()
-            fallback_config = dict(provider or {})
+            fallback_config = dict(dispatch_config)
             fallback_config["provider"] = "offline"
             provider_result = await self.provider_dispatcher.dispatch(turn, fallback_config)
             provider_result.warnings.append("fell back to offline provider after requested provider was unavailable")
