@@ -86,6 +86,8 @@
     show('calibrationNext', false);
     $('calibrationSubmit').disabled = false;
     $('calibrationSubmit').textContent = 'Save answer';
+    $('calibrationAskFollowup').disabled = false;
+    $('calibrationAskFollowup').textContent = 'Ask follow-up';
     $('calibrationNext').textContent = state.asked >= 2 ? 'Another question (optional)' : 'Next question';
   }
   async function start() {
@@ -132,6 +134,7 @@
     await event('follow_up', text, state.currentId);
     state.followup = true;
     $('calibrationFollowup').placeholder = 'Answer the follow-up here';
+    $('calibrationFollowup').value = '';
     $('calibrationAskFollowup').textContent = 'Save follow-up answer';
     say('Follow-up saved. Respond below if you want.');
   }
@@ -163,7 +166,7 @@
     const evidence_ids = [state.doc.id, state.moment?.source_id].filter(Boolean);
     await call('/relationship/lessons', 'POST', {
       friend_id: state.doc.partner_id, text,
-      kind: state.doc.mode === 'system' ? 'identity' : 'preference',
+      kind: state.doc.mode === 'system' ? 'identity' : 'workflow',
       scope: 'global', status: 'confirmed', confidence: 1,
       evidence_ids, metadata: { calibration_id: state.doc.id, calibration_mode: state.doc.mode }
     });
