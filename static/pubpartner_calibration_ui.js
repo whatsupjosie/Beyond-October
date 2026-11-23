@@ -50,10 +50,10 @@
     selector.replaceChildren(new Option('No archived moment selected', ''));
     const sessionId = $('sessionId')?.value || 'pubpartner_live';
     try {
-      const result = await call('/calibration/moments?session_id=' + encodeURIComponent(sessionId));
+      const result = await call('/calibration/moments?session_id=' + encodeURIComponent(sessionId) + '&friend_id=' + encodeURIComponent(state.doc?.partner_id || $('calibrationPartner').value));
       state.moments = result.moments || [];
       state.moments.forEach((moment, index) => {
-        selector.add(new Option('Moment ' + (index+1) + ': ' + (moment.user_excerpt || '').slice(0,70), String(index)));
+        selector.add(new Option('Moment ' + (index+1) + ' · ' + (moment.session_id || '') + ': ' + (moment.user_excerpt || '').slice(0,60), String(index)));
       });
     } catch (e) {
       say('Archive review unavailable: ' + errText(e) + '. You can still calibrate from your own account.');
