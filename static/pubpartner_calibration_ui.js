@@ -91,6 +91,52 @@
     $('calibrationFollowupQuestion').textContent = '';
     $('calibrationNext').textContent = state.asked >= 2 ? 'Another question (optional)' : 'Next question';
   }
+  async function listPrevious() {
+    const data = await call('/calibration/interviews');
+    const list = $('calibrationResumeList');
+    list.replaceChildren(new Option('Choose previous session', ''));
+    (data.interviews || []).filter(d => d.state !== 'closed').forEach(d => {
+      list.add(new Option(d.partner_id + ' · ' + d.mode + ' · ' + d.state + ' · ' + new Date(d.created_at * 1000).toLocaleDateString(), d.id));
+    });
+  }
+  async function resume() {
+    const id = $('calibrationResumeList').value;
+    if (!id) { say('Select an interview to resume.'); return; }
+    state.doc = await call('/calibration/interviews/' + id);
+    state.asked = state.doc.main_questions_asked || 0;
+    $('calibrationPartner').value = state.doc.partner_id;
+    $('calibrationMode').value = state.doc.mode;
+    show('calibrationSetup', false);
+    await loadMoments();
+    if (state.doc.state === 'formal') {
+      show('calibrationInterview', true);
+      show('calibrationContinuation', false);
+      const previous = state.doc.questions?.[state.doc.questions.length - 1];
+      if (previous && previous.answer === null) {
+        state.asked -= 1;
+        renderQuestion();
+        state.currentId = previous.id;
+        $('calibrationQuestion').textContent = previous.text;
+      } else if (previous && previous.follow_up && previous.follow_up_answer === null) {
+        renderQuestion();
+        state.currentId = previous.id;
+        state.saved = true;
+        state.followup = true;
+        $('calibrationQuestion').textContent = previous.text;
+        $('calibrationAnswer').value = previous.answer?.text || '';
+        $('calibrationSubmit').disabled = true;
+        $('calibrationFollowupQuestion').textContent = previous.follow_up.text;
+        show('calibrationFollowupBlock', true);
+        show('calibrationNext', state.asked < 5);
+      } else if (state.asked >= 5) {
+        await finish();
+      } else renderQuestion();
+    } else {
+      show('calibrationInterview', false);
+      show('calibrationContinuation', true);
+    }
+    say('Calibration resumed from saved interview.');
+  }
   async function start() {
     const mode = $('calibrationMode').value;
     const partner_id = $('calibrationPartner').value;
@@ -212,9 +258,11 @@
     gate.hidden = false;
     const current = $('friendId')?.value;
     if (current && [...$('calibrationPartner').options].some(o=>o.value===current)) $('calibrationPartner').value = current;
+    listPrevious().catch(e => say('Could not load previous calibrations: ' + errText(e)));
   });
   $('calibrationDismiss').addEventListener('click', () => { gate.hidden = true; });
   $('calibrationStart').addEventListener('click', wrap(start));
+  $('calibrationResume').addEventListener('click', wrap(resume));
   $('calibrationMoment').addEventListener('change', selectMoment);
   $('calibrationSubmit').addEventListener('click', wrap(saveAnswer));
   $('calibrationOfferFollowup').addEventListener('click', wrap(followup));
@@ -226,6 +274,12 @@
   }));
   $('calibrationFinish').addEventListener('click', wrap(finish));
   $('calibrationSaveExtra').addEventListener('click', wrap(saveExtra));
+  $('calibrationClarify').addEventListener('click', wrap(async () => {
+    const question = 'Is there something important I still haven’t understood about that?';
+    await event('clarification', question);
+    $('calibrationClarificationText').textContent = question;
+    say('You can answer in additional feedback, or simply continue talking.');
+  }));
   $('calibrationApplyLesson').addEventListener('click', wrap(approveLesson));
   $('calibrationCloseSession').addEventListener('click', wrap(closeSession));
   $('calibrationDictate').addEventListener('click', dictate);
