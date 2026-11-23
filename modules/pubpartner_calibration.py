@@ -166,7 +166,9 @@ class CalibrationStore:
     def save_audio(self, *, user_id: str, interview_id: str,
                    data: bytes, content_type: str) -> Dict[str, Any]:
         """Save an explicitly recorded sample. No automatic audio collection."""
-        self.get(user_id=user_id, interview_id=interview_id)
+        interview = self.get(user_id=user_id, interview_id=interview_id)
+        if interview.get("state") == "closed":
+            raise CalibrationError("cannot add audio to a closed interview")
         mime = content_type.split(";", 1)[0].strip().lower()
         allowed = {"audio/webm": "webm", "audio/ogg": "ogg",
                    "audio/mp4": "m4a", "audio/wav": "wav",
@@ -178,6 +180,8 @@ class CalibrationStore:
         audio_id = uuid.uuid4().hex
         directory = self.root / _slug(user_id) / "audio" / interview_id
         directory.mkdir(parents=True, exist_ok=True)
+        if len(list(directory.glob("*"))) >= 50:
+            raise CalibrationError("audio sample limit reached for this interview")
         path = directory / (audio_id + "." + allowed[mime])
         with path.open("xb") as f:
             f.write(data)
