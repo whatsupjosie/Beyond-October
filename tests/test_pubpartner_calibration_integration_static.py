@@ -18,7 +18,7 @@ def test_calibration_ui_loaded_from_shared_pubpartner_page():
     assert 'id="calibrationGate"' in html
     assert '/static/pubpartner_calibration_ui.js' in html
     for marker in ("calibrationStart", "calibrationSubmit", "calibrationFinish",
-                   "calibrationExtra", "calibrationApplyLesson", "calibrationDictate"):
+                   "calibrationExtra", "calibrationApplyLesson", "calibrationDictate", "calibrationRecordAudio", "calibrationResume"):
         assert marker in html and marker in js
 
 
@@ -53,4 +53,8 @@ def test_approved_correction_uses_existing_relationship_guidance():
 
 def test_audio_capture_not_falsely_claimed():
     html = read("static/pubpartner.html")
-    assert "No audio archive is created by this control" in html
+    assert "It does not preserve the original audio" in html
+    assert "Record voice sample (max 60 seconds)" in html
+    routes = read("modules/pubpartner_routes.py")
+    assert '@router.post("/calibration/interviews/{interview_id}/audio")' in routes
+    assert '@router.get("/calibration/interviews/{interview_id}/audio/{audio_ref}")' in routes
