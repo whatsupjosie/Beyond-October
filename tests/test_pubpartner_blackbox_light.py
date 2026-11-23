@@ -47,9 +47,11 @@ def test_backup_excludes_other_user_and_partner_sessions(tmp_path):
         folder.mkdir(parents=True, exist_ok=True)
         name = f"{owner}_{friend}_session"
         (folder / f"{name}.json").write_text(
-            __import__("json").dumps({"user_id": owner, "friend": {"id": friend}}),
+            __import__("json").dumps({"user_id": owner, "session_id": name, "friend": {"id": friend}}),
             encoding="utf-8")
-        (folder / f"{name}_turns.jsonl").write_text('{"source":{"id":"src"}}\n', encoding="utf-8")
+        (folder / f"{name}_turns.jsonl").write_text(
+            __import__("json").dumps({"fcp1": {"f": {"id": friend}}, "source": {"id": "src"}}) + "\n",
+            encoding="utf-8")
     output = create_friend_backup(tmp_path, user_id="alice", friend_id="alex")
     assert verify_friend_backup(output["path"])["ok"] is True
     import zipfile
