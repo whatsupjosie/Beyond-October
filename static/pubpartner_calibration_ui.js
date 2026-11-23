@@ -4,7 +4,7 @@
   const $ = id => document.getElementById(id);
   const gate = $('calibrationGate');
   if (!gate) return;
-  const state = { doc: null, asked: 0, moment: null, moments: [], currentId: null, followup: false, saved: false, audioRef: '', recorder: null, recordingTimer: null, audioUrl: null, audioUploading: false };
+  const state = { doc: null, asked: 0, moment: null, moments: [], currentId: null, followup: false, saved: false, audioRef: '', recorder: null, recordingTimer: null, audioUrl: null, audioUploading: false, discardRecording: false };
   const userQuestions = [
     "How are you feeling today? Tell me a little about your day.",
     "Thinking about this moment, were you upset, excited, or feeling something else?",
@@ -92,6 +92,22 @@
     $('calibrationFollowupQuestion').textContent = '';
     $('calibrationNext').textContent = state.asked >= 2 ? 'Another question (optional)' : 'Next question';
   }
+  async function playExistingAudio(audioRef) {
+    if (!audioRef || !state.doc) return;
+    const headers = {};
+    if (token()) headers.Authorization = 'Bearer ' + token();
+    headers['X-Client-Id'] = user();
+    const url = '/api/pubpartner/calibration/interviews/' + state.doc.id + '/audio/' + encodeURIComponent(audioRef);
+    const response = await fetch(url, {headers});
+    if (!response.ok) throw new Error('Could not load saved voice sample');
+    const blob = await response.blob();
+    clearAudioPreview();
+    state.audioUrl = URL.createObjectURL(blob);
+    const player = $('calibrationAudioPreview');
+    player.src = state.audioUrl;
+    player.hidden = false;
+    state.audioRef = audioRef;
+  }
   async function listPrevious() {
     const data = await call('/calibration/interviews');
     const list = $('calibrationResumeList');
@@ -129,6 +145,7 @@
         $('calibrationFollowupQuestion').textContent = previous.follow_up.text;
         show('calibrationFollowupBlock', true);
         show('calibrationNext', state.asked < 5);
+        if (previous.answer?.evidence?.audio_ref) await playExistingAudio(previous.answer.evidence.audio_ref);
       } else if (state.asked >= 5) {
         await finish();
       } else renderQuestion();
@@ -202,6 +219,7 @@
   }
   async function finish() {
     if (!state.doc) return;
+    if (state.recorder || state.audioUploading) { say('Stop and save the voice sample before finishing.'); return; }
     state.doc = await call('/calibration/interviews/' + state.doc.id + '/finish', 'POST', {});
     show('calibrationInterview', false);
     show('calibrationContinuation', true);
@@ -229,6 +247,7 @@
     say('Approved correction saved in the existing Relationship Engine. It can inform future turns.');
   }
   async function closeSession() {
+    abortRecording();
     if (state.doc) await call('/calibration/interviews/' + state.doc.id + '/close', 'POST', {});
     state.doc = null;
     gate.hidden = true;
@@ -266,6 +285,7 @@
         state.recorder = null;
         stream.getTracks().forEach(t => t.stop());
         show('calibrationStopAudio', false);
+        if (state.discardRecording) { state.discardRecording = false; say('Recording discarded.'); return; }
         const blob = new Blob(chunks, {type:mime});
         if (!blob.size) { say('No audio was captured.'); return; }
         if (blob.size > 4 * 1024 * 1024) { say('Recording exceeds the 4 MB storage limit.'); return; }
@@ -290,6 +310,7 @@
         finally { state.audioUploading = false; }
       };
       state.recorder = recorder;
+      state.discardRecording = false;
       state.audioRef = '';
       clearAudioPreview();
       recorder.start(250);
@@ -303,6 +324,12 @@
   }
   function stopAudio() {
     if (state.recorder?.state === 'recording') state.recorder.stop();
+  }
+  function abortRecording() {
+    if (state.recorder?.state === 'recording') {
+      state.discardRecording = true;
+      state.recorder.stop();
+    }
   }
   function dictate() {
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -331,7 +358,7 @@
     if (current && [...$('calibrationPartner').options].some(o=>o.value===current)) $('calibrationPartner').value = current;
     listPrevious().catch(e => say('Could not load previous calibrations: ' + errText(e)));
   });
-  $('calibrationDismiss').addEventListener('click', () => { gate.hidden = true; });
+  $('calibrationDismiss').addEventListener('click', () => { abortRecording(); gate.hidden = true; });
   $('calibrationStart').addEventListener('click', wrap(start));
   $('calibrationResume').addEventListener('click', wrap(resume));
   $('calibrationMoment').addEventListener('change', selectMoment);
