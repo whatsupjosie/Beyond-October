@@ -974,6 +974,75 @@ async def calibration_close(interview_id: str, request: Request, identity: Dict[
         raise HTTPException(status_code=404, detail="calibration interview not found")
 
 
+@router.post("/calibration/interviews/{interview_id}/approve")
+async def calibration_approve(interview_id: str, request: Request,
+                              identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
+    """Turn a *specific, explicitly approved* calibration answer into guidance.
+
+    No inference from unreviewed emotion, no automatic persona rewriting.
+    Existing RelationshipEngine owns the versioned/reversible lesson record.
+    """
+    body = await _json_dict(request)
+    owner = _scoped_user_id(request=request, identity=identity, explicit_value=body.get("user_id"))
+    if body.get("approve") is not True:
+        raise HTTPException(status_code=400, detail="explicit approve=true required")
+    text = body.get("text")
+    if not isinstance(text, str) or not text.strip():
+        raise HTTPException(status_code=400, detail="approved guidance text is required")
+    try:
+        interview = _calibration_store().get(user_id=owner, interview_id=interview_id)
+    except (FileNotFoundError, CalibrationError):
+        raise HTTPException(status_code=404, detail="calibration interview not found")
+
+    question_id = body.get("question_id")
+    continuation_index = body.get("continuation_index")
+    if isinstance(question_id, str) and question_id:
+        question = next((row for row in interview.get("questions", [])
+                         if row.get("id") == question_id), None)
+        if question is None or not isinstance(question.get("answer"), dict):
+            raise HTTPException(status_code=400, detail="an answered interview question is required")
+        evidence = question["answer"]
+        anchor = "question:" + question_id
+    elif isinstance(continuation_index, int) and not isinstance(continuation_index, bool):
+        rows = interview.get("continuation") or []
+        if continuation_index < 0 or continuation_index >= len(rows):
+            raise HTTPException(status_code=400, detail="unknown continuation event")
+        evidence = rows[continuation_index]
+        anchor = "continuation:" + str(continuation_index)
+    else:
+        raise HTTPException(status_code=400, detail="question_id or continuation_index is required")
+
+    if interview.get("mode") not in {"user", "system"}:
+        raise HTTPException(status_code=409, detail="invalid calibration mode")
+    from .pubpartner_relationship import VALID_KIND
+    default_kind = "workflow" if interview["mode"] == "system" else "preference"
+    kind = str(body.get("kind") or default_kind)
+    if kind not in VALID_KIND:
+        raise HTTPException(status_code=400, detail="unsupported lesson kind")
+    evidence_ref = f"calibration:{interview_id}:{anchor}"
+    try:
+        result = get_spine().add_relationship_lesson(
+            user_id=owner,
+            friend_id=str(interview["partner_id"]),
+            text=text,
+            kind=kind,
+            status="confirmed",
+            confidence=1.0,
+            source="calibration_explicit_approval",
+            evidence_ids=[evidence_ref],
+            metadata={
+                "calibration_interview_id": interview_id,
+                "calibration_mode": interview["mode"],
+                "calibration_event": anchor,
+                "original_evidence": evidence.get("evidence", {}),
+                "approved_by_user": True,
+            },
+        )
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"ok": True, "approved": True, "evidence_ref": evidence_ref, **result}
+
+
 @router.get("/calibration/moments")
 async def calibration_moments(request: Request, session_id: str = "pubpartner_live",
                               friend_id: str = "alex",
