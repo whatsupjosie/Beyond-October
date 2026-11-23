@@ -64,3 +64,21 @@ def test_canonical_pipeline_is_wired_and_public_rooms_skipped():
     assert "self.blackbox_light.capture_exchange(" in core
     assert '_turn_audience(task, room_id) == "private"' in core
     assert 'live_result["blackbox_light"] = archive_result' in core
+
+
+def test_backup_contains_only_requested_partner_full_dialogue(tmp_path):
+    light = PubPartnerBlackboxLight(tmp_path)
+    for owner, friend, word in (("alice", "alex", "dazzling"), ("alice", "craig", "sunflower"), ("bob", "alex", "midnight")):
+        light.capture_exchange(user_id=owner, friend_id=friend, session_id="s",
+                               source_id="src", user_text=f"User says {word}",
+                               friend_response=f"Partner replies {word}")
+    output = create_friend_backup(tmp_path, user_id="alice", friend_id="alex")
+    assert verify_friend_backup(output["path"])["ok"] is True
+    import zipfile
+    import json
+    with zipfile.ZipFile(output["path"]) as zf:
+        data = json.loads(zf.read("pubpartner/blackbox_light/conversations.json"))
+    serialized = json.dumps(data)
+    assert data["owner"] == "alice" and data["partner_id"] == "alex"
+    assert "dazzling" in serialized
+    assert "sunflower" not in serialized and "midnight" not in serialized
