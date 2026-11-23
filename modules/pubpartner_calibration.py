@@ -21,7 +21,8 @@ MAX_FOLLOW_UPS_PER_MAIN = 1
 
 
 def _slug(value: str) -> str:
-    return re.sub(r"[^a-zA-Z0-9_.-]", "_", str(value))[:96] or "anon"
+    cleaned = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(value or "anon")).strip("._-")
+    return (cleaned or "anon")[:96]
 
 
 class CalibrationError(ValueError):
