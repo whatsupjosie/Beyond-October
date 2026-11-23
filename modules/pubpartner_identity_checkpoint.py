@@ -29,9 +29,20 @@ def validate_identity_packet(turn: Mapping[str, Any]) -> dict:
     friend = fcp.get("f")
     if not isinstance(friend, dict) or not str(friend.get("id") or friend.get("friend_id") or "").strip():
         raise ValueError("Missing friend identity in FCP1 packet")
+    # A complete packet must contain the identity, user, policy, memory and
+    # guidance compartments even when a new character has zero memories.
+    for key in ("u", "m", "guide", "safe", "history", "source_policy"):
+        if key not in fcp:
+            raise ValueError(f"Missing FCP1 identity-review compartment: {key}")
     prompt = turn.get("llm_prompt_text")
     if not isinstance(prompt, str) or not prompt.strip():
         raise ValueError("Missing model-facing identity context")
+    if not prompt.startswith("@FCP1") or "\\nf=" not in prompt or "\\nu=" not in prompt:
+        raise ValueError("Model-facing prompt omitted the FCP1 identity or user")
+    if fcp["m"] and "\\nm=" not in prompt:
+        raise ValueError("Retrieved memories missing from model-facing prompt")
+    if fcp["guide"] and "\\nguide=" not in prompt:
+        raise ValueError("Behavioral guidance missing from model-facing prompt")
     return {
         "friend_id": str(friend.get("id") or friend.get("friend_id")),
         "memory_count": int(turn.get("memory_count") or 0),
