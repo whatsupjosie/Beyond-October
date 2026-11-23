@@ -1001,3 +1001,44 @@ async def calibration_moments(request: Request, session_id: str = "pubpartner_li
         if len(moments) >= 12:
             break
     return {"ok": True, "moments": moments}
+
+
+@router.post("/calibration/interviews/{interview_id}/audio")
+async def calibration_upload_audio(interview_id: str, request: Request,
+                                   identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
+    """Authenticated optional recorded audio for future EQ review, not diagnosis."""
+    user_id = _scoped_user_id(request=request, identity=identity)
+    size = request.headers.get("content-length")
+    if size:
+        try:
+            declared = int(size)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="invalid content length")
+        if declared > 4 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="audio sample too large")
+    payload = await request.body()
+    if len(payload) > 4 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="audio sample too large")
+    try:
+        return _calibration_store().save_audio(
+            user_id=user_id, interview_id=interview_id, data=payload,
+            content_type=request.headers.get("content-type", ""),
+        )
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="calibration interview not found")
+    except CalibrationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/calibration/interviews/{interview_id}/audio/{audio_ref}")
+async def calibration_download_audio(interview_id: str, audio_ref: str, request: Request,
+                                     identity: Dict[str, Any] = Depends(current_identity)):
+    user_id = _scoped_user_id(request=request, identity=identity)
+    try:
+        path = _calibration_store().audio_path(
+            user_id=user_id, interview_id=interview_id, audio_ref=audio_ref)
+    except (FileNotFoundError, CalibrationError):
+        raise HTTPException(status_code=404, detail="audio sample not found")
+    mime = {".webm": "audio/webm", ".ogg": "audio/ogg",
+            ".m4a": "audio/mp4", ".wav": "audio/wav"}[path.suffix]
+    return FileResponse(path, media_type=mime, headers={"Cache-Control": "no-store"})
