@@ -105,19 +105,48 @@ def _eligible_backup_files(root: Path, *, user_id: str, friend_id: str) -> List[
         try:
             profile = json.loads(friend_profile.read_text(encoding="utf-8"))
             cartridge = profile.get("cartridge") or {}
-            if (friend_id in {"alex", "craig", "friend"} and not cartridge):
+            if (profile.get("id") == friend_id and
+                friend_id in {"alex", "craig", "friend"} and not cartridge):
                 include(friend_profile)
-            elif (isinstance(cartridge, dict) and
+            elif (profile.get("id") == friend_id and isinstance(cartridge, dict) and
                   str(cartridge.get("created_by") or "") == user_id):
                 include(friend_profile)
         except (ValueError, OSError, AttributeError, TypeError):
             pass
-    include(root / "profiles" / "users" / f"{su}.json")
+    user_profile = root / "profiles" / "users" / f"{su}.json"
+    if user_profile.is_file() and not user_profile.is_symlink():
+        try:
+            if json.loads(user_profile.read_text(encoding="utf-8")).get("id") == user_id:
+                include(user_profile)
+        except (ValueError, OSError, AttributeError, TypeError):
+            pass
 
+    # Slug collisions can put another account's lessons under the same folder.
+    # Inspect embedded owner/partner in each record before selecting a file.
     pair_dir = root / "relationship" / su / sf
     if pair_dir.is_dir() and not pair_dir.is_symlink():
-        for file in pair_dir.rglob("*"):
-            include(file)
+        lessons = pair_dir / "lessons.json"
+        if lessons.is_file() and not lessons.is_symlink():
+            try:
+                doc = json.loads(lessons.read_text(encoding="utf-8"))
+                rows = doc.get("lessons") or []
+                if (doc.get("user_id") == user_id and doc.get("friend_id") == friend_id and
+                    isinstance(rows, list) and
+                    all(isinstance(row, dict) and row.get("user_id") == user_id and
+                        row.get("friend_id") == friend_id for row in rows)):
+                    include(lessons)
+            except (ValueError, OSError, AttributeError, TypeError):
+                pass
+        encounters = pair_dir / "encounters.jsonl"
+        if encounters.is_file() and not encounters.is_symlink():
+            try:
+                rows = [json.loads(line) for line in encounters.read_text(encoding="utf-8").splitlines()
+                        if line.strip()]
+                if rows and all(isinstance(row, dict) and row.get("user_id") == user_id and
+                                row.get("friend_id") == friend_id for row in rows):
+                    include(encounters)
+            except (ValueError, OSError, AttributeError, TypeError):
+                pass
 
     sessions_root = root / "sessions"
     matching_states = []
