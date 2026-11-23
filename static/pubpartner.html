@@ -256,13 +256,13 @@
         <blockquote id="calibrationExcerpt" style="white-space:pre-wrap"></blockquote>
         <p id="calibrationQuestion" style="font-weight:600"></p>
         <label>Your response<textarea id="calibrationAnswer" rows="3" maxlength="16000" placeholder="Say it in your own words"></textarea></label>
-        <button type="button" id="calibrationDictate">🎙 Dictate response</button>
+        <button type="button" id="calibrationDictate">🎙 Dictate response</button><small>Browser dictation may use an external speech service; verify its privacy settings before using. No audio archive is created by this control.</small>
         <button type="button" id="calibrationSubmit">Save answer</button>
         <div id="calibrationFollowupBlock" hidden>
-          <label>Optional follow-up<textarea id="calibrationFollowup" rows="2" maxlength="16000" placeholder="Only if something needs clarification"></textarea></label>
-          <button type="button" id="calibrationAskFollowup">Ask follow-up</button>
+          <p id="calibrationFollowupQuestion"></p><label>Your follow-up answer<textarea id="calibrationFollowup" rows="2" maxlength="16000" placeholder="Respond to your partner, if you want"></textarea></label>
+          <button type="button" id="calibrationAskFollowup">Save follow-up answer</button>
         </div>
-        <button type="button" id="calibrationNext" hidden>Next question</button>
+        <button type="button" id="calibrationOfferFollowup" hidden>Ask a clarifying question</button><button type="button" id="calibrationNext" hidden>Next question</button>
         <button type="button" id="calibrationFinish">Finish formal interview</button>
       </div>
       <div id="calibrationContinuation" hidden>
