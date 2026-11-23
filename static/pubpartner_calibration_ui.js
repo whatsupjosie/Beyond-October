@@ -5,12 +5,14 @@
   const gate = $('calibrationGate');
   if (!gate) return;
   const state = { doc: null, asked: 0, moment: null, moments: [], currentId: null, followup: false, saved: false, audioRef: '', recorder: null, recordingTimer: null, audioUrl: null, audioUploading: false, discardRecording: false };
+  // Never supply a proposed emotion before hearing the person's own account.
+  // An archived moment is evidence, not an emotional verdict.
   const userQuestions = [
-    "How are you feeling today? Tell me a little about your day.",
-    "Thinking about this moment, were you upset, excited, or feeling something else?",
-    "Was there anything in that exchange that I misunderstood?",
-    "Was something I said bothering you, or was it something else?",
-    "Is there anything important about that moment I still haven't understood?"
+    "Can you tell me what you were feeling at this time, and what made you feel that way?",
+    "Is there anything else about what was happening then that would help me understand?",
+    "Did I understand what you meant, or is there something I missed?",
+    "Was there something going on outside this conversation that matters here?",
+    "Is there anything you'd like me to remember about that experience?"
   ];
   const systemQuestions = [
     "How did I come across in this moment? Did I sound like myself?",
@@ -63,18 +65,25 @@
   function selectMoment() {
     const v = $('calibrationMoment').value;
     state.moment = v === '' ? null : state.moments[Number(v)] || null;
+    if (state.doc?.state === 'formal' && !state.currentId) {
+      $('calibrationQuestion').textContent = questionText();
+    }
     $('calibrationExcerpt').textContent = state.moment
       ? 'You: ' + (state.moment.user_excerpt || '') + '\nPartner: ' + (state.moment.partner_excerpt || '')
       : 'Select an archived moment if you want to discuss a specific exchange.';
   }
   function questionText() {
-    const list = state.doc.mode === 'user' ? userQuestions : systemQuestions;
-    const n = Math.min(state.asked, list.length - 1);
-    if (!state.moment && state.doc.mode === 'user' && n === 1)
-      return "Was there a recent moment when you felt strongly about something? Tell me what happened.";
-    if (!state.moment && state.doc.mode === 'system' && n === 0)
+    const n = Math.min(state.asked, 4);
+    if (state.doc.mode === 'user') {
+      if (!state.moment && n === 0)
+        return "How are you feeling today? Tell me what's been happening.";
+      if (!state.moment && n === 1)
+        return "Is there a particular experience you'd like to talk through?";
+      return userQuestions[n];
+    }
+    if (!state.moment && n === 0)
       return "How have I been coming across lately? Is there a particular moment you want me to look at?";
-    return list[n];
+    return systemQuestions[n];
   }
   function renderQuestion() {
     $('calibrationProgress').textContent = 'Main question ' + (state.asked + 1) + ' of up to 5 (aiming for 3)';
@@ -195,8 +204,8 @@
   }
   function suggestedFollowup() {
     return state.doc.mode === 'system'
-      ? 'Was it something I said, or how I said it?'
-      : 'Was that connected to this conversation, or something else?';
+      ? 'What would you have preferred me to do differently?'
+      : 'Is there anything else you want to tell me about what was happening?';
   }
   async function followup() {
     if (!state.saved || !state.currentId) { say('Save the main answer first.'); return; }
@@ -373,7 +382,7 @@
   $('calibrationFinish').addEventListener('click', wrap(finish));
   $('calibrationSaveExtra').addEventListener('click', wrap(saveExtra));
   $('calibrationClarify').addEventListener('click', wrap(async () => {
-    const question = 'Is there something important I still haven’t understood about that?';
+    const question = 'Is there anything else you want me to understand about that experience?';
     await event('clarification', question);
     $('calibrationClarificationText').textContent = question;
     say('You can answer in additional feedback, or simply continue talking.');
