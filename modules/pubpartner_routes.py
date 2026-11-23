@@ -892,3 +892,76 @@ async def provider_test(request: Request, identity: Dict[str, Any] = Depends(cur
 @router.get("/providers/local-config")
 async def local_model_defaults():
     return {"enabled": bool(os.getenv("PUBCAST_LOCAL_MODEL_URL")), "provider": default_provider()}
+
+
+# Calibration is owned by the existing PubPartner host spine, not a second server.
+from .pubpartner_calibration import CalibrationStore, CalibrationError
+
+
+def _calibration_store() -> CalibrationStore:
+    return CalibrationStore(get_spine().data_dir)
+
+
+@router.post("/calibration/interviews")
+async def calibration_start(request: Request, identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
+    body = await _json_dict(request)
+    user = _scoped_user_id(request=request, identity=identity, explicit_value=body.get("user_id"))
+    try:
+        return _calibration_store().start(
+            user_id=user,
+            partner_id=str(body.get("partner_id") or ""),
+            mode=str(body.get("mode") or ""),
+        )
+    except CalibrationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/calibration/interviews")
+async def calibration_list(request: Request, identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
+    user = _scoped_user_id(request=request, identity=identity)
+    return {"ok": True, "interviews": _calibration_store().list_interviews(user_id=user)}
+
+
+@router.get("/calibration/interviews/{interview_id}")
+async def calibration_get(interview_id: str, request: Request, identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
+    user = _scoped_user_id(request=request, identity=identity)
+    try:
+        return _calibration_store().get(user_id=user, interview_id=interview_id)
+    except (CalibrationError, FileNotFoundError):
+        raise HTTPException(status_code=404, detail="calibration interview not found")
+
+
+@router.post("/calibration/interviews/{interview_id}/events")
+async def calibration_event(interview_id: str, request: Request, identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
+    body = await _json_dict(request)
+    user = _scoped_user_id(request=request, identity=identity, explicit_value=body.get("user_id"))
+    try:
+        return _calibration_store().record(
+            user_id=user, interview_id=interview_id,
+            action=str(body.get("action") or ""),
+            text=body.get("text") or "",
+            question_id=str(body.get("question_id") or ""),
+            evidence=body.get("evidence"), modality=str(body.get("modality") or "text"),
+        )
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="calibration interview not found")
+    except CalibrationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/calibration/interviews/{interview_id}/finish")
+async def calibration_finish(interview_id: str, request: Request, identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
+    user = _scoped_user_id(request=request, identity=identity)
+    try:
+        return _calibration_store().finish_formal(user_id=user, interview_id=interview_id)
+    except (CalibrationError, FileNotFoundError):
+        raise HTTPException(status_code=404, detail="calibration interview not found")
+
+
+@router.post("/calibration/interviews/{interview_id}/close")
+async def calibration_close(interview_id: str, request: Request, identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
+    user = _scoped_user_id(request=request, identity=identity)
+    try:
+        return _calibration_store().close(user_id=user, interview_id=interview_id)
+    except (CalibrationError, FileNotFoundError):
+        raise HTTPException(status_code=404, detail="calibration interview not found")
