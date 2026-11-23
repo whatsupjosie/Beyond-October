@@ -7,6 +7,8 @@ import json
 import time
 import uuid
 import zipfile
+
+from .pubpartner_blackbox_light import PubPartnerBlackboxLight
 from pathlib import Path
 from typing import Any, Dict, Iterable, List
 
@@ -125,6 +127,21 @@ def create_friend_backup(data_dir: Path | str, *, user_id: str = "anon", friend_
         rel = path.relative_to(root).as_posix()
         manifest["files"].append({"path": rel, "size": path.stat().st_size, "sha256": _sha(path)})
 
+    # The searchable SQLite archive is shared across owners; never put the
+    # entire database into a per-user backup. Export just this owner/partner.
+    light_export = None
+    light_db = data_dir / "conversation_archive" / "pubpartner_light.sqlite3"
+    if light_db.exists():
+        light_export = json.dumps(
+            PubPartnerBlackboxLight(data_dir).export(user_id=user_id, friend_id=friend_id),
+            ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+        manifest["files"].append({
+            "path": "blackbox_light/conversations.json",
+            "size": len(light_export),
+            "sha256": hashlib.sha256(light_export).hexdigest(),
+        })
+
     with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
         zf.writestr("PUBPARTNER_BACKUP_MANIFEST.json", json.dumps(manifest, ensure_ascii=False, indent=2))
         zf.writestr(
@@ -133,6 +150,8 @@ def create_friend_backup(data_dir: Path | str, *, user_id: str = "anon", friend_
         )
         for path in sorted(set(candidates)):
             zf.write(path, arcname=f"pubpartner/{path.relative_to(root).as_posix()}")
+        if light_export is not None:
+            zf.writestr("pubpartner/blackbox_light/conversations.json", light_export)
 
     return {
         "ok": True,
