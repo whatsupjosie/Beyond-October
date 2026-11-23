@@ -27,7 +27,8 @@ def _sha(path: Path) -> str:
 
 
 def _slug(value: str, limit: int = 120) -> str:
-    return "".join(c if c.isalnum() or c in "-_." else "_" for c in str(value or "anon"))[:limit]
+    cleaned = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(value or "anon")).strip("._-")
+    return (cleaned or "anon")[:limit]
 
 
 def _session_identity(path: Path) -> Dict[str, str]:
