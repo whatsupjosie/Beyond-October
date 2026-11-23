@@ -1061,3 +1061,36 @@ async def calibration_download_audio(interview_id: str, audio_ref: str, request:
     mime = {".webm": "audio/webm", ".ogg": "audio/ogg",
             ".m4a": "audio/mp4", ".wav": "audio/wav"}[path.suffix]
     return FileResponse(path, media_type=mime, headers={"Cache-Control": "no-store"})
+
+
+# Searchable private conversation history, reusing the canonical Blackbox Light adapter.
+@router.get("/blackbox-light/conversations")
+async def blackbox_light_list(request: Request, friend_id: str = "alex",
+                              identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
+    owner = _scoped_user_id(request=request, identity=identity)
+    rows = get_spine().blackbox_light.list_conversations(user_id=owner, friend_id=friend_id[:120])
+    return {"ok": True, "conversations": rows}
+
+
+@router.get("/blackbox-light/conversations/{conversation_id}")
+async def blackbox_light_get(conversation_id: str, request: Request, friend_id: str = "alex",
+                             identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
+    owner = _scoped_user_id(request=request, identity=identity)
+    try:
+        return get_spine().blackbox_light.get_conversation(
+            user_id=owner, friend_id=friend_id[:120], conversation_id=conversation_id[:120])
+    except KeyError:
+        raise HTTPException(status_code=404, detail="conversation not found")
+
+
+@router.get("/blackbox-light/search")
+async def blackbox_light_search(request: Request, q: str, friend_id: str = "alex",
+                                identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
+    owner = _scoped_user_id(request=request, identity=identity)
+    import sqlite3
+    try:
+        rows = get_spine().blackbox_light.search(
+            user_id=owner, friend_id=friend_id[:120], query=q[:256], limit=40)
+    except sqlite3.OperationalError:
+        raise HTTPException(status_code=400, detail="invalid search expression")
+    return {"ok": True, "results": rows}
