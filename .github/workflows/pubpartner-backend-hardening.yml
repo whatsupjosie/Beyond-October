@@ -1,0 +1,42 @@
+name: PubPartner Backend Hardening
+on:
+  pull_request:
+    paths:
+      - 'modules/pubpartner*.py'
+      - 'modules/conversation_archive.py'
+      - 'tests/test_pubpartner*.py'
+      - 'tests/horizon_ref_pubpartner_backup.py'
+      - '.github/workflows/pubpartner-backend-hardening.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  archive-backup-calibration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install runtime and testing dependencies
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install pytest pytest-asyncio pyyaml
+      - name: Compile changed backend modules
+        run: |
+          python -m py_compile \
+            modules/pubpartner_backup.py modules/pubpartner_blackbox_light.py \
+            modules/pubpartner_calibration.py modules/pubpartner_routes.py modules/pubpartner_core.py
+      - name: Run isolated model-free integration regressions
+        run: |
+          python -m pytest -q \
+            tests/test_pubpartner_blackbox_light.py \
+            tests/test_pubpartner_backup_isolation.py \
+            tests/test_pubpartner_calibration_approval.py \
+            tests/horizon_ref_pubpartner_backup.py \
+            tests/test_pubpartner_calibration.py \
+            tests/test_pubpartner_cartridge_memory_wiring.py \
+            tests/test_pubpartner_existing_wiring.py

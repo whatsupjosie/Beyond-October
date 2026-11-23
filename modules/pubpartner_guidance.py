@@ -107,7 +107,10 @@ class PubPartnerGuidanceStore:
                 row = json.loads(line)
             except Exception:
                 continue
-            if isinstance(row, dict) and row.get("active", True):
+            # File names use normalized slugs, which can collide across user
+            # names. The embedded owner is authoritative, not the path alone.
+            if (isinstance(row, dict) and row.get("user_id") == user_id and
+                row.get("active", True)):
                 rows.append(row)
         return rows
 
