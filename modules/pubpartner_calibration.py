@@ -126,10 +126,11 @@ class CalibrationStore:
                 if question["follow_up"] is None or question["follow_up_answer"] is not None:
                     raise CalibrationError("follow-up answer requires an unanswered follow-up")
                 question["follow_up_answer"] = stamp
-        elif action == "continuation":
-            # Only voluntary continuation after the formal interview.
+        elif action in {"continuation", "clarification"}:
+            # After formal close, clarification never increments the main-question count.
             if document["state"] != "open":
                 raise CalibrationError("continuation is available after formal close")
+            stamp["kind"] = action
             document["continuation"].append(stamp)
         else:
             raise CalibrationError("unsupported calibration action")
