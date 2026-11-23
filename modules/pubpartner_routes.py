@@ -969,39 +969,58 @@ async def calibration_close(interview_id: str, request: Request, identity: Dict[
 
 @router.get("/calibration/moments")
 async def calibration_moments(request: Request, session_id: str = "pubpartner_live",
+                              friend_id: str = "alex",
                               identity: Dict[str, Any] = Depends(current_identity)) -> Dict[str, Any]:
-    """Selected user's recent *real* completed exchanges, with exact user source restored.
-    Never invent acoustic observations or infer feelings from transcript alone.
+    """Actual recent exchanges across sessions, scoped by user and partner.
+
+    Encounter rows are pointers only. Read real replies from the session turn log
+    and original user messages from VerbatimVault. Never fabricate EQ findings.
     """
     user_id = _scoped_user_id(request=request, identity=identity)
-    sid = str(session_id or "pubpartner_live")[:120]
     spine = get_spine()
+    fid = str(friend_id or "alex")[:120]
+    preferred = str(session_id or "pubpartner_live")[:120]
+    encounters = spine.list_relationship_encounters(
+        user_id=user_id, friend_id=fid, limit=120).get("encounters", [])
+    encountered_sessions = list(dict.fromkeys(
+        [preferred, *[str(row.get("session_id") or "") for row in reversed(encounters)
+                     if isinstance(row, dict) and row.get("session_id")]]
+    ))[:30]
     moments = []
-    for turn in reversed(spine.list_turns(user_id=user_id, session_id=sid, limit=40)["turns"]):
-        if not isinstance(turn, dict) or not (turn.get("provider_result") or {}).get("ok"):
-            continue
-        source = turn.get("source") or {}
-        source_id = str(source.get("id") or "")
-        if not source_id:
-            continue
+    seen = set()
+    for sid in encountered_sessions:
         try:
-            exact = spine.restore_source(user_id=user_id, session_id=sid, source_id=source_id)
+            turns = spine.list_turns(user_id=user_id, session_id=sid, limit=60)["turns"]
         except (OSError, ValueError, KeyError, FileNotFoundError):
             continue
-        user_text = str(exact.get("text") or "")
-        partner_text = str(turn.get("friend_response") or "")
-        if not user_text or not partner_text:
-            continue
-        moments.append({
-            "session_id": sid, "source_id": source_id,
-            "turn_id": str(turn.get("turn_id") or (turn.get("receipt") or {}).get("receipt_id") or ""),
-            "user_excerpt": user_text[:600], "partner_excerpt": partner_text[:600],
-            "truncated": len(user_text) > 600 or len(partner_text) > 600,
-        })
-        if len(moments) >= 12:
-            break
+        for turn in reversed(turns):
+            if not isinstance(turn, dict) or not (turn.get("provider_result") or {}).get("ok"):
+                continue
+            source = turn.get("source") or {}
+            source_id = str(source.get("id") or "")
+            if not source_id or (sid, source_id) in seen:
+                continue
+            turn_friend = str(((turn.get("fcp1") or {}).get("f") or {}).get("id") or fid)
+            if turn_friend != fid:
+                continue
+            try:
+                exact = spine.restore_source(user_id=user_id, session_id=sid, source_id=source_id)
+            except (OSError, ValueError, KeyError, FileNotFoundError):
+                continue
+            user_text = str(exact.get("text") or "")
+            partner_text = str(turn.get("friend_response") or "")
+            if not user_text or not partner_text:
+                continue
+            seen.add((sid, source_id))
+            moments.append({
+                "session_id": sid, "source_id": source_id,
+                "turn_id": str(turn.get("turn_id") or (turn.get("receipt") or {}).get("receipt_id") or ""),
+                "user_excerpt": user_text[:600], "partner_excerpt": partner_text[:600],
+                "truncated": len(user_text) > 600 or len(partner_text) > 600,
+            })
+            if len(moments) >= 30:
+                return {"ok": True, "moments": moments}
     return {"ok": True, "moments": moments}
-
 
 @router.post("/calibration/interviews/{interview_id}/audio")
 async def calibration_upload_audio(interview_id: str, request: Request,
