@@ -248,7 +248,7 @@
       <div id="calibrationSetup">
         <label>Partner<select id="calibrationPartner"><option value="alex">Alex</option><option value="craig">Craig</option><option value="friend">Friend</option></select></label>
         <label>Calibration type<select id="calibrationMode"><option value="user">User: understand me</option><option value="system">System: character and presentation</option></select></label>
-        <button type="button" id="calibrationStart">Start calibration</button>
+        <button type="button" id="calibrationStart">Start calibration</button><label>Resume a previous interview<select id="calibrationResumeList"><option value="">Choose previous session</option></select></label><button type="button" id="calibrationResume">Resume selected</button>
       </div>
       <div id="calibrationInterview" hidden>
         <p id="calibrationProgress"></p>
@@ -268,7 +268,7 @@
       <div id="calibrationContinuation" hidden>
         <p>Formal questions are complete. You can keep talking, and your partner can ask for clarification.</p>
         <label>Additional feedback<textarea id="calibrationExtra" rows="3" maxlength="16000"></textarea></label>
-        <button type="button" id="calibrationSaveExtra">Save additional feedback</button>
+        <button type="button" id="calibrationSaveExtra">Save additional feedback</button><button type="button" id="calibrationClarify">Ask for clarification</button><p id="calibrationClarificationText"></p>
         <label>What should your partner remember or do differently? (optional, applied only when you approve)
           <textarea id="calibrationLesson" rows="3" maxlength="600"></textarea>
         </label>
