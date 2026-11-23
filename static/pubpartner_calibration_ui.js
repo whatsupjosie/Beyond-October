@@ -113,8 +113,8 @@
       show('calibrationContinuation', false);
       const previous = state.doc.questions?.[state.doc.questions.length - 1];
       if (previous && previous.answer === null) {
-        state.asked -= 1;
         renderQuestion();
+        $('calibrationProgress').textContent = 'Main question ' + state.asked + ' of up to 5 (resumed)';
         state.currentId = previous.id;
         $('calibrationQuestion').textContent = previous.text;
       } else if (previous && previous.follow_up && previous.follow_up_answer === null) {
